@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.lexer.NfaState;
+import org.hivevm.cc.parser.RStringLiteral.KindInfo;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-
-import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 
 /**
  * The {@link LexerStateData} class.

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-public class ASTBNFAction extends JJTreeNode {
+public class ASTBNFAction extends ASTNode {
 
   public ASTBNFAction(JJTreeParser p, int id) {
     super(p, id);
@@ -26,7 +26,7 @@ public class ASTBNFAction extends JJTreeNode {
 
 
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

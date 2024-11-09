@@ -3,12 +3,6 @@
 
 package org.hivevm.cc;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.text.ParseException;
-
 import org.hivevm.cc.generator.ParserEngine;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -17,6 +11,12 @@ import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StreamProvider;
 import org.hivevm.cc.semantic.Semanticize;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.text.ParseException;
 
 /**
  * Entry point.

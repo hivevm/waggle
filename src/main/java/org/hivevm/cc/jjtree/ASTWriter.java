@@ -3,24 +3,25 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.JJCodeBlock;
+import org.hivevm.cc.Language;
+import org.hivevm.cc.utils.Encoding;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 
-import org.hivevm.cc.JJLanguage;
-import org.hivevm.cc.utils.Encoding;
-
 
 /**
- * The {@link JJTreeWriter} class.
+ * The {@link ASTWriter} class.
  */
-public class JJTreeWriter extends PrintWriter {
+public class ASTWriter extends PrintWriter {
 
   private static final String SELF   = "SELF";
   private static final String JJTREE = "jjtree";
 
 
-  private final JJLanguage language;
+  private final Language language;
 
 
   // Indicates whether the token should be replaced by white space or replaced with the actual node
@@ -28,20 +29,20 @@ public class JJTreeWriter extends PrintWriter {
   private boolean whitingOut = false;
 
   /**
-   * Constructs an instance of {@link JJTreeWriter}.
+   * Constructs an instance of {@link ASTWriter}.
    *
    * @param file
    * @param language
    */
-  public JJTreeWriter(File file, JJLanguage language) throws FileNotFoundException {
+  public ASTWriter(File file, Language language) throws FileNotFoundException {
     super(file);
     this.language = language;
   }
 
   /**
-   * Get the current {@link JJLanguage}.
+   * Get the current {@link Language}.
    */
-  public final JJLanguage getLanguage() {
+  public final Language getLanguage() {
     return language;
   }
 
@@ -50,7 +51,7 @@ public class JJTreeWriter extends PrintWriter {
    */
   public final void openCodeBlock(String arg) {
     append("\n");
-    append(getLanguage().CODE);
+    append(JJCodeBlock.Code.CODE);
     if (arg != null) {
       print(" // " + arg + "\n");
     }
@@ -69,7 +70,7 @@ public class JJTreeWriter extends PrintWriter {
    * @param node
    * @param token
    */
-  public final void printToken(JJTreeNode node, Token token) {
+  public final void printToken(ASTNode node, Token token) {
     Token tt = token.specialToken;
     if (tt != null) {
       while (tt.specialToken != null) {
@@ -127,7 +128,7 @@ public class JJTreeWriter extends PrintWriter {
    * @param node
    * @param visitor
    */
-  public final Object handleJJTreeNode(JJTreeNode node, JJTreeParserVisitor visitor) {
+  public final Object handleJJTreeNode(ASTNode node, JJTreeParserVisitor visitor) {
     if (node.getLastToken().next == node.getFirstToken()) {
       return null;
     }
@@ -136,10 +137,10 @@ public class JJTreeWriter extends PrintWriter {
     Token token = new Token();
     token.next = tokenFirst;
 
-    JJTreeNode n = null;
+    ASTNode n = null;
     Object end = null;
     for (int ord = 0; ord < node.jjtGetNumChildren(); ord++) {
-      n = (JJTreeNode) node.jjtGetChild(ord);
+      n = (ASTNode) node.jjtGetChild(ord);
       while (true) {
         token = token.next;
         if (token == n.getFirstToken()) {

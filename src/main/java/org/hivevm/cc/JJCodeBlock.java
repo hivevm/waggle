@@ -5,17 +5,15 @@ package org.hivevm.cc;
 
 
 /**
- * The {@link JJLanguage} class.
+ * The {@link JJCodeBlock} class.
  */
-public enum JJLanguage {
+public enum JJCodeBlock {
 
-  None,
-  Java,
-  Cpp;
+  Code;
 
   public final String CODE;
 
-  private JJLanguage() {
+  private JJCodeBlock() {
     this.CODE = "@" + name().toLowerCase();
   }
 

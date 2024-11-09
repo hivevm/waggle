@@ -16,7 +16,7 @@ public abstract class GeneratorConfig {
 
   private final Project project;
 
-  public Target         target;
+  public Language       target;
 
 
   private final ListProperty<GeneratorStep> steps;

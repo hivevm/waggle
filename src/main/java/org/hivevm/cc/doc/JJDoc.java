@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.doc;
 
-import java.util.Iterator;
-
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.BNFProduction;
 import org.hivevm.cc.parser.CharacterRange;
@@ -34,6 +32,8 @@ import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.utils.Encoding;
+
+import java.util.Iterator;
 
 /**
  * The main entry point for JJDoc.

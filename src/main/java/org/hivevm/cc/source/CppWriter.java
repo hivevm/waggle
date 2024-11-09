@@ -3,14 +3,14 @@
 
 package org.hivevm.cc.source;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
 
 /**
  * The {@link CppWriter} class.

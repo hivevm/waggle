@@ -3,23 +3,23 @@
 
 package org.hivevm.cc.generator.java;
 
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.generator.JJTreeCodeGenerator;
+import org.hivevm.cc.jjtree.ASTNodeDescriptor;
+import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.jjtree.JJTreeGlobals;
+import org.hivevm.cc.jjtree.JJTreeOptions;
+import org.hivevm.cc.jjtree.NodeScope;
+import org.hivevm.cc.utils.DigestOptions;
+import org.hivevm.cc.utils.DigestWriter;
+import org.hivevm.cc.utils.Template;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.generator.JJTreeCodeGenerator;
-import org.hivevm.cc.jjtree.ASTNodeDescriptor;
-import org.hivevm.cc.jjtree.JJTreeGlobals;
-import org.hivevm.cc.jjtree.JJTreeOptions;
-import org.hivevm.cc.jjtree.JJTreeWriter;
-import org.hivevm.cc.jjtree.NodeScope;
-import org.hivevm.cc.utils.DigestOptions;
-import org.hivevm.cc.utils.DigestWriter;
-import org.hivevm.cc.utils.Template;
 
 public class JavaTreeGenerator extends JJTreeCodeGenerator {
 
@@ -39,7 +39,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
   }
 
   @Override
-  protected final void insertOpenNodeCode(NodeScope ns, JJTreeWriter io, String indent, JJTreeOptions options) {
+  protected final void insertOpenNodeCode(NodeScope ns, ASTWriter io, String indent, JJTreeOptions options) {
     String type = ns.getNodeDescriptor().getNodeType();
     final String nodeClass;
     if ((options.getNodeClass().length() > 0) && !options.getMulti()) {
@@ -75,7 +75,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
   }
 
   @Override
-  protected final void insertCatchBlocks(NodeScope ns, JJTreeWriter io, Enumeration<String> thrown_names,
+  protected final void insertCatchBlocks(NodeScope ns, ASTWriter io, Enumeration<String> thrown_names,
       String indent) {
     if (thrown_names.hasMoreElements()) {
       io.println(indent + "} catch (Throwable " + ns.exceptionVar + ") {");

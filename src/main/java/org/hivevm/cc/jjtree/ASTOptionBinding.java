@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-class ASTOptionBinding extends JJTreeNode {
+class ASTOptionBinding extends ASTNode {
 
   private String  name;
   private boolean suppressed;
@@ -34,7 +34,7 @@ class ASTOptionBinding extends JJTreeNode {
   }
 
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

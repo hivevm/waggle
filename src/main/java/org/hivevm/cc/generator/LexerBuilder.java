@@ -3,14 +3,6 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
-
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
@@ -18,11 +10,19 @@ import org.hivevm.cc.lexer.NfaVisitor;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RChoice;
 import org.hivevm.cc.parser.RStringLiteral;
+import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 import org.hivevm.cc.parser.TokenProduction.Kind;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
 
 /**
  * The {@link LexerBuilder} class.

@@ -3,11 +3,11 @@
 
 package org.hivevm.cc.jjtree;
 
-public class JJTreeNode extends Node {
+public class ASTNode extends Node {
 
   private int myOrdinal;
 
-  JJTreeNode(JJTreeParser p, int i) {
+  ASTNode(JJTreeParser p, int i) {
     super(p, i);
   }
 
@@ -18,7 +18,7 @@ public class JJTreeNode extends Node {
   @Override
   public void jjtAddChild(Node n, int i) {
     super.jjtAddChild(n, i);
-    ((JJTreeNode) n).setOrdinal(i);
+    ((ASTNode) n).setOrdinal(i);
   }
 
   public int getOrdinal() {

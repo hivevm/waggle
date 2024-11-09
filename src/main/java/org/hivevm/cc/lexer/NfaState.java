@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.lexer;
 
+import org.hivevm.cc.generator.LexerStateData;
+import org.hivevm.cc.parser.JavaCCErrors;
+
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
-
-import org.hivevm.cc.generator.LexerStateData;
-import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
  * The state of a Non-deterministic Finite Automaton.

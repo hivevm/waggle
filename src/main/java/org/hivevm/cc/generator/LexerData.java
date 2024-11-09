@@ -3,18 +3,18 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.lexer.NfaState;
+import org.hivevm.cc.parser.Action;
+import org.hivevm.cc.parser.Options;
+import org.hivevm.cc.parser.RegularExpression;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.hivevm.cc.JavaCCRequest;
-import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.Action;
-import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.parser.RegularExpression;
 
 /**
  * The {@link LexerData} provides the request data for the lexer generator.

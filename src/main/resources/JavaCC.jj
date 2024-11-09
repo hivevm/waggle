@@ -47,10 +47,9 @@ SKIP :
 MORE :
 {
   "//" : IN_SINGLE_LINE_COMMENT
-| <"/**" ~["/"]> @java input_stream.backup(1); @end : IN_FORMAL_COMMENT
+| <"/**" ~["/"]> @code input_stream.backup(1); @end : IN_FORMAL_COMMENT
 | "/*" : IN_MULTI_LINE_COMMENT
-| "@cpp" : PARSER_CODE
-| "@java" : PARSER_CODE
+| "@code" : PARSER_CODE
 }
 
 
@@ -191,12 +190,12 @@ TOKEN :
 void javacc_input() :
 {
   < _PARSER_BEGIN > < LPAREN > identifier()
-  @java
+  @code
     setParserName(0);
   @end
   < RPAREN >
   ( option_binding() )*
-  @java
+  @code
     getOptions().normalize();
   @end
   < _PARSER_END > ( production() )+
@@ -204,13 +203,13 @@ void javacc_input() :
 }
 
 void option_binding() :
-@java
+@code
     Token t = getToken(1);
 @end
 {
   <IDENTIFIER> < COLON >
   ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
-  @java
+  @code
     setInputOption(t, getToken(0));
   @end
   ( < COMMA > )?
@@ -229,7 +228,7 @@ void production() :
 }
 
 void bnf_production() :
-@java
+@code
     BNFProduction p = new BNFProduction();
     Container c = new Container();
     Token t = getToken(1);
@@ -239,13 +238,13 @@ void bnf_production() :
 @end
 {
   ResultType(p.getReturnTypeTokens())
-  @java
+  @code
     p.setLhs(identifier());
   @end
   FormalParameters(p.getParameterListTokens())
   < COLON >
   ( < ECODE >
-  @java
+  @code
     p.getDeclarationTokens().add(getToken(0));
   @end
   < ECODE_END > )*
@@ -253,11 +252,11 @@ void bnf_production() :
   expansion_choices(c)
   t=< RBRACE >
   ( < ECODE >
-  @java
+  @code
     p.getDeclarationEndTokens().add(getToken(0));
   @end
   < ECODE_END > )*
-  @java
+  @code
     p.setLastToken(t);
     production_addexpansion(p, (Expansion)(c.member));
     addproduction(p);
@@ -265,7 +264,7 @@ void bnf_production() :
 }
 
 void regular_expr_production() :
-@java
+@code
     TokenProduction p = new TokenProduction();
     List<String> states;
     Token t = getToken(1);
@@ -273,31 +272,31 @@ void regular_expr_production() :
     p.setLocation(t);
 @end
 {
-  @java
+  @code
     // set p.lexStates assuming there is no state spec.
     // and then override if necessary.
     p.setLexStates(new String[] {"DEFAULT"});
   @end
   [
     LOOKAHEAD(2) < LT > < STAR > < GT >
-	@java
+	@code
 	  p.setLexStates(null);
 	@end
   | < LT >
-	@java
+	@code
 	  states = new ArrayList<>();
 	@end
       t=<IDENTIFIER>
-	@java
+	@code
 	  states.add(t.image);
 	@end
       ( < COMMA > t=<IDENTIFIER>
-	@java
+	@code
 	  states.add(t.image);
 	@end
       )*
     < GT >
-	@java
+	@code
 	  p.setLexStates(new String[states.size()]);
 	  for (int i = 0; i < states.size(); i++) {
 	    p.setLexState((String)states.get(i), i);
@@ -307,13 +306,13 @@ void regular_expr_production() :
   regexpr_kind(p)
   [
     < LBRACKET > t=< _IGNORE_CASE > < RBRACKET >
-	@java
+	@code
 	  p.setIgnoreCase(true);
 	@end
   ]
   < COLON >
   < LBRACE > regexpr_spec(p) ( < BIT_OR > regexpr_spec(p) )* t=< RBRACE >
-  @java
+  @code
 	addregexpr(p);
   @end
 }
@@ -321,25 +320,25 @@ void regular_expr_production() :
 void regexpr_kind(TokenProduction p) :
 {
   < _TOKEN >
-  @java
+  @code
     p.setKind(TokenProduction.Kind.TOKEN);
   @end
 | < _SPECIAL_TOKEN >
-  @java
+  @code
     p.setKind(TokenProduction.Kind.SPECIAL);
   @end
 | < _SKIP >
-  @java
+  @code
     p.setKind(TokenProduction.Kind.SKIP);
   @end
 | < _MORE >
-  @java
+  @code
     p.setKind(TokenProduction.Kind.MORE);
   @end
 }
 
 void regexpr_spec(TokenProduction p) :
-@java
+@code
     Container c = new Container();
     Action act = new Action();
     Token t = null;
@@ -347,30 +346,30 @@ void regexpr_spec(TokenProduction p) :
 @end
 {
   regular_expression(c)
-  @java
+  @code
     res.rexp = (RegularExpression)c.member;
     res.rexp.setTpContext(p);
   @end
   [
-	@java
+	@code
 	  t = getToken(1);
 	@end
     Statement(act.getActionTokens())
-	@java
+	@code
 	  if (res.rexp.isPrivateExp()) {
 	    JavaCCErrors.parse_error(t, "Actions are not permitted on private (#) regular expressions.");
 	  }
 	@end
   ]
   [ < COLON > t=<IDENTIFIER>
-	@java
+	@code
 	  res.nextState = t.image;
 	  if (res.rexp.isPrivateExp()) {
 	    JavaCCErrors.parse_error(t, "Lexical state changes are not permitted after private (#) regular expressions.");
 	  }
 	@end
   ]
-	@java
+	@code
 	  res.act = act;
 	  res.nsTok = t;
 	  p.getRespecs().add(res);
@@ -378,7 +377,7 @@ void regexpr_spec(TokenProduction p) :
 }
 
 void expansion_choices(Container c1) :
-@java
+@code
     boolean morethanone = false;
     Choice ch = null; // unnecessary initialization to make Java compiler happy!
     Container c2 = new Container();
@@ -386,7 +385,7 @@ void expansion_choices(Container c1) :
 {
   expansion(c1)
   ( < BIT_OR > expansion(c2)
-	@java
+	@code
 	  if (morethanone) {
 	    ch.getChoices().add((Expansion)c2.member);
 	    ((Expansion)c2.member).parent = ch;
@@ -399,7 +398,7 @@ void expansion_choices(Container c1) :
 	  }
 	@end
   )*
-	@java
+	@code
 	  if (morethanone) {
 	    c1.member = ch;
 	  }
@@ -407,7 +406,7 @@ void expansion_choices(Container c1) :
 }
 
 void expansion(Container c1) :
-@java
+@code
     Sequence seq = new Sequence();
     Container c2 = new Container();
     Lookahead la = new Lookahead();
@@ -416,31 +415,31 @@ void expansion(Container c1) :
     la.setLocation(t);
 @end
 {
-  @java
+  @code
     la.setAmount(getOptions().getLookahead());
     la.setLaExpansion(null);
     la.setExplicit(false);
   @end
   ( LOOKAHEAD(1)
     t=< _LOOKAHEAD > < LPAREN > la=local_lookahead() < RPAREN >
-	@java
+	@code
 	  if (inLocalLA != 0 && la.getAmount() != 0) {
 	    JavaCCErrors.warning(t, "Only semantic lookahead specifications within other lookahead specifications is considered.  Syntactic lookahead is ignored.");
 	  }
 	@end
   )?
-  @java
+  @code
     seq.getUnits().add(la);
   @end
   ( LOOKAHEAD(0, { notTailOfExpansionUnit() } )
     expansion_unit(c2)
-	@java
+	@code
 	  seq.getUnits().add(c2.member);
 	  ((Expansion)c2.member).parent = seq;
 	  ((Expansion)c2.member).ordinal = seq.getUnits().size()-1;
 	@end
   )+
-  @java
+  @code
     if (la.getLaExpansion() == null) {
       la.setLaExpansion(seq);
     }
@@ -449,7 +448,7 @@ void expansion(Container c1) :
 }
 
 Lookahead local_lookahead() :
-@java
+@code
     Lookahead la = new Lookahead();
     la.setExplicit(true);
     Token t = getToken(1);
@@ -470,27 +469,27 @@ Lookahead local_lookahead() :
      */
     LOOKAHEAD(1)
     laAmount = IntegerLiteral()
-	@java
+	@code
 	  emptyLA = false;
 	  la.setAmount(laAmount);
 	@end
   ]
   [ LOOKAHEAD(0, { checkEmptyLA(emptyLA, getToken(1)) } )
     < COMMA >
-	@java
+	@code
 	  commaAtEnd = true;
 	@end
   ]
   [ LOOKAHEAD(0, { checkEmpty(getToken(1)) } )
     expansion_choices(c)
-	@java
+	@code
 	  emptyLA = false; commaAtEnd = false;
 	  la.setLaExpansion((Expansion)c.member);
 	@end
   ]
   [ LOOKAHEAD(0, { checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1)) } )
     < COMMA >
-	@java
+	@code
 	  commaAtEnd = true;
 	@end
   ]
@@ -498,20 +497,20 @@ Lookahead local_lookahead() :
     < LBRACE >
     [ Expression(la.getActionTokens()) ]
     < RBRACE >
-	@java
+	@code
 	  if (emptyLA) {
 	    la.setAmount(0);
 	  }
 	@end
   ]
-	@java
+	@code
 	  inLocalLA--;
 	  return la;
 	@end
 }
 
 void expansion_unit(Container c) :
-@java
+@code
     String name;
     List<Token> lhsTokens = new ArrayList<>();
     NonTerminal nt;
@@ -526,7 +525,7 @@ void expansion_unit(Container c) :
    * name of its identifier.
    */
   t=< _LOOKAHEAD > < LPAREN > la=local_lookahead() < RPAREN >
-  @java
+  @code
 	// Now set the la_expansion field of la with a dummy
 	// expansion (we use EOF).
 	la.setLaExpansion(new REndOfFile());
@@ -549,20 +548,20 @@ void expansion_unit(Container c) :
 	}
 	c.member = ch;
   @end
-| @java
+| @code
 	act = new Action();
 	t = getToken(1);
     act.setLocation(t);
   @end
   Statement(act.getActionTokens())
-  @java
+  @code
 	if (inLocalLA != 0) {
 	  JavaCCErrors.warning(t, "Action within lookahead specification will be ignored.");
 	}
 	c.member = act;
   @end
 | t=< LBRACKET > expansion_choices(c) < RBRACKET >
-  @java
+  @code
 	c.member = new ZeroOrOne(t, (Expansion)c.member);
   @end
 |
@@ -574,15 +573,15 @@ void expansion_unit(Container c) :
   )
   [
     LOOKAHEAD(PrimaryExpression() < ASSIGN >)
-	@java
+	@code
 	  Token first = getToken(1);
 	@end
     PrimaryExpression()
-	@java
+	@code
 	  Token last = getToken(0);
 	@end
     < ASSIGN >
-	@java
+	@code
 	  t = first;
 	  while (true) {
 	    lhsTokens.add(t);
@@ -593,33 +592,33 @@ void expansion_unit(Container c) :
   ]
   (
 	LOOKAHEAD( identifier() < LPAREN >)
-	@java
+	@code
 	  t = getToken(1);
 	  nt = new NonTerminal();
       nt.setLocation(t);
 	  nt.setLhsTokens(lhsTokens);
 	@end
     name=identifier() Arguments(nt.getArgumentTokens())
-	@java
+	@code
 	  nt.setName(name);
 	  c.member = nt;
 	@end
   | regular_expression(c)
-	@java
+	@code
 	  ((RegularExpression)(c.member)).setLhsTokens(lhsTokens);
 	  add_inline_regexpr((RegularExpression)(c.member));
 	@end
-	[ < DOT > t=<IDENTIFIER> @java ((RegularExpression)(c.member)).setRhsToken(t); @end ]
+	[ < DOT > t=<IDENTIFIER> @code ((RegularExpression)(c.member)).setRhsToken(t); @end ]
   )
 | t=< LPAREN > expansion_choices(c) < RPAREN >
-  (  < PLUS > @java c.member = new OneOrMore(t, (Expansion)c.member); @end
-   | < STAR > @java c.member = new ZeroOrMore(t, (Expansion)c.member); @end
-   | < HOOK > @java c.member = new ZeroOrOne(t, (Expansion)c.member); @end
+  (  < PLUS > @code c.member = new OneOrMore(t, (Expansion)c.member); @end
+   | < STAR > @code c.member = new ZeroOrMore(t, (Expansion)c.member); @end
+   | < HOOK > @code c.member = new ZeroOrOne(t, (Expansion)c.member); @end
   )?
 }
 
 void regular_expression(Container c) :
-@java
+@code
     REndOfFile ef;
     String image;
     boolean private_rexp = false;
@@ -627,24 +626,24 @@ void regular_expression(Container c) :
 @end
 {
   image=StringLiteral()
-  @java
+  @code
 	c.member = new RStringLiteral(t, image);
   @end
 | LOOKAHEAD(3)
-  @java
+  @code
 	image = "";
   @end
   < LANGLE: "<" >
   [
     [ < HASH >
-	@java
+	@code
 	  private_rexp = true;
 	@end
     ]
     image=identifier() < COLON >
   ]
   complex_regular_expression_choices(c) < RANGLE: ">" >
-  @java
+  @code
 	RegularExpression re;
 	if (c.member instanceof RJustName) {
 	  RSequence seq = new RSequence();
@@ -660,11 +659,11 @@ void regular_expression(Container c) :
   @end
 | LOOKAHEAD(2)
   < LT > image=identifier() < GT >
-  @java
+  @code
 	c.member = new RJustName(t, image);
   @end
 | < LT > < _EOF > < GT >
-  @java
+  @code
 	ef = new REndOfFile();
     ef.setLocation(t);
 	ef.ordinal = 0;
@@ -673,7 +672,7 @@ void regular_expression(Container c) :
 }
 
 void complex_regular_expression_choices(Container c1) :
-@java
+@code
     boolean morethanone = false;
     RChoice ch = null; // unnecessary initialization to make Java compiler happy!
     Container c2 = new Container();
@@ -681,7 +680,7 @@ void complex_regular_expression_choices(Container c1) :
 {
   complex_regular_expression(c1)
   ( < BIT_OR > complex_regular_expression(c2)
-	@java
+	@code
 	  if (morethanone) {
 	    ch.getChoices().add((RegularExpression)c2.member);
 	  } else {
@@ -693,7 +692,7 @@ void complex_regular_expression_choices(Container c1) :
 	  }
 	@end
   )*
-  @java
+  @code
 	if (morethanone) {
 	  c1.member = ch;
 	}
@@ -701,14 +700,14 @@ void complex_regular_expression_choices(Container c1) :
 }
 
 void complex_regular_expression(Container c1) :
-@java
+@code
     int count = 0;
     RSequence seq = null; // unnecessary initialization to make Java compiler happy!
     Container c2 = new Container();
 @end
 {
   ( complex_regular_expression_unit(c2)
-	@java
+	@code
 	  count++;
 	  if (count == 1) {
 	    c1.member = c2.member; // if count does not go beyond 1, we are done.
@@ -722,7 +721,7 @@ void complex_regular_expression(Container c1) :
 	  }
 	@end
   )+
-  @java
+  @code
 	if (count > 1) {
 	  c1.member = seq;
 	}
@@ -730,7 +729,7 @@ void complex_regular_expression(Container c1) :
 }
 
 void complex_regular_expression_unit(Container c) :
-@java
+@code
     String image;
     Token t = getToken(1);
     int r1 = 0, r2 = -1;
@@ -738,34 +737,34 @@ void complex_regular_expression_unit(Container c) :
 @end
 {
   image=StringLiteral()
-  @java
+  @code
 	c.member = new RStringLiteral(t, image);
   @end
 | < LT > image=identifier() < GT >
-  @java
+  @code
 	c.member = new RJustName(t, image);
   @end
 | character_list(c)
 | < LPAREN > complex_regular_expression_choices(c) < RPAREN >
   (  < PLUS >
-	@java
+	@code
 	  c.member = new ROneOrMore(t, (RegularExpression)c.member);
 	@end
    | < STAR >
-	@java
+	@code
 	  c.member = new RZeroOrMore(t, (RegularExpression)c.member);
 	@end
    | < HOOK >
-	@java
+	@code
 	  RZeroOrOne zorexp = new RZeroOrOne();
       zorexp.setLocation(t);
 	  zorexp.setRegexpr((RegularExpression)c.member);
 	  c.member = zorexp;
 	@end
    | < LBRACE > r1 = IntegerLiteral()
-      [ < COMMA > @java hasMax = true; @end [ r2 = IntegerLiteral() ] ]
+      [ < COMMA > @code hasMax = true; @end [ r2 = IntegerLiteral() ] ]
      < RBRACE >
-	@java
+	@code
 	  RRepetitionRange rrrexp = new RRepetitionRange();
       rrrexp.setLocation(t);
 	  rrrexp.setRegexpr((RegularExpression)c.member, r1, r2, hasMax);
@@ -775,7 +774,7 @@ void complex_regular_expression_unit(Container c) :
 }
 
 void character_list(Container c1) :
-@java
+@code
     RCharacterList chlist = new RCharacterList();
     Token t = getToken(1);
     chlist.setLocation(t);
@@ -783,28 +782,28 @@ void character_list(Container c1) :
 @end
 {
   [< TILDE >
-  @java
+  @code
 	chlist.setNegatedList();
   @end
   ]
   < LBRACKET > [ character_descriptor(c2)
-  @java
+  @code
 	chlist.getDescriptors().add(c2.member);
   @end
   ( < COMMA > character_descriptor(c2)
-  @java
+  @code
 	chlist.getDescriptors().add(c2.member);
   @end
   )*
   ]
   < RBRACKET >
-  @java
+  @code
 	c1.member = chlist;
   @end
 }
 
 void character_descriptor(Container c) :
-@java
+@code
     char c1, c2 = ' '; // unnecessary initialization to make Java compiler happy!
     boolean isrange = false;
     String imageL, imageR;
@@ -812,16 +811,16 @@ void character_descriptor(Container c) :
 @end
 {
   imageL=StringLiteral()
-  @java
+  @code
 	c1 = character_descriptor_assign(getToken(0), imageL);
   @end
   [ < MINUS > imageR=StringLiteral()
-  @java
+  @code
 	isrange = true;
 	c2 = character_descriptor_assign(getToken(0), imageR, imageL);
   @end
   ]
-  @java
+  @code
 	if (isrange) {
 	  CharacterRange cr = new CharacterRange();
 	  cr.setLocation(t);
@@ -840,7 +839,7 @@ void character_descriptor(Container c) :
 String identifier() :
 {
   <IDENTIFIER>
-  @java
+  @code
 	return getToken(0).image;
   @end
 }
@@ -867,7 +866,7 @@ Token TypeParameter() :
 | < _SKIP >
 | < _EOF >
 )
-@java
+@code
   Token retval = getToken(0);
   retval.kind = IDENTIFIER;
   return retval;
@@ -882,20 +881,20 @@ void FormalParameters(List<Token> tokens) :
  * Parsing this fills "tokens" with all tokens of the formal
  * parameters excluding the parentheses at each end.
  */
-@java
+@code
     Token first, last;
 @end
 {
   < LPAREN >
-  @java
+  @code
 	first = getToken(1);
   @end
   [ FormalParameter() ( < COMMA > FormalParameter() )* ]
-  @java
+  @code
 	last = getToken(0);
   @end
   < RPAREN >
-  @java
+  @code
 	if (last.next != first) { // i.e., this is not an empty sequence
 	  Token t = first;
 	  while (true) {
@@ -932,17 +931,17 @@ void TypeArguments(List<Token> tokens):
  * Parsing this fills "tokens" with all tokens of the arguments
  * excluding the parentheses at each end.
  */
-@java
+@code
     Token first, last;
 @end
 {
   < LT >
-  @java
+  @code
     first = getToken(0);
   @end
   [ ClassOrInterfaceType() ]
   < GT >
-  @java
+  @code
     last = getToken(0);
 	if (last.next != first) { // i.e., this is not an empty sequence
 	  Token t = first;
@@ -965,12 +964,12 @@ void PrimitiveType() :
 
 
 void ResultType(List<Token> tokens) :
-@java
+@code
     Token first = getToken(1);
 @end
 {
   ( < VOID > | Type() )
-  @java
+  @code
 	Token last = getToken(0);
 	Token t = first;
 	while (true) {
@@ -986,13 +985,13 @@ void Name(List<Token> tokens) :
  * A lookahead of 2 is required below since "Name" can be followed
  * by a ".*" when used in the context of an "ImportDeclaration".
  */
-@java
+@code
     Token first = getToken(1);
 @end
 {
   TypeParameter()
   ( LOOKAHEAD(2) < DOT > TypeParameter() )*
-  @java
+  @code
 	Token last = getToken(0);
 	Token t = first;
 	while (true) {
@@ -1018,12 +1017,12 @@ void Expression(List<Token> tokens) :
  * a primary expression.  Consider adding a semantic predicate to work
  * around this.
  */
-@java
+@code
     Token first = getToken(1);
 @end
 {
   PrimaryExpression()
-  @java
+  @code
 	Token last = getToken(0);
 	Token t = first;
 	while (true) {
@@ -1065,7 +1064,7 @@ void Literal() :
 int IntegerLiteral() :
 {
   <INTEGER_LITERAL>
-  @java
+  @code
     return Integer.parseInt(token.image);
   @end
 }
@@ -1077,7 +1076,7 @@ void BooleanLiteral() :
 
 String StringLiteral() :
 {
-  <STRING_LITERAL> @java return remove_escapes_and_quotes(this.token, this.token.image); @end
+  <STRING_LITERAL> @code return remove_escapes_and_quotes(this.token, this.token.image); @end
 }
 
 void Arguments(List<Token> tokens) :
@@ -1085,20 +1084,20 @@ void Arguments(List<Token> tokens) :
  * Parsing this fills "tokens" with all tokens of the arguments
  * excluding the parentheses at each end.
  */
-@java
+@code
     Token first, last;
 @end
 {
   < LPAREN >
-  @java
+  @code
     first = getToken(1);
   @end
   [ Expression() ( < COMMA > Expression() )* ]
-  @java
+  @code
     last = getToken(0);
   @end
   < RPAREN >
-  @java
+  @code
     if (last.next != first) { // i.e., this is not an empty sequence
       Token t = first;
       while (true) {
@@ -1118,25 +1117,25 @@ void Statement(List<Token> tokens) :
  * Parsing this fills "tokens" with all tokens of the block
  * excluding the braces at each end.
  */
-@java
+@code
     Token first, last;
 @end
 {
   < ECODE >
-  @java
+  @code
     tokens.add(getToken(0));
   @end
   < ECODE_END >
 | < LBRACE >
-  @java
+  @code
     first = getToken(1);
   @end
   ( Statement() )*
-  @java
+  @code
     last = getToken(0);
   @end
   < RBRACE >
-  @java
+  @code
     if (last.next != first) { // i.e., this is not an empty sequence
       Token t = first;
       while (true) {

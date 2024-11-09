@@ -3,11 +3,6 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Iterator;
-import java.util.stream.Collectors;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
@@ -31,6 +26,11 @@ import org.hivevm.cc.source.CppWriter;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 /**
  * Generate the parser.

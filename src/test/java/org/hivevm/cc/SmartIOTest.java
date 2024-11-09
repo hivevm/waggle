@@ -1,11 +1,10 @@
 
 package org.hivevm.cc;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.nio.file.Files;
-
-import org.hivevm.cc.HiveCCBuilder.Language;
-import org.junit.jupiter.api.Test;
 
 class SmartIOTest {
 
@@ -16,7 +15,7 @@ class SmartIOTest {
 
   @Test
   void testCpp() {
-    HiveCCBuilder builder = HiveCCBuilder.of(Language.Cpp);
+    HiveCCBuilder builder = HiveCCBuilder.of(Language.CPP);
     builder.setTargetDir(SmartIOTest.PARSER_CPP);
     builder.setJJTreeFile(SmartIOTest.PARSER_JJT, "OQL-Cpp.jjt");
     builder.build();
@@ -24,7 +23,7 @@ class SmartIOTest {
 
   @Test
   void testJava() {
-    HiveCCBuilder builder = HiveCCBuilder.of(Language.Java);
+    HiveCCBuilder builder = HiveCCBuilder.of(Language.JAVA);
     builder.setTargetDir(SmartIOTest.PARSER_JAVA);
     builder.setJJTreeFile(SmartIOTest.PARSER_JJT, "OQL.jjt");
     builder.build();
@@ -34,7 +33,7 @@ class SmartIOTest {
     File inputFile = new File("/data/smartIO/fastcc/JavaGrammars/Test.java");
     String input = new String(Files.readAllBytes(inputFile.toPath()));
 
-    HiveCCBuilder builder = HiveCCBuilder.of(Language.Java);
+    HiveCCBuilder builder = HiveCCBuilder.of(Language.JAVA);
     builder.setTargetDir(SmartIOTest.PARSER_JAVA);
     builder.setJJFile(new File("/data/smartIO/fastcc/JavaGrammars"), "Java1.1.jj");
     builder.interpret(input);

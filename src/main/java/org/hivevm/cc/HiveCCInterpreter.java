@@ -3,22 +3,19 @@
 
 package org.hivevm.cc;
 
-import java.text.ParseException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.hivevm.cc.generator.LexerBuilder;
 import org.hivevm.cc.generator.LexerData;
-import org.hivevm.cc.lexer.NfaState;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StringProvider;
-import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.semantic.Semanticize;
+
+import java.text.ParseException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class HiveCCInterpreter {
 

@@ -27,12 +27,12 @@ public class JJTreeParserDefault extends JJTreeParser {
 
   @Override
   protected final void jjtreeOpenNodeScope(Node n) {
-    ((JJTreeNode) n).setFirstToken(getToken(1));
+    ((ASTNode) n).setFirstToken(getToken(1));
   }
 
   @Override
   protected final void jjtreeCloseNodeScope(Node n) {
-    ((JJTreeNode) n).setLastToken(getToken(0));
+    ((ASTNode) n).setLastToken(getToken(0));
   }
 
   @Override

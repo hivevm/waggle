@@ -3,17 +3,17 @@
 
 package org.hivevm.cc.jjtree;
 
-public class ASTExpansionNodeScope extends JJTreeNode {
+public class ASTExpansionNodeScope extends ASTNode {
 
   public NodeScope  node_scope;
-  public JJTreeNode expansion_unit;
+  public ASTNode expansion_unit;
 
   public ASTExpansionNodeScope(JJTreeParser p, int id) {
     super(p, id);
   }
 
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

@@ -10,8 +10,6 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.api.tasks.options.OptionValues;
-import org.hivevm.cc.HiveCCBuilder;
-import org.hivevm.cc.HiveCCBuilder.Language;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,11 +32,11 @@ public abstract class GeneratorTask extends DefaultTask {
   @Input
   @Optional
   @Option(option = "target", description = "Sets the target language.")
-  public abstract Property<Target> getTarget();
+  public abstract Property<Language> getTarget();
 
   @OptionValues("target")
-  public List<Target> getAvailableOutputTypes() {
-    return new ArrayList<Target>(Arrays.asList(Target.values()));
+  public List<Language> getAvailableOutputTypes() {
+    return new ArrayList<Language>(Arrays.asList(Language.values()));
   }
 
   @TaskAction
@@ -50,7 +48,7 @@ public abstract class GeneratorTask extends DefaultTask {
       return;
     }
 
-    Target defaultTarget = (config.target == null) ? Target.JAVA : config.target;
+    Language defaultTarget = (config.target == null) ? Language.JAVA : config.target;
 
     config.getSteps().forEach(s -> process(s, defaultTarget));
   }
@@ -68,9 +66,9 @@ public abstract class GeneratorTask extends DefaultTask {
   }
 
 
-  protected void process(GeneratorStep step, Target target) {
-    Target lang = (step.target == null) ? target : step.target;
-    HiveCCBuilder builder = HiveCCBuilder.of(lang == Target.CPP ? Language.Cpp : Language.Java);
+  protected void process(GeneratorStep step, Language target) {
+    Language language = (step.target == null) ? target : step.target;
+    HiveCCBuilder builder = HiveCCBuilder.of(language);
     builder.setTargetDir(getFile(step.directory));
     builder.setJJTreeFile(getFile(step.jjtFile));
     builder.setJJFile(getFile(step.jjFile));

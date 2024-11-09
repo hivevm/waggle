@@ -3,11 +3,11 @@ PARSER_BEGIN(JJTreeParser)
   MULTI: true,
   NODE_DEFAULT_VOID: true,
   NODE_SCOPE_HOOK: true,
-  NODE_CLASS: "JJTreeNode",
+  NODE_CLASS: "ASTNode",
   VISITOR: true,
-  VISITOR_DATA_TYPE: "JJTreeWriter",
+  VISITOR_DATA_TYPE: "ASTWriter",
   PACKAGE: "org.hivevm.cc.jjtree",
-  EXTENDS: "AbstractJJTreeParser"
+  EXTENDS: "ASTParser"
 PARSER_END
 
 
@@ -52,9 +52,9 @@ SPECIAL_TOKEN :
 MORE :
 {
   "//" : IN_SINGLE_LINE_COMMENT
-| <"/**" ~["/"]> @java input_stream.backup(1); @end : IN_FORMAL_COMMENT
+| <"/**" ~["/"]> @code input_stream.backup(1); @end : IN_FORMAL_COMMENT
 | "/*" : IN_MULTI_LINE_COMMENT
-| "@java" : PARSER_CODE
+| "@code" : PARSER_CODE
 }
 
 
@@ -196,29 +196,28 @@ void javacc_input() #Grammar :
 {
   (
   < _PARSER_BEGIN > < LPAREN > identifier()
-  @java
+  @code
     setParserName(0);
   @end
   < RPAREN >
   ( ( option_binding() )* ) #Options
-  @java
+  @code
     normalize();
   @end
   < _PARSER_END >
   ) #CompilationUnit(true)
-  ( ( production() )+
-  ) #Productions
+  ( ( production() )+ ) #Productions
   <EOF>
 }
 
 void option_binding() #OptionBinding :
-@java
+@code
     Token o;
 @end
 {
   ( o=<IDENTIFIER> ) < COLON >
   ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
-  @java
+  @code
     SELF.initialize(o.image, setInputOption(o, this.token));
   @end
   ( < COMMA > )?
@@ -237,28 +236,28 @@ void production() :
 }
 
 void bnf_production() #BNF :
-@java
+@code
     Token t1;
     ASTBNF prod;
     ASTNodeDescriptor nd = null;
     NodeScope ns;
-    JJTreeNode eu;
+    ASTNode eu;
 @end
 {
-  @java
+  @code
     prod = SELF;
   @end
   ResultType() t1=identifier() < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() )* ] < RPAREN >
   [ nd=node_descriptor() ]
   < COLON >
-  @java
+  @code
 	prod.name = t1.image;
 	ns = new NodeScope(prod, nd);
   @end
   ( < ECODE >
   < ECODE_END > ) ?
   (
-    @java
+    @code
 	  SELF.node_scope = ns;
 	@end
   ) #BNFDeclaration
@@ -266,13 +265,13 @@ void bnf_production() #BNF :
   < LBRACE >
   (
     eu=expansion_choices(prod)
-    @java
+    @code
 	  SELF.node_scope = ns;
 	  SELF.expansion_unit = eu;
 	@end
   ) #BNFNodeScope
  < RBRACE >
-  @java
+  @code
     addProduction(prod);
   @end
 }
@@ -303,15 +302,15 @@ void regexpr_spec() #RESpec :
   [ < COLON > <IDENTIFIER> ]
 }
 
-JJTreeNode expansion_choices(ASTProduction p) #BNFChoice(>1) :
+ASTNode expansion_choices(ASTProduction p) #BNFChoice(>1) :
 {
   expansion(p) ( < BIT_OR > expansion(p) )*
-  @java return (JJTreeNode)jjtree.peekNode(); @end
+  @code return (ASTNode)jjtree.peekNode(); @end
 }
 
 void expansion(ASTProduction p) #BNFSequence(>1) :
-@java
-    JJTreeNode eu;
+@code
+    ASTNode eu;
     ASTNodeDescriptor nd = null;
 @end
 {
@@ -320,7 +319,7 @@ void expansion(ASTProduction p) #BNFSequence(>1) :
     (
       eu=expansion_unit(p)
       [ nd=node_descriptor() ]
-      @java
+      @code
 	    if (jjtree.nodeCreated()) {
 	      SELF.node_scope = new NodeScope(p, nd);
 	      SELF.expansion_unit = eu;
@@ -331,7 +330,7 @@ void expansion(ASTProduction p) #BNFSequence(>1) :
 }
 
 void local_lookahead(ASTProduction p) :
-@java
+@code
     boolean commaAtEnd = false;
     boolean emptyLA = true;
 @end
@@ -345,26 +344,26 @@ void local_lookahead(ASTProduction p) :
      */
     LOOKAHEAD(1)
     IntegerLiteral()
-	@java emptyLA = false; @end
+	@code emptyLA = false; @end
   ]
   [ LOOKAHEAD(0, { checkEmptyLA(emptyLA, getToken(1)) } )
-    < COMMA >	@java commaAtEnd = true; @end
+    < COMMA >	@code commaAtEnd = true; @end
   ]
   [ LOOKAHEAD(0, { checkEmpty(getToken(1)) } )
     expansion_choices(p)
-	@java emptyLA = false; commaAtEnd = false; @end
+	@code emptyLA = false; commaAtEnd = false; @end
   ]
   [ LOOKAHEAD(0, { checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1)) } )
     < COMMA >
-	@java commaAtEnd = true; @end
+	@code commaAtEnd = true; @end
   ]
   [ LOOKAHEAD(0, { checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd) } )
     < LBRACE > [ Expression() ] < RBRACE >
   ]
 }
 
-JJTreeNode expansion_unit(ASTProduction p) :
-@java
+ASTNode expansion_unit(ASTProduction p) :
+@code
     Token t;
 @end
 {
@@ -397,10 +396,10 @@ JJTreeNode expansion_unit(ASTProduction p) :
   | < HOOK > #BNFZeroOrOne(1)
   | {} #BNFParenthesized(1)
   )
-  @java ((JJTreeNode)jjtree.peekNode()).setFirstToken(t); @end
+  @code ((ASTNode)jjtree.peekNode()).setFirstToken(t); @end
 )
-  @java
-	return (JJTreeNode)jjtree.peekNode();
+  @code
+	return (ASTNode)jjtree.peekNode();
   @end
 }
 
@@ -427,7 +426,7 @@ void complex_regular_expression() #RESequence(>1) :
 }
 
 void complex_regular_expression_unit() :
-@java
+@code
     Token t;
 @end
 {
@@ -442,8 +441,8 @@ void complex_regular_expression_unit() :
   | < LBRACE > IntegerLiteral() [ < COMMA >  [ IntegerLiteral() ] ] < RBRACE > #RRepetitionRange(1)
   | {} #REParenthesized(1)
   )
-@java
-  ((JJTreeNode)jjtree.peekNode()).setFirstToken(t);
+@code
+  ((ASTNode)jjtree.peekNode()).setFirstToken(t);
 @end
 }
 
@@ -458,17 +457,17 @@ void character_descriptor() #CharDescriptor :
 }
 
 Token identifier() :
-@java
+@code
     Token t;
 @end
 {
-  t=<IDENTIFIER> @java return t; @end
+  t=<IDENTIFIER> @code return t; @end
 }
 
 Token value() :
 {
   ( <INTEGER_LITERAL> | <FALSE> | <TRUE> )
-  @java return token; @end
+  @code return token; @end
 }
 
 /**********************************************
@@ -476,23 +475,23 @@ Token value() :
  **********************************************/
 
 ASTNodeDescriptor node_descriptor() #NodeDescriptor :
-@java
+@code
     Token t = null;
     String s = null;
 @end
 {
   < HASH >
-  ( s=Name() @java SELF.name = s; @end
-  | t=<VOID> @java SELF.name = t.image; @end
+  ( s=Name() @code SELF.name = s; @end
+  | t=<VOID> @code SELF.name = t.image; @end
   )
   [
    LOOKAHEAD(1)
    < LPAREN >
-      [ < GT > @java SELF.isGT = true; @end ]
-      t=value() @java SELF.setExpressionText(t.image); @end
+      [ < GT > @code SELF.isGT = true; @end ]
+      t=value() @code SELF.setExpressionText(t.image); @end
    < RPAREN >
   ]
-@java
+@code
   SELF.setNodeIdValue();
   return SELF;
 @end
@@ -520,7 +519,7 @@ String TypeParameter() :
 | < _SKIP >
 | < _EOF >
 )
-@java
+@code
   return token.image;
 @end
 }
@@ -566,13 +565,13 @@ String Name() :
  * A lookahead of 2 is required below since "Name" can be followed
  * by a ".*" when used in the context of an "ImportDeclaration".
  */
-@java
+@code
     String s, ss;
 @end
 {
   s=TypeParameter()
-  ( LOOKAHEAD(2) < DOT > ss=TypeParameter() @java s = String.join(".", s, ss); @end )*
-  @java return s; @end
+  ( LOOKAHEAD(2) < DOT > ss=TypeParameter() @code s = String.join(".", s, ss); @end )*
+  @code return s; @end
 }
 
 

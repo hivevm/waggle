@@ -3,6 +3,9 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.Language;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,9 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.JJLanguage;
 
 /**
  * A class with static state that stores all option information.
@@ -32,7 +32,7 @@ public class Options {
     }
   }
 
-  private static final String OUTPUT_LANGUAGE__CPP  = "c++";
+  private static final String OUTPUT_LANGUAGE__CPP  = "cpp";
   private static final String OUTPUT_LANGUAGE__JAVA = "java";
 
 
@@ -443,14 +443,14 @@ public class Options {
   /**
    * @return the output language. default java
    */
-  public static JJLanguage getOutputLanguage() {
+  public static Language getOutputLanguage() {
     String language = (String) Options.optionValues.get(HiveCC.JJPARSER_CODEGENERATOR);
-    if (language.equalsIgnoreCase(Options.OUTPUT_LANGUAGE__JAVA)) {
-      return JJLanguage.Java;
-    } else if (language.equalsIgnoreCase(Options.OUTPUT_LANGUAGE__CPP) || language.equalsIgnoreCase("cpp")) {
-      return JJLanguage.Cpp;
+    if (language.equalsIgnoreCase(Options.OUTPUT_LANGUAGE__CPP)) {
+      return Language.CPP;
+    } else if (language.equalsIgnoreCase(Options.OUTPUT_LANGUAGE__JAVA)) {
+      return Language.JAVA;
     }
-    return JJLanguage.None;
+    return Language.JAVA;
   }
 
   public final String getJavaPackage() {

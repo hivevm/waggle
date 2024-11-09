@@ -4,9 +4,9 @@
 package org.hivevm.cc.jjtree;
 
 /**
- * The {@link AbstractJJTreeParser} class.
+ * The {@link ASTParser} class.
  */
-abstract class AbstractJJTreeParser {
+abstract class ASTParser {
 
   protected final void setParserName(int index) {
     JJTreeGlobals.parserName = getToken(index).image;

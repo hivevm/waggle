@@ -12,7 +12,7 @@ class ASTBNF extends ASTProduction {
   }
 
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 

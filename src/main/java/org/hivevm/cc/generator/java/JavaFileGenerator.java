@@ -3,11 +3,6 @@
 
 package org.hivevm.cc.generator.java;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.generator.AbstractFileGenerator;
@@ -23,6 +18,11 @@ import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Generates the Constants file.

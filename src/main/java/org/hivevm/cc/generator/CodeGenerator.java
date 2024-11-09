@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.File;
-
-import org.hivevm.cc.JJLanguage;
+import org.hivevm.cc.JJCodeBlock;
 import org.hivevm.cc.parser.JavaCCParserConstants;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.source.SourceWriter;
 import org.hivevm.cc.utils.Encoding;
+
+import java.io.File;
 
 class CodeGenerator {
 
@@ -82,10 +82,8 @@ class CodeGenerator {
     }
     if ((t.kind == JavaCCParserConstants.STRING_LITERAL) || (t.kind == JavaCCParserConstants.CHARACTER_LITERAL)) {
       retval += Encoding.escapeUnicode(t.image);
-    } else if (t.image.startsWith(JJLanguage.Java.CODE)) {
-      retval += JJLanguage.Java.strip(t.image);
-    } else if (t.image.startsWith(JJLanguage.Cpp.CODE)) {
-      retval += JJLanguage.Cpp.strip(t.image);
+    } else if (t.image.startsWith(JJCodeBlock.Code.CODE)) {
+      retval += JJCodeBlock.Code.strip(t.image);
     } else {
       retval += t.image;
     }

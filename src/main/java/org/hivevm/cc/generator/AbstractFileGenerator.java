@@ -3,14 +3,14 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
 import org.hivevm.cc.utils.Template;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 /**
  * The {@link AbstractFileGenerator} class.

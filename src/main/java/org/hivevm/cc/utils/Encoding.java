@@ -48,7 +48,7 @@ public abstract class Encoding {
 
   public static String escapeUnicode(String str) {
     switch (Options.getOutputLanguage()) {
-      case Java:
+      case JAVA:
         StringBuilder builder = new StringBuilder(str.length());
         char ch;
         for (int i = 0; i < str.length(); i++) {
@@ -61,7 +61,7 @@ public abstract class Encoding {
           }
         }
         return builder.toString();
-      case Cpp:
+      case CPP:
         return str;
       default:
         // TODO :: CBA -- Require Unification of output language specific processing into a single

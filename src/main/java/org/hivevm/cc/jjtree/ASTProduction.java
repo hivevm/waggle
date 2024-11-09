@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 
-public class ASTProduction extends JJTreeNode {
+public class ASTProduction extends ASTNode {
 
   String                name;
   private int           nextNodeScopeNumber;
@@ -34,7 +34,7 @@ public class ASTProduction extends JJTreeNode {
   }
 
   @Override
-  public Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

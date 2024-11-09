@@ -105,15 +105,15 @@ hiveCC {
   }
 
   // step {
-  //   name       = 'oql-java'
-  //   directory  = 'parser/parser/src/main/java/it/smartio/text/parser'
-  //   jjtFile    = 'parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
+  //   name       = 'oql4java'
+  //   directory  = '/data/smartIO/develop/parser/parser/src/main/java/it/smartio/text/parser'
+  //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
   // }
 
   // step {
-  //   name       = 'oql-cpp'
+  //   name       = 'oql4cpp'
   //   target     = 'cpp'
-  //   directory  = 'core-cpp/text/parser'
-  //   jjtFile    = 'parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
+  //   directory  = '/data/smartIO/develop/core-cpp/text/parser'
+  //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
   // }
 }

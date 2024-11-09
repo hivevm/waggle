@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-public class ASTBNFDeclaration extends JJTreeNode {
+public class ASTBNFDeclaration extends ASTNode {
 
   public NodeScope node_scope;
 
@@ -13,7 +13,7 @@ public class ASTBNFDeclaration extends JJTreeNode {
 
   /** Accept the visitor. **/
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

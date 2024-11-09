@@ -3,8 +3,9 @@
 
 package org.hivevm.cc;
 
-public enum Target {
-    CPP,
-    JAVA,
-    RUST
+
+public enum Language {
+
+  JAVA,
+  CPP;
 }

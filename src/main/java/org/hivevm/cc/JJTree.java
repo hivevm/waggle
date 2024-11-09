@@ -3,21 +3,21 @@
 
 package org.hivevm.cc;
 
+import org.hivevm.cc.generator.ParserEngine;
+import org.hivevm.cc.jjtree.ASTGrammar;
+import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.jjtree.JJTreeGlobals;
+import org.hivevm.cc.jjtree.JJTreeOptions;
+import org.hivevm.cc.jjtree.JJTreeParserDefault;
+import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.Options;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.ParseException;
-
-import org.hivevm.cc.generator.ParserEngine;
-import org.hivevm.cc.jjtree.ASTGrammar;
-import org.hivevm.cc.jjtree.JJTreeGlobals;
-import org.hivevm.cc.jjtree.JJTreeOptions;
-import org.hivevm.cc.jjtree.JJTreeParserDefault;
-import org.hivevm.cc.jjtree.JJTreeWriter;
-import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.Options;
 
 public class JJTree {
 
@@ -130,7 +130,7 @@ public class JJTree {
 
         ParserEngine engine = ParserEngine.create(Options.getOutputLanguage());
 
-        try (JJTreeWriter writer = new JJTreeWriter(file, Options.getOutputLanguage())) {
+        try (ASTWriter writer = new ASTWriter(file, Options.getOutputLanguage())) {
           JJMain.writeGenerated(writer);
           engine.generateJJTree(root, writer, options);
         } catch (IOException ioe) {

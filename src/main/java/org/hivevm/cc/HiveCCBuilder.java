@@ -16,19 +16,6 @@ import java.util.List;
  */
 public class HiveCCBuilder {
 
-  public enum Language {
-
-    Java("Java"),
-    Cpp("C++");
-
-    public final String name;
-
-    Language(String name) {
-      this.name = name;
-    }
-
-  }
-
   private Language     language;
   private File         targetDir;
   private List<String> excludes;
@@ -98,7 +85,7 @@ public class HiveCCBuilder {
   public final void build() {
     try {
       List<String> arguments = new ArrayList<>();
-      arguments.add("-CODE_GENERATOR=" + this.language.name);
+      arguments.add("-CODE_GENERATOR=" + this.language.name());
       arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
       if (this.jj == null) {
         if (excludes != null && !excludes.isEmpty()) {

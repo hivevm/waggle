@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
-public class ASTNodeDescriptor extends JJTreeNode {
+public class ASTNodeDescriptor extends ASTNode {
 
 
   private static List<String>              nodeIds   = new ArrayList<>();
@@ -106,7 +106,7 @@ public class ASTNodeDescriptor extends JJTreeNode {
   }
 
   @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, JJTreeWriter data) {
+  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
     return visitor.visit(this, data);
   }
 }

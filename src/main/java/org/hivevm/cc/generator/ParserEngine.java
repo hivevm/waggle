@@ -3,11 +3,8 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.IOException;
-import java.text.ParseException;
-
-import org.hivevm.cc.JJLanguage;
 import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.cpp.CppFileGenerator;
 import org.hivevm.cc.generator.cpp.CppLexerGenerator;
 import org.hivevm.cc.generator.cpp.CppParserGenerator;
@@ -17,8 +14,11 @@ import org.hivevm.cc.generator.java.JavaLexerGenerator;
 import org.hivevm.cc.generator.java.JavaParserGenerator;
 import org.hivevm.cc.generator.java.JavaTreeGenerator;
 import org.hivevm.cc.jjtree.ASTGrammar;
+import org.hivevm.cc.jjtree.ASTWriter;
 import org.hivevm.cc.jjtree.JJTreeOptions;
-import org.hivevm.cc.jjtree.JJTreeWriter;
+
+import java.io.IOException;
+import java.text.ParseException;
 
 /**
  * The {@link ParserEngine} class.
@@ -54,7 +54,7 @@ public class ParserEngine {
    * @param node
    * @param writer
    */
-  public void generateJJTree(ASTGrammar node, JJTreeWriter writer, JJTreeOptions options) throws IOException {
+  public void generateJJTree(ASTGrammar node, ASTWriter writer, JJTreeOptions options) throws IOException {
     node.jjtAccept(this.treeGenerator, writer);
     this.treeGenerator.generateJJTree(options);
   }
@@ -64,13 +64,13 @@ public class ParserEngine {
    *
    * @param language
    */
-  public static ParserEngine create(JJLanguage language) {
+  public static ParserEngine create(Language language) {
     switch (language) {
-      case Cpp:
+      case CPP:
         return new ParserEngine(new CppLexerGenerator(), new CppParserGenerator(), new CppTreeGenerator(),
             new CppFileGenerator());
 
-      case Java:
+      case JAVA:
         return new ParserEngine(new JavaLexerGenerator(), new JavaParserGenerator(), new JavaTreeGenerator(),
             new JavaFileGenerator());
 
