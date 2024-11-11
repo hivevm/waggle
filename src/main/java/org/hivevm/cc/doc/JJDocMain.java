@@ -3,6 +3,9 @@
 
 package org.hivevm.cc.doc;
 
+import java.io.FileInputStream;
+import java.text.ParseException;
+
 import org.hivevm.cc.JJMain;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -10,9 +13,6 @@ import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StreamProvider;
-
-import java.io.FileInputStream;
-import java.text.ParseException;
 
 /**
  * Main class.

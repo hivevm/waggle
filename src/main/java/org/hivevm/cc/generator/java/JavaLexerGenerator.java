@@ -3,6 +3,13 @@
 
 package org.hivevm.cc.generator.java;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Locale;
+
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.LexerStateData;
@@ -16,13 +23,6 @@ import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Locale;
-
 /**
  * Generate lexer.
  */
@@ -31,7 +31,7 @@ public class JavaLexerGenerator extends LexerGenerator {
   @Override
   protected final void dumpAll(LexerData data) throws IOException {
     TemplateOptions options = new TemplateOptions();
-    options.add("LOHI_BYTES", data.lohiByte.keySet()).set("bytes", i -> getLohiBytes(data, i));
+    options.add("LOHI_BYTES", data.lohiByte.keySet()).set("bytes", i -> JavaLexerGenerator.getLohiBytes(data, i));
     options.add("STATES", data.stateNames).set("NfaAndDfa", (n, w) -> dumpNfaAndDfa(data.getStateData(n), w));
     options.add("NON_ASCII_TABLE", data.nonAsciiTableForMethod).set("AsciiMove",
         (s, w) -> DumpNonAsciiMoveMethod(s, data, w));
@@ -66,12 +66,11 @@ public class JavaLexerGenerator extends LexerGenerator {
     options.set("jjCheckNAddStatesDualNeeded", data.jjCheckNAddStatesDualNeeded);
     options.set("jjCheckNAddStatesUnaryNeeded", data.jjCheckNAddStatesUnaryNeeded);
 
-    SourceWriter writer =
-        new SourceWriter(data.getParserName() + "TokenManager", new DigestOptions(data.options(), options));
-    dumpClassHeader(writer, data);
-
-    writer.writeTemplate("/templates/java/Lexer.template");
-    saveOutput(writer, data.options().getOutputDirectory());
+    try (SourceWriter writer = new SourceWriter(data.getParserName() + "TokenManager", JavaTemplate.LEXER,
+        new DigestOptions(data.options(), options))) {
+      dumpClassHeader(writer, data);
+      writer.writeTemplate();
+    }
   }
 
 

@@ -3,15 +3,15 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.JavaCCRequest;
-import org.hivevm.cc.semantic.SemanticRequest;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.semantic.SemanticRequest;
 
 /**
  * The {@link JavaCCData} class.

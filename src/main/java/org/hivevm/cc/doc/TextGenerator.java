@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.doc;
 
+import java.io.PrintWriter;
+
 import org.hivevm.cc.parser.Expansion;
 import org.hivevm.cc.parser.NonTerminal;
 import org.hivevm.cc.parser.NormalProduction;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-
-import java.io.PrintWriter;
 
 /**
  * Output BNF in text format.
@@ -142,8 +142,7 @@ class TextGenerator implements Generator {
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#expansionStart(org.hivevm.cc.parser.Expansion,
-   *      boolean)
+   * @see org.hivevm.cc.doc.Generator#expansionStart(org.hivevm.cc.parser.Expansion, boolean)
    */
   @Override
   public void expansionStart(Expansion e, boolean first) {
@@ -155,8 +154,7 @@ class TextGenerator implements Generator {
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#expansionEnd(org.hivevm.cc.parser.Expansion,
-   *      boolean)
+   * @see org.hivevm.cc.doc.Generator#expansionEnd(org.hivevm.cc.parser.Expansion, boolean)
    */
   @Override
   public void expansionEnd(Expansion e, boolean first) {}

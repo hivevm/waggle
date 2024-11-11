@@ -80,6 +80,6 @@ abstract class ASTParser {
   }
 
   protected boolean checkEmpty(Token token) {
-    return token.kind != JJTreeParserConstants.RPAREN && token.kind != JJTreeParserConstants.LBRACE;
+    return (token.kind != JJTreeParserConstants.RPAREN) && (token.kind != JJTreeParserConstants.LBRACE);
   }
 }

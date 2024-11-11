@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.IOException;
+
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.generator.ParserData.Phase3Data;
 import org.hivevm.cc.parser.Action;
@@ -21,8 +23,6 @@ import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.semantic.Semanticize;
-
-import java.io.IOException;
 
 public abstract class ParserGenerator extends CodeGenerator {
 

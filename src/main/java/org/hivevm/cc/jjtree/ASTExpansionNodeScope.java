@@ -5,8 +5,8 @@ package org.hivevm.cc.jjtree;
 
 public class ASTExpansionNodeScope extends ASTNode {
 
-  public NodeScope  node_scope;
-  public ASTNode expansion_unit;
+  public NodeScope node_scope;
+  public ASTNode   expansion_unit;
 
   public ASTExpansionNodeScope(JJTreeParser p, int id) {
     super(p, id);

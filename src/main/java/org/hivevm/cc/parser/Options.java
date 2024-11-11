@@ -3,9 +3,6 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.Language;
-
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
+
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.Language;
 
 /**
  * A class with static state that stores all option information.

@@ -3,6 +3,13 @@
 
 package org.hivevm.cc.semantic;
 
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.Choice;
 import org.hivevm.cc.parser.Expansion;
@@ -27,13 +34,6 @@ import org.hivevm.cc.parser.Sequence;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
-
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 
 public class Semanticize {
 

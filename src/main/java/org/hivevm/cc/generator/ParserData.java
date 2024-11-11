@@ -3,17 +3,17 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.Lookahead;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.Options;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+
+import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.parser.Expansion;
+import org.hivevm.cc.parser.Lookahead;
+import org.hivevm.cc.parser.NormalProduction;
+import org.hivevm.cc.parser.Options;
 
 /**
  * These lists are used to maintain expansions for which code generation in phase 2 and phase 3 is

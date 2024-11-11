@@ -4,12 +4,12 @@
 package org.hivevm.cc;
 
 
-import org.hivevm.cc.parser.Options;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hivevm.cc.parser.Options;
 
 /**
  * The {@link HiveCCBuilder} class.
@@ -88,8 +88,8 @@ public class HiveCCBuilder {
       arguments.add("-CODE_GENERATOR=" + this.language.name());
       arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
       if (this.jj == null) {
-        if (excludes != null && !excludes.isEmpty()) {
-          arguments.add("-NODE_EXCLUDES=" + String.join(",", excludes));
+        if ((this.excludes != null) && !this.excludes.isEmpty()) {
+          arguments.add("-NODE_EXCLUDES=" + String.join(",", this.excludes));
         }
         arguments.add(this.jjt.getAbsolutePath());
 

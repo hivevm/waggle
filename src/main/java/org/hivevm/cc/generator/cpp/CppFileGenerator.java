@@ -3,7 +3,10 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import org.hivevm.cc.HiveCC;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.generator.AbstractFileGenerator;
 import org.hivevm.cc.generator.FileGenerator;
@@ -15,38 +18,12 @@ import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.utils.DigestOptions;
-import org.hivevm.cc.utils.DigestWriter;
 import org.hivevm.cc.utils.TemplateOptions;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Generates the Constants file.
  */
 public class CppFileGenerator extends AbstractFileGenerator implements FileGenerator {
-
-  /**
-   * Gets the template by name.
-   * 
-   * @param name
-   */
-  protected final String getTemplate(String name) {
-    return String.format("/templates/cpp/%s.template", name);
-  }
-
-  /**
-   * Creates a new {@link DigestWriter}.
-   * 
-   * @param file
-   * @param options
-   */
-  protected final DigestWriter createDigestWriter(File file, DigestOptions options) throws FileNotFoundException {
-    return DigestWriter.createCpp(file, HiveCC.VERSION, options);
-  }
 
   @Override
   public final void handleRequest(JavaCCRequest request, LexerData context) throws ParseException {
@@ -61,31 +38,31 @@ public class CppFileGenerator extends AbstractFileGenerator implements FileGener
     options.add("STATES", context.getStateCount()).set("name", i -> context.getStateName(i));
     options.add("TOKENS", request.getOrderedsTokens()).set("ordinal", r -> r.getOrdinal()).set("label",
         r -> r.getLabel());
-    options.add("REGEXPS", expressions.size() + 1).set("label", (i, w) -> getRegExp(w, false, i, expressions))
-        .set("image", (i, w) -> getRegExp(w, true, i, expressions));
+    options.add("REGEXPS", expressions.size() + 1)
+        .set("label", (i, w) -> CppFileGenerator.getRegExp(w, false, i, expressions))
+        .set("image", (i, w) -> CppFileGenerator.getRegExp(w, true, i, expressions));
 
 
-    generateFile("JavaCC.h", new DigestOptions(context.options()));
+    generateFile(CppTemplate.JAVACC, new DigestOptions(context.options()));
 
-    generateFile("Token.h", new DigestOptions(context.options()));
-    generateFile("Token.cc", new DigestOptions(context.options()));
-    generateFile("TokenManager.h", new DigestOptions(context.options()));
-    generateFile("TokenManagerError.h", new DigestOptions(context.options()));
-    generateFile("TokenManagerError.cc", new DigestOptions(context.options()));
-    generateFile("TokenManagerErrorHandler.h", new DigestOptions(context.options()));
-    generateFile("TokenManagerErrorHandler.cc", new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKEN, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKEN_H, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKENMANAGER, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKENNANAGERERROR, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKENNANAGERERROR_H, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKENNANAGERHANDLER, new DigestOptions(context.options()));
+    generateFile(CppTemplate.TOKENNANAGERHANDLER_H, new DigestOptions(context.options()));
 
-    generateFile("Reader.h", new DigestOptions(context.options()));
-    generateFile("StringReader.h", new DigestOptions(context.options()));
-    generateFile("StringReader.cc", new DigestOptions(context.options()));
+    generateFile(CppTemplate.READER, new DigestOptions(context.options()));
+    generateFile(CppTemplate.STRINGREADER, new DigestOptions(context.options()));
+    generateFile(CppTemplate.STRINGREADER_H, new DigestOptions(context.options()));
 
-    generateFile("ParseException.h", new DigestOptions(context.options()));
-    generateFile("ParseException.cc", new DigestOptions(context.options()));
-    generateFile("ParserErrorHandler.h", new DigestOptions(context.options()));
-    generateFile("ParserErrorHandler.cc", new DigestOptions(context.options()));
+    generateFile(CppTemplate.PARSEEXCEPTION, new DigestOptions(context.options()));
+    generateFile(CppTemplate.PARSEEXCEPTION_H, new DigestOptions(context.options()));
+    generateFile(CppTemplate.PARSERHANDLER, new DigestOptions(context.options()));
+    generateFile(CppTemplate.PARSERHANDLER_H, new DigestOptions(context.options()));
 
-    generateFile("ParserConstants.h", request.getParserName() + "Constants.h",
-        new DigestOptions(context.options(), options));
+    generateFile(CppTemplate.PARSER_CONSTANTS, request.getParserName(), new DigestOptions(context.options(), options));
   }
 
   private static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RegularExpression> expressions) {

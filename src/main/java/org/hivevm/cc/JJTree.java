@@ -3,6 +3,13 @@
 
 package org.hivevm.cc;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.text.ParseException;
+
 import org.hivevm.cc.generator.ParserEngine;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTWriter;
@@ -11,13 +18,6 @@ import org.hivevm.cc.jjtree.JJTreeOptions;
 import org.hivevm.cc.jjtree.JJTreeParserDefault;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.text.ParseException;
 
 public class JJTree {
 

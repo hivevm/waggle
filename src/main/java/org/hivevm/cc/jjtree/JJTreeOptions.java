@@ -3,15 +3,15 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.Options;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.Options;
 
 /**
  * The JJTree-specific options.
@@ -108,7 +108,7 @@ public class JJTreeOptions extends Options {
     String prefix = getNodePrefix();
     String excludes = stringValue(HiveCC.JJTREE_NODE_EXCLUDES);
     List<String> list =
-        excludes == null || excludes.isEmpty() ? Collections.emptyList() : Arrays.asList(excludes.split(","));
+        (excludes == null) || excludes.isEmpty() ? Collections.emptyList() : Arrays.asList(excludes.split(","));
     return list.stream().map(n -> prefix + n).collect(Collectors.toSet());
   }
 

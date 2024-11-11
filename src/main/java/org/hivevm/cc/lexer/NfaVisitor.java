@@ -3,6 +3,9 @@
 
 package org.hivevm.cc.lexer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.hivevm.cc.generator.LexerStateData;
 import org.hivevm.cc.parser.CharacterRange;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -19,9 +22,6 @@ import org.hivevm.cc.parser.RZeroOrOne;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.RegularExpressionVisitor;
 import org.hivevm.cc.parser.SingleCharacter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The {@link NfaVisitor} class.

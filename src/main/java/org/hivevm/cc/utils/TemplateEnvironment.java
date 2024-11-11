@@ -25,34 +25,34 @@ class TemplateEnvironment implements Environment {
 
   /**
    * Return <code>true</code> if the environment variable is set.
-   * 
+   *
    * @param name
    */
   @Override
   public final boolean isSet(String name) {
     // return options.containsKey(name);
-    return options.containsKey(name) || environment.isSet(name);
+    return this.options.containsKey(name) || this.environment.isSet(name);
   }
 
   /**
    * Get the environment variable by name
-   * 
+   *
    * @param name
    */
   @Override
   public final Object get(String name) {
     // return options.get(name);
-    return options.containsKey(name) ? options.get(name) : environment.get(name);
+    return this.options.containsKey(name) ? this.options.get(name) : this.environment.get(name);
   }
 
   /**
    * Set an environment variable by name
-   * 
+   *
    * @param name
    * @param value
    */
   @Override
   public void set(String name, Object value) {
-    options.put(name, value);
+    this.options.put(name, value);
   }
 }

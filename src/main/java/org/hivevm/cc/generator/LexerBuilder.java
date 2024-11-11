@@ -3,6 +3,14 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
+
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
@@ -16,20 +24,12 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.TokenProduction.Kind;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
-
 /**
  * The {@link LexerBuilder} class.
  */
 public class LexerBuilder {
 
-	public   LexerData build(JavaCCRequest request) throws IOException {
+  public LexerData build(JavaCCRequest request) throws IOException {
     if (JavaCCErrors.hasError()) {
       return null;
     }
@@ -155,7 +155,8 @@ public class LexerBuilder {
 
           switch (kind) {
             case SPECIAL:
-              data.hasSkipActions |= (data.actions[curRE.getOrdinal()] != null) || (data.newLexState[curRE.getOrdinal()] != null);
+              data.hasSkipActions |=
+                  (data.actions[curRE.getOrdinal()] != null) || (data.newLexState[curRE.getOrdinal()] != null);
               data.hasSpecial = true;
               data.toSpecial[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
               data.toSkip[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);

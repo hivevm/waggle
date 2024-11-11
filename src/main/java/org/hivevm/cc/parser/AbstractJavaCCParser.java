@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.jjtree.JJTreeParserConstants;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hivevm.cc.jjtree.JJTreeParserConstants;
 
 /**
  * Utilities.
@@ -304,7 +304,7 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   }
 
   protected boolean checkEmpty(Token token) {
-    return token.kind != JavaCCParserConstants.RPAREN && token.kind != JavaCCParserConstants.LBRACE;
+    return (token.kind != JavaCCParserConstants.RPAREN) && (token.kind != JavaCCParserConstants.LBRACE);
   }
 
   protected final void setInputOption(Token o, Token v) {

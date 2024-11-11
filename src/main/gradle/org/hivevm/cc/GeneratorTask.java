@@ -3,6 +3,13 @@
 
 package org.hivevm.cc;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.inject.Inject;
+
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
@@ -10,13 +17,6 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.api.tasks.options.OptionValues;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.inject.Inject;
 
 /**
  * The {@link GeneratorTask} class.
@@ -36,7 +36,7 @@ public abstract class GeneratorTask extends DefaultTask {
 
   @OptionValues("target")
   public List<Language> getAvailableOutputTypes() {
-    return new ArrayList<Language>(Arrays.asList(Language.values()));
+    return new ArrayList<>(Arrays.asList(Language.values()));
   }
 
   @TaskAction
@@ -54,12 +54,14 @@ public abstract class GeneratorTask extends DefaultTask {
   }
 
   protected File getFile(String pathname) {
-    if (pathname == null)
+    if (pathname == null) {
       return null;
+    }
 
     File targetDir = new File(pathname);
-    if (targetDir.isAbsolute())
+    if (targetDir.isAbsolute()) {
       return targetDir;
+    }
 
     File projectDir = getProject().getProjectDir();
     return new File(projectDir, pathname);

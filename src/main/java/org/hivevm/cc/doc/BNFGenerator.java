@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.doc;
 
+import java.io.PrintWriter;
+
 import org.hivevm.cc.parser.Expansion;
 import org.hivevm.cc.parser.NonTerminal;
 import org.hivevm.cc.parser.NormalProduction;
@@ -10,8 +12,6 @@ import org.hivevm.cc.parser.RCharacterList;
 import org.hivevm.cc.parser.RJustName;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-
-import java.io.PrintWriter;
 
 class BNFGenerator implements Generator {
 

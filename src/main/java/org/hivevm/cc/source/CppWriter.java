@@ -3,22 +3,25 @@
 
 package org.hivevm.cc.source;
 
-import org.hivevm.cc.HiveCC;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import org.hivevm.cc.generator.cpp.CppTemplate;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
+import org.hivevm.cc.utils.Template;
+import org.hivevm.cc.utils.TemplateProvider;
 
 /**
  * The {@link CppWriter} class.
  */
 public class CppWriter extends SourceWriter {
 
-  private final StringWriter writer;
-  private final StringWriter header = new StringWriter();
+  private final TemplateProvider provider;
+  private final StringWriter     writer;
+  private final StringWriter     header = new StringWriter();
 
 
   /**
@@ -27,8 +30,9 @@ public class CppWriter extends SourceWriter {
    * @param name
    * @param options
    */
-  public CppWriter(String name, DigestOptions options) {
-    super(name, options);
+  public CppWriter(String name, CppTemplate provider, DigestOptions options) {
+    super(name, provider, options);
+    this.provider = provider.getHeader();
     this.writer = (StringWriter) this.out;
     this.header.append("#ifndef JAVACC_" + name.replace('.', '_').toUpperCase() + "_H\n");
     this.header.append("#define JAVACC_" + name.replace('.', '_').toUpperCase() + "_H\n");
@@ -38,26 +42,33 @@ public class CppWriter extends SourceWriter {
     this.out = this.header;
   }
 
+  /**
+   * Write the content using a template.
+   *
+   * @param path
+   */
+  public final void writeTemplateHeader() throws IOException {
+    Template template = Template.of(this.provider, getOptions());
+    template.render(new PrintWriter(this.out));
+  }
+
   @Override
-  public final void saveOutput(File path) {
+  public final void close() {
     // dump the statics into the main file with the code.
     StringBuffer buffer = new StringBuffer();
     buffer.append(this.writer.toString());
 
-    File file = new File(path, getName() + ".h");
-    saveOutput(file, this.header.getBuffer(), getOptions());
-
-    file = new File(path, getName() + ".cc");
-    saveOutput(file, buffer, getOptions());
+    saveOutput(this.provider, this.header.getBuffer(), getOptions());
+    saveOutput(getProvider(), buffer, getOptions());
   }
 
-  private void saveOutput(File file, StringBuffer buffer, DigestOptions options) {
+  private void saveOutput(TemplateProvider provider, StringBuffer buffer, DigestOptions options) {
     CppWriter.fixupLongLiterals(buffer);
 
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, options)) {
+    try (DigestWriter writer = provider.createDigestWriter(getName(), options)) {
       writer.print(buffer.toString());
     } catch (IOException ioe) {
-      JavaCCErrors.fatal("Could not create output file: " + file);
+      JavaCCErrors.fatal("Could not create output file: " + provider.getFilename(getName()));
     }
   }
 

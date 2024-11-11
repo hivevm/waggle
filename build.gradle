@@ -93,7 +93,7 @@ hiveCC {
   step {
     name       = 'tree'
     jjtFile    = 'src/main/resources/JJTree.jjt'
-    directory  = 'src/main/generated2/org/hivevm/cc/jjtree'
+    directory  = 'src/main/generated/org/hivevm/cc/jjtree'
     excludes   = [ 'BNF', 'BNFAction', 'BNFDeclaration', 'BNFNodeScope',
       'ExpansionNodeScope', 'NodeDescriptor', 'OptionBinding' ]
   }
@@ -101,7 +101,7 @@ hiveCC {
   step {
     name       = 'parser'
     jjFile    = 'src/main/resources/JavaCC.jj'
-    directory  = 'src/main/generated2/org/hivevm/cc/parser'
+    directory  = 'src/main/generated/org/hivevm/cc/parser'
   }
 
   // step {

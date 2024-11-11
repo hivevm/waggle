@@ -27,7 +27,7 @@ public class TemplateOptions implements Environment {
    */
   @Override
   public final boolean isSet(String name) {
-    return options.containsKey(name);
+    return this.options.containsKey(name);
   }
 
   /**
@@ -38,7 +38,7 @@ public class TemplateOptions implements Environment {
    */
   @Override
   public final Object get(String name) {
-    return options.get(name);
+    return this.options.get(name);
   }
 
   /**
@@ -49,11 +49,11 @@ public class TemplateOptions implements Environment {
    */
   @Override
   public final void set(String name, Object value) {
-    options.put(name, value);
+    this.options.put(name, value);
   }
 
   public final void set(String name, Supplier<Object> value) {
-    options.put(name, value);
+    this.options.put(name, value);
   }
 
   public final void setWriter(String name, Consumer<PrintWriter> value) {
@@ -67,16 +67,16 @@ public class TemplateOptions implements Environment {
   }
 
   public final void set(String name, Function<?, Object> value) {
-    options.put(name, value);
+    this.options.put(name, value);
   }
 
   public final <T> Mapper<T> add(String name, T value) {
-    options.put(name, value);
+    this.options.put(name, value);
     return new Mapper<>(name);
   }
 
   public final <T> Mapper<T> add(String name, Iterable<T> value) {
-    options.put(name, value);
+    this.options.put(name, value);
     return new Mapper<>(name);
   }
 
@@ -94,7 +94,7 @@ public class TemplateOptions implements Environment {
     }
 
     public final Mapper<T> set(String key, Function<T, Object> function) {
-      options.put(String.join(".", name, key), function);
+      TemplateOptions.this.options.put(String.join(".", this.name, key), function);
       return this;
     }
 

@@ -3,6 +3,13 @@
 
 package org.hivevm.cc.generator.java;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Set;
+
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.JJTreeCodeGenerator;
 import org.hivevm.cc.jjtree.ASTNodeDescriptor;
@@ -13,13 +20,6 @@ import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
 import org.hivevm.cc.utils.Template;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Set;
 
 public class JavaTreeGenerator extends JJTreeCodeGenerator {
 
@@ -75,8 +75,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
   }
 
   @Override
-  protected final void insertCatchBlocks(NodeScope ns, ASTWriter io, Enumeration<String> thrown_names,
-      String indent) {
+  protected final void insertCatchBlocks(NodeScope ns, ASTWriter io, Enumeration<String> thrown_names, String indent) {
     if (thrown_names.hasMoreElements()) {
       io.println(indent + "} catch (Throwable " + ns.exceptionVar + ") {");
 
@@ -124,7 +123,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
 
     File file = new File(filePrefix + ".java");
     try (DigestWriter ostr = DigestWriter.create(file, HiveCC.VERSION, options)) {
-      Template.of("/templates/java/TreeState.template", options).render(ostr);
+      Template.of(JavaTemplate.TREE_STATE, options).render(ostr);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -290,7 +289,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
     options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
     try (DigestWriter writer = DigestWriter.create(file, HiveCC.VERSION, options)) {
-      Template.of("/templates/java/Tree.template", options).render(writer);
+      Template.of(JavaTemplate.TREE, options).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -304,7 +303,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
     options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
     try (DigestWriter writer = DigestWriter.create(file, HiveCC.VERSION, options)) {
-      Template.of("/templates/java/Node.template", options).render(writer);
+      Template.of(JavaTemplate.NODE, options).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -325,7 +324,7 @@ public class JavaTreeGenerator extends JJTreeCodeGenerator {
       try (DigestWriter writer = DigestWriter.create(file, HiveCC.VERSION, options)) {
         options.set(HiveCC.JJTREE_NODE_TYPE, nodeType);
         options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, Boolean.valueOf(o.getVisitorReturnType().equals("void")));
-        Template.of("/templates/java/MultiNode.template", options).render(writer);
+        Template.of(JavaTemplate.MULTI_NODE, options).render(writer);
       } catch (IOException e) {
         throw new Error(e.toString());
       }

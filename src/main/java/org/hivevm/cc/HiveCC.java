@@ -3,11 +3,11 @@
 
 package org.hivevm.cc;
 
-import org.hivevm.cc.utils.Version;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import org.hivevm.cc.utils.Version;
 
 /**
  * This package contains data created as a result of parsing and semanticizing a JavaCC input file.

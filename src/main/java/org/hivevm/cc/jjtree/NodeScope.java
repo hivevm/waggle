@@ -55,7 +55,7 @@ public class NodeScope {
 
   private String constructVariable(String id) {
     String s = "000" + this.scopeNumber;
-    return "jjt" + id + s.substring(s.length() - 3, s.length());
+    return "jjt" + id + s.substring(s.length() - 3);
   }
 
 

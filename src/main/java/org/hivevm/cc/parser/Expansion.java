@@ -98,7 +98,7 @@ public class Expansion {
 
   /**
    * Sets the position in the source.
-   * 
+   *
    * @param token
    * @param token
    */
@@ -109,7 +109,7 @@ public class Expansion {
 
   /**
    * Sets the position in the source.
-   * 
+   *
    * @param token
    * @param token
    */

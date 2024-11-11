@@ -3,6 +3,12 @@
 
 package org.hivevm.cc.generator.cpp;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Locale;
+
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.LexerStateData;
@@ -15,12 +21,6 @@ import org.hivevm.cc.source.CppWriter;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Locale;
 
 /**
  * Generate lexer.
@@ -67,13 +67,13 @@ public class CppLexerGenerator extends LexerGenerator {
     options.set("jjCheckNAddStatesDualNeeded", data.jjCheckNAddStatesDualNeeded);
     options.set("jjCheckNAddStatesUnaryNeeded", data.jjCheckNAddStatesUnaryNeeded);
 
-    CppWriter writer = new CppWriter(data.getParserName() + "TokenManager", new DigestOptions(data.options(), options));
-    writer.writeTemplate("/templates/cpp/Lexer.template");
-
-    writer.switchToHeader();
-    data.boilerPlateDumped = false;
-    writer.writeTemplate("/templates/cpp/Lexer.h.template");
-    saveOutput(writer, data.options().getOutputDirectory());
+    DigestOptions digest = new DigestOptions(data.options(), options);
+    try (CppWriter writer = new CppWriter(data.getParserName() + "TokenManager", CppTemplate.LEXER, digest)) {
+      writer.writeTemplate();
+      writer.switchToHeader();
+      data.boilerPlateDumped = false;
+      writer.writeTemplateHeader();
+    }
   }
 
 

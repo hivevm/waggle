@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.doc;
 
+import java.util.Hashtable;
+
 import org.hivevm.cc.parser.Expansion;
 import org.hivevm.cc.parser.NonTerminal;
 import org.hivevm.cc.parser.NormalProduction;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-
-import java.util.Hashtable;
 
 /**
  * Output BNF in HTML 3.2 format.

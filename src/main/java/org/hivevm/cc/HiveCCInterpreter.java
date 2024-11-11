@@ -3,6 +3,10 @@
 
 package org.hivevm.cc;
 
+import java.text.ParseException;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.hivevm.cc.generator.LexerBuilder;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCData;
@@ -12,10 +16,6 @@ import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StringProvider;
 import org.hivevm.cc.semantic.Semanticize;
-
-import java.text.ParseException;
-import java.util.HashSet;
-import java.util.Set;
 
 public class HiveCCInterpreter {
 
@@ -32,17 +32,17 @@ public class HiveCCInterpreter {
   public void runTokenizer(String grammar, String input) {
     JavaCCErrors.reInit();
     try {
-      JavaCCData request = new JavaCCData(false, options);
+      JavaCCData request = new JavaCCData(false, this.options);
 
-      JavaCCParser parser = new JavaCCParserDefault(new StringProvider(grammar), options);
+      JavaCCParser parser = new JavaCCParserDefault(new StringProvider(grammar), this.options);
       parser.initialize(request);
       parser.javacc_input();
 
-      Semanticize.semanticize(request, options);
+      Semanticize.semanticize(request, this.options);
 
       if (JavaCCErrors.get_error_count() == 0) {
         LexerData data = new LexerBuilder().build(request);
-        tokenize(data, input, options);
+        HiveCCInterpreter.tokenize(data, input, this.options);
       }
     } catch (ParseException e) {
       System.out.println("Detected " + JavaCCErrors.get_error_count() + " errors and "

@@ -3,7 +3,9 @@
 
 package org.hivevm.cc.generator.java;
 
-import org.hivevm.cc.HiveCC;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.generator.AbstractFileGenerator;
 import org.hivevm.cc.generator.FileGenerator;
@@ -15,38 +17,13 @@ import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.utils.DigestOptions;
-import org.hivevm.cc.utils.DigestWriter;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Generates the Constants file.
  */
 public class JavaFileGenerator extends AbstractFileGenerator implements FileGenerator {
-
-  /**
-   * Gets the template by name.
-   * 
-   * @param name
-   */
-  protected final String getTemplate(String name) {
-    return String.format("/templates/java/%s.template", name.substring(0, name.length() - 5));
-  }
-
-  /**
-   * Creates a new {@link DigestWriter}.
-   * 
-   * @param file
-   * @param options
-   */
-  protected final DigestWriter createDigestWriter(File file, DigestOptions options) throws FileNotFoundException {
-    return DigestWriter.create(file, HiveCC.VERSION, options);
-  }
 
   @Override
   public final void handleRequest(JavaCCRequest request, LexerData context) throws ParseException {
@@ -74,22 +51,21 @@ public class JavaFileGenerator extends AbstractFileGenerator implements FileGene
         buffer.append("\"<token of kind " + re.getOrdinal() + ">\"");
       }
 
-      if (expressions.indexOf(re) < expressions.size() - 1)
+      if (expressions.indexOf(re) < (expressions.size() - 1)) {
         buffer.append(",");
+      }
       return buffer.toString();
     });
 
-    generateFile("Token.java", new DigestOptions(context.options()));
-    generateFile("TokenException.java", new DigestOptions(context.options()));
+    generateFile(JavaTemplate.TOKEN, new DigestOptions(context.options()));
+    generateFile(JavaTemplate.TOKEN_EXCEPTION, new DigestOptions(context.options()));
 
-    generateFile("Provider.java", new DigestOptions(context.options()));
-    generateFile("StringProvider.java", new DigestOptions(context.options()));
-    generateFile("StreamProvider.java", new DigestOptions(context.options()));
-    generateFile("JavaCharStream.java", new DigestOptions(context.options()));
+    generateFile(JavaTemplate.PROVIDER, new DigestOptions(context.options()));
+    generateFile(JavaTemplate.STRING_PROVIDER, new DigestOptions(context.options()));
+    generateFile(JavaTemplate.STREAM_PROVIDER, new DigestOptions(context.options()));
+    generateFile(JavaTemplate.CHAR_STREAM, new DigestOptions(context.options()));
 
-    generateFile("ParseException.java", new DigestOptions(context.options()));
-
-    generateFile("ParserConstants.java", request.getParserName() + "Constants.java",
-        new DigestOptions(context.options(), options));
+    generateFile(JavaTemplate.PARSER_EXCEPTION, new DigestOptions(context.options()));
+    generateFile(JavaTemplate.PARSER_CONSTANTS, request.getParserName(), new DigestOptions(context.options(), options));
   }
 }

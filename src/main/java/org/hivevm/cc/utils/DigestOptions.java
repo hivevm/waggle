@@ -3,11 +3,11 @@
 
 package org.hivevm.cc.utils;
 
-import org.hivevm.cc.parser.Options;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import org.hivevm.cc.parser.Options;
 
 
 /**
@@ -21,7 +21,7 @@ public class DigestOptions implements Environment {
 
   /**
    * Constructs an instance of {@link DigestOptions}.
-   * 
+   *
    * @param global
    * @param environment
    */
@@ -31,7 +31,7 @@ public class DigestOptions implements Environment {
 
   /**
    * Constructs an instance of {@link DigestOptions}.
-   * 
+   *
    * @param global
    * @param environment
    */
@@ -44,7 +44,7 @@ public class DigestOptions implements Environment {
    * Gets the {@link Options}.
    */
   public final Options getOptions() {
-    return global;
+    return this.global;
   }
 
   final boolean hasConsumed() {
@@ -53,7 +53,7 @@ public class DigestOptions implements Environment {
 
   final Stream<String> consumed() {
     return this.consumed.stream().filter(n -> DigestOptions.isPrintableOption(get(n))).sorted()
-        .map(n -> toPrintable(n, get(n)));
+        .map(n -> DigestOptions.toPrintable(n, get(n)));
   }
 
   /**
@@ -63,7 +63,7 @@ public class DigestOptions implements Environment {
    */
   @Override
   public final boolean isSet(String name) {
-    return environment.isSet(name) || global.getOptions().containsKey(name);
+    return this.environment.isSet(name) || this.global.getOptions().containsKey(name);
   }
 
   /**
@@ -74,7 +74,7 @@ public class DigestOptions implements Environment {
    */
   @Override
   public final Object get(String name) {
-    Object value = environment.isSet(name) ? environment.get(name) : global.getOptions().get(name);
+    Object value = this.environment.isSet(name) ? this.environment.get(name) : this.global.getOptions().get(name);
     this.consumed.add(name);
     return value;
   }
@@ -87,7 +87,7 @@ public class DigestOptions implements Environment {
    */
   @Override
   public final void set(String name, Object value) {
-    environment.set(name, value);
+    this.environment.set(name, value);
   }
 
   private static boolean isPrintableOption(Object value) {
@@ -95,8 +95,9 @@ public class DigestOptions implements Environment {
   }
 
   private static String toPrintable(String name, Object value) {
-    if ((value instanceof Number) || (value instanceof Boolean))
+    if ((value instanceof Number) || (value instanceof Boolean)) {
       return String.format("%s=%s", name, value);
+    }
     return String.format("%s='%s'", name, value);
   }
 }

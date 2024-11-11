@@ -3,6 +3,11 @@
 
 package org.hivevm.cc.generator;
 
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Set;
+
 import org.hivevm.cc.jjtree.ASTBNFAction;
 import org.hivevm.cc.jjtree.ASTBNFDeclaration;
 import org.hivevm.cc.jjtree.ASTBNFNodeScope;
@@ -25,23 +30,18 @@ import org.hivevm.cc.jjtree.Node;
 import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.jjtree.Token;
 
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Set;
-
 public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
 
   private final Set<String> nodesToGenerate = new HashSet<>();
 
   protected final void addType(String nodeType) {
     if (!nodeType.equals("Node")) {
-      nodesToGenerate.add(nodeType);
+      this.nodesToGenerate.add(nodeType);
     }
   }
 
   protected final Iterable<String> nodesToGenerate() {
-    return nodesToGenerate;
+    return this.nodesToGenerate;
   }
 
   protected abstract String getPointer();

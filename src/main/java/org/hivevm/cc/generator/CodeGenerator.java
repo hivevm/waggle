@@ -6,18 +6,11 @@ package org.hivevm.cc.generator;
 import org.hivevm.cc.JJCodeBlock;
 import org.hivevm.cc.parser.JavaCCParserConstants;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.source.SourceWriter;
 import org.hivevm.cc.utils.Encoding;
-
-import java.io.File;
 
 class CodeGenerator {
 
   private int crow, ccol;
-
-  protected final void saveOutput(SourceWriter writer, File path) {
-    writer.saveOutput(path);
-  }
 
   protected void genTokenSetup(Token t) {
     Token tt = t;

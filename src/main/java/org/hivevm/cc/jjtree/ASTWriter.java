@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.JJCodeBlock;
-import org.hivevm.cc.Language;
-import org.hivevm.cc.utils.Encoding;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+
+import org.hivevm.cc.JJCodeBlock;
+import org.hivevm.cc.Language;
+import org.hivevm.cc.utils.Encoding;
 
 
 /**
@@ -43,7 +43,7 @@ public class ASTWriter extends PrintWriter {
    * Get the current {@link Language}.
    */
   public final Language getLanguage() {
-    return language;
+    return this.language;
   }
 
   /**
@@ -98,13 +98,13 @@ public class ASTWriter extends PrintWriter {
       return;
     }
 
-    if (token.image.contains(SELF)) {
+    if (token.image.contains(ASTWriter.SELF)) {
       String text = Encoding.escapeUnicode(node.translateImage(token));
-      print(text.replace(SELF, s.getNodeVariable()));
+      print(text.replace(ASTWriter.SELF, s.getNodeVariable()));
       return;
     }
     if (this.whitingOut) {
-      if (token.image.equals(JJTREE)) {
+      if (token.image.equals(ASTWriter.JJTREE)) {
         print(s.getNodeVariable());
         print(" ");
       } else if (token.image.equals(")")) {

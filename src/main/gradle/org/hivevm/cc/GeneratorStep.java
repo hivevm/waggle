@@ -3,11 +3,11 @@
 
 package org.hivevm.cc;
 
-import org.gradle.api.Project;
-
 import java.util.List;
 
 import javax.inject.Inject;
+
+import org.gradle.api.Project;
 
 public class GeneratorStep {
 

@@ -3,6 +3,14 @@
 
 package org.hivevm.cc.generator.java;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
 import org.hivevm.cc.parser.Action;
@@ -24,14 +32,6 @@ import org.hivevm.cc.source.SourceWriter;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implements the {@link ParserGenerator} for the JAVA language.
@@ -64,9 +64,10 @@ public class JavaParserGenerator extends ParserGenerator {
             i -> data.maskVals().stream().map(v -> "0x" + Integer.toHexString(v[i])).collect(Collectors.joining(", ")))
         .set("la1", i -> (i == 0) ? "" : (32 * i) + " + ");
 
-    SourceWriter writer = new SourceWriter(data.getParserName(), new DigestOptions(data.options(), options));
-    writer.writeTemplate("/templates/java/Parser.template");
-    saveOutput(writer, data.options().getOutputDirectory());
+    try (SourceWriter writer =
+        new SourceWriter(data.getParserName(), JavaTemplate.PARSER, new DigestOptions(data.options(), options))) {
+      writer.writeTemplate();
+    }
   }
 
   /**

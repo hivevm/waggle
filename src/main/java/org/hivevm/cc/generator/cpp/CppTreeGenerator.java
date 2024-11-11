@@ -3,6 +3,14 @@
 
 package org.hivevm.cc.generator.cpp;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Set;
+
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.JJTreeCodeGenerator;
 import org.hivevm.cc.jjtree.ASTNodeDescriptor;
@@ -13,16 +21,7 @@ import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.DigestWriter;
-import org.hivevm.cc.utils.Environment;
 import org.hivevm.cc.utils.Template;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Set;
 
 public class CppTreeGenerator extends JJTreeCodeGenerator {
 
@@ -78,8 +77,7 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
   }
 
   @Override
-  protected final void insertCatchBlocks(NodeScope ns, ASTWriter io, Enumeration<String> thrown_names,
-      String indent) {
+  protected final void insertCatchBlocks(NodeScope ns, ASTWriter io, Enumeration<String> thrown_names, String indent) {
     io.println(indent + "} catch (...) {"); // " + ns.exceptionVar + ") {");
 
     if (ns.usesCloseNodeVar()) {
@@ -111,18 +109,16 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
     DigestOptions options = new DigestOptions(o);
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
 
-    String filePrefix = new File(o.getOutputDirectory(), "TreeState").getAbsolutePath();
-
-    File file = new File(filePrefix + ".h");
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, options)) {
-      CppTreeGenerator.generateFile(writer, "/templates/cpp/TreeState.h.template", writer.options());
+    CppTemplate template = CppTemplate.TREESTATE_H;
+    try (DigestWriter writer = template.createDigestWriter(options)) {
+      Template.of(template, writer.options()).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
 
-    file = new File(filePrefix + ".cc");
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, options)) {
-      CppTreeGenerator.generateFile(writer, "/templates/cpp/TreeState.cc.template", writer.options());
+    template = CppTemplate.TREESTATE;
+    try (DigestWriter writer = template.createDigestWriter(options)) {
+      Template.of(template, writer.options()).render(writer);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -130,21 +126,6 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
 
   private static List<String> headersForJJTreeH = new ArrayList<>();
 
-  private static String nodeIncludeFile(JJTreeOptions o) {
-    return new File(o.getOutputDirectory(), "Node.h").getAbsolutePath();
-  }
-
-  private static String nodeImplFile(JJTreeOptions o) {
-    return new File(o.getOutputDirectory(), "Node.cc").getAbsolutePath();
-  }
-
-  private static String jjtreeIncludeFile(String s, JJTreeOptions o) {
-    return new File(o.getOutputDirectory(), s + ".h").getAbsolutePath();
-  }
-
-  private static String jjtreeImplFile(String s, JJTreeOptions o) {
-    return new File(o.getOutputDirectory(), s + ".cc").getAbsolutePath();
-  }
 
   private void generateNodeHeader(JJTreeOptions o) {
     DigestOptions optionMap = new DigestOptions(o);
@@ -154,9 +135,9 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
         Boolean.valueOf(CppTreeGenerator.getVisitorReturnType(o).equals("void")));
 
-    File file = new File(CppTreeGenerator.nodeIncludeFile(o));
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, optionMap)) {
-      CppTreeGenerator.generateFile(writer, "/templates/cpp/Node.h.template", writer.options());
+    CppTemplate template = CppTemplate.NODE_H;
+    try (DigestWriter writer = template.createDigestWriter(optionMap)) {
+      Template.of(template, writer.options()).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -172,9 +153,9 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
         Boolean.valueOf(CppTreeGenerator.getVisitorReturnType(o).equals("void")));
     optionMap.set(HiveCC.JJTREE_NODE_TYPE, node);
 
-    File file = new File(CppTreeGenerator.jjtreeIncludeFile(node, o));
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, optionMap)) {
-      CppTreeGenerator.generateFile(writer, "/templates/cpp/Tree.h.template", writer.options());
+    CppTemplate template = CppTemplate.TREE;
+    try (DigestWriter writer = template.createDigestWriter(optionMap)) {
+      Template.of(template, writer.options()).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -188,9 +169,9 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
         Boolean.valueOf(CppTreeGenerator.getVisitorReturnType(o).equals("void")));
 
-    File file = new File(CppTreeGenerator.nodeImplFile(o));
-    try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, optionMap)) {
-      CppTreeGenerator.generateFile(writer, "/templates/cpp/Node.cc.template", writer.options());
+    CppTemplate template = CppTemplate.NODE;
+    try (DigestWriter writer = template.createDigestWriter(optionMap)) {
+      Template.of(template, writer.options()).render(writer);
     } catch (IOException e) {
       throw new Error(e.toString());
     }
@@ -199,10 +180,10 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
   private void generateMultiTreeImpl(JJTreeOptions o) {
     Set<String> excludes = o.getExcudeNodes();
     for (String node : nodesToGenerate()) {
-      if (excludes.contains(node))
+      if (excludes.contains(node)) {
         continue;
-      
-      File file = new File(CppTreeGenerator.jjtreeImplFile(node, o));
+      }
+
       DigestOptions optionMap = new DigestOptions(o);
       optionMap.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
       optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppTreeGenerator.getVisitorReturnType(o));
@@ -211,8 +192,9 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
           Boolean.valueOf(CppTreeGenerator.getVisitorReturnType(o).equals("void")));
       optionMap.set(HiveCC.JJTREE_NODE_TYPE, node);
 
-      try (DigestWriter writer = DigestWriter.createCpp(file, HiveCC.VERSION, optionMap)) {
-        CppTreeGenerator.generateFile(writer, "/templates/cpp/MultiNode.cc.template", writer.options());
+      CppTemplate template = CppTemplate.MULTINODE;
+      try (DigestWriter writer = template.createDigestWriter(optionMap)) {
+        Template.of(template, writer.options()).render(writer);
       } catch (IOException e) {
         throw new Error(e.toString());
       }
@@ -399,9 +381,5 @@ public class CppTreeGenerator extends JJTreeCodeGenerator {
     }
     ostr.println("  ~" + className + "() { }");
     ostr.println("};");
-  }
-
-  private static void generateFile(PrintWriter writer, String template, Environment environment) throws IOException {
-    Template.of(template, environment).render(writer);
   }
 }
