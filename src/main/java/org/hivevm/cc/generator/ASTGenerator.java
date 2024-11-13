@@ -3,11 +3,6 @@
 
 package org.hivevm.cc.generator;
 
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Set;
-
 import org.hivevm.cc.jjtree.ASTBNFAction;
 import org.hivevm.cc.jjtree.ASTBNFDeclaration;
 import org.hivevm.cc.jjtree.ASTBNFNodeScope;
@@ -30,7 +25,12 @@ import org.hivevm.cc.jjtree.Node;
 import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.jjtree.Token;
 
-public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Set;
+
+public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
 
   private final Set<String> nodesToGenerate = new HashSet<>();
 
@@ -44,12 +44,6 @@ public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
     return this.nodesToGenerate;
   }
 
-  protected abstract String getPointer();
-
-  protected abstract String getBoolean();
-
-  protected abstract String getTryFinally();
-
   @Override
   public final Object defaultVisit(Node node, ASTWriter data) {
     data.handleJJTreeNode((ASTNode) node, this);
@@ -61,15 +55,14 @@ public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
     return node.childrenAccept(this, data);
   }
 
+  /**
+   * Assume that this action requires an early node close, and then try to decide whether this
+   * assumption is false. Do this by looking outwards through the enclosing expansion units. If we
+   * ever find that we are enclosed in a unit which is not the final unit in a sequence we know that
+   * an early close is not required.
+   */
   @Override
   public final Object visit(ASTBNFAction node, ASTWriter writer) {
-    /*
-     * Assume that this action requires an early node close, and then try to decide whether this
-     * assumption is false. Do this by looking outwards through the enclosing expansion units. If we
-     * ever find that we are enclosed in a unit which is not the final unit in a sequence we know
-     * that an early close is not required.
-     */
-
     NodeScope ns = NodeScope.getEnclosingNodeScope(node);
     if ((ns != null) && !ns.isVoid()) {
       boolean needClose = true;
@@ -150,7 +143,7 @@ public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
     node.expansion_unit.jjtAccept(this, writer);
     writer.println();
     writer.print("}");
-    catchExpansionUnit(node.node_scope, writer, indent, node.expansion_unit);
+    insertCatchBlocks(node.node_scope, writer, indent, node.expansion_unit);
     return true;
   }
 
@@ -164,7 +157,7 @@ public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
 
     node.expansion_unit.jjtAccept(this, writer);
 
-    catchExpansionUnit(node.node_scope, writer, indent, node.expansion_unit);
+    insertCatchBlocks(node.node_scope, writer, indent, node.expansion_unit);
 
     // Print the "whiteOut" equivalent of the Node descriptor to preserve
     // line numbers in the generated file.
@@ -182,66 +175,32 @@ public abstract class JJTreeCodeGenerator extends JJTreeParserDefaultVisitor {
 
   protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent, JJTreeOptions options);
 
-  private final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
-      JJTreeOptions options) {
-    String closeNode = ns.getNodeDescriptor().closeNode(ns.nodeVar);
-    writer.println(indent + closeNode);
-    if (ns.usesCloseNodeVar() && !isFinal) {
-      writer.println(indent + ns.closedVar + " = false;");
-    }
-    if (options.getNodeScopeHook()) {
-      writer.println(indent + "if (jjtree.nodeCreated()) {");
-      writer.println(indent + " jjtreeCloseNodeScope(" + ns.nodeVar + ");");
-      writer.println(indent + "}");
-    }
+  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
+      JJTreeOptions options);
 
-    if (options.getTrackTokens()) {
-      writer.println(indent + ns.nodeVar + getPointer() + "jjtSetLastToken(getToken(0));");
-    }
+  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, String indent, ASTNode expansion_unit);
+
+  protected final Enumeration<String> findThrown(NodeScope ns, ASTNode expansion_unit) {
+    Hashtable<String, String> thrown_set = new Hashtable<>();
+    findThrown(ns, thrown_set, expansion_unit);
+    return thrown_set.elements();
   }
 
-  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, Enumeration<String> thrown_names,
-      String indent);
 
-
-  private static void findThrown(NodeScope ns, Hashtable<String, String> thrown_set, ASTNode expansion_unit) {
+  private void findThrown(NodeScope ns, Hashtable<String, String> thrown_set, ASTNode expansion_unit) {
     if (expansion_unit instanceof ASTBNFNonTerminal) {
-      /*
-       * Should really make the nonterminal explicitly maintain its name.
-       */
+      // Should really make the nonterminal explicitly maintain its name.
       String nt = expansion_unit.getFirstToken().image;
       ASTProduction prod = JJTreeGlobals.productions.get(nt);
       if (prod != null) {
-        Enumeration<String> e = prod.throws_list.elements();
-        while (e.hasMoreElements()) {
-          String t = e.nextElement();
-          thrown_set.put(t, t);
-        }
+        prod.throwElements().forEach(t -> thrown_set.put(t, t));
       }
     }
     for (int i = 0; i < expansion_unit.jjtGetNumChildren(); ++i) {
       ASTNode n = (ASTNode) expansion_unit.jjtGetChild(i);
-      JJTreeCodeGenerator.findThrown(ns, thrown_set, n);
+      findThrown(ns, thrown_set, n);
     }
   }
 
-  private void catchExpansionUnit(NodeScope ns, ASTWriter writer, String indent, ASTNode expansion_unit) {
-    writer.openCodeBlock(null);
-
-    Hashtable<String, String> thrown_set = new Hashtable<>();
-    JJTreeCodeGenerator.findThrown(ns, thrown_set, expansion_unit);
-    Enumeration<String> thrown_names = thrown_set.elements();
-    insertCatchBlocks(ns, writer, thrown_names, indent);
-
-    writer.println(indent + "} " + getTryFinally() + "{");
-    if (ns.usesCloseNodeVar()) {
-      writer.println(indent + "  if (" + ns.closedVar + ") {");
-      insertCloseNodeCode(ns, writer, indent + "    ", true, expansion_unit.jjtOptions());
-      writer.println(indent + "  }");
-    }
-    writer.print(indent + "}");
-    writer.closeCodeBlock();
-  }
-
-  public abstract void generateJJTree(JJTreeOptions options);
+  public abstract void generate(JJTreeOptions options);
 }

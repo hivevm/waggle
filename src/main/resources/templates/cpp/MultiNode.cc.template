@@ -1,3 +1,8 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include "{{NODE_TYPE}}.h"
 @if(VISITOR)
 #include "{{PARSER_NAME}}Visitor.h"
@@ -25,3 +30,5 @@ namespace {{NAMESPACE}} {
 @if(NAMESPACE)
 }
 @fi
+
+#pragma GCC diagnostic pop

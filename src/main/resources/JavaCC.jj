@@ -633,7 +633,7 @@ void regular_expression(Container c) :
   @code
 	image = "";
   @end
-  < LANGLE: "<" >
+  < LT >
   [
     [ < HASH >
 	@code
@@ -642,7 +642,7 @@ void regular_expression(Container c) :
     ]
     image=identifier() < COLON >
   ]
-  complex_regular_expression_choices(c) < RANGLE: ">" >
+  complex_regular_expression_choices(c) < GT >
   @code
 	RegularExpression re;
 	if (c.member instanceof RJustName) {

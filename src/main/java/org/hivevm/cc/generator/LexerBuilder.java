@@ -3,14 +3,6 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
-
 import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
@@ -23,6 +15,14 @@ import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.TokenProduction.Kind;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
 
 /**
  * The {@link LexerBuilder} class.
@@ -116,7 +116,7 @@ public class LexerBuilder {
 
           if (!data.options().getNoDfa() && (curRE instanceof RStringLiteral)
               && !((RStringLiteral) curRE).getImage().equals("")) {
-            GenerateDfa(stateData, ((RStringLiteral) curRE), curRE.getOrdinal());
+            GenerateDfa(stateData, ((RStringLiteral) curRE));
             if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
               stateData.hasMixed = true;
             }
@@ -499,7 +499,7 @@ public class LexerBuilder {
   /**
    * Used for top level string literals.
    */
-  private void GenerateDfa(LexerStateData data, RStringLiteral rstring, int kind) {
+  private void GenerateDfa(LexerStateData data, RStringLiteral rstring) {
     String s;
     Hashtable<String, KindInfo> temp;
     KindInfo info;
@@ -578,7 +578,8 @@ public class LexerBuilder {
       }
     }
 
-    data.maxLenForActive[rstring.getOrdinal() / 64] = Math.max(data.maxLenForActive[rstring.getOrdinal() / 64], len - 1);
+    data.maxLenForActive[rstring.getOrdinal() / 64] =
+        Math.max(data.maxLenForActive[rstring.getOrdinal() / 64], len - 1);
     data.global.allImages[rstring.getOrdinal()] = rstring.getImage();
   }
 
@@ -962,7 +963,7 @@ public class LexerBuilder {
 
     if (byteNum >= 0) {
       if (state.asciiMoves[byteNum] != 0L) {
-        GetAsciiMoveForCompositeState(data, state, byteNum, false);
+        GetAsciiMoveForCompositeState(data, state, byteNum);
       }
     } else if (state.nonAsciiMethod != -1) {
       GetNonAsciiMoveForCompositeState(data, state);
@@ -1065,10 +1066,10 @@ public class LexerBuilder {
       }
     }
 
-    if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-      if (((state.next == null) || (state.next.usefulEpsilonMoves == 0)) && (state.kindToPrint != Integer.MAX_VALUE)) {
-        return;
-      }
+    if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
+        && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
+            && (state.kindToPrint != Integer.MAX_VALUE))) {
+      return;
     }
 
     if ((state.next != null) && (state.next.usefulEpsilonMoves > 0)) {
@@ -1089,7 +1090,7 @@ public class LexerBuilder {
   }
 
 
-  private void GetAsciiMoveForCompositeState(LexerStateData data, NfaState state, int byteNum, boolean elseNeeded) {
+  private void GetAsciiMoveForCompositeState(LexerStateData data, NfaState state, int byteNum) {
     boolean nextIntersects = state.selfLoop();
 
     for (NfaState temp1 : data.getAllStates()) {
@@ -1255,13 +1256,13 @@ public class LexerBuilder {
     for (i = 0; i < partition.size(); i++) {
       List<NfaState> subSet = partition.get(i);
 
-      for (int j = 0; j < subSet.size(); j++) {
-        tmp = subSet.get(j);
+      for (NfaState element : subSet) {
+        tmp = element;
 
         if (stateBlock) {
           dumped[tmp.stateName] = true;
         }
-        GetAsciiMoveForCompositeState(data, tmp, byteNum, j != 0);
+        GetAsciiMoveForCompositeState(data, tmp, byteNum);
       }
     }
   }
@@ -1549,10 +1550,6 @@ public class LexerBuilder {
             // " + tmp);
           }
           data.lohiByteTab.put(tmp, ind = Integer.valueOf(data.lohiByteCnt++));
-        }
-
-        if (state.loByteVec == null) {
-          state.loByteVec = new Vector<>();
         }
 
         state.loByteVec.add(Integer.valueOf(i));

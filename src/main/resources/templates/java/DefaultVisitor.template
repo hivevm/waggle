@@ -1,0 +1,19 @@
+package {{PACKAGE}};
+
+public class {{PARSER_NAME}}DefaultVisitor implements {{PARSER_NAME}}Visitor
+{
+  public {{RETURN_TYPE}} defaultVisit(Node node, {{ARGUMENT_TYPE}} data){{EXCEPTION}} {
+    node.childrenAccept(this, data);
+    return{{RETURN_VALUE}};
+  }
+  public {{RETURN_TYPE}} visit(Node node, {{ARGUMENT_TYPE}} data){{EXCEPTION}} {
+    {{RETURN}}defaultVisit(node, data);
+  }
+@if(IS_MULTI)
+@foreach(node : NODES)
+  public {{RETURN_TYPE}} visit({{NODE_PREFIX}}{{node}} node, {{ARGUMENT_TYPE}} data){{EXCEPTION}} {
+    {{RETURN}}defaultVisit(node, data);
+  }
+@end
+@fi
+}

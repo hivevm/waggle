@@ -3,11 +3,6 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Iterator;
-import java.util.stream.Collectors;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
@@ -27,10 +22,13 @@ import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.semantic.Semanticize;
-import org.hivevm.cc.source.CppWriter;
-import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.cc.utils.TemplateProvider;
+
+import java.io.PrintWriter;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 /**
  * Generate the parser.
@@ -38,8 +36,9 @@ import org.hivevm.cc.utils.TemplateOptions;
 public class CppParserGenerator extends ParserGenerator {
 
   @Override
-  protected void generate(ParserData data) throws IOException {
+  protected void start(ParserData data) {
     TemplateOptions options = new TemplateOptions();
+    options.add("PARSER_NAME_UPPER", data.getParserName().toUpperCase());
     options.set("IS_GENERATED", data.isGenerated());
     options.set("LOOKAHEAD_NEEDED", data.isLookAheadNeeded());
 
@@ -55,18 +54,17 @@ public class CppParserGenerator extends ParserGenerator {
 
     options.add("NORMALPRODUCTIONS", data.getProductions()).set("phase", (n, p) -> generatePhase1((BNFProduction) n,
         generatePhase1Expansion(data, n.getExpansion()), data.getParserName(), p, data.options()));
-    options.add("PRODUCTIONS_LHS", data.getProductions()).set("lhs", n -> ((BNFProduction) n).getLhs());
+    options.add("PRODUCTIONS_LHS", data.getProductions()).set("lhs", n -> n.getLhs());
     options.add("LOOKAHEADS", data.getLoakaheads()).set("phase",
         (la, p) -> generatePhase2(la.getLaExpansion(), p, data.options()));
     options.add("EXPANSIONS", data.getExpansions()).set("phase",
         (e, p) -> generatePhase3Routine(data, e, data.getCount(e), p, data.options()));
 
-    DigestOptions digest = new DigestOptions(data.options(), options);
-    try (CppWriter writer = new CppWriter(data.getParserName(), CppTemplate.PARSER, digest)) {
-      writer.writeTemplate();
-      writer.switchToHeader();
-      writer.writeTemplateHeader();
-    }
+    TemplateProvider provider = CppTemplate.PARSER;
+    provider.render(data.options(), options, data.getParserName());
+
+    provider = CppTemplate.PARSER_H;
+    provider.render(data.options(), options, data.getParserName());
   }
 
   /**
@@ -390,7 +388,7 @@ public class CppParserGenerator extends ParserGenerator {
         // jj2LA is set to false at the beginning of the containing "if" statement.
         // It is checked immediately after the end of the same statement to determine
         // if lookaheads are to be performed using calls to the jj2 methods.
-        jj2LA = genFirstSet(data, la.getLaExpansion(), firstSet, jj2LA);
+        jj2LA = data.genFirstSet(la.getLaExpansion(), firstSet, jj2LA);
         // genFirstSet may find that semantic attributes are appropriate for the next
         // token. In which case, it sets jj2LA to true.
         if (!jj2LA) {
@@ -468,7 +466,6 @@ public class CppParserGenerator extends ParserGenerator {
         if (la.getAmount() == Integer.MAX_VALUE) {
           amount = "INT_MAX";
         }
-
         retval += "jj_2" + la.getLaExpansion().internal_name + "(" + amount + ")";
         if (la.getActionTokens().size() != 0) {
           // In addition, there is also a semantic lookahead. So concatenate
@@ -731,7 +728,7 @@ public class CppParserGenerator extends ParserGenerator {
       for (int i = 1; i < e_nrw.getUnits().size(); i++) {
         Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
         xsp_declared = buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, eseq, cnt, writer);
-        cnt -= ParserGenerator.minimumSize(data, eseq);
+        cnt -= data.minimumSize(eseq);
         if (cnt <= 0) {
           break;
         }

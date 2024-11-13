@@ -24,11 +24,9 @@
  * Intermediary between OS script and main program of application. Having this intermediary allows
  * the OS scripts to be package name independent.
  */
-public final class jjdoc {
+public interface jjdoc {
 
-  private jjdoc() {}
-
-  public static void main(String[] args) throws Exception {
+  static void main(String[] args) throws Exception {
     org.hivevm.cc.doc.JJDocMain.main(args);
   }
 }

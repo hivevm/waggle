@@ -1,3 +1,10 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC_{{PARSER_NAME_UPPER}}
+#define JAVACC_{{PARSER_NAME_UPPER}}
 
 #include "JavaCC.h"
 #include "Reader.h"
@@ -164,4 +171,7 @@ private:
 @if(NAMESPACE)
 }
 @fi
+
 #endif
+
+#pragma GCC diagnostic pop

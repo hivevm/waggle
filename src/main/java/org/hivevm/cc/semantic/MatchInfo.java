@@ -6,18 +6,18 @@ package org.hivevm.cc.semantic;
 /**
  * Describes a match, within a given lookahead.
  */
-public class MatchInfo {
+class MatchInfo {
 
-	int[] match;
-	int firstFreeLoc;
+  int[] match;
+  int   firstFreeLoc;
 
-	/**
-	 * Constructs an instance of {@link MatchInfo}.
-	 *
-	 * @param match
-	 */
-	MatchInfo(int limit) {
-		this.match = new int[limit];
-		this.firstFreeLoc = 0;
-	}
+  /**
+   * Constructs an instance of {@link MatchInfo}.
+   *
+   * @param match
+   */
+  MatchInfo(int limit) {
+    this.match = new int[limit];
+    this.firstFreeLoc = 0;
+  }
 }

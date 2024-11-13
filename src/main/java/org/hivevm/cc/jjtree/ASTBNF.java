@@ -7,8 +7,8 @@ class ASTBNF extends ASTProduction {
 
   public ASTBNF(JJTreeParser p, int id) {
     super(p, id);
-    this.throws_list.add("ParseException");
-    this.throws_list.add("RuntimeException");
+    addThrow("ParseException");
+    addThrow("RuntimeException");
   }
 
   @Override

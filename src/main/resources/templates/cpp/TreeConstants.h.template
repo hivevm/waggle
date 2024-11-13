@@ -1,0 +1,32 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC_{{NAME_UPPER}}_TREECONSTANTS_H
+#define JAVACC_{{NAME_UPPER}}_TREECONSTANTS_H
+
+#include "JavaCC.h"
+@if(NAMESPACE)
+namespace {{NAMESPACE}} {
+@fi
+enum {
+@foreach(node : NODES)
+    {{node.label}} = {{node.ordinal}},
+@end
+};
+
+@foreach(node : NODE_NAMES)
+static JJChar jjtNodeName_arr_{{node.ordinal}}[] = {{{node.chars}}0};
+@end
+static JJString jjtNodeName[] = {
+@foreach(node : NODE_NAMES)
+    jjtNodeName_arr_{{node.ordinal}},
+@end
+};
+@if(NAMESPACE)
+}
+@fi
+#endif
+
+#pragma GCC diagnostic pop

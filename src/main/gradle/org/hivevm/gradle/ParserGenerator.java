@@ -1,7 +1,7 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc;
+package org.hivevm.gradle;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,14 +17,16 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.api.tasks.options.OptionValues;
+import org.hivevm.cc.HiveCCBuilder;
+import org.hivevm.cc.Language;
 
 /**
- * The {@link GeneratorTask} class.
+ * The {@link ParserGenerator} class.
  */
-public abstract class GeneratorTask extends DefaultTask {
+public abstract class ParserGenerator extends DefaultTask {
 
   @Inject
-  public GeneratorTask() {
+  public ParserGenerator() {
     setGroup("HiveVM");
     setDescription("Generates a parser");
   }
@@ -41,18 +43,21 @@ public abstract class GeneratorTask extends DefaultTask {
 
   @TaskAction
   public void process() {
-    GeneratorConfig config = getProject().getExtensions().findByType(GeneratorConfig.class);
+    ParserProject config = getProject().getExtensions().findByType(ParserProject.class);
 
     if (config == null) {
       getProject().getLogger().error("No configuration defined");
       return;
     }
 
-    Language defaultTarget = (config.target == null) ? Language.JAVA : config.target;
-
-    config.getSteps().forEach(s -> process(s, defaultTarget));
+    config.getTasks().forEach(s -> process(s, config));
   }
 
+  /**
+   * Get the {@link File} from pathname.
+   *
+   * @param pathname
+   */
   protected File getFile(String pathname) {
     if (pathname == null) {
       return null;
@@ -67,14 +72,21 @@ public abstract class GeneratorTask extends DefaultTask {
     return new File(projectDir, pathname);
   }
 
+  /**
+   * Processes the {@link ParserTask}
+   *
+   * @param task
+   * @param target
+   */
+  protected void process(ParserTask task, ParserProject config) {
+    Language target = (config.target == null) ? Language.JAVA : config.target;
 
-  protected void process(GeneratorStep step, Language target) {
-    Language language = (step.target == null) ? target : step.target;
+    Language language = (task.target == null) ? target : task.target;
     HiveCCBuilder builder = HiveCCBuilder.of(language);
-    builder.setTargetDir(getFile(step.directory));
-    builder.setJJTreeFile(getFile(step.jjtFile));
-    builder.setJJFile(getFile(step.jjFile));
-    builder.setExcludes(step.excludes);
+    builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
+    builder.setJJFile(getFile(task.jjFile == null ? config.jjFile : task.jjFile));
+    builder.setJJTreeFile(getFile(task.jjtFile == null ? config.jjtFile : task.jjtFile));
+    builder.setExcludes(task.excludes);
     builder.build();
   }
 }

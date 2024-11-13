@@ -1,15 +1,16 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc;
+package org.hivevm.gradle;
 
 import java.util.List;
 
 import javax.inject.Inject;
 
 import org.gradle.api.Project;
+import org.hivevm.cc.Language;
 
-public class GeneratorStep {
+public class ParserTask {
 
   private final Project project;
 
@@ -20,12 +21,12 @@ public class GeneratorStep {
   public String       jjFile;
   public String       jjtFile;
 
-  public String       directory;
+  public String       output;
   public List<String> excludes;
 
 
   @Inject
-  public GeneratorStep(Project project) {
+  public ParserTask(Project project) {
     this.project = project;
   }
 

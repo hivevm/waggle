@@ -3,9 +3,6 @@
 
 package org.hivevm.cc.semantic;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.parser.Choice;
 import org.hivevm.cc.parser.Expansion;
 import org.hivevm.cc.parser.Lookahead;
@@ -16,6 +13,9 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.Sequence;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
+
+import java.util.ArrayList;
+import java.util.List;
 
 abstract class LookaheadWalk {
 

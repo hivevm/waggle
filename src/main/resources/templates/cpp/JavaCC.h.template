@@ -1,5 +1,10 @@
-#ifndef JAVACC_JAVACC_H
-#define JAVACC_JAVACC_H
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC
+#define JAVACC
 
 #include <climits>
 #include <cstring>
@@ -96,4 +101,7 @@ public:
 };
 
 JJString addUnicodeEscapes(const JJString& str);
+
 #endif
+
+#pragma GCC diagnostic pop

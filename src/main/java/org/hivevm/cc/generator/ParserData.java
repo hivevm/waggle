@@ -3,17 +3,26 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.parser.Action;
+import org.hivevm.cc.parser.Choice;
+import org.hivevm.cc.parser.Expansion;
+import org.hivevm.cc.parser.Lookahead;
+import org.hivevm.cc.parser.NonTerminal;
+import org.hivevm.cc.parser.NormalProduction;
+import org.hivevm.cc.parser.OneOrMore;
+import org.hivevm.cc.parser.Options;
+import org.hivevm.cc.parser.RegularExpression;
+import org.hivevm.cc.parser.Sequence;
+import org.hivevm.cc.parser.ZeroOrMore;
+import org.hivevm.cc.parser.ZeroOrOne;
+import org.hivevm.cc.semantic.Semanticize;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
-import org.hivevm.cc.JavaCCRequest;
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.Lookahead;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.Options;
 
 /**
  * These lists are used to maintain expansions for which code generation in phase 2 and phase 3 is
@@ -156,6 +165,117 @@ public class ParserData {
     this.lookaheadNeeded = lookaheadNeeded;
   }
 
+  /**
+   * Sets up the array "firstSet" above based on the Expansion argument passed to it. Since this is
+   * a recursive function, it assumes that "firstSet" has been reset before the first call.
+   */
+  public final boolean genFirstSet(Expansion exp, boolean[] firstSet, boolean jj2la) {
+    if (exp instanceof RegularExpression) {
+      firstSet[((RegularExpression) exp).getOrdinal()] = true;
+    } else if (exp instanceof NonTerminal) {
+      jj2la = genFirstSet((((NonTerminal) exp).getProd()).getExpansion(), firstSet, jj2la);
+    } else if (exp instanceof Choice) {
+      Choice ch = (Choice) exp;
+      for (Object element : ch.getChoices()) {
+        jj2la = genFirstSet((Expansion) (element), firstSet, jj2la);
+      }
+    } else if (exp instanceof Sequence) {
+      Sequence seq = (Sequence) exp;
+      Object obj = seq.getUnits().get(0);
+      if ((obj instanceof Lookahead) && (((Lookahead) obj).getActionTokens().size() != 0)) {
+        jj2la = true;
+      }
+      for (Object element : seq.getUnits()) {
+        // Javacode productions can not have FIRST sets. Instead we generate the FIRST set
+        // for the preceding LOOKAHEAD (the semantic checks should have made sure that
+        // the LOOKAHEAD is suitable).
+        jj2la = genFirstSet((Expansion) (element), firstSet, jj2la);
+        if (!Semanticize.emptyExpansionExists((Expansion) (element))) {
+          break;
+        }
+      }
+    } else if (exp instanceof OneOrMore) {
+      OneOrMore om = (OneOrMore) exp;
+      jj2la = genFirstSet(om.getExpansion(), firstSet, jj2la);
+    } else if (exp instanceof ZeroOrMore) {
+      ZeroOrMore zm = (ZeroOrMore) exp;
+      jj2la = genFirstSet(zm.getExpansion(), firstSet, jj2la);
+    } else if (exp instanceof ZeroOrOne) {
+      ZeroOrOne zo = (ZeroOrOne) exp;
+      jj2la = genFirstSet(zo.getExpansion(), firstSet, jj2la);
+    }
+    return jj2la;
+  }
+
+  /*
+   * Returns the minimum number of tokens that can parse to this expansion.
+   */
+  public final int minimumSize(Expansion e) {
+    return minimumSize(e, Integer.MAX_VALUE);
+  }
+
+  /*
+   * Returns the minimum number of tokens that can parse to this expansion.
+   */
+  private int minimumSize(Expansion e, int oldMin) {
+    int retval = 0; // should never be used. Will be bad if it is.
+    if (e.inMinimumSize) {
+      // recursive search for minimum size unnecessary.
+      return Integer.MAX_VALUE;
+    }
+    e.inMinimumSize = true;
+    if (e instanceof RegularExpression) {
+      retval = 1;
+    } else if (e instanceof NonTerminal) {
+      NonTerminal e_nrw = (NonTerminal) e;
+      NormalProduction ntprod = getProduction(e_nrw.getName());
+      Expansion ntexp = ntprod.getExpansion();
+      retval = minimumSize(ntexp);
+    } else if (e instanceof Choice) {
+      int min = oldMin;
+      Expansion nested_e;
+      Choice e_nrw = (Choice) e;
+      for (int i = 0; (min > 1) && (i < e_nrw.getChoices().size()); i++) {
+        nested_e = (e_nrw.getChoices().get(i));
+        int min1 = minimumSize(nested_e, min);
+        if (min > min1) {
+          min = min1;
+        }
+      }
+      retval = min;
+    } else if (e instanceof Sequence) {
+      int min = 0;
+      Sequence e_nrw = (Sequence) e;
+      // We skip the first element in the following iteration since it is the
+      // Lookahead object.
+      for (int i = 1; i < e_nrw.getUnits().size(); i++) {
+        Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
+        int mineseq = minimumSize(eseq);
+        if ((min == Integer.MAX_VALUE) || (mineseq == Integer.MAX_VALUE)) {
+          min = Integer.MAX_VALUE; // Adding infinity to something results in infinity.
+        } else {
+          min += mineseq;
+          if (min > oldMin) {
+            break;
+          }
+        }
+      }
+      retval = min;
+    } else if (e instanceof OneOrMore) {
+      OneOrMore e_nrw = (OneOrMore) e;
+      retval = minimumSize(e_nrw.getExpansion(), Integer.MAX_VALUE);
+    } else if (e instanceof ZeroOrMore) {
+      retval = 0;
+    } else if (e instanceof ZeroOrOne) {
+      retval = 0;
+    } else if (e instanceof Lookahead) {
+      retval = 0;
+    } else if (e instanceof Action) {
+      retval = 0;
+    }
+    e.inMinimumSize = false;
+    return retval;
+  }
 
   /**
    * This class stores information to pass from phase 2 to phase 3.

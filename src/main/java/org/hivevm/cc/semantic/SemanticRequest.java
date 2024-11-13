@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.semantic;
 
-import java.util.Hashtable;
-import java.util.Set;
-
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.NormalProduction;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
+
+import java.util.Hashtable;
+import java.util.Set;
 
 /**
  * The {@link SemanticRequest} class.

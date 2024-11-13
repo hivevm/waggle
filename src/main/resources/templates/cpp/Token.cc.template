@@ -1,3 +1,8 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include "Token.h"
 @if(NAMESPACE)
 namespace {{NAMESPACE}} {
@@ -50,3 +55,5 @@ Token::~Token()
 @if(NAMESPACE)
 }
 @fi
+
+#pragma GCC diagnostic pop

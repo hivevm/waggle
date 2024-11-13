@@ -1,13 +1,13 @@
-// Copyright 2024 HiveVM.ORG. All rights reserved.
+// Copyright 2024 HiveVM.org. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
 package org.hivevm.cc;
 
+import org.hivevm.cc.utils.Version;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
-import org.hivevm.cc.utils.Version;
 
 /**
  * This package contains data created as a result of parsing and semanticizing a JavaCC input file.
@@ -70,19 +70,14 @@ public interface HiveCC {
   Version VERSION = HiveCC.load();
 
   static Version load() {
-    String major = "??";
-    String minor = "??";
-    String patch = "??";
-
-    try (InputStream is = HiveCC.class.getResourceAsStream("/version.properties")) {
+    String version = "0.0";
+    try (InputStream stream = HiveCC.class.getResourceAsStream("/version")) {
       Properties properties = new Properties();
-      properties.load(is);
-      major = properties.getProperty("version.major", major);
-      minor = properties.getProperty("version.minor", minor);
-      patch = properties.getProperty("version.patch", patch);
+      properties.load(stream);
+      version = properties.getProperty("release", "0.0");
     } catch (IOException e) {
       System.err.println("Could not read version.properties: " + e);
     }
-    return Version.of(Integer.parseInt(major), Integer.parseInt(minor), patch.equals("") ? 0 : Integer.parseInt(patch));
+    return Version.parse(version);
   }
 }

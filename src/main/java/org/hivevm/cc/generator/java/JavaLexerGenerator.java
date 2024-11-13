@@ -3,13 +3,7 @@
 
 package org.hivevm.cc.generator.java;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Locale;
-
+import org.hivevm.cc.generator.Lexer;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.LexerStateData;
@@ -18,10 +12,15 @@ import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.source.SourceWriter;
-import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.cc.utils.TemplateProvider;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Locale;
 
 /**
  * Generate lexer.
@@ -29,12 +28,12 @@ import org.hivevm.cc.utils.TemplateOptions;
 public class JavaLexerGenerator extends LexerGenerator {
 
   @Override
-  protected final void dumpAll(LexerData data) throws IOException {
+  protected final void dumpAll(LexerData data) {
     TemplateOptions options = new TemplateOptions();
-    options.add("LOHI_BYTES", data.lohiByte.keySet()).set("bytes", i -> JavaLexerGenerator.getLohiBytes(data, i));
-    options.add("STATES", data.stateNames).set("NfaAndDfa", (n, w) -> dumpNfaAndDfa(data.getStateData(n), w));
-    options.add("NON_ASCII_TABLE", data.nonAsciiTableForMethod).set("AsciiMove",
-        (s, w) -> DumpNonAsciiMoveMethod(s, data, w));
+    options.add(Lexer.LOHI_BYTES, data.lohiByte.keySet()).set("bytes", i -> getLohiBytes(data, i));
+    options.add(Lexer.STATES, data.stateNames).set("NfaAndDfa", (n, w) -> dumpNfaAndDfa(data.getStateData(n), w));
+    options.add(Lexer.NON_ASCII_TABLE, data.nonAsciiTableForMethod).set("NON_ASCII_METHOD", s -> s.nonAsciiMethod)
+        .set("ASCII_MOVE", (s, w) -> DumpNonAsciiMoveMethod(s, data, w));
 
     options.set("LITERAL_IMAGES", () -> JavaLexerGenerator.getStrLiteralImages(data));
     options.set("STATES_FOR_STATE", () -> getStatesForState(data));
@@ -45,7 +44,7 @@ public class JavaLexerGenerator extends LexerGenerator {
     options.setWriter("DumpTokenActions", p -> DumpTokenActions(p, data));
     options.setWriter("DumpStateSets", p -> DumpStateSets(p, data));
     options.setWriter("DumpGetNextToken", p -> DumpGetNextToken(p, data));
-    options.setWriter("dumpStaticVarDeclarations", p -> JavaLexerGenerator.DumpStaticVarDeclarations(p, data));
+    options.setWriter("dumpStaticVarDeclarations", p -> DumpStaticVarDeclarations(p, data));
 
     options.set("defaultLexState", data.defaultLexState);
     options.set("maxOrdinal", data.maxOrdinal);
@@ -66,21 +65,15 @@ public class JavaLexerGenerator extends LexerGenerator {
     options.set("jjCheckNAddStatesDualNeeded", data.jjCheckNAddStatesDualNeeded);
     options.set("jjCheckNAddStatesUnaryNeeded", data.jjCheckNAddStatesUnaryNeeded);
 
-    try (SourceWriter writer = new SourceWriter(data.getParserName() + "TokenManager", JavaTemplate.LEXER,
-        new DigestOptions(data.options(), options))) {
-      dumpClassHeader(writer, data);
-      writer.writeTemplate();
+    if ((data.options().getJavaLexer() != null) && !data.options().getJavaLexer().isEmpty()) {
+      options.set("LEXER", data.options().getJavaLexer());
     }
+
+    TemplateProvider provider = JavaTemplate.LEXER;
+    provider.render(data.options(), options, data.getParserName());
   }
 
-
-  private static String getLohiBytes(LexerData data, int i) {
-    return "0x" + Long.toHexString(data.lohiByte.get(i)[0]) + "L, " + "0x" + Long.toHexString(data.lohiByte.get(i)[1])
-        + "L, " + "0x" + Long.toHexString(data.lohiByte.get(i)[2]) + "L, " + "0x"
-        + Long.toHexString(data.lohiByte.get(i)[3]) + "L";
-  }
-
-  private static void DumpStaticVarDeclarations(PrintWriter writer, LexerData data) {
+  private void DumpStaticVarDeclarations(PrintWriter writer, LexerData data) {
     int i;
 
     writer.println();
@@ -249,11 +242,11 @@ public class JavaLexerGenerator extends LexerGenerator {
                   + Long.toHexString(data.singlesToSkip[i].asciiMoves[1]) + "L & (1L << (curChar & 077))) != 0L)");
         } else if (data.singlesToSkip[i].asciiMoves[1] == 0L) {
           writer.println(
-              prefix + "   while (curChar <= " + (int) JavaLexerGenerator.MaxChar(data.singlesToSkip[i].asciiMoves[0])
+              prefix + "   while (curChar <= " + (int) LexerGenerator.MaxChar(data.singlesToSkip[i].asciiMoves[0])
                   + " && (0x" + Long.toHexString(data.singlesToSkip[i].asciiMoves[0]) + "L & (1L << curChar)) != 0L)");
         } else if (data.singlesToSkip[i].asciiMoves[0] == 0L) {
           writer.println(prefix + "   while (curChar > 63 && curChar <= "
-              + (JavaLexerGenerator.MaxChar(data.singlesToSkip[i].asciiMoves[1]) + 64) + " && (0x"
+              + (LexerGenerator.MaxChar(data.singlesToSkip[i].asciiMoves[1]) + 64) + " && (0x"
               + Long.toHexString(data.singlesToSkip[i].asciiMoves[1]) + "L & (1L << (curChar & 077))) != 0L)");
         }
 
@@ -495,8 +488,6 @@ public class JavaLexerGenerator extends LexerGenerator {
   }
 
   private void DumpSkipActions(PrintWriter writer, LexerData data) {
-    Action act;
-
     Outer:
     for (int i = 0; i < data.maxOrdinal; i++) {
       if ((data.toSkip[i / 64] & (1L << (i % 64))) == 0L) {
@@ -504,7 +495,8 @@ public class JavaLexerGenerator extends LexerGenerator {
       }
 
       for (;;) {
-        if ((((act = data.actions[i]) == null) || act.getActionTokens().isEmpty()) && !data.canLoop[data.getState(i)]) {
+        Action act = data.actions[i];
+        if (((act == null) || act.getActionTokens().isEmpty()) && !data.canLoop[data.getState(i)]) {
           continue Outer;
         }
 
@@ -814,60 +806,29 @@ public class JavaLexerGenerator extends LexerGenerator {
   }
 
   private void DumpNonAsciiMoveMethod(NfaState state, LexerData data, PrintWriter writer) {
-    int j;
-    writer.println("private static final boolean jjCanMove_" + state.nonAsciiMethod
-        + "(int hiByte, int i1, int i2, long l1, long l2)");
-    writer.println("{");
-    writer.println("   switch(hiByte)");
-    writer.println("   {");
-
-    if ((state.loByteVec != null) && (state.loByteVec.size() > 0)) {
-      for (j = 0; j < state.loByteVec.size(); j += 2) {
-        writer.println("      case " + state.loByteVec.get(j).intValue() + ":");
-        if (!NfaState.AllBitsSet(data.allBitVectors.get(state.loByteVec.get(j + 1).intValue()))) {
-          writer.println(
-              "         return ((jjbitVec" + state.loByteVec.get(j + 1).intValue() + "[i2" + "] & l2) != 0L);");
-        } else {
-          writer.println("            return true;");
-        }
+    for (int j = 0; j < state.loByteVec.size(); j += 2) {
+      writer.println("      case " + state.loByteVec.get(j).intValue() + ":");
+      if (!NfaState.AllBitsSet(data.allBitVectors.get(state.loByteVec.get(j + 1).intValue()))) {
+        writer
+            .println("         return ((jjbitVec" + state.loByteVec.get(j + 1).intValue() + "[i2" + "] & l2) != 0L);");
+      } else {
+        writer.println("            return true;");
       }
     }
 
     writer.println("      default :");
 
-    if ((state.nonAsciiMoveIndices != null) && ((j = state.nonAsciiMoveIndices.length) > 0)) {
-      do {
-        if (!NfaState.AllBitsSet(data.allBitVectors.get(state.nonAsciiMoveIndices[j - 2]))) {
-          writer.println("         if ((jjbitVec" + state.nonAsciiMoveIndices[j - 2] + "[i1] & l1) != 0L)");
-        }
-        if (!NfaState.AllBitsSet(data.allBitVectors.get(state.nonAsciiMoveIndices[j - 1]))) {
-          writer.println("            if ((jjbitVec" + state.nonAsciiMoveIndices[j - 1] + "[i2] & l2) == 0L)");
-          writer.println("               return false;");
-          writer.println("            else");
-        }
-        writer.println("            return true;");
-      } while ((j -= 2) > 0);
+    for (int j = state.nonAsciiMoveIndices.length; j > 0; j -= 2) {
+      if (!NfaState.AllBitsSet(data.allBitVectors.get(state.nonAsciiMoveIndices[j - 2]))) {
+        writer.println("         if ((jjbitVec" + state.nonAsciiMoveIndices[j - 2] + "[i1] & l1) != 0L)");
+      }
+      if (!NfaState.AllBitsSet(data.allBitVectors.get(state.nonAsciiMoveIndices[j - 1]))) {
+        writer.println("            if ((jjbitVec" + state.nonAsciiMoveIndices[j - 1] + "[i2] & l2) == 0L)");
+        writer.println("               return false;");
+        writer.println("            else");
+      }
+      writer.println("            return true;");
     }
-
-    writer.println("         return false;");
-    writer.println("   }");
-    writer.println("}");
-  }
-
-  private final void dumpClassHeader(PrintWriter writer, LexerData data) {
-    writer.print("package " + data.options().getJavaPackage());
-    writer.println(";");
-
-    writer.println("");
-    writer.println("/** Token Manager. */");
-
-    writer.print("class " + data.getParserName() + "TokenManager");
-    if ((data.options().getJavaLexer() != null) && !data.options().getJavaLexer().isEmpty()) {
-      writer.print(" extends " + data.options().getJavaLexer());
-    }
-    writer.print(" implements " + data.getParserName() + "Constants");
-
-    writer.println(" {");
   }
 
   private String getStatesForState(LexerData data) {
@@ -1115,6 +1076,7 @@ public class JavaLexerGenerator extends LexerGenerator {
         writer.println("   debugStream.println(\"   Currently matched the first \" + (jjmatchedPos + 1) + "
             + "\" characters as a \" + tokenImage[jjmatchedKind] + \" token.\");");
       }
+
       writer.println("   return pos + 1;");
       writer.println("}");
       data.global.boilerPlateDumped = true;
@@ -1498,33 +1460,31 @@ public class JavaLexerGenerator extends LexerGenerator {
 
       writer.println("   }");
 
-      if (i != 0) {
-        if (startNfaNeeded) {
-          if (!data.isMixedState() && (data.generatedStates() != 0)) {
-            /*
-             * Here, a string literal is successfully matched and no more string literals are
-             * possible. So set the kind and state set upto and including this position for the
-             * matched string.
-             */
+      if ((i != 0) && startNfaNeeded) {
+        if (!data.isMixedState() && (data.generatedStates() != 0)) {
+          /*
+           * Here, a string literal is successfully matched and no more string literals are
+           * possible. So set the kind and state set upto and including this position for the
+           * matched string.
+           */
 
-            writer.print("   return jjStartNfa" + data.lexStateSuffix + "(" + (i - 1) + ", ");
-            for (k = 0; k < (maxLongsReqd - 1); k++) {
-              if (i <= data.maxLenForActive[k]) {
-                writer.print("active" + k + ", ");
-              } else {
-                writer.print("0L, ");
-              }
-            }
+          writer.print("   return jjStartNfa" + data.lexStateSuffix + "(" + (i - 1) + ", ");
+          for (k = 0; k < (maxLongsReqd - 1); k++) {
             if (i <= data.maxLenForActive[k]) {
-              writer.println("active" + k + ");");
+              writer.print("active" + k + ", ");
             } else {
-              writer.println("0L);");
+              writer.print("0L, ");
             }
-          } else if (data.generatedStates() != 0) {
-            writer.println("   return jjMoveNfa" + data.lexStateSuffix + "(" + InitStateName(data) + ", " + i + ");");
-          } else {
-            writer.println("   return " + (i + 1) + ";");
           }
+          if (i <= data.maxLenForActive[k]) {
+            writer.println("active" + k + ");");
+          } else {
+            writer.println("0L);");
+          }
+        } else if (data.generatedStates() != 0) {
+          writer.println("   return jjMoveNfa" + data.lexStateSuffix + "(" + InitStateName(data) + ", " + i + ");");
+        } else {
+          writer.println("   return " + (i + 1) + ";");
         }
       }
 
@@ -1673,7 +1633,6 @@ public class JavaLexerGenerator extends LexerGenerator {
     }
 
     writer.println("      try { curChar = input_stream.readChar(); }");
-
     if (data.isMixedState()) {
       writer.println("      catch(java.io.IOException e) { break; }");
     } else {
@@ -1712,16 +1671,5 @@ public class JavaLexerGenerator extends LexerGenerator {
       writer.println("   return toRet;");
     }
     writer.println("}");
-  }
-
-  // Assumes l != 0L
-  private static char MaxChar(long l) {
-    for (int i = 64; i-- > 0;) {
-      if ((l & (1L << i)) != 0L) {
-        return (char) i;
-      }
-    }
-
-    return 0xffff;
   }
 }

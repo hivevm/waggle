@@ -1,0 +1,15 @@
+package {{PACKAGE}};
+
+public interface {{PARSER_NAME}}TreeConstants
+{
+@foreach(node : NODES)
+  int {{node.label}} = {{node.ordinal}};
+@end
+
+
+  String[] jjtNodeName = {
+@foreach(node : NODE_NAMES)
+    "{{node}}",
+@end
+  };
+}

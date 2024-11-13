@@ -3,11 +3,7 @@
 
 package org.hivevm.cc.generator.java;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.JavaCCRequest;
-import org.hivevm.cc.generator.AbstractFileGenerator;
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -16,14 +12,17 @@ import org.hivevm.cc.parser.RStringLiteral;
 import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.cc.utils.TemplateProvider;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Generates the Constants file.
  */
-public class JavaFileGenerator extends AbstractFileGenerator implements FileGenerator {
+public class JavaFileGenerator implements FileGenerator {
 
   @Override
   public final void handleRequest(JavaCCRequest request, LexerData context) throws ParseException {
@@ -57,15 +56,15 @@ public class JavaFileGenerator extends AbstractFileGenerator implements FileGene
       return buffer.toString();
     });
 
-    generateFile(JavaTemplate.TOKEN, new DigestOptions(context.options()));
-    generateFile(JavaTemplate.TOKEN_EXCEPTION, new DigestOptions(context.options()));
+    TemplateProvider.render(JavaTemplate.TOKEN, context.options());
+    TemplateProvider.render(JavaTemplate.TOKEN_EXCEPTION, context.options());
 
-    generateFile(JavaTemplate.PROVIDER, new DigestOptions(context.options()));
-    generateFile(JavaTemplate.STRING_PROVIDER, new DigestOptions(context.options()));
-    generateFile(JavaTemplate.STREAM_PROVIDER, new DigestOptions(context.options()));
-    generateFile(JavaTemplate.CHAR_STREAM, new DigestOptions(context.options()));
+    TemplateProvider.render(JavaTemplate.PROVIDER, context.options());
+    TemplateProvider.render(JavaTemplate.STRING_PROVIDER, context.options());
+    TemplateProvider.render(JavaTemplate.STREAM_PROVIDER, context.options());
+    TemplateProvider.render(JavaTemplate.CHAR_STREAM, context.options());
 
-    generateFile(JavaTemplate.PARSER_EXCEPTION, new DigestOptions(context.options()));
-    generateFile(JavaTemplate.PARSER_CONSTANTS, request.getParserName(), new DigestOptions(context.options(), options));
+    TemplateProvider.render(JavaTemplate.PARSER_EXCEPTION, context.options());
+    TemplateProvider.render(JavaTemplate.PARSER_CONSTANTS, context.options(), options, request.getParserName());
   }
 }

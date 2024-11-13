@@ -1,3 +1,8 @@
+package {{PACKAGE}};
+
+/** Token Manager. */
+class {{PARSER_NAME}}TokenManager@if(LEXER) extends {{LEXER}}@fi implements {{PARSER_NAME}}Constants {
+
 @foreach(index : LOHI_BYTES)
 static final long[] jjbitVec{{index}} = { {{index.bytes}} };
 @end
@@ -62,7 +67,15 @@ protected Token jjFillToken()
 
 {{DumpStateSets}}
 @foreach(nfa : NON_ASCII_TABLE)
-{{nfa.AsciiMove}}
+private static final boolean jjCanMove_{{nfa.NON_ASCII_METHOD}}(int hiByte, int i1, int i2, long l1, long l2)
+{
+   switch(hiByte)
+   {
+{{nfa.ASCII_MOVE}}
+         return false;
+   }
+}
+
 @end
 {{DumpGetNextToken}}
 @if(DEBUG_TOKEN_MANAGER)

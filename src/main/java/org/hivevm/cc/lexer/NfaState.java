@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.lexer;
 
+import org.hivevm.cc.generator.LexerStateData;
+import org.hivevm.cc.parser.JavaCCErrors;
+
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
-
-import org.hivevm.cc.generator.LexerStateData;
-import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
  * The state of a Non-deterministic Finite Automaton.
@@ -58,6 +58,8 @@ public class NfaState {
     this.id = data.addAllState(this);
     this.lexState = data.getStateIndex();
     this.lookingFor = data.global.getCurrentKind();
+    this.loByteVec = new Vector<>();
+    this.nonAsciiMoveIndices = new int[0];
   }
 
   private NfaState CreateClone() {
@@ -361,16 +363,15 @@ public class NfaState {
           && NfaState.EqualCharArr(this.rangeMoves, other.rangeMoves)) {
         if (this.next == other.next) {
           return other;
-        } else if ((this.next != null) && (other.next != null)) {
-          if (this.next.epsilonMoves.size() == other.next.epsilonMoves.size()) {
-            for (int j = 0; j < this.next.epsilonMoves.size(); j++) {
-              if (this.next.epsilonMoves.get(j) != other.next.epsilonMoves.get(j)) {
-                continue Outer;
-              }
+        } else if (((this.next != null) && (other.next != null))
+            && (this.next.epsilonMoves.size() == other.next.epsilonMoves.size())) {
+          for (int j = 0; j < this.next.epsilonMoves.size(); j++) {
+            if (this.next.epsilonMoves.get(j) != other.next.epsilonMoves.get(j)) {
+              continue Outer;
             }
-
-            return other;
           }
+
+          return other;
         }
       }
     }

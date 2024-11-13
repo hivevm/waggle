@@ -24,12 +24,9 @@
  * Intermediary between OS script and main program of application. Having this intermediary allows
  * the OS scripts to be package name independent.
  */
-public final class jjtree {
+public interface jjtree {
 
-  private jjtree() {}
-
-  public static void main(String[] args) {
-    org.hivevm.cc.JJTree.main(args);
+  static void main(String[] args) {
+    org.hivevm.cc.HiveCCTree.main(args);
   }
-
 }

@@ -1,3 +1,8 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include "TokenManagerErrorHandler.h"
 #if (JAVACC_CHAR_TYPE_SIZEOF != 1)
 #include <codecvt>
@@ -24,3 +29,5 @@ void TokenManagerErrorHandler::lexicalError(const JJString& errorMessage) {
 @if(NAMESPACE)
 }
 @fi
+
+#pragma GCC diagnostic pop

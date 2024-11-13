@@ -1,3 +1,8 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include "ParserErrorHandler.h"
 
 #if (JAVACC_CHAR_TYPE_SIZEOF != 1)
@@ -55,3 +60,5 @@ void ParserErrorHandler::otherError(const JJString& message) {
 @if(NAMESPACE)
 }
 @fi
+
+#pragma GCC diagnostic pop

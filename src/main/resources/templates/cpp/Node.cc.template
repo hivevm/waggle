@@ -1,3 +1,8 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include "Node.h"
 #include <stdio.h>
 
@@ -139,3 +144,5 @@ void Node::dump(const JJString& prefix) const {
 @if(NAMESPACE)
 }
 @fi
+
+#pragma GCC diagnostic pop

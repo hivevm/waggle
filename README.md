@@ -32,21 +32,21 @@ plugins {
   id "org.hivevm.cc" version "1.0.0"
 }
 
-hiveCC {
+parserProject {
   target       = 'java'
 
-  step {
+  task {
     name       = 'tree'
+    output     = 'src/main/generated'
     jjtFile    = 'src/main/resources/JJTree.jjt'
-    directory  = 'src/main/generated2/org/hivevm/cc/jjtree'
     excludes   = [ 'BNF', 'BNFAction', 'BNFDeclaration', 'BNFNodeScope',
       'ExpansionNodeScope', 'NodeDescriptor', 'OptionBinding' ]
   }
 
-  step {
+  task {
     name       = 'parser'
+    output     = 'src/main/generated'
     jjFile     = 'src/main/resources/JavaCC.jj'
-    directory  = 'src/main/generated2/org/hivevm/cc/parser'
   }
 }
 ~~~

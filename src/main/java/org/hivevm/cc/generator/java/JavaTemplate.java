@@ -3,13 +3,10 @@
 
 package org.hivevm.cc.generator.java;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.utils.DigestOptions;
-import org.hivevm.cc.utils.DigestWriter;
+import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.utils.TemplateProvider;
+
+import java.io.File;
 
 
 /**
@@ -17,7 +14,7 @@ import org.hivevm.cc.utils.TemplateProvider;
  */
 public enum JavaTemplate implements TemplateProvider {
 
-  LEXER("Lexer", "%s"),
+  LEXER("Lexer", "%sTokenManager"),
   PARSER("Parser", "%s"),
 
   PROVIDER("Provider"),
@@ -25,25 +22,30 @@ public enum JavaTemplate implements TemplateProvider {
   STRING_PROVIDER("StringProvider"),
   CHAR_STREAM("JavaCharStream"),
 
-  MULTI_NODE("MultiNode"),
+  MULTI_NODE("MultiNode", "%s"),
   NODE("Node"),
 
   PARSER_EXCEPTION("ParseException"),
   PARSER_CONSTANTS("ParserConstants", "%sConstants"),
   TOKEN("Token"),
   TOKEN_EXCEPTION("TokenException"),
+
   TREE("Tree"),
-  TREE_STATE("TreeState");
+  TREE_STATE("TreeState", "JJT%sState"),
+  TREE_CONSTANTS("TreeConstants", "%sTreeConstants"),
+
+  VISITOR("Visitor", "%sVisitor"),
+  DEFAULT_VISITOR("DefaultVisitor", "%sDefaultVisitor");
 
   private final String name;
   private final String path;
 
-  private JavaTemplate(String name) {
+  JavaTemplate(String name) {
     this.name = name;
     this.path = name;
   }
 
-  private JavaTemplate(String name, String path) {
+  JavaTemplate(String name, String path) {
     this.name = name;
     this.path = path;
   }
@@ -59,13 +61,25 @@ public enum JavaTemplate implements TemplateProvider {
   }
 
   @Override
-  public final DigestWriter createDigestWriter(DigestOptions options) throws FileNotFoundException {
-    return createDigestWriter(null, options);
+  public final File getFile(Options options) {
+    return getFile(options, null);
   }
 
   @Override
-  public final DigestWriter createDigestWriter(String name, DigestOptions options) throws FileNotFoundException {
-    File file = new File(options.getOptions().getOutputDirectory(), getFilename(name));
-    return DigestWriter.create(file, HiveCC.VERSION, options);
+  public final File getFile(Options options, String name) {
+    return JavaTemplate.getFile(getFilename(name), options);
+  }
+
+  /**
+   * Get the Java file to generate.
+   *
+   * @param filename
+   * @param options
+   */
+  public static File getFile(String filename, Options options) {
+    String packagePath = options.getJavaPackage().replace('.', File.separatorChar);
+    File outputDir = new File(options.getOutputDirectory(), packagePath);
+    outputDir.mkdirs();
+    return new File(outputDir, filename);
   }
 }

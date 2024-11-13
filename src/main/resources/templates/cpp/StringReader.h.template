@@ -1,5 +1,10 @@
-#ifndef JAVACC_DEFAULT_CHAR_STREAM_H
-#define JAVACC_DEFAULT_CHAR_STREAM_H
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC_STRINGREADER
+#define JAVACC_STRINGREADER
 
 #include "JavaCC.h"
 #include "Reader.h"
@@ -137,5 +142,6 @@ private:
 }
 @fi
 
-
 #endif
+
+#pragma GCC diagnostic pop

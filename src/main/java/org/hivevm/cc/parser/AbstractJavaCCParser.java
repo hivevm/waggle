@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.jjtree.JJTreeParserConstants;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.jjtree.JJTreeParserConstants;
 
 /**
  * Utilities.

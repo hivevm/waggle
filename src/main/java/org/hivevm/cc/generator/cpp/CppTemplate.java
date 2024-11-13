@@ -3,13 +3,10 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.utils.DigestOptions;
-import org.hivevm.cc.utils.DigestWriter;
+import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.utils.TemplateProvider;
+
+import java.io.File;
 
 
 /**
@@ -17,95 +14,74 @@ import org.hivevm.cc.utils.TemplateProvider;
  */
 public enum CppTemplate implements TemplateProvider {
 
-  JAVACC("JavaCC", "h"),
+  JAVACC("JavaCC.h"),
 
-  LEXER_H("Lexer", "h", "%s"),
-  LEXER("Lexer", LEXER_H),
+  LEXER_H("Lexer.h", "%sTokenManager.h"),
+  LEXER("Lexer.cc", "%sTokenManager.cc"),
 
-  PARSER_H("Parser", "h", "%s"),
-  PARSER("Parser", PARSER_H),
+  PARSER_H("Parser.h", "%s.h"),
+  PARSER("Parser.cc", "%s.cc"),
 
-  MULTINODE("MultiNode", "cc", "%s"),
-  MULTINODE_H("MultiNode", "h"),
-  NODE("Node"),
-  NODE_H("Node", "h"),
+  PARSER_CONSTANTS("ParserConstants.h", "%sConstants.h"),
 
-  PARSEEXCEPTION("ParseException"),
-  PARSEEXCEPTION_H("ParseException", "h"),
+  PARSEEXCEPTION("ParseException.cc"),
+  PARSEEXCEPTION_H("ParseException.h"),
+  PARSERHANDLER("ParserErrorHandler.cc"),
+  PARSERHANDLER_H("ParserErrorHandler.h"),
 
-  PARSER_CONSTANTS("ParserConstants", "h", "%sConstants"),
+  TOKEN("Token.cc"),
+  TOKEN_H("Token.h"),
+  TOKENMANAGER("TokenManager.h"),
+  TOKENNANAGERERROR("TokenManagerError.cc"),
+  TOKENNANAGERERROR_H("TokenManagerError.h"),
+  TOKENNANAGERHANDLER("TokenManagerErrorHandler.cc"),
+  TOKENNANAGERHANDLER_H("TokenManagerErrorHandler.h"),
 
-  PARSERHANDLER("ParserErrorHandler"),
-  PARSERHANDLER_H("ParserErrorHandler", "h"),
+  READER("Reader.h"),
+  STRINGREADER("StringReader.cc"),
+  STRINGREADER_H("StringReader.h"),
 
-  READER("Reader", "h"),
-  STRINGREADER("StringReader"),
-  STRINGREADER_H("StringReader", "h"),
+  NODE("Node.cc"),
+  NODE_H("Node.h"),
+  MULTINODE("MultiNode.cc", "%s.cc"),
+  MULTINODE_H("MultiNode.h"),
 
-  TOKEN("Token"),
-  TOKEN_H("Token", "h"),
-  TOKENMANAGER("TokenManager", "h"),
-  TOKENNANAGERERROR("TokenManagerError"),
-  TOKENNANAGERERROR_H("TokenManagerError", "h"),
-  TOKENNANAGERHANDLER("TokenManagerErrorHandler"),
-  TOKENNANAGERHANDLER_H("TokenManagerErrorHandler", "h"),
+  TREE("Tree.h"),
+  TREE_ONE("TreeOne.h", "%sTree.h"),
+  TREESTATE("TreeState.cc"),
+  TREESTATE_H("TreeState.h"),
+  TREE_CONSTANTS("TreeConstants.h", "%sTreeConstants.h"),
+  VISITOR("Visitor.h", "%sVisitor.h");
 
-  TREE("Tree", "h"),
-  TREESTATE("TreeState"),
-  TREESTATE_H("TreeState", "h");
+  private final String name;
+  private final String path;
 
-  private final String      name;
-  private final String      type;
-  private final String      path;
-  private final CppTemplate header;
-
-  private CppTemplate(String name) {
-    this(name, "cc");
+  CppTemplate(String name) {
+    this(name, name);
   }
 
-  private CppTemplate(String name, String type) {
+  CppTemplate(String name, String path) {
     this.name = name;
-    this.type = type;
-    this.path = name;
-    this.header = null;
-  }
-
-  private CppTemplate(String name, String type, String path) {
-    this.name = name;
-    this.type = type;
     this.path = path;
-    this.header = null;
-  }
-
-  private CppTemplate(String name, CppTemplate header) {
-    this.name = name;
-    this.type = "cc";
-    this.path = header.path;
-    this.header = header;
-  }
-
-  public CppTemplate getHeader() {
-    return this.header;
   }
 
   @Override
   public String getTemplate() {
-    return String.format("cpp/%s.%s", this.name, this.type);
+    return String.format("cpp/%s", this.name);
   }
 
   @Override
   public String getFilename(String name) {
-    return String.format("%s.%s", (name == null) ? this.name : String.format(this.path, name), this.type);
+    return (name == null) ? this.path : String.format(this.path, name);
   }
 
   @Override
-  public final DigestWriter createDigestWriter(DigestOptions options) throws FileNotFoundException {
-    return createDigestWriter(getFilename(null), options);
+  public final File getFile(Options options) {
+    return getFile(options, getFilename(null));
   }
 
   @Override
-  public final DigestWriter createDigestWriter(String name, DigestOptions options) throws FileNotFoundException {
-    File file = new File(options.getOptions().getOutputDirectory(), getFilename(name));
-    return DigestWriter.createCpp(file, HiveCC.VERSION, options);
+  public final File getFile(Options options, String name) {
+    return new File(options.getOutputDirectory(), getFilename(name));
   }
 }

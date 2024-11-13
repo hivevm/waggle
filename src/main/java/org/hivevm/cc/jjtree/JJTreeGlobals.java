@@ -3,12 +3,12 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.HiveCC;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.hivevm.cc.HiveCC;
 
 public class JJTreeGlobals {
 

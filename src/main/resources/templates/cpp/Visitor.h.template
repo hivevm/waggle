@@ -1,0 +1,57 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef {{NAME_UPPER}}_VISITOR
+#define {{NAME_UPPER}}_VISITOR
+
+#include "JavaCC.h"
+#include "{{PARSER_NAME}}Tree.h"
+
+@if(NAMESPACE)
+namespace {{NAMESPACE}} {
+@fi
+
+class {{PARSER_NAME}}Visitor
+{
+  public:
+
+  virtual {{RETURN_TYPE}} visit(const Node *node, {{ARGUMENT_TYPE}} data) = 0;
+@if(IS_MULTI)
+@foreach(node : NODES)
+  virtual {{RETURN_TYPE}} visit(const {{node.type} *node, {{ARGUMENT_TYPE}} data) = 0;
+@end
+@endif
+
+  virtual ~{{PARSER_NAME}}Visitor() { }
+};
+    
+
+class {{PARSER_NAME}}DefaultVisitor() : public {{PARSER_NAME}}Visitor {
+
+public:
+  virtual {{RETURN_TYPE}} defaultVisit(const Node *node, {{ARGUMENT_TYPE}} data) = 0;
+
+  virtual {{RETURN_TYPE}} visit(const Node *node, {{ARGUMENT_TYPE}} data) {
+     {{RETURN}}defaultVisit(node, data);
+  }
+
+@if(IS_MULTI)
+@foreach(node : NODES)
+  virtual {{RETURN_TYPE}} visit(const {{node.type}} *node, {{ARGUMENT_TYPE}} data) {
+     {{RETURN}}defaultVisit(node, data);
+  }
+@end
+@endif
+
+  ~{{PARSER_NAME}}DefaultVisitor() { }
+};
+
+@if(NAMESPACE)
+}
+@fi
+
+#endif
+
+#pragma GCC diagnostic pop

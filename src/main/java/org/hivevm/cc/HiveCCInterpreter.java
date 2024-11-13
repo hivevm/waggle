@@ -17,6 +17,9 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StringProvider;
 import org.hivevm.cc.semantic.Semanticize;
 
+import java.text.ParseException;
+import java.util.HashSet;
+
 public class HiveCCInterpreter {
 
   private final Options options;
@@ -64,11 +67,6 @@ public class HiveCCInterpreter {
     Set<Integer> curStates = new HashSet<>();
     Set<Integer> newStates = new HashSet<>();
     while (curPos < input_size) {
-      int beg = curPos;
-      int matchedPos = beg;
-      int matchedKind = Integer.MAX_VALUE;
-//      int nfaStartState = data.initialStates.get(curLexState);
-
       char c = input.charAt(curPos);
       if (options.getIgnoreCase())
         c = Character.toLowerCase(c);

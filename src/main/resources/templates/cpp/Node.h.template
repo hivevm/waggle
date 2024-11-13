@@ -1,5 +1,10 @@
-#ifndef JAVACC_NODE_H
-#define JAVACC_NODE_H
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC_NODE
+#define JAVACC_NODE
 
 #include <vector>
 #include "JavaCC.h"
@@ -84,3 +89,5 @@ public:
 @fi
 
 #endif
+
+#pragma GCC diagnostic pop

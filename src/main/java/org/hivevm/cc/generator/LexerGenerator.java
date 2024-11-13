@@ -3,14 +3,6 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
-
 import org.hivevm.cc.lexer.NfaState;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RStringLiteral;
@@ -18,12 +10,19 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.utils.Encoding;
 
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Vector;
+
 /**
  * The {@link LexerGenerator} class.
  */
 public abstract class LexerGenerator extends CodeGenerator {
 
-  final void start(LexerData request) throws IOException {
+  final void start(LexerData request) {
     if (JavaCCErrors.hasError()) {
       return;
     }
@@ -33,7 +32,7 @@ public abstract class LexerGenerator extends CodeGenerator {
 
   // --------------------------------------- RString
 
-  protected abstract void dumpAll(LexerData data) throws IOException;
+  protected abstract void dumpAll(LexerData data);
 
 
   protected final static String[] ReArrange(Hashtable<String, ?> tab) {
@@ -532,31 +531,31 @@ public abstract class LexerGenerator extends CodeGenerator {
     // nextIntersects = false;
 
     int oneBit = NfaState.OnlyOneBitSet(state.asciiMoves[byteNum]);
-    if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-      if (((state.next == null) || (state.next.usefulEpsilonMoves == 0)) && (state.kindToPrint != Integer.MAX_VALUE)) {
-        String kindCheck = "";
+    if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
+        && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
+            && (state.kindToPrint != Integer.MAX_VALUE))) {
+      String kindCheck = "";
 
-        if (!onlyState) {
-          kindCheck = " && kind > " + state.kindToPrint;
-        }
-
-        if (oneBit != -1) {
-          writer.println("                  if (curChar == " + ((64 * byteNum) + oneBit) + kindCheck + ")");
-        } else {
-          writer.println("                  if ((0x" + Long.toHexString(state.asciiMoves[byteNum]) + "L & l) != 0L"
-              + kindCheck + ")");
-        }
-
-        writer.println("                     kind = " + state.kindToPrint + ";");
-
-        if (onlyState) {
-          writer.println("                  break;");
-        } else {
-          writer.println("                  break;");
-        }
-
-        return;
+      if (!onlyState) {
+        kindCheck = " && kind > " + state.kindToPrint;
       }
+
+      if (oneBit != -1) {
+        writer.println("                  if (curChar == " + ((64 * byteNum) + oneBit) + kindCheck + ")");
+      } else {
+        writer.println(
+            "                  if ((" + toHexString(state.asciiMoves[byteNum]) + " & l) != 0L" + kindCheck + ")");
+      }
+
+      writer.println("                     kind = " + state.kindToPrint + ";");
+
+      if (onlyState) {
+        writer.println("                  break;");
+      } else {
+        writer.println("                  break;");
+      }
+
+      return;
     }
 
     String prefix = "";
@@ -566,7 +565,7 @@ public abstract class LexerGenerator extends CodeGenerator {
         writer.println("                  if (curChar != " + ((64 * byteNum) + oneBit) + ")");
         writer.println("                     break;");
       } else if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-        writer.println("                  if ((0x" + Long.toHexString(state.asciiMoves[byteNum]) + "L & l) == 0L)");
+        writer.println("                  if ((" + toHexString(state.asciiMoves[byteNum]) + " & l) == 0L)");
         writer.println("                     break;");
       }
 
@@ -580,7 +579,7 @@ public abstract class LexerGenerator extends CodeGenerator {
       writer.println("                  if (curChar == " + ((64 * byteNum) + oneBit) + ")");
       prefix = "   ";
     } else if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-      writer.println("                  if ((0x" + Long.toHexString(state.asciiMoves[byteNum]) + "L & l) != 0L)");
+      writer.println("                  if ((" + toHexString(state.asciiMoves[byteNum]) + " & l) != 0L)");
       prefix = "   ";
     }
 
@@ -648,8 +647,8 @@ public abstract class LexerGenerator extends CodeGenerator {
         writer.println(
             "                  " + (elseNeeded ? "else " : "") + "if (curChar == " + ((64 * byteNum) + oneBit) + ")");
       } else {
-        writer.println("                  " + (elseNeeded ? "else " : "") + "if ((0x"
-            + Long.toHexString(state.asciiMoves[byteNum]) + "L & l) != 0L)");
+        writer.println("                  " + (elseNeeded ? "else " : "") + "if (("
+            + toHexString(state.asciiMoves[byteNum]) + " & l) != 0L)");
       }
       prefix = "   ";
     }
@@ -1058,5 +1057,24 @@ public abstract class LexerGenerator extends CodeGenerator {
     writer.println("               default : if (i1 == 0 || l1 == 0 || i2 == 0 ||  l2 == 0) break; else break;");
     writer.println("            }");
     writer.println("         } while(i != startsAt);");
+  }
+
+  // Assumes l != 0L
+  protected static char MaxChar(long l) {
+    for (int i = 64; i-- > 0;) {
+      if ((l & (1L << i)) != 0L) {
+        return (char) i;
+      }
+    }
+    return 0xffff;
+  }
+
+  protected String toHexString(long value) {
+    return "0x" + Long.toHexString(value) + "L";
+  }
+
+  protected String getLohiBytes(LexerData data, int i) {
+    return String.join(", ", toHexString(data.lohiByte.get(i)[0]), toHexString(data.lohiByte.get(i)[1]),
+        toHexString(data.lohiByte.get(i)[2]), toHexString(data.lohiByte.get(i)[3]));
   }
 }

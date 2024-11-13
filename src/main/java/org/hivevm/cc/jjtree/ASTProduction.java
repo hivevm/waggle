@@ -3,15 +3,16 @@
 
 package org.hivevm.cc.jjtree;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Vector;
+import java.util.List;
 
 
 public class ASTProduction extends ASTNode {
 
-  String                name;
-  private int           nextNodeScopeNumber;
-  public Vector<String> throws_list;
+  String                     name;
+  private int                nextNodeScopeNumber;
+  private final List<String> throws_list;
 
 
   private final Hashtable<NodeScope, Integer> scopes;
@@ -19,8 +20,16 @@ public class ASTProduction extends ASTNode {
   public ASTProduction(JJTreeParser p, int id) {
     super(p, id);
     this.nextNodeScopeNumber = 0;
-    this.throws_list = new Vector<>();
     this.scopes = new Hashtable<>();
+    this.throws_list = new ArrayList<>();
+  }
+
+  protected void addThrow(String throw_name) {
+    this.throws_list.add(throw_name);
+  }
+
+  public final Iterable<String> throwElements() {
+    return this.throws_list;
   }
 
 

@@ -1,8 +1,13 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 /**
  * Token literal values and constants.
  */
-#ifndef JAVACC_PARSER_CONSTANTS_H
-#define JAVACC_PARSER_CONSTANTS_H
+#ifndef JAVACC_PARSER_CONSTANTS
+#define JAVACC_PARSER_CONSTANTS
 
 #include "JavaCC.h"
 
@@ -44,4 +49,7 @@ static const JJChar* const tokenLabels[] = {
 @if(NAMESPACE)
 }
 @fi
+
 #endif
+
+#pragma GCC diagnostic pop

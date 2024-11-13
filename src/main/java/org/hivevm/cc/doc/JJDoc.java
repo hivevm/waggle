@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.doc;
 
-import java.util.Iterator;
-
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.BNFProduction;
 import org.hivevm.cc.parser.CharacterRange;
@@ -35,6 +33,8 @@ import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.utils.Encoding;
 
+import java.util.Iterator;
+
 /**
  * The main entry point for JJDoc.
  */
@@ -56,7 +56,7 @@ class JJDoc extends JJDocGlobals {
     return (t != tok) ? t : null;
   }
 
-  private static void emitTopLevelSpecialTokens(Token tok, Generator gen) {
+  private static void emitTopLevelSpecialTokens(Token tok) {
     if (tok == null) {
       // Strange ...
       return;
@@ -73,7 +73,7 @@ class JJDoc extends JJDocGlobals {
     gen.tokensStart();
     // FIXME there are many empty productions here
     for (TokenProduction tp : prods) {
-      JJDoc.emitTopLevelSpecialTokens(tp.getFirstToken(), gen);
+      JJDoc.emitTopLevelSpecialTokens(tp.getFirstToken());
 
 
       gen.handleTokenProduction(tp);
@@ -130,7 +130,7 @@ class JJDoc extends JJDocGlobals {
   private static void emitNormalProductions(Generator gen, Iterable<NormalProduction> prods) {
     gen.nonterminalsStart();
     for (NormalProduction np : prods) {
-      JJDoc.emitTopLevelSpecialTokens(np.getFirstToken(), gen);
+      JJDoc.emitTopLevelSpecialTokens(np.getFirstToken());
       if (np instanceof BNFProduction) {
         gen.productionStart(np);
         if (np.getExpansion() instanceof Choice) {
@@ -157,11 +157,11 @@ class JJDoc extends JJDocGlobals {
   private static void emitExpansionTree(Expansion exp, Generator gen) {
     // gen.text("[->" + exp.getClass().getName() + "]");
     if (exp instanceof Action) {
-      JJDoc.emitExpansionAction((Action) exp, gen);
+      JJDoc.emitExpansionAction();
     } else if (exp instanceof Choice) {
       JJDoc.emitExpansionChoice((Choice) exp, gen);
     } else if (exp instanceof Lookahead) {
-      JJDoc.emitExpansionLookahead((Lookahead) exp, gen);
+      JJDoc.emitExpansionLookahead();
     } else if (exp instanceof NonTerminal) {
       JJDoc.emitExpansionNonTerminal((NonTerminal) exp, gen);
     } else if (exp instanceof OneOrMore) {
@@ -180,7 +180,7 @@ class JJDoc extends JJDocGlobals {
     // gen.text("[<-" + exp.getClass().getName() + "]");
   }
 
-  private static void emitExpansionAction(Action a, Generator gen) {}
+  private static void emitExpansionAction() {}
 
   private static void emitExpansionChoice(Choice c, Generator gen) {
     for (Iterator<Expansion> it = c.getChoices().iterator(); it.hasNext();) {
@@ -192,7 +192,7 @@ class JJDoc extends JJDocGlobals {
     }
   }
 
-  private static void emitExpansionLookahead(Lookahead l, Generator gen) {}
+  private static void emitExpansionLookahead() {}
 
   private static void emitExpansionNonTerminal(NonTerminal nt, Generator gen) {
     gen.nonTerminalStart(nt);

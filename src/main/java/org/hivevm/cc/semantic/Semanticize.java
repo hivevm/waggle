@@ -3,13 +3,6 @@
 
 package org.hivevm.cc.semantic;
 
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.Choice;
 import org.hivevm.cc.parser.Expansion;
@@ -34,6 +27,13 @@ import org.hivevm.cc.parser.Sequence;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
+
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 public class Semanticize {
 
@@ -177,10 +177,8 @@ public class Semanticize {
       List<RegExprSpec> respecs = tp.getRespecs();
       for (RegExprSpec respec : respecs) {
         RegExprSpec res = (respec);
-        if (res.nextState != null) {
-          if (request.getStateIndex(res.nextState) == null) {
-            context.onSemanticError(res.nsTok, "Lexical state \"" + res.nextState + "\" has not been defined.");
-          }
+        if ((res.nextState != null) && (request.getStateIndex(res.nextState) == null)) {
+          context.onSemanticError(res.nsTok, "Lexical state \"" + res.nextState + "\" has not been defined.");
         }
         if (res.rexp instanceof REndOfFile) {
           // context.onSemanticError(res.rexp, "Badly placed <EOF>.");
@@ -406,10 +404,8 @@ public class Semanticize {
     while (emptyUpdate) {
       emptyUpdate = false;
       for (NormalProduction prod : request.getNormalProductions()) {
-        if (Semanticize.emptyExpansionExists(prod.getExpansion())) {
-          if (!prod.isEmptyPossible()) {
-            emptyUpdate = prod.setEmptyPossible(true);
-          }
+        if (Semanticize.emptyExpansionExists(prod.getExpansion()) && !prod.isEmptyPossible()) {
+          emptyUpdate = prod.setEmptyPossible(true);
         }
       }
     }
@@ -576,17 +572,15 @@ public class Semanticize {
           prod.setWalkStatus(1);
           return true;
         }
-      } else if (prod.getLeftExpansions()[i].getWalkStatus() == 0) {
-        if (prodWalk(prod.getLeftExpansions()[i])) {
-          this.loopString = prod.getLhs() + "... --> " + this.loopString;
-          if (prod.getWalkStatus() == -2) {
-            prod.setWalkStatus(1);
-            this.context.onSemanticError(prod, "Left recursion detected: \"" + this.loopString + "\"");
-            return false;
-          } else {
-            prod.setWalkStatus(1);
-            return true;
-          }
+      } else if ((prod.getLeftExpansions()[i].getWalkStatus() == 0) && prodWalk(prod.getLeftExpansions()[i])) {
+        this.loopString = prod.getLhs() + "... --> " + this.loopString;
+        if (prod.getWalkStatus() == -2) {
+          prod.setWalkStatus(1);
+          this.context.onSemanticError(prod, "Left recursion detected: \"" + this.loopString + "\"");
+          return false;
+        } else {
+          prod.setWalkStatus(1);
+          return true;
         }
       }
     }
@@ -808,10 +802,8 @@ public class Semanticize {
         if (Semanticize.emptyExpansionExists(((ZeroOrMore) e).getExpansion())) {
           Semanticize.this.context.onSemanticError(e, "Expansion within \"(...)*\" can be matched by empty string.");
         }
-      } else if (e instanceof ZeroOrOne) {
-        if (Semanticize.emptyExpansionExists(((ZeroOrOne) e).getExpansion())) {
-          getContext().onSemanticError(e, "Expansion within \"(...)?\" can be matched by empty string.");
-        }
+      } else if ((e instanceof ZeroOrOne) && Semanticize.emptyExpansionExists(((ZeroOrOne) e).getExpansion())) {
+        getContext().onSemanticError(e, "Expansion within \"(...)?\" can be matched by empty string.");
       }
     }
 

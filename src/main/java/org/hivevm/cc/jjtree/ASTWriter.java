@@ -3,13 +3,12 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.Language;
+import org.hivevm.cc.utils.Encoding;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-
-import org.hivevm.cc.JJCodeBlock;
-import org.hivevm.cc.Language;
-import org.hivevm.cc.utils.Encoding;
 
 
 /**
@@ -27,6 +26,22 @@ public class ASTWriter extends PrintWriter {
   // Indicates whether the token should be replaced by white space or replaced with the actual node
   // variable.
   private boolean whitingOut = false;
+
+  public enum CodeBlock {
+
+    CODE,
+    END;
+
+    public final String image;
+
+    CodeBlock() {
+      this.image = "@" + name().toLowerCase();
+    }
+
+    public final String strip(String text) {
+      return text.substring(name().length() + 1);
+    }
+  }
 
   /**
    * Constructs an instance of {@link ASTWriter}.
@@ -51,7 +66,7 @@ public class ASTWriter extends PrintWriter {
    */
   public final void openCodeBlock(String arg) {
     append("\n");
-    append(JJCodeBlock.Code.CODE);
+    append(CodeBlock.CODE.image);
     if (arg != null) {
       print(" // " + arg + "\n");
     }
@@ -61,7 +76,7 @@ public class ASTWriter extends PrintWriter {
    * Closes a JJTree code block.
    */
   public final void closeCodeBlock() {
-    append("@end");
+    append(CodeBlock.END.image);
   }
 
   /**
@@ -91,9 +106,7 @@ public class ASTWriter extends PrintWriter {
 
     NodeScope s = NodeScope.getEnclosingNodeScope(node);
     if (s == null) {
-      /*
-       * Not within a node scope so we don't need to modify the source.
-       */
+      // Not within a node scope so we don't need to modify the source.
       print(Encoding.escapeUnicode(node.translateImage(token)));
       return;
     }

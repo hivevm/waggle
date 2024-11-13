@@ -3,9 +3,6 @@
 
 package org.hivevm.cc.semantic;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.parser.Choice;
 import org.hivevm.cc.parser.Expansion;
 import org.hivevm.cc.parser.Lookahead;
@@ -15,6 +12,9 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.Sequence;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.utils.Encoding;
+
+import java.util.ArrayList;
+import java.util.List;
 
 class LookaheadCalc {
 
@@ -226,13 +226,11 @@ class LookaheadCalc {
       data.setConsiderSemanticLA(false);
       LookaheadWalk.genFollowSet(v, exp, data.nextGenerationIndex(), data);
       follow = data.getSizeLimitedMatches();
-      if (la == 1) {
-        if (LookaheadCalc.javaCodeCheck(first)) {
-          context.onWarning(nested,
-              "JAVACODE non-terminal within " + LookaheadCalc.image(exp)
-                  + " construct will force this construct to be entered in favor of "
-                  + "expansions occurring after construct.");
-        }
+      if ((la == 1) && LookaheadCalc.javaCodeCheck(first)) {
+        context.onWarning(nested,
+            "JAVACODE non-terminal within " + LookaheadCalc.image(exp)
+                + " construct will force this construct to be entered in favor of "
+                + "expansions occurring after construct.");
       }
       if ((m = LookaheadCalc.overlap(first, follow)) == null) {
         break;

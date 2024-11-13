@@ -3,14 +3,6 @@
 
 package org.hivevm.cc.generator.java;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
 import org.hivevm.cc.parser.Action;
@@ -28,10 +20,16 @@ import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.semantic.Semanticize;
-import org.hivevm.cc.source.SourceWriter;
-import org.hivevm.cc.utils.DigestOptions;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.cc.utils.TemplateProvider;
+
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implements the {@link ParserGenerator} for the JAVA language.
@@ -39,7 +37,7 @@ import org.hivevm.cc.utils.TemplateOptions;
 public class JavaParserGenerator extends ParserGenerator {
 
   @Override
-  protected void generate(ParserData data) throws IOException {
+  protected void start(ParserData data) {
     TemplateOptions options = new TemplateOptions();
     options.set("IS_GENERATED", data.isGenerated());
     options.set("LOOKAHEAD_NEEDED", data.isLookAheadNeeded());
@@ -64,10 +62,8 @@ public class JavaParserGenerator extends ParserGenerator {
             i -> data.maskVals().stream().map(v -> "0x" + Integer.toHexString(v[i])).collect(Collectors.joining(", ")))
         .set("la1", i -> (i == 0) ? "" : (32 * i) + " + ");
 
-    try (SourceWriter writer =
-        new SourceWriter(data.getParserName(), JavaTemplate.PARSER, new DigestOptions(data.options(), options))) {
-      writer.writeTemplate();
-    }
+    TemplateProvider provider = JavaTemplate.PARSER;
+    provider.render(data.options(), options, data.getParserName());
   }
 
   /**
@@ -80,7 +76,7 @@ public class JavaParserGenerator extends ParserGenerator {
   private void generatePhase1(BNFProduction p, String code, PrintWriter writer, Options options) {
     Token t = p.getReturnTypeTokens().get(0);
 
-    genHeaderMethod(p, t, writer, options);
+    genHeaderMethod(p, t, writer);
 
     writer.print(" {");
 
@@ -370,7 +366,7 @@ public class JavaParserGenerator extends ParserGenerator {
         // jj2LA is set to false at the beginning of the containing "if" statement.
         // It is checked immediately after the end of the same statement to determine
         // if lookaheads are to be performed using calls to the jj2 methods.
-        jj2LA = genFirstSet(data, la.getLaExpansion(), firstSet, jj2LA);
+        jj2LA = data.genFirstSet(la.getLaExpansion(), firstSet, jj2LA);
         // genFirstSet may find that semantic attributes are appropriate for the next
         // token. In which case, it sets jj2LA to true.
         if (!jj2LA) {
@@ -489,7 +485,7 @@ public class JavaParserGenerator extends ParserGenerator {
     return retval;
   }
 
-  private final void genHeaderMethod(BNFProduction p, Token t, PrintWriter writer, Options options) {
+  private final void genHeaderMethod(BNFProduction p, Token t, PrintWriter writer) {
     genTokenSetup(t);
     writer.print(getLeadingComments(t));
     writer.print("  public final ");
@@ -655,7 +651,7 @@ public class JavaParserGenerator extends ParserGenerator {
       for (int i = 1; i < e_nrw.getUnits().size(); i++) {
         Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
         xsp_declared = buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, eseq, cnt, writer);
-        cnt -= ParserGenerator.minimumSize(data, eseq);
+        cnt -= data.minimumSize(eseq);
         if (cnt <= 0) {
           break;
         }

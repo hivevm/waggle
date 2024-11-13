@@ -8,18 +8,18 @@ import org.hivevm.cc.parser.Options;
 /**
  * The {@link Encoding} class.
  */
-public abstract class Encoding {
+public interface Encoding {
 
   /**
-   * Constructs an instance of {@link Encoding}.
+   * Escapes special ASCII characters.
+   *
+   * @param text
    */
-  private Encoding() {}
-
-  public static String escape(String str) {
+  static String escape(String text) {
     String retval = "";
     char ch;
-    for (int i = 0; i < str.length(); i++) {
-      ch = str.charAt(i);
+    for (int i = 0; i < text.length(); i++) {
+      ch = text.charAt(i);
       if (ch == '\b') {
         retval += "\\b";
       } else if (ch == '\t') {
@@ -46,13 +46,18 @@ public abstract class Encoding {
     return retval;
   }
 
-  public static String escapeUnicode(String str) {
+  /**
+   * Escapes special UNICODE characters.
+   *
+   * @param text
+   */
+  static String escapeUnicode(String text) {
     switch (Options.getOutputLanguage()) {
       case JAVA:
-        StringBuilder builder = new StringBuilder(str.length());
+        StringBuilder builder = new StringBuilder(text.length());
         char ch;
-        for (int i = 0; i < str.length(); i++) {
-          ch = str.charAt(i);
+        for (int i = 0; i < text.length(); i++) {
+          ch = text.charAt(i);
           if (((ch < 0x20) || (ch > 0x7e)) && (ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f')) {
             String s = "0000" + Integer.toString(ch, 16);
             builder.append("\\u" + s.substring(s.length() - 4));
@@ -62,7 +67,7 @@ public abstract class Encoding {
         }
         return builder.toString();
       case CPP:
-        return str;
+        return text;
       default:
         // TODO :: CBA -- Require Unification of output language specific processing into a single
         // Enum class

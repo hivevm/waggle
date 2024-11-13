@@ -1,7 +1,7 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc;
+package org.hivevm.gradle;
 
 import java.util.List;
 
@@ -11,20 +11,26 @@ import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Nested;
+import org.hivevm.cc.Language;
 
-public abstract class GeneratorConfig {
+public abstract class ParserProject {
 
   private final Project project;
 
   public Language       target;
 
+  public String         jjFile;
+  public String         jjtFile;
 
-  private final ListProperty<GeneratorStep> steps;
+  public String         output;
+
+
+  private final ListProperty<ParserTask> tasks;
 
   @Inject
-  public GeneratorConfig(Project project) {
+  public ParserProject(Project project) {
     this.project = project;
-    this.steps = project.getObjects().listProperty(GeneratorStep.class).empty();
+    this.tasks = project.getObjects().listProperty(ParserTask.class).empty();
   }
 
   protected final Project getProject() {
@@ -32,12 +38,12 @@ public abstract class GeneratorConfig {
   }
 
   @Nested
-  public final List<GeneratorStep> getSteps() {
-    return this.steps.get();
+  public final List<ParserTask> getTasks() {
+    return this.tasks.get();
   }
 
-  public final void step(Action<? super GeneratorStep> action) {
-    this.steps.add(newInstance(GeneratorStep.class, action));
+  public final void task(Action<? super ParserTask> action) {
+    this.tasks.add(newInstance(ParserTask.class, action));
   }
 
   private <C> C newInstance(Class<C> clazz, Action<? super C> action) {

@@ -15,10 +15,8 @@ public class ASTBNFAction extends ASTNode {
         if (((ASTBNFNodeScope) n).node_scope == ns) {
           return n;
         }
-      } else if (n instanceof ASTExpansionNodeScope) {
-        if (((ASTExpansionNodeScope) n).node_scope == ns) {
-          return n;
-        }
+      } else if ((n instanceof ASTExpansionNodeScope) && (((ASTExpansionNodeScope) n).node_scope == ns)) {
+        return n;
       }
     }
     return null;

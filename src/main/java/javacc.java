@@ -24,11 +24,9 @@
  * Intermediary between OS script and main program of application. Having this intermediary allows
  * the OS scripts to be package name independent.
  */
-public final class javacc {
+public interface javacc {
 
-  private javacc() {}
-
-  public static void main(String[] args) throws Exception {
-    org.hivevm.cc.JJParser.main(args);
+  static void main(String[] args) throws Exception {
+    org.hivevm.cc.HiveCCParser.main(args);
   }
 }

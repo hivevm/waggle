@@ -3,6 +3,9 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.Language;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,9 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.Language;
 
 /**
  * A class with static state that stores all option information.
@@ -264,12 +264,10 @@ public class Options {
           Val = Integer.valueOf(i);
         } catch (NumberFormatException e) {
           Val = s.substring(index + 1);
-          if (s.length() > (index + 2)) {
-            // i.e., there is space for two '"'s in value
-            if ((s.charAt(index + 1) == '"') && (s.charAt(s.length() - 1) == '"')) {
-              // remove the two '"'s.
-              Val = s.substring(index + 2, s.length() - 1);
-            }
+          // i.e., there is space for two '"'s in value
+          if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (s.charAt(s.length() - 1) == '"'))) {
+            // remove the two '"'s.
+            Val = s.substring(index + 2, s.length() - 1);
           }
         }
       }
