@@ -3,15 +3,15 @@
 
 package org.hivevm.gradle;
 
-import java.util.List;
-
-import javax.inject.Inject;
-
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Nested;
 import org.hivevm.cc.Language;
+
+import java.util.List;
+
+import javax.inject.Inject;
 
 public abstract class ParserProject {
 

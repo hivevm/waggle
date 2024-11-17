@@ -3,11 +3,12 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.lexer.NfaState;
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.RegularExpression;
+import org.hivevm.cc.parser.TokenProduction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,10 +22,10 @@ import java.util.Set;
  */
 public class LexerData {
 
-  private final JavaCCRequest request;
-  public final int            maxOrdinal;
-  public final int            maxLexStates;
-  public final Set<String>    stateNames;
+  private final ParserRequest request;
+  final int                   maxOrdinal;
+  final int                   maxLexStates;
+  final Set<String>           stateNames;
 
 
   final int[]    lexStates;
@@ -33,59 +34,60 @@ public class LexerData {
   int            curKind;
 
 
-  int                               lohiByteCnt;
-  public final Map<Integer, long[]> lohiByte;
-  final Hashtable<String, Integer>  lohiByteTab;
+  int                              lohiByteCnt;
+  final Map<Integer, long[]>       lohiByte;
+  final Hashtable<String, Integer> lohiByteTab;
 
-  public List<NfaState>             nonAsciiTableForMethod;
-  public List<String>               allBitVectors;
-  public int[][]                    kinds;
-  public int[][][]                  statesForState;
+  List<NfaState>                   nonAsciiTableForMethod;
+  List<String>                     allBitVectors;
+  int[][]                          kinds;
+  int[][][]                        statesForState;
 
 
-  public boolean                        jjCheckNAddStatesUnaryNeeded;
-  public boolean                        jjCheckNAddStatesDualNeeded;
+  public boolean boilerPlateDumped;
+
+
+  boolean jjCheckNAddStatesUnaryNeeded;
+  boolean jjCheckNAddStatesDualNeeded;
+
+  // public for NFA
   public int                            lastIndex;
   public final Hashtable<String, int[]> tableToDump;
   public final List<int[]>              orderedStateSet;
 
 
-  public boolean                            boilerPlateDumped;
-  private final Map<String, LexerStateData> stateData = new HashMap<>();
-
+  private final Map<String, NfaStateData> stateData = new HashMap<>();
 
   // RString
-  final String[] allImages;
+  final String[]            allImages;
 
-  // Additional attributes
-  public final int[]        maxLongsReqd;
+  final String[]            newLexState;
+  final boolean[]           ignoreCase;
+  final Action[]            actions;
+  int                       stateSetSize;
+  int                       totalNumStates;
+  final NfaState[]          singlesToSkip;
 
-  public final String[]     newLexState;
-  public final boolean[]    ignoreCase;
-  public final Action[]     actions;
-  public int                stateSetSize;
-  public int                totalNumStates;
-  public final NfaState[]   singlesToSkip;
+  final long[]              toSkip;
+  final long[]              toSpecial;
+  final long[]              toMore;
+  final long[]              toToken;
+  int                       defaultLexState;
 
-  public final long[]       toSkip;
-  public final long[]       toSpecial;
-  public final long[]       toMore;
-  public final long[]       toToken;
-  public int                defaultLexState;
   final RegularExpression[] rexprs;
-  public final int[]        initMatch;
-  public final int[]        canMatchAnyChar;
-  public boolean            hasEmptyMatch;
-  public final boolean[]    canLoop;
-  public boolean            hasLoop        = false;
-  public final boolean[]    canReachOnMore;
-  public boolean            hasSkipActions = false;
-  public boolean            hasMoreActions = false;
-  public boolean            hasTokenActions;
-  public boolean            hasSpecial     = false;
-  public boolean            hasSkip        = false;
-  public boolean            hasMore        = false;
-  public boolean            keepLineCol;
+  final int[]               initMatch;
+  final int[]               canMatchAnyChar;
+  boolean                   hasEmptyMatch;
+  final boolean[]           canLoop;
+  boolean                   hasLoop        = false;
+  final boolean[]           canReachOnMore;
+  boolean                   hasSkipActions = false;
+  boolean                   hasMoreActions = false;
+  boolean                   hasTokenActions;
+  boolean                   hasSpecial     = false;
+  boolean                   hasSkip        = false;
+  boolean                   hasMore        = false;
+  boolean                   keepLineCol;
 
   /**
    * Constructs an instance of {@link LexerData}.
@@ -94,7 +96,7 @@ public class LexerData {
    * @param maxOrdinal
    * @param maxLexStates
    */
-  LexerData(JavaCCRequest request, int maxOrdinal, int maxLexStates, Set<String> stateNames) {
+  LexerData(ParserRequest request, int maxOrdinal, int maxLexStates, Set<String> stateNames) {
     this.request = request;
     this.maxOrdinal = maxOrdinal;
     this.maxLexStates = maxLexStates;
@@ -142,7 +144,6 @@ public class LexerData {
     this.lexStateNames = new String[this.maxLexStates];
     this.singlesToSkip = new NfaState[this.maxLexStates];
 
-    this.maxLongsReqd = new int[this.maxLexStates];
     this.initMatch = new int[this.maxLexStates];
     this.newLexState = new String[this.maxOrdinal];
     this.newLexState[0] = getNextStateForEof();
@@ -166,8 +167,101 @@ public class LexerData {
     return this.request.getParserName();
   }
 
+  public final Iterable<RegularExpression> getOrderedsTokens() {
+    return request.getOrderedsTokens();
+  }
+
+  public final Iterable<Integer> getLohiByte() {
+    return lohiByte.keySet();
+  }
+
+
+  public final List<int[]> getOrderedStateSet() {
+    return orderedStateSet;
+  }
+
+  public final Iterable<TokenProduction> getTokenProductions() {
+    return request.getTokenProductions();
+  }
+
+  public final Iterable<NfaState> getNonAsciiTableForMethod() {
+    return nonAsciiTableForMethod;
+  }
+
+  public final int maxOrdinal() {
+    return this.maxOrdinal;
+  }
+
+  public final int maxLexStates() {
+    return this.maxLexStates;
+  }
+
+  public final Iterable<String> stateNames() {
+    return this.stateNames;
+  }
+
+  public final boolean jjCheckNAddStatesUnaryNeeded() {
+    return this.jjCheckNAddStatesUnaryNeeded;
+  }
+
+  public final boolean jjCheckNAddStatesDualNeeded() {
+    return this.jjCheckNAddStatesDualNeeded;
+  }
+
   public final boolean ignoreCase() {
     return this.request.ignoreCase();
+  }
+
+  public final boolean hasLoop() {
+    return this.hasLoop;
+  }
+
+  public final boolean hasEmptyMatch() {
+    return this.hasEmptyMatch;
+  }
+
+  public final boolean keepLineCol() {
+    return this.keepLineCol;
+  }
+
+  public final boolean hasSkip() {
+    return this.hasSkip;
+  }
+
+  public final boolean hasMore() {
+    return this.hasMore;
+  }
+
+  public final boolean hasSpecial() {
+    return this.hasSpecial;
+  }
+
+  public final boolean hasMoreActions() {
+    return this.hasMoreActions;
+  }
+
+  public final boolean hasSkipActions() {
+    return this.hasSkipActions;
+  }
+
+  public final boolean hasTokenActions() {
+    return this.hasTokenActions;
+  }
+
+  public final boolean canLoop(int index) {
+    return canLoop[index];
+  }
+
+  public final boolean canReachOnMore(int index) {
+    return canReachOnMore[index];
+  }
+
+  public final int initMatch(int index) {
+    return initMatch[index];
+  }
+
+  public final int canMatchAnyChar(int index) {
+    return canMatchAnyChar[index];
   }
 
   public final String getNextStateForEof() {
@@ -218,16 +312,72 @@ public class LexerData {
   /**
    * Reset the {@link LexerData} for another cycle.
    */
-  final LexerStateData newStateData(String name) {
-    this.stateData.put(name, new LexerStateData(this, name));
-    return this.stateData.get(name);
+  final NfaStateData newStateData(String name) {
+    NfaStateData data = new NfaStateData(this, name);
+    this.stateData.put(name, data);
+    return data;
   }
 
   /**
    * Reset the {@link LexerData} for another cycle.
    */
-  public final LexerStateData getStateData(String name) {
+  public final NfaStateData getStateData(String name) {
     return this.stateData.get(name);
   }
 
+  public final String getAllBitVectors(int index) {
+    return allBitVectors.get(index);
+  }
+
+  public final int[][] getKinds() {
+    return kinds;
+  }
+
+  public final int[][][] getStatesForState() {
+    return statesForState;
+  }
+
+  public final int stateSetSize() {
+    return stateSetSize;
+  }
+
+  public final int totalNumStates() {
+    return totalNumStates;
+  }
+
+  public final int defaultLexState() {
+    return defaultLexState;
+  }
+
+  public final String newLexState(int index) {
+    return newLexState[index];
+  }
+
+  public final boolean ignoreCase(int index) {
+    return ignoreCase[index];
+  }
+
+  public final Action actions(int index) {
+    return actions[index];
+  }
+
+  public final NfaState singlesToSkip(int index) {
+    return singlesToSkip[index];
+  }
+
+  public final long toSkip(int index) {
+    return toSkip[index];
+  }
+
+  public final long toSpecial(int index) {
+    return toSpecial[index];
+  }
+
+  public final long toMore(int index) {
+    return toMore[index];
+  }
+
+  public final long toToken(int index) {
+    return toToken[index];
+  }
 }

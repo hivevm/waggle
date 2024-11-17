@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.generator.ParserData.Phase3Data;
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.BNFProduction;
@@ -35,7 +35,7 @@ public class ParserBuilder {
   /**
    * Constructs an instance of {@link ParserBuilder}.
    */
-  protected ParserBuilder() {
+  public ParserBuilder() {
     this.rIndex = 0;
   }
 
@@ -43,7 +43,7 @@ public class ParserBuilder {
     return ++this.rIndex;
   }
 
-  protected final ParserData build(JavaCCRequest request) throws ParseException {
+  public final ParserData build(ParserRequest request) throws ParseException {
     if (JavaCCErrors.hasError()) {
       throw new ParseException();
     }

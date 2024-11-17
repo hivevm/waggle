@@ -513,7 +513,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @fi
 @fi
 
-@if(!LEGACY)
+@if(IS_GENERATED)
 
   protected final Node rootNode() {
     return this.jjtree.rootNode();

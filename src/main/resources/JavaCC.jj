@@ -1,5 +1,4 @@
 PARSER_BEGIN(JavaCCParser)
-  LEGACY: true,
   PACKAGE: "org.hivevm.cc.parser",
   IMPORTS: "java.util.List,java.util.ArrayList",
   EXTENDS: "AbstractJavaCCParser"

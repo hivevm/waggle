@@ -3,9 +3,9 @@
 
 package org.hivevm.cc;
 
-import java.io.File;
-
 import org.hivevm.cc.parser.JavaCCErrors;
+
+import java.io.File;
 
 /**
  * The {@link HiveCCTools} class.

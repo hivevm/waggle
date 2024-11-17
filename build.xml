@@ -103,6 +103,9 @@
 		</copy>
 
 		<copy file="${resources-src}/version" todir="classes" />
+		<copy todir="classes/META-INF/services" >
+			<fileset dir="${resources-src}/META-INF/services" />
+		</copy>
 
 		<javac srcdir="${java-src}" destdir="classes" debug="true" classpath="" includeantruntime='false' source="8" target="8">
 			<src path="${java-src}"/>

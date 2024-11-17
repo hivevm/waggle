@@ -3,8 +3,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_{{PARSER_NAME_UPPER}}
-#define JAVACC_{{PARSER_NAME_UPPER}}
+#ifndef JAVACC_{{CPP_DEFINE}}
+#define JAVACC_{{CPP_DEFINE}}
 
 #include "JavaCC.h"
 #include "Reader.h"

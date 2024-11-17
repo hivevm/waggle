@@ -26,7 +26,7 @@
  */
 public interface jjtree {
 
-  static void main(String[] args) {
+  static void main(String[] args) throws Exception {
     org.hivevm.cc.HiveCCTree.main(args);
   }
 }

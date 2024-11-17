@@ -83,9 +83,6 @@ public class Template {
                 case COND_IF:
                 case COND_ELSE:
                 case COND_ELSE_IF:
-                  if ("!LEGACY".equals(matcher.group(2))) {
-                    System.out.printf("%s\n", matcher.group(2));
-                  }
                   TemplateTree n = child.newCase(matcher.group(2));
                   offset = walk(n, data, offset, matcher);
               }

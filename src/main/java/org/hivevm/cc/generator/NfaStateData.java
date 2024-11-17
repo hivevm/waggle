@@ -12,38 +12,38 @@ import java.util.Hashtable;
 import java.util.List;
 
 /**
- * The {@link LexerStateData} class.
+ * The {@link NfaStateData} class.
  */
-public class LexerStateData {
+public class NfaStateData {
 
   public final LexerData global;
 
   private final NfaState initialState;
   private final int      lexStateIndex;
-  public final String    lexStateSuffix;
+  private final String   lexStateSuffix;
 
 
   // RString
-  public int     maxLen;
-  public int     maxStrKind;
-  public boolean subString[];
-  public boolean subStringAtPos[];
+  int     maxLen;
+  int     maxStrKind;
+  boolean subString[];
+  boolean subStringAtPos[];
 
 
-  public int[]   maxLenForActive;
-  public int[][] intermediateKinds;
-  public int[][] intermediateMatchedPos;
+  int[]   maxLenForActive;
+  int[][] intermediateKinds;
+  int[][] intermediateMatchedPos;
 
 
-  public Hashtable<String, long[]>[]       statesForPos;
-  public List<Hashtable<String, KindInfo>> charPosKind;
+  Hashtable<String, long[]>[]       statesForPos;
+  List<Hashtable<String, KindInfo>> charPosKind;
 
   // NfaState
   public boolean               done;
   public boolean               mark[];
   public boolean               hasNFA;
   boolean                      hasMixed;
-  public boolean               createStartNfa;
+  boolean                      createStartNfa;
 
   private int                  idCnt;
   private int                  generatedStates;
@@ -51,16 +51,16 @@ public class LexerStateData {
   private final List<NfaState> indexedAllStates;
 
 
-  public int                              dummyStateIndex;
-  private final Hashtable<String, int[]>  allNextStates;
-  public final Hashtable<String, Integer> stateNameForComposite;
-  final Hashtable<String, int[]>          compositeStateTable;
-  final Hashtable<String, String>         stateBlockTable;
-  public final Hashtable<String, int[]>   stateSetsToFix;
-  public Hashtable<String, NfaState>      equivStatesTable;
+  int                                    dummyStateIndex;
+  private final Hashtable<String, int[]> allNextStates;
+  final Hashtable<String, Integer>       stateNameForComposite;
+  final Hashtable<String, int[]>         compositeStateTable;
+  final Hashtable<String, String>        stateBlockTable;
+  final Hashtable<String, int[]>         stateSetsToFix;
+  public Hashtable<String, NfaState>     equivStatesTable;
 
 
-  LexerStateData(LexerData data, String name) {
+  NfaStateData(LexerData data, String name) {
     this.global = data;
     this.lexStateIndex = this.global.getStateIndex(name);
     this.lexStateSuffix = "_" + this.lexStateIndex;
@@ -107,8 +107,20 @@ public class LexerStateData {
     return this.global.ignoreCase();
   }
 
+  public final boolean hasNFA() {
+    return this.hasNFA;
+  }
+
+  public final String getLexerStateSuffix() {
+    return this.lexStateSuffix;
+  }
+
   public final NfaState getInitialState() {
     return this.initialState;
+  }
+
+  public final boolean getCreateStartNfa() {
+    return this.createStartNfa;
   }
 
   public final int getStateIndex() {
@@ -165,5 +177,38 @@ public class LexerStateData {
 
   public final void setNextStates(String name, int[] states) {
     this.allNextStates.put(name, states);
+  }
+
+  public final Hashtable<String, KindInfo> getCharPosKind(int index) {
+    return charPosKind.get(index);
+  }
+
+  public final int getMaxLenForActive(int index) {
+    return maxLenForActive[index];
+  }
+
+  public final int[][] getIntermediateKinds() {
+    return intermediateKinds;
+  }
+
+  public final int[][] getIntermediateMatchedPos() {
+    return intermediateMatchedPos;
+  }
+
+
+  public final int getMaxLen() {
+    return maxLen;
+  }
+
+  public final int getMaxStrKind() {
+    return maxStrKind;
+  }
+
+  public final boolean isSubString(int index) {
+    return subString[index];
+  }
+
+  public final boolean isSubStringAtPos(int index) {
+    return subStringAtPos[index];
   }
 }

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.Choice;
 import org.hivevm.cc.parser.Expansion;
@@ -40,7 +40,7 @@ import java.util.Map;
  */
 public class ParserData {
 
-  private final JavaCCRequest request;
+  private final ParserRequest request;
 
 
   // maskindex, jj2index, maskVals are variables that are shared between ParseEngine and ParseGen.
@@ -64,7 +64,7 @@ public class ParserData {
    *
    * @param request
    */
-  ParserData(JavaCCRequest request) {
+  ParserData(ParserRequest request) {
     this.request = request;
 
     this.jj2index = 0;

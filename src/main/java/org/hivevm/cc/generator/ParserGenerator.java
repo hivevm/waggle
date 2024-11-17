@@ -5,7 +5,7 @@ package org.hivevm.cc.generator;
 
 import org.hivevm.cc.parser.Token;
 
-public abstract class ParserGenerator extends CodeGenerator {
+public abstract class ParserGenerator extends CodeGenerator<ParserData> {
 
   // Constants used in the following method "buildLookaheadChecker".
   protected enum LookaheadState {
@@ -26,8 +26,6 @@ public abstract class ParserGenerator extends CodeGenerator {
   protected final int nextLabelIndex() {
     return ++this.labelIndex;
   }
-
-  protected abstract void start(ParserData data);
 
   protected final String getTrailingComments(Token t) {
     return (t.next == null) ? "" : getLeadingComments(t.next);

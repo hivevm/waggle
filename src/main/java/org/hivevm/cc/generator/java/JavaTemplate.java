@@ -12,7 +12,7 @@ import java.io.File;
 /**
  * The {@link JavaTemplate} class.
  */
-public enum JavaTemplate implements TemplateProvider {
+enum JavaTemplate implements TemplateProvider {
 
   LEXER("Lexer", "%sTokenManager"),
   PARSER("Parser", "%s"),

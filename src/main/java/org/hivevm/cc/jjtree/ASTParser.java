@@ -3,6 +3,10 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.generator.ASTGeneratorContext;
+
+import java.text.ParseException;
+
 /**
  * The {@link ASTParser} class.
  */
@@ -44,11 +48,11 @@ abstract class ASTParser {
 
   protected abstract Token getToken(int index);
 
-  protected void jjtreeOpenNodeScope(Node n) {}
+  protected void jjtreeOpenNodeScope(Node n) throws ParseException {}
 
-  protected void jjtreeCloseNodeScope(Node n) {}
+  protected void jjtreeCloseNodeScope(Node n) throws ParseException {}
 
-  protected JJTreeOptions getOptions() {
+  protected ASTGeneratorContext getOptions() {
     throw new UnsupportedOperationException();
   }
 

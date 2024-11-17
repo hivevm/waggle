@@ -1,5 +1,4 @@
 PARSER_BEGIN(JJTreeParser)
-  LEGACY: true,
   MULTI: true,
   NODE_DEFAULT_VOID: true,
   NODE_SCOPE_HOOK: true,

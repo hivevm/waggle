@@ -12,23 +12,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The {@link HiveCCBuilder} class.
+ * The {@link ParserBuilder} class.
  */
-public class HiveCCBuilder {
+public class ParserBuilder {
 
   private Language     language;
   private File         targetDir;
   private List<String> excludes;
 
-  private File         jj;
-  private File         jjt;
+  private File         treeFile;
+  private File         parserFile;
 
   /**
    * Set the code generator.
    *
    * @param language
    */
-  public final HiveCCBuilder setCodeGenerator(Language language) {
+  public final ParserBuilder setCodeGenerator(Language language) {
     this.language = language;
     return this;
   }
@@ -38,8 +38,8 @@ public class HiveCCBuilder {
    *
    * @param targetDir
    */
-  public final HiveCCBuilder setTargetDir(File targetDir, String... pathes) {
-    this.targetDir = HiveCCBuilder.toFile(targetDir, pathes);
+  public final ParserBuilder setTargetDir(File targetDir, String... pathes) {
+    this.targetDir = ParserBuilder.toFile(targetDir, pathes);
     return this;
   }
 
@@ -48,7 +48,7 @@ public class HiveCCBuilder {
    *
    * @param excludes
    */
-  public final HiveCCBuilder setExcludes(List<String> excludes) {
+  public final ParserBuilder setExcludes(List<String> excludes) {
     this.excludes = excludes;
     return this;
   }
@@ -58,8 +58,8 @@ public class HiveCCBuilder {
    *
    * @param file
    */
-  public final HiveCCBuilder setJJFile(File file, String... pathes) {
-    this.jj = HiveCCBuilder.toFile(file, pathes);
+  public final ParserBuilder setParserFile(File file, String... pathes) {
+    this.parserFile = ParserBuilder.toFile(file, pathes);
     return this;
   }
 
@@ -68,13 +68,13 @@ public class HiveCCBuilder {
    *
    * @param file
    */
-  public final HiveCCBuilder setJJTreeFile(File file, String... pathes) {
-    this.jjt = HiveCCBuilder.toFile(file, pathes);
+  public final ParserBuilder setTreeFile(File file, String... pathes) {
+    this.treeFile = ParserBuilder.toFile(file, pathes);
     return this;
   }
 
-  public static HiveCCBuilder of(Language language) {
-    HiveCCBuilder builder = new HiveCCBuilder();
+  public static ParserBuilder of(Language language) {
+    ParserBuilder builder = new ParserBuilder();
     builder.setCodeGenerator(language);
     return builder;
   }
@@ -87,20 +87,20 @@ public class HiveCCBuilder {
       List<String> arguments = new ArrayList<>();
       arguments.add("-CODE_GENERATOR=" + this.language.name());
       arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
-      if (this.jj == null) {
+      if (this.parserFile == null) {
         if ((this.excludes != null) && !this.excludes.isEmpty()) {
           arguments.add("-NODE_EXCLUDES=" + String.join(",", this.excludes));
         }
-        arguments.add(this.jjt.getAbsolutePath());
+        arguments.add(this.treeFile.getAbsolutePath());
 
         HiveCCTree.main(arguments.toArray(new String[arguments.size()]));
 
-        String path = this.jjt.getAbsolutePath();
+        String path = this.treeFile.getAbsolutePath();
         int offset = path.lastIndexOf("/");
         int length = path.lastIndexOf(".");
         arguments.set(arguments.size() - 1, this.targetDir + path.substring(offset, length) + ".jj");
       } else {
-        arguments.add(this.jj.getAbsolutePath());
+        arguments.add(this.parserFile.getAbsolutePath());
       }
 
       HiveCCParser.main(arguments.toArray(new String[arguments.size()]));
@@ -115,10 +115,10 @@ public class HiveCCBuilder {
   public final void interpret(String text) {
     Options options = new Options();
     try {
-      HiveCCInterpreter interpreter = new HiveCCInterpreter(options);
-      File file = this.jj;
+      ParserInterpreter interpreter = new ParserInterpreter(options);
+      File file = this.parserFile;
       if (file == null) {
-        String name = this.jjt.getName();
+        String name = this.treeFile.getName();
         String jjName = name.substring(0, name.length() - 1);
         file = new File(this.targetDir, jjName);
       }

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.LexerStateData;
+import org.hivevm.cc.generator.NfaStateData;
 import org.hivevm.cc.parser.JavaCCErrors;
 
 import java.util.ArrayList;
@@ -51,9 +51,9 @@ public class NfaState {
   private int                  onlyChar           = 0;
   private char                 matchSingleChar;
 
-  private final LexerStateData data;
+  private final NfaStateData data;
 
-  public NfaState(LexerStateData data) {
+  public NfaState(NfaStateData data) {
     this.data = data;
     this.id = data.addAllState(this);
     this.lexState = data.getStateIndex();
@@ -234,7 +234,7 @@ public class NfaState {
    * kind of token number for the same length.
    */
 
-  private void EpsilonClosure(LexerStateData data) {
+  private void EpsilonClosure(NfaStateData data) {
     int i = 0;
 
     if (this.closureDone || data.mark[this.id]) {
@@ -352,7 +352,7 @@ public class NfaState {
     return newState;
   }
 
-  private NfaState GetEquivalentRunTimeState(LexerStateData data) {
+  private NfaState GetEquivalentRunTimeState(NfaStateData data) {
     Outer:
     for (int i = data.getAllStateCount(); i-- > 0;) {
       NfaState other = data.getAllState(i);
@@ -409,7 +409,7 @@ public class NfaState {
     }
   }
 
-  public static void ComputeClosures(LexerStateData data) {
+  public static void ComputeClosures(NfaStateData data) {
     for (int i = data.getAllStateCount(); i-- > 0;) {
       NfaState tmp = data.getAllState(i);
 
@@ -432,7 +432,7 @@ public class NfaState {
     }
   }
 
-  private void OptimizeEpsilonMoves(LexerStateData data, boolean optReqd) {
+  private void OptimizeEpsilonMoves(NfaStateData data, boolean optReqd) {
     int i;
 
     // First do epsilon closure
@@ -702,7 +702,7 @@ public class NfaState {
   }
 
 
-  public static int[] GetStateSetIndicesForUse(LexerStateData data, String arrayString) {
+  public static int[] GetStateSetIndicesForUse(NfaStateData data, String arrayString) {
     int[] ret;
     int[] set = data.getNextStates(arrayString);
 
@@ -747,7 +747,7 @@ public class NfaState {
     // next.epsilonMovesString = GetStateSetString(newSet);
   }
 
-  public static boolean Intersect(LexerStateData data, String set1, String set2) {
+  public static boolean Intersect(NfaStateData data, String set1, String set2) {
     if ((set1 == null) || (set2 == null)) {
       return false;
     }

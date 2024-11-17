@@ -34,10 +34,10 @@ import java.util.stream.Collectors;
 /**
  * Implements the {@link ParserGenerator} for the JAVA language.
  */
-public class JavaParserGenerator extends ParserGenerator {
+class JavaParserGenerator extends ParserGenerator {
 
   @Override
-  protected void start(ParserData data) {
+  public void generate(ParserData data) {
     TemplateOptions options = new TemplateOptions();
     options.set("IS_GENERATED", data.isGenerated());
     options.set("LOOKAHEAD_NEEDED", data.isLookAheadNeeded());

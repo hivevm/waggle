@@ -4,7 +4,6 @@
 package org.hivevm.cc.generator;
 
 import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RStringLiteral;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.Token;
@@ -20,20 +19,9 @@ import java.util.Vector;
 /**
  * The {@link LexerGenerator} class.
  */
-public abstract class LexerGenerator extends CodeGenerator {
-
-  final void start(LexerData request) {
-    if (JavaCCErrors.hasError()) {
-      return;
-    }
-
-    dumpAll(request);
-  }
+public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
   // --------------------------------------- RString
-
-  protected abstract void dumpAll(LexerData data);
-
 
   protected final static String[] ReArrange(Hashtable<String, ?> tab) {
     String[] ret = new String[tab.size()];
@@ -70,7 +58,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     return data.rexprs[kind].getColumn();
   }
 
-  protected final int GetStateSetForKind(LexerStateData data, int pos, int kind) {
+  protected final int GetStateSetForKind(NfaStateData data, int pos, int kind) {
     if (data.isMixedState() || (data.generatedStates() == 0)) {
       return -1;
     }
@@ -98,7 +86,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     return -1;
   }
 
-  protected final boolean CanStartNfaUsingAscii(LexerStateData data, char c) {
+  protected final boolean CanStartNfaUsingAscii(NfaStateData data, char c) {
     if (c >= 128) {
       throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
     }
@@ -121,7 +109,7 @@ public abstract class LexerGenerator extends CodeGenerator {
 
   // ////////////////////////// NFaState
 
-  protected final void ReArrange(LexerStateData data) {
+  private void ReArrange(NfaStateData data) {
     List<NfaState> v = data.cloneAllStates();
 
     if (data.getAllStateCount() != data.generatedStates()) {
@@ -135,7 +123,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     }
   }
 
-  protected final void FixStateSets(LexerStateData data) {
+  private void FixStateSets(NfaStateData data) {
     Hashtable<String, int[]> fixedSets = new Hashtable<>();
     Enumeration<String> e = data.stateSetsToFix.keys();
     int[] tmp = new int[data.generatedStates()];
@@ -174,12 +162,75 @@ public abstract class LexerGenerator extends CodeGenerator {
     }
   }
 
+  protected final void dumpNfaAndDfa(NfaStateData stateData, PrintWriter writer) {
+    if (stateData.hasNFA && !stateData.isMixedState()) {
+      dumpNfaStartStatesCode(writer, stateData, stateData.statesForPos);
+    }
+    dumpDfaCode(writer, stateData);
+    if (stateData.hasNFA) {
+      prepareNfaStates(stateData);
+      dumpMoveNfa(writer, stateData);
+    }
+  }
 
-  private final int StateNameForComposite(LexerStateData data, String stateSetString) {
+  protected abstract void dumpNfaStartStatesCode(PrintWriter writer, NfaStateData stateData,
+      Hashtable<String, long[]>[] statesForPos);
+
+  protected abstract void dumpDfaCode(PrintWriter writer, NfaStateData stateData);
+
+  protected abstract void dumpMoveNfa(PrintWriter writer, NfaStateData stateData);
+
+  private final int stateNameForComposite(NfaStateData data, String stateSetString) {
     return data.stateNameForComposite.get(stateSetString).intValue();
   }
 
-  private final Vector<List<NfaState>> PartitionStatesSetForAscii(LexerStateData data, int[] states, int byteNum) {
+  private void prepareNfaStates(NfaStateData data) {
+    int i;
+    int[] kindsForStates = null;
+
+    if (data.global.getKinds() == null) {
+      data.global.kinds = new int[data.global.maxLexStates()][];
+      data.global.statesForState = new int[data.global.maxLexStates()][][];
+    }
+
+    ReArrange(data);
+
+    for (i = 0; i < data.getAllStateCount(); i++) {
+      NfaState temp = data.getAllState(i);
+
+      if ((temp.lexState != data.getStateIndex()) || !temp.HasTransitions() || temp.dummy || (temp.stateName == -1)) {
+        continue;
+      }
+
+      if (kindsForStates == null) {
+        kindsForStates = new int[data.generatedStates()];
+        data.global.getStatesForState()[data.getStateIndex()] =
+            new int[Math.max(data.generatedStates(), data.dummyStateIndex + 1)][];
+      }
+
+      kindsForStates[temp.stateName] = temp.lookingFor;
+      data.global.getStatesForState()[data.getStateIndex()][temp.stateName] = temp.compositeStates;
+    }
+
+    Enumeration<String> e = data.stateNameForComposite.keys();
+
+    while (e.hasMoreElements()) {
+      String s = e.nextElement();
+      int state = data.stateNameForComposite.get(s).intValue();
+
+      if (state >= data.generatedStates()) {
+        data.global.getStatesForState()[data.getStateIndex()][state] = data.getNextStates(s);
+      }
+    }
+
+    if (!data.stateSetsToFix.isEmpty()) {
+      FixStateSets(data);
+    }
+
+    data.global.kinds[data.getStateIndex()] = kindsForStates;
+  }
+
+  private final Vector<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
     int[] cardinalities = new int[states.length];
     Vector<NfaState> original = new Vector<>();
     Vector<List<NfaState>> partition = new Vector<>();
@@ -246,17 +297,16 @@ public abstract class LexerGenerator extends CodeGenerator {
     return ret;
   }
 
-  protected final int InitStateName(LexerStateData data) {
-    String s = data.getInitialState().GetEpsilonMovesString();
-
-    if (data.getInitialState().usefulEpsilonMoves != 0) {
-      return StateNameForComposite(data, s);
+  protected final int InitStateName(NfaStateData data) {
+    if (data.getInitialState().usefulEpsilonMoves == 0) {
+      return -1;
     }
-    return -1;
+    String s = data.getInitialState().GetEpsilonMovesString();
+    return stateNameForComposite(data, s);
   }
 
 
-  protected final int getCompositeStateSet(LexerStateData data, String stateSetString, boolean starts) {
+  protected final int getCompositeStateSet(NfaStateData data, String stateSetString, boolean starts) {
     Integer stateNameToReturn = data.stateNameForComposite.get(stateSetString);
 
     if (stateNameToReturn != null) {
@@ -286,7 +336,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     return nameSet[toRet];
   }
 
-  private final int AddCompositeStateSet(LexerStateData data, String stateSetString, boolean starts) {
+  private final int AddCompositeStateSet(NfaStateData data, String stateSetString, boolean starts) {
     Integer stateNameToReturn;
 
     if ((stateNameToReturn = data.stateNameForComposite.get(stateSetString)) != null) {
@@ -374,7 +424,7 @@ public abstract class LexerGenerator extends CodeGenerator {
   }
 
 
-  private String PrintNoBreak(PrintWriter writer, LexerStateData data, NfaState state, int byteNum, boolean[] dumped) {
+  private String PrintNoBreak(PrintWriter writer, NfaStateData data, NfaState state, int byteNum, boolean[] dumped) {
     if (state.inNextOf != 1) {
       throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
     }
@@ -396,11 +446,11 @@ public abstract class LexerGenerator extends CodeGenerator {
     return ("               case " + state.stateName + ":\n");
   }
 
-  protected final void DumpNullStrLiterals(PrintWriter writer, LexerStateData data) {
+  protected final void DumpNullStrLiterals(PrintWriter writer, NfaStateData data) {
     writer.println("{");
 
     if (data.generatedStates() > 0) {
-      writer.println("   return jjMoveNfa" + data.lexStateSuffix + "(" + InitStateName(data) + ", 0);");
+      writer.println("   return jjMoveNfa" + data.getLexerStateSuffix() + "(" + InitStateName(data) + ", 0);");
     } else {
       writer.println("   return 1;");
     }
@@ -408,11 +458,11 @@ public abstract class LexerGenerator extends CodeGenerator {
     writer.println("}");
   }
 
-  private void DumpCompositeStatesNonAsciiMoves(PrintWriter writer, LexerStateData data, String key, boolean[] dumped) {
+  private void DumpCompositeStatesNonAsciiMoves(PrintWriter writer, NfaStateData data, String key, boolean[] dumped) {
     int i;
     int[] nameSet = data.getNextStates(key);
 
-    if ((nameSet.length == 1) || dumped[StateNameForComposite(data, key)]) {
+    if ((nameSet.length == 1) || dumped[stateNameForComposite(data, key)]) {
       return;
     }
 
@@ -462,7 +512,7 @@ public abstract class LexerGenerator extends CodeGenerator {
         writer.print(toPrint);
       }
 
-      writer.println("               case " + StateNameForComposite(data, key) + ":");
+      writer.println("               case " + stateNameForComposite(data, key) + ":");
 
       if (!dumped[toBePrinted.stateName] && !stateBlock && (toBePrinted.inNextOf > 1)) {
         writer.println("               case " + toBePrinted.stateName + ":");
@@ -477,7 +527,7 @@ public abstract class LexerGenerator extends CodeGenerator {
       writer.print(toPrint);
     }
 
-    int keyState = StateNameForComposite(data, key);
+    int keyState = stateNameForComposite(data, key);
     writer.println("               case " + keyState + ":");
     if (keyState < data.generatedStates()) {
       dumped[keyState] = true;
@@ -497,7 +547,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     writer.println("                  break;");
   }
 
-  private void DumpAsciiMove(PrintWriter writer, LexerStateData data, NfaState state, int byteNum, boolean dumped[]) {
+  private void DumpAsciiMove(PrintWriter writer, NfaStateData data, NfaState state, int byteNum, boolean dumped[]) {
     boolean nextIntersects = state.selfLoop() && state.isComposite;
     boolean onlyState = true;
 
@@ -622,7 +672,7 @@ public abstract class LexerGenerator extends CodeGenerator {
   }
 
 
-  private void DumpAsciiMoveForCompositeState(PrintWriter writer, LexerStateData data, NfaState state, int byteNum,
+  private void DumpAsciiMoveForCompositeState(PrintWriter writer, NfaStateData data, NfaState state, int byteNum,
       boolean elseNeeded) {
     boolean nextIntersects = state.selfLoop();
 
@@ -699,7 +749,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     }
   }
 
-  private final void DumpNonAsciiMoveForCompositeState(PrintWriter writer, LexerStateData data, NfaState state) {
+  private final void DumpNonAsciiMoveForCompositeState(PrintWriter writer, NfaStateData data, NfaState state) {
     boolean nextIntersects = state.selfLoop();
     for (NfaState temp1 : data.getAllStates()) {
       if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName == temp1.stateName)
@@ -756,7 +806,7 @@ public abstract class LexerGenerator extends CodeGenerator {
     }
   }
 
-  private final void DumpNonAsciiMove(PrintWriter writer, LexerStateData data, NfaState state, boolean dumped[]) {
+  private final void DumpNonAsciiMove(PrintWriter writer, NfaStateData data, NfaState state, boolean dumped[]) {
     boolean nextIntersects = state.selfLoop() && state.isComposite;
 
     for (NfaState element : data.getAllStates()) {
@@ -839,12 +889,12 @@ public abstract class LexerGenerator extends CodeGenerator {
   }
 
 
-  private void DumpCompositeStatesAsciiMoves(PrintWriter writer, LexerStateData data, String key, int byteNum,
+  private void DumpCompositeStatesAsciiMoves(PrintWriter writer, NfaStateData data, String key, int byteNum,
       boolean[] dumped) {
     int i;
     int[] nameSet = data.getNextStates(key);
 
-    if ((nameSet.length == 1) || dumped[StateNameForComposite(data, key)]) {
+    if ((nameSet.length == 1) || dumped[stateNameForComposite(data, key)]) {
       return;
     }
 
@@ -893,7 +943,7 @@ public abstract class LexerGenerator extends CodeGenerator {
         writer.print(toPrint);
       }
 
-      writer.println("               case " + StateNameForComposite(data, key) + ":");
+      writer.println("               case " + stateNameForComposite(data, key) + ":");
 
       if (!dumped[toBePrinted.stateName] && !stateBlock && (toBePrinted.inNextOf > 1)) {
         writer.println("               case " + toBePrinted.stateName + ":");
@@ -910,7 +960,7 @@ public abstract class LexerGenerator extends CodeGenerator {
       writer.print(toPrint);
     }
 
-    int keyState = StateNameForComposite(data, key);
+    int keyState = stateNameForComposite(data, key);
     writer.println("               case " + keyState + ":");
     if (keyState < data.generatedStates()) {
       dumped[keyState] = true;
@@ -934,7 +984,7 @@ public abstract class LexerGenerator extends CodeGenerator {
 
   protected abstract void DumpHeadForCase(PrintWriter writer, int byteNum);
 
-  protected final void DumpAsciiMoves(PrintWriter writer, LexerStateData data, int byteNum) {
+  protected final void DumpAsciiMoves(PrintWriter writer, NfaStateData data, int byteNum) {
     boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
     Enumeration<String> e = data.compositeStateTable.keys();
 
@@ -998,7 +1048,7 @@ public abstract class LexerGenerator extends CodeGenerator {
   }
 
 
-  protected final void DumpCharAndRangeMoves(PrintWriter writer, LexerStateData data) {
+  protected final void DumpCharAndRangeMoves(PrintWriter writer, NfaStateData data) {
     boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
     Enumeration<String> e = data.compositeStateTable.keys();
     int i;

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.LexerStateData;
+import org.hivevm.cc.generator.NfaStateData;
 
 /**
  * A Non-deterministic Finite Automaton.
@@ -18,7 +18,7 @@ public class Nfa {
     this.end = finalGiven;
   }
 
-  Nfa(LexerStateData data) {
+  Nfa(NfaStateData data) {
     this(new NfaState(data), new NfaState(data));
   }
 }

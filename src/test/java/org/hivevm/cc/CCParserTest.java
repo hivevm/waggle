@@ -1,9 +1,9 @@
 
 package org.hivevm.cc;
 
-import java.io.File;
-
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
 
 
 class CCParserTest {
@@ -14,17 +14,17 @@ class CCParserTest {
 
   @Test
   void testJJParser() {
-    HiveCCBuilder builder = HiveCCBuilder.of(Language.JAVA);
+    ParserBuilder builder = ParserBuilder.of(Language.JAVA);
     builder.setTargetDir(new File(CCParserTest.PARSER_TARGET, "parser"));
-    builder.setJJFile(CCParserTest.PARSER_SOURCE, "JavaCC.jj");
+    builder.setParserFile(CCParserTest.PARSER_SOURCE, "JavaCC.jj");
     builder.build();
   }
 
   @Test
   void testJJTree() {
-    HiveCCBuilder builder = HiveCCBuilder.of(Language.JAVA);
+    ParserBuilder builder = ParserBuilder.of(Language.JAVA);
     builder.setTargetDir(new File(CCParserTest.PARSER_TARGET, "jjtree"));
-    builder.setJJTreeFile(CCParserTest.PARSER_SOURCE, "JJTree.jjt");
+    builder.setTreeFile(CCParserTest.PARSER_SOURCE, "JJTree.jjt");
     builder.build();
   }
 }

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.LexerStateData;
+import org.hivevm.cc.generator.NfaStateData;
 import org.hivevm.cc.parser.CharacterRange;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RCharacterList;
@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * The {@link NfaVisitor} class.
  */
-public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStateData> {
+public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
 
   private final boolean ignoreCase;
 
@@ -47,7 +47,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RCharacterList expr, LexerStateData data) {
+  public Nfa visit(RCharacterList expr, NfaStateData data) {
     if (!expr.isTransformed()) {
       if (data.ignoreCase() || isIgnoreCase()) {
         expr.ToCaseNeutral();
@@ -93,7 +93,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RChoice expr, LexerStateData data) {
+  public Nfa visit(RChoice expr, NfaStateData data) {
     expr.CompressCharLists();
 
     if (expr.getChoices().size() == 1) {
@@ -118,17 +118,17 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(REndOfFile expr, LexerStateData data) {
+  public Nfa visit(REndOfFile expr, NfaStateData data) {
     return null;
   }
 
   @Override
-  public Nfa visit(RJustName expr, LexerStateData data) {
+  public Nfa visit(RJustName expr, NfaStateData data) {
     return expr.getRegexpr().accept(this, data);
   }
 
   @Override
-  public Nfa visit(ROneOrMore expr, LexerStateData data) {
+  public Nfa visit(ROneOrMore expr, NfaStateData data) {
     Nfa retVal = new Nfa(data);
     NfaState startState = retVal.start;
     NfaState finalState = retVal.end;
@@ -143,7 +143,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RRepetitionRange expr, LexerStateData data) {
+  public Nfa visit(RRepetitionRange expr, NfaStateData data) {
     List<RegularExpression> units = new ArrayList<>();
     RSequence seq;
     int i;
@@ -169,7 +169,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RSequence expr, LexerStateData data) {
+  public Nfa visit(RSequence expr, NfaStateData data) {
     if (expr.getUnits().size() == 1) {
       return expr.getUnits().get(0).accept(this, data);
     }
@@ -200,7 +200,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RStringLiteral expr, LexerStateData data) {
+  public Nfa visit(RStringLiteral expr, NfaStateData data) {
     if (expr.getImage().length() == 1) {
       RCharacterList temp = new RCharacterList(expr.getImage().charAt(0));
       return temp.accept(this, data);
@@ -234,7 +234,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RZeroOrMore expr, LexerStateData data) {
+  public Nfa visit(RZeroOrMore expr, NfaStateData data) {
     Nfa retVal = new Nfa(data);
     Nfa temp = expr.getRegexpr().accept(this, data);
 
@@ -250,7 +250,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, LexerStat
   }
 
   @Override
-  public Nfa visit(RZeroOrOne expr, LexerStateData data) {
+  public Nfa visit(RZeroOrOne expr, NfaStateData data) {
     Nfa retVal = new Nfa(data);
     Nfa temp = expr.getRegexpr().accept(this, data);
 

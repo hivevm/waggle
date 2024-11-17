@@ -3,39 +3,39 @@
 
 package org.hivevm.cc.generator.java;
 
+import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.generator.ASTGenerator;
+import org.hivevm.cc.generator.ASTGeneratorContext;
+import org.hivevm.cc.jjtree.ASTNode;
+import org.hivevm.cc.jjtree.ASTNodeDescriptor;
+import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.jjtree.JJTreeGlobals;
+import org.hivevm.cc.jjtree.NodeScope;
+import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.cc.utils.TemplateProvider;
+
 import java.util.Enumeration;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.generator.ASTGenerator;
-import org.hivevm.cc.jjtree.ASTNode;
-import org.hivevm.cc.jjtree.ASTNodeDescriptor;
-import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.JJTreeGlobals;
-import org.hivevm.cc.jjtree.JJTreeOptions;
-import org.hivevm.cc.jjtree.NodeScope;
-import org.hivevm.cc.utils.TemplateOptions;
-import org.hivevm.cc.utils.TemplateProvider;
-
-public class JavaASTGenerator extends ASTGenerator {
+class JavaASTGenerator extends ASTGenerator {
 
   @Override
-  protected final void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent, JJTreeOptions options) {
+  protected final void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent, ASTGeneratorContext context) {
     String type = ns.getNodeDescriptor().getNodeType();
-    boolean isType = options.getNodeClass().isEmpty() || options.getMulti();
-    String nodeClass = isType ? type : options.getNodeClass();
+    boolean isType = context.getNodeClass().isEmpty() || context.getMulti();
+    String nodeClass = isType ? type : context.getNodeClass();
 
-    addType(type);
+    context.addType(type);
 
     writer.print(indent + nodeClass + " " + ns.nodeVar + " = ");
-    if (options.getNodeFactory().equals("*")) {
+    if (context.getNodeFactory().equals("*")) {
       // Old-style multiple-implementations.
       writer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-    } else if (options.getNodeFactory().length() > 0) {
+    } else if (context.getNodeFactory().length() > 0) {
       writer.println(
-          "(" + nodeClass + ")" + options.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
+          "(" + nodeClass + ")" + context.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
     } else {
       writer.println("new " + nodeClass + "(this, " + ns.getNodeDescriptor().getNodeId() + ");");
     }
@@ -44,30 +44,30 @@ public class JavaASTGenerator extends ASTGenerator {
       writer.println(indent + "boolean " + ns.closedVar + " = true;");
     }
     writer.println(indent + ns.getNodeDescriptor().openNode(ns.nodeVar));
-    if (options.getNodeScopeHook()) {
+    if (context.getNodeScopeHook()) {
       writer.println(indent + "jjtreeOpenNodeScope(" + ns.nodeVar + ");");
     }
 
-    if (options.getTrackTokens()) {
+    if (context.getTrackTokens()) {
       writer.println(indent + ns.nodeVar + ".jjtSetFirstToken(getToken(1));");
     }
   }
 
   @Override
   protected final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
-      JJTreeOptions options) {
+      ASTGeneratorContext context) {
     String closeNode = ns.getNodeDescriptor().closeNode(ns.nodeVar);
     writer.println(indent + closeNode);
     if (ns.usesCloseNodeVar() && !isFinal) {
       writer.println(indent + ns.closedVar + " = false;");
     }
-    if (options.getNodeScopeHook()) {
+    if (context.getNodeScopeHook()) {
       writer.println(indent + "if (jjtree.nodeCreated()) {");
       writer.println(indent + " jjtreeCloseNodeScope(" + ns.nodeVar + ");");
       writer.println(indent + "}");
     }
 
-    if (options.getTrackTokens()) {
+    if (context.getTrackTokens()) {
       writer.println(indent + ns.nodeVar + ".jjtSetLastToken(getToken(0));");
     }
   }
@@ -113,108 +113,108 @@ public class JavaASTGenerator extends ASTGenerator {
   }
 
   @Override
-  public final void generate(JJTreeOptions o) {
-    generateTreeState(o);
-    generateTreeConstants(o);
-    generateVisitors(o);
+  public final void generate(ASTGeneratorContext context) {
+    generateTreeState(context);
+    generateTreeConstants(context);
+    generateVisitors(context);
 
     // TreeClasses
-    generateNode(o);
-    generateTree(o);
-    generateTreeNodes(o);
+    generateNode(context);
+    generateTree(context);
+    generateTreeNodes(context);
   }
 
-  private void generateTreeState(JJTreeOptions o) {
+  private void generateTreeState(ASTGeneratorContext context) {
     TemplateOptions options = new TemplateOptions();
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
 
     TemplateProvider provider = JavaTemplate.TREE_STATE;
-    provider.render(o, options, JJTreeGlobals.parserName);
+    provider.render(context, options, JJTreeGlobals.parserName);
   }
 
 
-  private void generateTreeConstants(JJTreeOptions o) {
+  private void generateTreeConstants(ASTGeneratorContext context) {
     TemplateOptions options = new TemplateOptions();
     options.add("NODE_NAMES", ASTNodeDescriptor.getNodeNames());
     options.add("NODES", ASTNodeDescriptor.getNodeIds().size()).set("ordinal", i -> i).set("label",
         i -> ASTNodeDescriptor.getNodeIds().get(i));
 
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
 
     TemplateProvider provider = JavaTemplate.TREE_CONSTANTS;
-    provider.render(o, options, JJTreeGlobals.parserName);
+    provider.render(context, options, JJTreeGlobals.parserName);
   }
 
-  private void generateVisitors(JJTreeOptions o) {
-    if (!o.getVisitor()) {
+  private void generateVisitors(ASTGeneratorContext context) {
+    if (!context.getVisitor()) {
       return;
     }
 
     Stream<String> nodes = ASTNodeDescriptor.getNodeNames().stream().filter(n -> !n.equals("void"));
-    String argumentType = o.getVisitorDataType().equals("") ? "Object" : o.getVisitorDataType().trim();
-    String returnValue = JavaASTGenerator.returnValue(o.getVisitorReturnType(), argumentType);
-    boolean isVoidReturnType = "void".equals(o.getVisitorReturnType());
+    String argumentType = context.getVisitorDataType().equals("") ? "Object" : context.getVisitorDataType().trim();
+    String returnValue = JavaASTGenerator.returnValue(context.getVisitorReturnType(), argumentType);
+    boolean isVoidReturnType = "void".equals(context.getVisitorReturnType());
 
     TemplateOptions options = new TemplateOptions();
     options.add("NODES", nodes.collect(Collectors.toList()));
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
-    options.set("RETURN_TYPE", o.getVisitorReturnType());
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
+    options.set("RETURN_TYPE", context.getVisitorReturnType());
     options.set("RETURN_VALUE", returnValue);
     options.set("RETURN", isVoidReturnType ? "" : "return ");
     options.set("ARGUMENT_TYPE", argumentType);
-    options.set("EXCEPTION", JavaASTGenerator.mergeVisitorException(o));
-    options.set("IS_MULTI", o.getMulti());
-    options.set("NODE_PREFIX", o.getNodePrefix());
+    options.set("EXCEPTION", JavaASTGenerator.mergeVisitorException(context));
+    options.set("IS_MULTI", context.getMulti());
+    options.set("NODE_PREFIX", context.getNodePrefix());
 
     TemplateProvider provider = JavaTemplate.VISITOR;
-    provider.render(o, options, JJTreeGlobals.parserName);
+    provider.render(context, options, JJTreeGlobals.parserName);
 
     provider = JavaTemplate.DEFAULT_VISITOR;
-    provider.render(o, options, JJTreeGlobals.parserName);
+    provider.render(context, options, JJTreeGlobals.parserName);
   }
 
-  private void generateNode(JJTreeOptions o) {
+  private void generateNode(ASTGeneratorContext context) {
     TemplateOptions options = new TemplateOptions();
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
 
     TemplateProvider provider = JavaTemplate.NODE;
-    provider.render(o, options);
+    provider.render(context, options);
   }
 
-  private void generateTree(JJTreeOptions o) {
+  private void generateTree(ASTGeneratorContext context) {
     TemplateOptions options = new TemplateOptions();
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
 
     TemplateProvider provider = JavaTemplate.TREE;
-    provider.render(o, options);
+    provider.render(context, options);
   }
 
-  private void generateTreeNodes(JJTreeOptions o) {
+  private void generateTreeNodes(ASTGeneratorContext context) {
     TemplateOptions options = new TemplateOptions();
     options.set(HiveCC.PARSER_NAME, JJTreeGlobals.parserName);
-    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, o.getJavaPackage());
-    options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, Boolean.valueOf(o.getVisitorReturnType().equals("void")));
+    options.set(HiveCC.JJPARSER_JAVA_PACKAGE, context.getJavaPackage());
+    options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, Boolean.valueOf(context.getVisitorReturnType().equals("void")));
 
-    Set<String> excludes = o.getExcudeNodes();
-    for (String nodeType : nodesToGenerate()) {
-      if (!o.getBuildNodeFiles() || excludes.contains(nodeType)) {
+    Set<String> excludes = context.getExcudeNodes();
+    for (String nodeType : context.nodesToGenerate()) {
+      if (!context.getBuildNodeFiles() || excludes.contains(nodeType)) {
         continue;
       }
 
       options.set(HiveCC.JJTREE_NODE_TYPE, nodeType);
 
       TemplateProvider provider = JavaTemplate.MULTI_NODE;
-      provider.render(o, options, nodeType);
+      provider.render(context, options, nodeType);
     }
   }
 
-  private static String mergeVisitorException(JJTreeOptions o) {
-    String ve = o.getVisitorException();
+  private static String mergeVisitorException(ASTGeneratorContext context) {
+    String ve = context.getVisitorException();
     return "".equals(ve) ? ve : " throws " + ve;
   }
 

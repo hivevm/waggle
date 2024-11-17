@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.parser.ParseException;
 
 /**
@@ -11,5 +10,5 @@ import org.hivevm.cc.parser.ParseException;
  */
 public interface FileGenerator {
 
-  void handleRequest(JavaCCRequest request, LexerData context) throws ParseException;
+  void generate(LexerData context) throws ParseException;
 }

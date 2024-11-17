@@ -1,7 +1,7 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.jjtree;
+package org.hivevm.cc.generator;
 
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -9,6 +9,7 @@ import org.hivevm.cc.parser.Options;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -18,12 +19,12 @@ import java.util.stream.Collectors;
  *
  * @author Kees Jan Koster &lt;kjkoster@kjkoster.org&gt;
  */
-public class JJTreeOptions extends Options {
+public class ASTGeneratorContext extends Options {
 
   /**
    * Limit subclassing to derived classes.
    */
-  public JJTreeOptions() {
+  public ASTGeneratorContext() {
     Options.optionValues.put(HiveCC.JJTREE_MULTI, Boolean.FALSE);
     Options.optionValues.put(HiveCC.JJTREE_NODE_DEFAULT_VOID, Boolean.FALSE);
     Options.optionValues.put(HiveCC.JJTREE_NODE_SCOPE_HOOK, Boolean.FALSE);
@@ -48,6 +49,8 @@ public class JJTreeOptions extends Options {
     Options.optionValues.put(HiveCC.JJPARSER_JAVA_LEXER, "");
     Options.optionValues.put(HiveCC.JJPARSER_CPP_NAMESPACE, "");
   }
+
+  private final Set<String> nodesToGenerate = new HashSet<>();
 
   /**
    * Check options for consistency
@@ -167,5 +170,15 @@ public class JJTreeOptions extends Options {
    */
   public final String getVisitorReturnType() {
     return stringValue(HiveCC.JJTREE_VISITOR_RETURN_TYPE);
+  }
+
+  public final void addType(String nodeType) {
+    if (!nodeType.equals("Node")) {
+      this.nodesToGenerate.add(nodeType);
+    }
+  }
+
+  public final Iterable<String> nodesToGenerate() {
+    return this.nodesToGenerate;
   }
 }

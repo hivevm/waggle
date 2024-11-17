@@ -39,7 +39,6 @@ public interface HiveCC {
   String JJTREE_VISITOR_RETURN_VOID = "VISITOR_RETURN_TYPE_VOID";
 
 
-  String JJPARSER_LEGACY                  = "LEGACY";
   String JJPARSER_NO_DFA                  = "NO_DFA";
   String JJPARSER_LOOKAHEAD               = "LOOKAHEAD";
   String JJPARSER_IGNORE_CASE             = "IGNORE_CASE";
@@ -62,6 +61,7 @@ public interface HiveCC {
   String JJPARSER_JAVA_EXTENDS            = "EXTENDS";
   String JJPARSER_JAVA_LEXER              = "LEXER";
 
+  String JJPARSER_CPP_DEFINE              = "CPP_DEFINE";
   String JJPARSER_CPP_NAMESPACE           = "NAMESPACE";
   String JJPARSER_CPP_STOP_ON_FIRST_ERROR = "STOP_ON_FIRST_ERROR";
   String JJPARSER_CPP_STACK_LIMIT         = "STACK_LIMIT";

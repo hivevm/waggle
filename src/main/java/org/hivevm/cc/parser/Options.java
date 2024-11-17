@@ -42,7 +42,6 @@ public class Options {
   static {
     TreeSet<OptionInfo> temp = new TreeSet<>();
 
-    temp.add(new OptionInfo(HiveCC.JJPARSER_LEGACY, Boolean.FALSE));
     temp.add(new OptionInfo(HiveCC.JJPARSER_LOOKAHEAD, Integer.valueOf(1)));
 
     temp.add(new OptionInfo(HiveCC.JJPARSER_CHOICE_AMBIGUITY_CHECK, Integer.valueOf(2)));

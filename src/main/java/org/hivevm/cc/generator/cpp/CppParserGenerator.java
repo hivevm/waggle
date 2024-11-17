@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 /**
  * Generate the parser.
  */
-public class CppParserGenerator extends ParserGenerator {
+class CppParserGenerator extends ParserGenerator {
 
   @Override
-  protected void start(ParserData data) {
+  public void generate(ParserData data) {
     TemplateOptions options = new TemplateOptions();
-    options.add("PARSER_NAME_UPPER", data.getParserName().toUpperCase());
+    options.add(HiveCC.JJPARSER_CPP_DEFINE, data.getParserName().toUpperCase());
     options.set("IS_GENERATED", data.isGenerated());
     options.set("LOOKAHEAD_NEEDED", data.isLookAheadNeeded());
 

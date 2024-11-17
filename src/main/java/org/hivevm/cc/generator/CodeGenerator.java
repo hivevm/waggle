@@ -3,14 +3,16 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.jjtree.ASTWriter;
 import org.hivevm.cc.parser.JavaCCParserConstants;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.utils.Encoding;
 
-class CodeGenerator {
+public abstract class CodeGenerator<D> {
 
   private int crow, ccol;
+
+
+  public abstract void generate(D context);
 
   protected final void genTokenSetup(Token t) {
     Token tt = t;
@@ -75,8 +77,8 @@ class CodeGenerator {
     }
     if ((t.kind == JavaCCParserConstants.STRING_LITERAL) || (t.kind == JavaCCParserConstants.CHARACTER_LITERAL)) {
       retval += Encoding.escapeUnicode(t.image);
-    } else if (t.image.startsWith(ASTWriter.CodeBlock.CODE.image)) {
-      retval += ASTWriter.CodeBlock.CODE.strip(t.image);
+    } else if (t.image.startsWith(CodeBlock.CODE.image)) {
+      retval += CodeBlock.CODE.strip(t.image);
     } else {
       retval += t.image;
     }

@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.generator.ASTGeneratorContext;
+
 import java.io.Reader;
 
 /**
@@ -10,9 +12,9 @@ import java.io.Reader;
  */
 public class JJTreeParserDefault extends JJTreeParser {
 
-  private final JJTreeOptions options;
+  private final ASTGeneratorContext options;
 
-  public JJTreeParserDefault(Reader reader, JJTreeOptions options) {
+  public JJTreeParserDefault(Reader reader, ASTGeneratorContext options) {
     super(new JJTreeParserTokenManager(new JavaCharStream(new StreamProvider(reader))));
     this.options = options;
   }
@@ -36,7 +38,7 @@ public class JJTreeParserDefault extends JJTreeParser {
   }
 
   @Override
-  protected final JJTreeOptions getOptions() {
+  protected final ASTGeneratorContext getOptions() {
     return this.options;
   }
 }

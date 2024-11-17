@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
 import org.hivevm.cc.lexer.NfaVisitor;
@@ -29,7 +29,7 @@ import java.util.Vector;
  */
 public class LexerBuilder {
 
-  public LexerData build(JavaCCRequest request) throws IOException {
+  public LexerData build(ParserRequest request) throws IOException {
     if (JavaCCErrors.hasError()) {
       return null;
     }
@@ -45,14 +45,14 @@ public class LexerBuilder {
     LexerBuilder.CheckEmptyStringMatch(data);
 
     for (String key : data.stateNames) {
-      LexerStateData stateData = data.getStateData(key);
+      NfaStateData stateData = data.getStateData(key);
       if (stateData.hasNFA && !stateData.isMixedState()) {
         CalcNfaStartStatesCode(stateData, stateData.statesForPos);
       }
     }
 
     for (String stateName : data.stateNames) {
-      LexerStateData stateData = data.getStateData(stateName);
+      NfaStateData stateData = data.getStateData(stateName);
       if (stateData.hasNFA) {
         for (int i = 0; i < stateData.getAllStateCount(); i++) {
           GetNonAsciiMoves(data, stateData.getAllState(i));
@@ -67,7 +67,7 @@ public class LexerBuilder {
     return data;
   }
 
-  private final void AddCharToSkip(LexerStateData data, NfaState[] singlesToSkip, char c, int kind) {
+  private final void AddCharToSkip(NfaStateData data, NfaState[] singlesToSkip, char c, int kind) {
     singlesToSkip[data.getStateIndex()].AddChar(c);
     singlesToSkip[data.getStateIndex()].kind = kind;
   }
@@ -81,7 +81,7 @@ public class LexerBuilder {
     Hashtable<String, NfaState> initStates = new Hashtable<>();
 
     for (String key : allTpsForState.keySet()) {
-      LexerStateData stateData = data.newStateData(key);
+      NfaStateData stateData = data.newStateData(key);
       initStates.put(key, stateData.getInitialState());
 
       data.singlesToSkip[stateData.getStateIndex()] = new NfaState(stateData);
@@ -238,7 +238,7 @@ public class LexerBuilder {
   }
 
 
-  private final LexerData buildLexStatesTable(JavaCCRequest request,
+  private final LexerData buildLexStatesTable(ParserRequest request,
       Hashtable<String, List<TokenProduction>> allTpsForState) {
     String[] tmpLexStateName = new String[request.getStateCount()];
     int maxOrdinal = 1;
@@ -274,7 +274,7 @@ public class LexerBuilder {
 
   // --------------------------------------- RString
 
-  private void GenerateNfaStartStates(LexerStateData data, NfaState initialState) {
+  private void GenerateNfaStartStates(NfaStateData data, NfaState initialState) {
     boolean[] seen = new boolean[data.generatedStates()];
     Hashtable<String, String> stateSets = new Hashtable<>();
     String stateSetString = "";
@@ -381,7 +381,7 @@ public class LexerBuilder {
   }
 
 
-  private int GetStrKind(LexerStateData data, String str) {
+  private int GetStrKind(NfaStateData data, String str) {
     for (int i = 0; i < data.maxStrKind; i++) {
       if (data.global.getState(i) != data.getStateIndex()) {
         continue;
@@ -396,7 +396,7 @@ public class LexerBuilder {
     return Integer.MAX_VALUE;
   }
 
-  private String epsilonMovesString(LexerStateData data, List<NfaState> states) {
+  private String epsilonMovesString(NfaStateData data, List<NfaState> states) {
     if ((states == null) || (states.size() == 0)) {
       return "null;";
     }
@@ -447,7 +447,7 @@ public class LexerBuilder {
   }
 
 
-  private final int GetStateSetForKind(LexerStateData data, int pos, int kind) {
+  private final int GetStateSetForKind(NfaStateData data, int pos, int kind) {
     if (data.isMixedState() || (data.generatedStates() == 0)) {
       return -1;
     }
@@ -475,7 +475,7 @@ public class LexerBuilder {
     return -1;
   }
 
-  private final boolean CanStartNfaUsingAscii(LexerStateData data, char c) {
+  private final boolean CanStartNfaUsingAscii(NfaStateData data, char c) {
     if (c >= 128) {
       throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
     }
@@ -499,7 +499,7 @@ public class LexerBuilder {
   /**
    * Used for top level string literals.
    */
-  private void GenerateDfa(LexerStateData data, RStringLiteral rstring) {
+  private void GenerateDfa(NfaStateData data, RStringLiteral rstring) {
     String s;
     Hashtable<String, KindInfo> temp;
     KindInfo info;
@@ -585,7 +585,7 @@ public class LexerBuilder {
 
   // ////////////////////////// NFaState
 
-  private final void ReArrange(LexerStateData data) {
+  private final void ReArrange(NfaStateData data) {
     List<NfaState> v = data.cloneAllStates();
 
     if (data.getAllStateCount() != data.generatedStates()) {
@@ -599,7 +599,7 @@ public class LexerBuilder {
     }
   }
 
-  private final void FixStateSets(LexerStateData data) {
+  private final void FixStateSets(NfaStateData data) {
     Hashtable<String, int[]> fixedSets = new Hashtable<>();
     Enumeration<String> e = data.stateSetsToFix.keys();
     int[] tmp = new int[data.generatedStates()];
@@ -639,11 +639,11 @@ public class LexerBuilder {
   }
 
 
-  private final int StateNameForComposite(LexerStateData data, String stateSetString) {
+  private final int StateNameForComposite(NfaStateData data, String stateSetString) {
     return data.stateNameForComposite.get(stateSetString).intValue();
   }
 
-  private final Vector<List<NfaState>> PartitionStatesSetForAscii(LexerStateData data, int[] states, int byteNum) {
+  private final Vector<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
     int[] cardinalities = new int[states.length];
     Vector<NfaState> original = new Vector<>();
     Vector<List<NfaState>> partition = new Vector<>();
@@ -744,7 +744,7 @@ public class LexerBuilder {
     return true;
   }
 
-  private final void FillSubString(LexerStateData data) {
+  private final void FillSubString(NfaStateData data) {
     String image;
     data.subString = new boolean[data.maxStrKind + 1];
     data.subStringAtPos = new boolean[data.maxLen];
@@ -779,7 +779,7 @@ public class LexerBuilder {
     }
   }
 
-  private final int AddCompositeStateSet(LexerStateData data, String stateSetString, boolean starts) {
+  private final int AddCompositeStateSet(NfaStateData data, String stateSetString, boolean starts) {
     Integer stateNameToReturn;
 
     if ((stateNameToReturn = data.stateNameForComposite.get(stateSetString)) != null) {
@@ -924,7 +924,7 @@ public class LexerBuilder {
     }
   }
 
-  private final void CalcNfaStartStatesCode(LexerStateData data, Hashtable<String, long[]>[] statesForPos) {
+  private final void CalcNfaStartStatesCode(NfaStateData data, Hashtable<String, long[]>[] statesForPos) {
     if (data.maxStrKind == 0) { // No need to generate this function
       return;
     }
@@ -954,7 +954,7 @@ public class LexerBuilder {
   }
 
 
-  private void GetNoBreak(LexerStateData data, NfaState state, int byteNum, boolean[] dumped) {
+  private void GetNoBreak(NfaStateData data, NfaState state, int byteNum, boolean[] dumped) {
     if (state.inNextOf != 1) {
       throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
     }
@@ -970,7 +970,7 @@ public class LexerBuilder {
     }
   }
 
-  private void GetCompositeStatesNonAsciiMoves(LexerStateData data, String key, boolean[] dumped) {
+  private void GetCompositeStatesNonAsciiMoves(NfaStateData data, String key, boolean[] dumped) {
     int i;
     int[] nameSet = data.getNextStates(key);
 
@@ -1037,7 +1037,7 @@ public class LexerBuilder {
     }
   }
 
-  private void GetAsciiMove(LexerStateData data, NfaState state, int byteNum, boolean dumped[]) {
+  private void GetAsciiMove(NfaStateData data, NfaState state, int byteNum, boolean dumped[]) {
     boolean nextIntersects = state.selfLoop() && state.isComposite;
     boolean onlyState = true;
 
@@ -1090,7 +1090,7 @@ public class LexerBuilder {
   }
 
 
-  private void GetAsciiMoveForCompositeState(LexerStateData data, NfaState state, int byteNum) {
+  private void GetAsciiMoveForCompositeState(NfaStateData data, NfaState state, int byteNum) {
     boolean nextIntersects = state.selfLoop();
 
     for (NfaState temp1 : data.getAllStates()) {
@@ -1121,7 +1121,7 @@ public class LexerBuilder {
     }
   }
 
-  private final void GetNonAsciiMoveForCompositeState(LexerStateData data, NfaState state) {
+  private final void GetNonAsciiMoveForCompositeState(NfaStateData data, NfaState state) {
     boolean nextIntersects = state.selfLoop();
     for (NfaState temp1 : data.getAllStates()) {
       if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName == temp1.stateName)
@@ -1151,7 +1151,7 @@ public class LexerBuilder {
     }
   }
 
-  private final void GetNonAsciiMove(LexerStateData data, NfaState state, boolean dumped[]) {
+  private final void GetNonAsciiMove(NfaStateData data, NfaState state, boolean dumped[]) {
     boolean nextIntersects = state.selfLoop() && state.isComposite;
 
     for (NfaState element : data.getAllStates()) {
@@ -1197,7 +1197,7 @@ public class LexerBuilder {
   }
 
 
-  private void GetCompositeStatesAsciiMoves(LexerStateData data, String key, int byteNum, boolean[] dumped) {
+  private void GetCompositeStatesAsciiMoves(NfaStateData data, String key, int byteNum, boolean[] dumped) {
     int i;
     int[] nameSet = data.getNextStates(key);
 
@@ -1267,7 +1267,7 @@ public class LexerBuilder {
     }
   }
 
-  private final void GetAsciiMoves(LexerStateData data, int byteNum) {
+  private final void GetAsciiMoves(NfaStateData data, int byteNum) {
     boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
     Enumeration<String> e = data.compositeStateTable.keys();
 
@@ -1310,7 +1310,7 @@ public class LexerBuilder {
   }
 
 
-  private final void GetCharAndRangeMoves(LexerStateData data) {
+  private final void GetCharAndRangeMoves(NfaStateData data) {
     boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
     Enumeration<String> e = data.compositeStateTable.keys();
     int i;
@@ -1347,7 +1347,7 @@ public class LexerBuilder {
   }
 
 
-  private final void GetMoveNfa(LexerStateData data) {
+  private final void GetMoveNfa(NfaStateData data) {
     int i;
     int[] kindsForStates = null;
 
@@ -1559,7 +1559,7 @@ public class LexerBuilder {
     UpdateDuplicateNonAsciiMoves(data, state);
   }
 
-  private final void GetDfaCode(LexerStateData data) {
+  private final void GetDfaCode(NfaStateData data) {
     if (data.maxLen == 0) {
       return;
     }

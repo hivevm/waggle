@@ -10,9 +10,9 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 
 /**
- * The {@link JavaCCRequest} class.
+ * The {@link ParserRequest} class.
  */
-public interface JavaCCRequest {
+public interface ParserRequest {
 
   Options options();
 

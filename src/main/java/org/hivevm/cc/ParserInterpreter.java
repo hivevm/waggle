@@ -3,10 +3,6 @@
 
 package org.hivevm.cc;
 
-import java.text.ParseException;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.hivevm.cc.generator.LexerBuilder;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCData;
@@ -19,8 +15,9 @@ import org.hivevm.cc.semantic.Semanticize;
 
 import java.text.ParseException;
 import java.util.HashSet;
+import java.util.Set;
 
-public class HiveCCInterpreter {
+public class ParserInterpreter {
 
   private final Options options;
 
@@ -28,7 +25,7 @@ public class HiveCCInterpreter {
   /**
    * @param options
    */
-  public HiveCCInterpreter(Options options) {
+  public ParserInterpreter(Options options) {
     this.options = options;
   }
 
@@ -45,7 +42,7 @@ public class HiveCCInterpreter {
 
       if (JavaCCErrors.get_error_count() == 0) {
         LexerData data = new LexerBuilder().build(request);
-        HiveCCInterpreter.tokenize(data, input, this.options);
+        ParserInterpreter.tokenize(data, input, this.options);
       }
     } catch (ParseException e) {
       System.out.println("Detected " + JavaCCErrors.get_error_count() + " errors and "
@@ -63,7 +60,7 @@ public class HiveCCInterpreter {
     // First match the string literals.
     final int input_size = input.length();
     int curPos = 0;
-    int curLexState = data.defaultLexState;
+    int curLexState = data.defaultLexState();
     Set<Integer> curStates = new HashSet<>();
     Set<Integer> newStates = new HashSet<>();
     while (curPos < input_size) {

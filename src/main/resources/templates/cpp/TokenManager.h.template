@@ -24,7 +24,7 @@ namespace {{NAMESPACE}} {
  */
 
 @if(LIBRARY)
-class {{PARSER_NAME_UPPER_CASE}}_API TokenManager {
+class {{CPP_DEFINE}}_API TokenManager {
 @else
 class TokenManager {
 @fi

@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import org.hivevm.cc.JavaCCRequest;
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -22,12 +21,12 @@ import java.util.List;
 /**
  * Generates the Constants file.
  */
-public class CppFileGenerator implements FileGenerator {
+class CppFileGenerator implements FileGenerator {
 
   @Override
-  public final void handleRequest(JavaCCRequest request, LexerData context) throws ParseException {
+  public final void generate(LexerData context) throws ParseException {
     List<RegularExpression> expressions = new ArrayList<>();
-    for (TokenProduction tp : request.getTokenProductions()) {
+    for (TokenProduction tp : context.getTokenProductions()) {
       for (RegExprSpec res : tp.getRespecs()) {
         expressions.add(res.rexp);
       }
@@ -35,7 +34,7 @@ public class CppFileGenerator implements FileGenerator {
 
     TemplateOptions options = new TemplateOptions();
     options.add("STATES", context.getStateCount()).set("name", i -> context.getStateName(i));
-    options.add("TOKENS", request.getOrderedsTokens()).set("ordinal", r -> r.getOrdinal()).set("label",
+    options.add("TOKENS", context.getOrderedsTokens()).set("ordinal", r -> r.getOrdinal()).set("label",
         r -> r.getLabel());
     options.add("REGEXPS", expressions.size() + 1)
         .set("label", (i, w) -> CppFileGenerator.getRegExp(w, false, i, expressions))
@@ -61,7 +60,7 @@ public class CppFileGenerator implements FileGenerator {
     TemplateProvider.render(CppTemplate.PARSERHANDLER, context.options());
     TemplateProvider.render(CppTemplate.PARSERHANDLER_H, context.options());
 
-    TemplateProvider.render(CppTemplate.PARSER_CONSTANTS, context.options(), options, request.getParserName());
+    TemplateProvider.render(CppTemplate.PARSER_CONSTANTS, context.options(), options, context.getParserName());
   }
 
   private static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RegularExpression> expressions) {

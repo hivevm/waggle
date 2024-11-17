@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.jjtree;
 
+import org.hivevm.cc.generator.ASTGeneratorContext;
+
 public class ASTNode extends Node {
 
   private int myOrdinal;
@@ -11,7 +13,7 @@ public class ASTNode extends Node {
     super(p, i);
   }
 
-  public final JJTreeOptions jjtOptions() {
+  public final ASTGeneratorContext jjtOptions() {
     return this.parser.getOptions();
   }
 

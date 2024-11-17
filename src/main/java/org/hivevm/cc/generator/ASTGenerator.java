@@ -19,30 +19,15 @@ import org.hivevm.cc.jjtree.ASTNodeDescriptor;
 import org.hivevm.cc.jjtree.ASTProduction;
 import org.hivevm.cc.jjtree.ASTWriter;
 import org.hivevm.cc.jjtree.JJTreeGlobals;
-import org.hivevm.cc.jjtree.JJTreeOptions;
 import org.hivevm.cc.jjtree.JJTreeParserDefaultVisitor;
 import org.hivevm.cc.jjtree.Node;
 import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.jjtree.Token;
 
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Set;
 
 public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
-
-  private final Set<String> nodesToGenerate = new HashSet<>();
-
-  protected final void addType(String nodeType) {
-    if (!nodeType.equals("Node")) {
-      this.nodesToGenerate.add(nodeType);
-    }
-  }
-
-  protected final Iterable<String> nodesToGenerate() {
-    return this.nodesToGenerate;
-  }
 
   @Override
   public final Object defaultVisit(Node node, ASTWriter data) {
@@ -165,20 +150,13 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
     return null;
   }
 
-  private final String getIndentation(ASTNode n) {
+  private String getIndentation(ASTNode n) {
     String s = "";
     for (int i = 1; i < n.getFirstToken().beginColumn; ++i) {
       s += " ";
     }
     return s;
   }
-
-  protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent, JJTreeOptions options);
-
-  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
-      JJTreeOptions options);
-
-  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, String indent, ASTNode expansion_unit);
 
   protected final Enumeration<String> findThrown(NodeScope ns, ASTNode expansion_unit) {
     Hashtable<String, String> thrown_set = new Hashtable<>();
@@ -202,5 +180,13 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
     }
   }
 
-  public abstract void generate(JJTreeOptions options);
+  public abstract void generate(ASTGeneratorContext context);
+
+  protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent,
+      ASTGeneratorContext context);
+
+  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
+      ASTGeneratorContext context);
+
+  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, String indent, ASTNode expansion_unit);
 }

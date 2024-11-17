@@ -4,6 +4,7 @@
 package org.hivevm.cc.jjtree;
 
 import org.hivevm.cc.Language;
+import org.hivevm.cc.generator.CodeBlock;
 import org.hivevm.cc.utils.Encoding;
 
 import java.io.File;
@@ -26,22 +27,6 @@ public class ASTWriter extends PrintWriter {
   // Indicates whether the token should be replaced by white space or replaced with the actual node
   // variable.
   private boolean whitingOut = false;
-
-  public enum CodeBlock {
-
-    CODE,
-    END;
-
-    public final String image;
-
-    CodeBlock() {
-      this.image = "@" + name().toLowerCase();
-    }
-
-    public final String strip(String text) {
-      return text.substring(name().length() + 1);
-    }
-  }
 
   /**
    * Constructs an instance of {@link ASTWriter}.

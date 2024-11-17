@@ -12,7 +12,7 @@ import java.io.File;
 /**
  * The {@link CppTemplate} class.
  */
-public enum CppTemplate implements TemplateProvider {
+enum CppTemplate implements TemplateProvider {
 
   JAVACC("JavaCC.h"),
 

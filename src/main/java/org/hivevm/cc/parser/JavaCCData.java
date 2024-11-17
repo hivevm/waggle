@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.JavaCCRequest;
+import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.semantic.SemanticRequest;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * The {@link JavaCCData} class.
  */
-public class JavaCCData implements SemanticRequest, JavaCCRequest {
+public class JavaCCData implements SemanticRequest, ParserRequest {
 
   private final Options                    options;
   private final boolean                    isGenerated;
