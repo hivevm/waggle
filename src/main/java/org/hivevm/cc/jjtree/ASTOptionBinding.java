@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-class ASTOptionBinding extends ASTNode {
+public class ASTOptionBinding extends ASTNode {
 
   private String  name;
   private boolean suppressed;
@@ -19,7 +19,7 @@ class ASTOptionBinding extends ASTNode {
     // If an option is specific to JJTree it should not be written out
     // to the output file for JavaCC.
 
-    if (JJTreeGlobals.isOptionJJTreeOnly(this.name)) {
+    if (getParser().isOptionJJTreeOnly(this.name)) {
       this.suppressed = true;
     }
   }

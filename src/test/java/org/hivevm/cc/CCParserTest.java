@@ -1,9 +1,9 @@
 
 package org.hivevm.cc;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
+
+import org.junit.jupiter.api.Test;
 
 
 class CCParserTest {

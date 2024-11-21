@@ -3,6 +3,14 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
+
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
@@ -15,14 +23,6 @@ import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.parser.TokenProduction.Kind;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
 
 /**
  * The {@link LexerBuilder} class.
@@ -40,18 +40,18 @@ public class LexerBuilder {
     List<RegularExpression> choices = new ArrayList<>();
     buildLexer(data, allTpsForState, choices);
 
-    choices.forEach(c -> LexerUtility.CheckUnmatchability((RChoice) c, data));
+    choices.forEach(c -> LexerBuilder.CheckUnmatchability((RChoice) c, data));
 
     LexerBuilder.CheckEmptyStringMatch(data);
 
-    for (String key : data.stateNames) {
+    for (String key : data.getStateNames()) {
       NfaStateData stateData = data.getStateData(key);
       if (stateData.hasNFA && !stateData.isMixedState()) {
         CalcNfaStartStatesCode(stateData, stateData.statesForPos);
       }
     }
 
-    for (String stateName : data.stateNames) {
+    for (String stateName : data.getStateNames()) {
       NfaStateData stateData = data.getStateData(stateName);
       if (stateData.hasNFA) {
         for (int i = 0; i < stateData.getAllStateCount(); i++) {
@@ -114,7 +114,7 @@ public class LexerBuilder {
             continue;
           }
 
-          if (!data.options().getNoDfa() && (curRE instanceof RStringLiteral)
+          if (!data.options().withoutNoDfa() && (curRE instanceof RStringLiteral)
               && !((RStringLiteral) curRE).getImage().equals("")) {
             GenerateDfa(stateData, ((RStringLiteral) curRE));
             if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
@@ -267,7 +267,7 @@ public class LexerBuilder {
       }
     }
 
-    LexerData data = new LexerData(request, maxOrdinal, maxLexStates, allTpsForState.keySet());
+    LexerData data = new LexerData(request, maxOrdinal, maxLexStates);
     System.arraycopy(tmpLexStateName, 0, data.lexStateNames, 0, data.maxLexStates);
     return data;
   }
@@ -1285,11 +1285,7 @@ public class LexerBuilder {
       }
 
       if (temp.stateForCase != null) {
-        if (temp.inNextOf == 1) {
-          continue;
-        }
-
-        if (dumped[temp.stateForCase.stateName]) {
+        if ((temp.inNextOf == 1) || dumped[temp.stateForCase.stateName]) {
           continue;
         }
 
@@ -1636,6 +1632,22 @@ public class LexerBuilder {
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  private static void CheckUnmatchability(RChoice choice, LexerData data) {
+    for (RegularExpression regexp : choice.getChoices()) {
+      if (!regexp.isPrivateExp() && (// curRE instanceof RJustName &&
+      regexp.getOrdinal() > 0) && (regexp.getOrdinal() < choice.getOrdinal())
+          && (data.getState(regexp.getOrdinal()) == data.getState(choice.getOrdinal()))) {
+        if (choice.getLabel() != null) {
+          JavaCCErrors.warning(choice,
+              "Regular Expression choice : " + regexp.getLabel() + " can never be matched as : " + choice.getLabel());
+        } else {
+          JavaCCErrors.warning(choice, "Regular Expression choice : " + regexp.getLabel()
+              + " can never be matched as token of kind : " + choice.getOrdinal());
         }
       }
     }

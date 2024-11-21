@@ -3,6 +3,10 @@
 
 package org.hivevm.cc;
 
+import java.text.ParseException;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.hivevm.cc.generator.LexerBuilder;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCData;
@@ -13,19 +17,15 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StringProvider;
 import org.hivevm.cc.semantic.Semanticize;
 
-import java.text.ParseException;
-import java.util.HashSet;
-import java.util.Set;
-
 public class ParserInterpreter {
 
-  private final Options options;
+  private final HiveCCOptions options;
 
 
   /**
    * @param options
    */
-  public ParserInterpreter(Options options) {
+  public ParserInterpreter(HiveCCOptions options) {
     this.options = options;
   }
 

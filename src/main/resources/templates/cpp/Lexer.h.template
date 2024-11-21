@@ -13,8 +13,8 @@
 #include "TokenManager.h"
 #include "{{PARSER_NAME}}Constants.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 class {{PARSER_NAME}}TokenManager : public TokenManager {
@@ -38,13 +38,13 @@ public:
   int jjmatchedKind = 0;
 
 Token * getNextToken();
-@if(hasSkipActions)
+@if(HAS_SKIP_ACTIONS)
 void SkipLexicalActions(Token *matchedToken);
 @fi
-@if(hasMoreActions)
+@if(HAS_MORE_ACTIONS)
 void MoreLexicalActions();
 @fi
-@if(hasTokenActions)
+@if(HAS_TOKEN_ACTIONS)
 void TokenLexicalActions(Token *matchedToken);
 @fi
 #define jjCheckNAdd(state)\
@@ -67,7 +67,7 @@ void TokenLexicalActions(Token *matchedToken);
    jjCheckNAdd(state2);\
 }
 
-@if(jjCheckNAddStatesDualNeeded)
+@if(CHECK_NADD_STATES_DUAL_NEEDED)
 #define jjCheckNAddStates(start, end)\
 {\
    for (int x = start; x <= end; x++) {\
@@ -76,7 +76,7 @@ void TokenLexicalActions(Token *matchedToken);
 }
 
 @fi
-@if(jjCheckNAddStatesUnaryNeeded)
+@if(CHECK_NADD_STATES_UNARY_NEEDED)
 #define jjCheckNAddStates(start)\
 {\
    jjCheckNAdd(jjnextStates[start]);\
@@ -89,11 +89,11 @@ private:
   void ReInitRounds();
 
 public:
-  {{PARSER_NAME}}TokenManager(Reader * stream, int lexState = {{defaultLexState}});
+  {{PARSER_NAME}}TokenManager(Reader * stream, int lexState = {{DEFAULT_LEX_STATE}});
   virtual ~{{PARSER_NAME}}TokenManager();
 
 protected:
-  void ReInit(Reader * stream, int lexState = {{defaultLexState}});
+  void ReInit(Reader * stream, int lexState = {{DEFAULT_LEX_STATE}});
   void SwitchTo(int lexState);
   void clear();
 @if(DEBUG_TOKEN_MANAGER)
@@ -101,8 +101,8 @@ protected:
   const Latin1 jjKindsForStateVector(int lexState, int vec[], int start, int end);
 @fi
 
-  int                       jjrounds[{{stateSetSize}}];
-  int                       jjstateSet[2 * {{stateSetSize}}];
+  int                       jjrounds[{{STATE_SET_SIZE}}];
+  int                       jjstateSet[2 * {{STATE_SET_SIZE}}];
   JJString                  jjimage;
   JJString                  image;
   int                       jjimageLen;
@@ -114,7 +114,7 @@ public:
   void	 lexicalError();
   const  TokenManagerErrorHandler*	 getErrorHandler() const;
 };
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

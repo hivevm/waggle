@@ -13,4 +13,16 @@ public interface Environment {
   Object get(String name);
 
   void set(String name, Object value);
+
+  default int intValue(final String option) {
+    return ((Integer) get(option));
+  }
+
+  default boolean booleanValue(final String option) {
+    return ((Boolean) get(option));
+  }
+
+  default String stringValue(final String option) {
+    return ((String) get(option));
+  }
 }

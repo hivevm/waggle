@@ -11,8 +11,8 @@
 
 #include "JavaCC.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 // RegularExpressions
@@ -46,7 +46,7 @@ static const JJChar* const tokenLabels[] = {
 @end
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

@@ -8,14 +8,14 @@
 #include "{{PARSER_NAME}}Tree.h"
 
 @if(ERROR_REPORTING)
-@foreach(index : TOKEN_MAX_SIZE)
-{{index.masks}}
+@foreach(index : TOKEN_MASKS)
+static unsigned int jj_la1_{{index}}[] = {{{index.mask}}};
 @end
 @fi
 
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 @foreach(p : NORMALPRODUCTIONS)
@@ -49,8 +49,8 @@ void {{PARSER_NAME}}::ReInit(TokenManager* tokenManager)
     jj_kind = -1;
     indent = 0;
     trace = {{DEBUG_PARSER}};
-@if(STACK_LIMIT)
-    jj_stack_limit = {{STACK_LIMIT}};
+@if(CPP_STACK_LIMIT)
+    jj_stack_limit = {{CPP_STACK_LIMIT}};
     jj_stack_error = jj_stack_check(true);
 @fi
 @if(CACHE_TOKENS)
@@ -58,7 +58,7 @@ void {{PARSER_NAME}}::ReInit(TokenManager* tokenManager)
 @else
     jj_ntk = -1;
 @fi
-@if(IS_GENERATED)
+@if(USE_AST)
     jjtree.reset();
 @fi
 @if(DEPTH_LIMIT)
@@ -67,8 +67,8 @@ void {{PARSER_NAME}}::ReInit(TokenManager* tokenManager)
 @fi
 @if(ERROR_REPORTING)
     jj_gen = 0;
-@if(maskIndex)
-    for (int i = 0; i < {{maskIndex}}; i++) jj_la1[i] = -1;
+@if(MASK_INDEX)
+    for (int i = 0; i < {{MASK_INDEX}}; i++) jj_la1[i] = -1;
 @fi
 @fi
   }
@@ -96,7 +96,7 @@ void {{PARSER_NAME}}::clear()
   assert(jj_depth==0);
 @fi
 }
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
  
 bool {{PARSER_NAME}}::jj_stack_check(bool init)
     {
@@ -119,7 +119,7 @@ bool {{PARSER_NAME}}::jj_stack_check(bool init)
 
 Token * {{PARSER_NAME}}::jj_consume_token(int kind)
 {
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
     if(kind != -1 && (jj_stack_error || jj_stack_check(false))) {
       if (!jj_stack_error) {
         errorHandler->handleOtherError(Stack overflow while trying to parse, this);
@@ -141,10 +141,10 @@ Token * {{PARSER_NAME}}::jj_consume_token(int kind)
     if (token->kind() == kind) {
 @if(ERROR_REPORTING)
       jj_gen++;
-@if(jj2Index)
+@if(JJ2_INDEX)
       if (++jj_gc > 100) {
         jj_gc = 0;
-        for (int i = 0; i < {{jj2Index}}; i++) {
+        for (int i = 0; i < {{JJ2_INDEX}}; i++) {
           JJCalls *c = &jj_2_rtns[i];
           while (c != nullptr) {
             if (c->gen < jj_gen) c->first = nullptr;
@@ -166,7 +166,7 @@ Token * {{PARSER_NAME}}::jj_consume_token(int kind)
 @if(ERROR_REPORTING)
     jj_kind = kind;
 @fi
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
     if (!jj_stack_error) {
 @fi
     const JJString expectedImage = getTokenImage(kind);
@@ -175,17 +175,17 @@ Token * {{PARSER_NAME}}::jj_consume_token(int kind)
     const JJString actualImage   = getTokenImage(actualToken->kind());
     const JJString actualLabel   = getTokenLabel(actualToken->kind());
     errorHandler->unexpectedToken(expectedImage, expectedLabel, actualImage, actualLabel, actualToken);
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
     }
 @fi
     hasError = true;
     return token;
   }
 
-@if(jj2Index)
+@if(JJ2_INDEX)
 bool {{PARSER_NAME}}::jj_scan_token(int kind)
 {
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
     if(kind != -1 && (jj_stack_error || jj_stack_check(false))) {
       if (!jj_stack_error) {
         errorHandler->handleOtherError("Stack overflow while trying to parse", this);
@@ -266,7 +266,7 @@ Token * {{PARSER_NAME}}::getToken(int index)
 
 @fi
 @if(ERROR_REPORTING)
-@if(jj2Index)
+@if(JJ2_INDEX)
   void {{PARSER_NAME}}::jj_add_error_token(int kind, int pos)
   {
   }
@@ -356,18 +356,18 @@ Token * {{PARSER_NAME}}::getToken(int index)
   }
 
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
 @if(ERROR_REPORTING)
   void {{PARSER_NAME}}::jj_rescan_token()
 {
     jj_rescan = true;
-    for (int i = 0; i < {{jj2Index}}; i++) {
+    for (int i = 0; i < {{JJ2_INDEX}}; i++) {
       JJCalls *p = &jj_2_rtns[i];
       do {
         if (p->gen > jj_gen) {
           jj_la = p->arg; jj_lastpos = jj_scanpos = p->first;
           switch (i) {
-@foreach(index : JJ2_INDEX)
+@foreach(index : JJ2_OFFSET)
             case {{index}}: jj_3_{{index.offset}}(); break;
 @end
           }
@@ -390,7 +390,7 @@ Token * {{PARSER_NAME}}::getToken(int index)
 
 @fi
 @fi
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

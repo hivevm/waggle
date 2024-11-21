@@ -10,8 +10,8 @@
 #include "JavaCC.h"
 #include "Token.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 // All AST nodes must implement this interface.
 // It provides basic  machinery for constructing the parent and child relationships between nodes.
@@ -69,7 +69,7 @@ public:
     {{NODE_FACTORY}} *getNodeFactory();
 @fi
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

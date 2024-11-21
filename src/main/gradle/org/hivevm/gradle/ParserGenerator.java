@@ -3,6 +3,13 @@
 
 package org.hivevm.gradle;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.inject.Inject;
+
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
@@ -10,15 +17,8 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.api.tasks.options.OptionValues;
-import org.hivevm.cc.ParserBuilder;
 import org.hivevm.cc.Language;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.inject.Inject;
+import org.hivevm.cc.ParserBuilder;
 
 /**
  * The {@link ParserGenerator} class.
@@ -86,7 +86,7 @@ public abstract class ParserGenerator extends DefaultTask {
     builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
     builder.setParserFile(getFile(task.jjFile == null ? config.jjFile : task.jjFile));
     builder.setTreeFile(getFile(task.jjtFile == null ? config.jjtFile : task.jjtFile));
-    builder.setExcludes(task.treeNodes);
+    builder.setCustomNodes(task.treeNodes);
     builder.build();
   }
 }

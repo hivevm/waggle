@@ -21,6 +21,31 @@ import java.util.Vector;
  */
 public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
+  protected static final String LOHI_BYTES        = "LOHI_BYTES";
+  protected static final String STATES            = "STATES";
+  protected static final String NON_ASCII_TABLE   = "NON_ASCII_TABLE";
+  protected static final String DEFAULT_LEX_STATE = "DEFAULT_LEX_STATE";
+  protected static final String MAX_LEX_STATES    = "MAX_LEX_STATES";
+  protected static final String STATE_NAMES       = "STATE_NAMES";
+  protected static final String STATE_COUNT       = "STATE_COUNT";
+  protected static final String KEEP_LINE_COL     = "KEEP_LINE_COOL";
+
+  protected static final String HAS_LOOP          = "HAS_LOOP";
+  protected static final String HAS_SKIP          = "HAS_SKIP";
+  protected static final String HAS_MORE          = "HAS_MORE";
+  protected static final String HAS_SPECIAL       = "HAS_SPECIAL";
+
+  protected static final String HAS_MOPRE_ACTIONS = "HAS_MORE_ACTIONS";
+  protected static final String HAS_SKIP_ACTIONS  = "HAS_SKIP_ACTIONS";
+  protected static final String HAS_TOKEN_ACTIONS = "HAS_TOKEN_ACTIONS";
+  protected static final String HAS_EMPTY_MATCH   = "HAS_EMPTY_MATCH";
+
+  protected static final String STATE_SET_SIZE    = "STATE_SET_SIZE";
+
+  protected static final String DUAL_NEED         = "CHECK_NADD_STATES_DUAL_NEEDED";
+  protected static final String UNARY_NEED        = "CHECK_NADD_STATES_UNARY_NEEDED";
+
+
   // --------------------------------------- RString
 
   protected final static String[] ReArrange(Hashtable<String, ?> tab) {
@@ -1005,11 +1030,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
       String toPrint = "";
 
       if (temp.stateForCase != null) {
-        if (temp.inNextOf == 1) {
-          continue;
-        }
-
-        if (dumped[temp.stateForCase.stateName]) {
+        if ((temp.inNextOf == 1) || dumped[temp.stateForCase.stateName]) {
           continue;
         }
 
@@ -1070,11 +1091,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
       String toPrint = "";
 
       if (temp.stateForCase != null) {
-        if (temp.inNextOf == 1) {
-          continue;
-        }
-
-        if (dumped[temp.stateForCase.stateName]) {
+        if ((temp.inNextOf == 1) || dumped[temp.stateForCase.stateName]) {
           continue;
         }
 

@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.Language;
-import org.hivevm.cc.generator.CodeBlock;
-import org.hivevm.cc.utils.Encoding;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+
+import org.hivevm.cc.Language;
+import org.hivevm.cc.generator.CodeBlock;
+import org.hivevm.cc.utils.Encoding;
 
 
 /**
@@ -22,6 +22,7 @@ public class ASTWriter extends PrintWriter {
 
 
   private final Language language;
+  private String         indent;
 
 
   // Indicates whether the token should be replaced by white space or replaced with the actual node
@@ -37,6 +38,7 @@ public class ASTWriter extends PrintWriter {
   public ASTWriter(File file, Language language) throws FileNotFoundException {
     super(file);
     this.language = language;
+    this.indent = null;
   }
 
   /**
@@ -46,6 +48,24 @@ public class ASTWriter extends PrintWriter {
     return this.language;
   }
 
+  public final String getIndent() {
+    return this.indent;
+  }
+
+  public final String setIndent(String indent) {
+    String current = this.indent;
+    this.indent = indent;
+    return current;
+  }
+
+  @Override
+  public final void println() {
+    super.println();
+    if (this.indent != null) {
+      print(this.indent);
+    }
+  }
+
   /**
    * Opens a JJTree code block.
    */
@@ -53,7 +73,7 @@ public class ASTWriter extends PrintWriter {
     append("\n");
     append(CodeBlock.CODE.image);
     if (arg != null) {
-      print(" // " + arg + "\n");
+      println(" // " + arg);
     }
   }
 
@@ -77,7 +97,7 @@ public class ASTWriter extends PrintWriter {
         tt = tt.specialToken;
       }
       while (tt != null) {
-        print(Encoding.escapeUnicode(node.translateImage(tt)));
+        print(Encoding.escapeUnicode(node.translateImage(tt), getLanguage()));
         tt = tt.next;
       }
     }
@@ -92,12 +112,12 @@ public class ASTWriter extends PrintWriter {
     NodeScope s = NodeScope.getEnclosingNodeScope(node);
     if (s == null) {
       // Not within a node scope so we don't need to modify the source.
-      print(Encoding.escapeUnicode(node.translateImage(token)));
+      print(Encoding.escapeUnicode(node.translateImage(token), getLanguage()));
       return;
     }
 
     if (token.image.contains(ASTWriter.SELF)) {
-      String text = Encoding.escapeUnicode(node.translateImage(token));
+      String text = Encoding.escapeUnicode(node.translateImage(token), getLanguage());
       print(text.replace(ASTWriter.SELF, s.getNodeVariable()));
       return;
     }
@@ -115,7 +135,7 @@ public class ASTWriter extends PrintWriter {
       }
       return;
     }
-    print(Encoding.escapeUnicode(node.translateImage(token)));
+    print(Encoding.escapeUnicode(node.translateImage(token), getLanguage()));
   }
 
   /**

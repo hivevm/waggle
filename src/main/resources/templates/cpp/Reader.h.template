@@ -8,8 +8,8 @@
 
 #include "JavaCC.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 /**
@@ -78,7 +78,7 @@ public:
     virtual bool endOfInput() = 0;
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

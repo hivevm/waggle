@@ -1,7 +1,7 @@
 PARSER_BEGIN(JavaCCParser)
-  PACKAGE: "org.hivevm.cc.parser",
-  IMPORTS: "java.util.List,java.util.ArrayList",
-  EXTENDS: "AbstractJavaCCParser"
+  JAVA_PACKAGE: "org.hivevm.cc.parser",
+  JAVA_IMPORTS: "java.util.List,java.util.ArrayList",
+  BASE_PARSER: "AbstractJavaCCParser"
 PARSER_END
 
 
@@ -194,9 +194,6 @@ void javacc_input() :
   @end
   < RPAREN >
   ( option_binding() )*
-  @code
-    getOptions().normalize();
-  @end
   < _PARSER_END > ( production() )+
   <EOF>
 }

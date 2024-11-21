@@ -1,7 +1,7 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 /** Token Manager. */
-class {{PARSER_NAME}}TokenManager@if(LEXER) extends {{LEXER}}@fi implements {{PARSER_NAME}}Constants {
+class {{PARSER_NAME}}TokenManager@if(BASE_LEXER) extends {{BASE_LEXER}}@fi {
 
 @foreach(index : LOHI_BYTES)
 static final long[] jjbitVec{{index}} = { {{index.bytes}} };
@@ -17,13 +17,13 @@ protected Token jjFillToken()
 {
    final Token t;
    final String curTokenImage;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
    final int beginLine;
    final int endLine;
    final int beginColumn;
    final int endColumn;
 @fi
-@if(hasEmptyMatch)
+@if(HAS_EMPTY_MATCH)
    if (jjmatchedPos < 0)
    {
       if (image == null)
@@ -31,14 +31,14 @@ protected Token jjFillToken()
       else
          curTokenImage = image.toString();
 
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
         beginLine = endLine = input_stream.getEndLine();
         beginColumn = endColumn = input_stream.getEndColumn();
 @fi
    } else {
       String im = jjstrLiteralImages[jjmatchedKind];
       curTokenImage = (im == null) ? input_stream.GetImage() : im;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
         beginLine = input_stream.getBeginLine();
         beginColumn = input_stream.getBeginColumn();
         endLine = input_stream.getEndLine();
@@ -48,7 +48,7 @@ protected Token jjFillToken()
 @else
    String im = jjstrLiteralImages[jjmatchedKind];
    curTokenImage = (im == null) ? input_stream.GetImage() : im;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
    beginLine = input_stream.getBeginLine();
    beginColumn = input_stream.getBeginColumn();
    endLine = input_stream.getEndLine();
@@ -56,7 +56,7 @@ protected Token jjFillToken()
 @fi
 @fi
    t = new Token(jjmatchedKind, curTokenImage);
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
    t.beginLine = beginLine;
    t.endLine = endLine;
    t.beginColumn = beginColumn;
@@ -77,15 +77,53 @@ private static final boolean jjCanMove_{{nfa.NON_ASCII_METHOD}}(int hiByte, int 
 }
 
 @end
+
+int curLexState = {{DEFAULT_LEX_STATE}};
+int defaultLexState = {{DEFAULT_LEX_STATE}};
+int jjnewStateCnt;
+int jjround;
+int jjmatchedPos;
+int jjmatchedKind;
+
+/** Get the next Token. */
+public Token getNextToken()
+{
+@if(HAS_SPECIAL)
+  Token specialToken = null;
+@fi
+  Token matchedToken;
+  int curPos = 0;
+
+  EOFLoop :
+  for (;;)
+  {
+   try
+   {
+      curChar = input_stream.BeginToken();
+   }
+   catch(Exception e)
+   {
+@if(DEBUG_TOKEN_MANAGER)
+      debugStream.println(\"Returning the <EOF> token.\\n\");
+@fi
+      jjmatchedKind = 0;
+      jjmatchedPos = -1;
+      matchedToken = jjFillToken();
+@if(HAS_SPECIAL)
+      matchedToken.specialToken = specialToken;
+@fi
 {{DumpGetNextToken}}
+  }
+}
+
 @if(DEBUG_TOKEN_MANAGER)
 protected static final int[][][] statesForState = {{STATES_FOR_STATE}};
 protected static final int[][] kindForState = {{KIND_FOR_STATE}};
 @fi
-@if(hasLoop)
-	int[] jjemptyLineNo = new int[{{maxLexStates}}];
-	int[] jjemptyColNo = new int[{{maxLexStates}}];
-boolean[] jjbeenHere = new boolean[{{maxLexStates}}];
+@if(HAS_LOOP)
+	int[] jjemptyLineNo = new int[{{MAX_LEX_STATES}}];
+	int[] jjemptyColNo = new int[{{MAX_LEX_STATES}}];
+boolean[] jjbeenHere = new boolean[{{MAX_LEX_STATES}}];
 @fi
 void SkipLexicalActions(Token matchedToken)
 {
@@ -139,7 +177,7 @@ private void jjCheckNAddTwoStates(int state1, int state2)
    jjCheckNAdd(state2);
 }
 
-@if(jjCheckNAddStatesDualNeeded)
+@if(CHECK_NADD_STATES_DUAL_NEEDED)
 private void jjCheckNAddStates(int start, int end)
 {
    do {
@@ -148,7 +186,7 @@ private void jjCheckNAddStates(int start, int end)
 }
 
 @fi
-@if(jjCheckNAddStatesUnaryNeeded)
+@if(CHECK_NADD_STATES_UNARY_NEEDED)
 private void jjCheckNAddStates(int start)
 {
    jjCheckNAdd(jjnextStates[start]);
@@ -183,7 +221,7 @@ private void jjCheckNAddStates(int start)
   {
     int i;
     jjround = 0x80000001;
-    for (i = {{stateSetSize}}; i-- > 0;)
+    for (i = {{STATE_SET_SIZE}}; i-- > 0;)
       jjrounds[i] = 0x80000000;
   }
 
@@ -197,17 +235,24 @@ private void jjCheckNAddStates(int start)
   /** Switch to specified lex state. */
   public void SwitchTo(int lexState)
   {
-    if (lexState >= {{lexStateNameLength}} || lexState < 0)
+    if (lexState >= {{STATE_COUNT}} || lexState < 0)
       throw new TokenException("Error: Ignoring invalid lexical state : " + lexState + ". State unchanged.", TokenException.INVALID_LEXICAL_STATE);
     else
       curLexState = lexState;
   }
 
+
+/** Lexer state names. */
+public static final String[] lexStateNames = {
+@foreach(name : STATE_NAMES)
+   "{{name}}",
+@end
+};
 {{dumpStaticVarDeclarations}}
 
     private JavaCharStream  input_stream;
-    private final int[] jjrounds = new int[{{stateSetSize}}];
-    private final int[] jjstateSet = new int[2 * {{stateSetSize}}];
+    private final int[] jjrounds = new int[{{STATE_SET_SIZE}}];
+    private final int[] jjstateSet = new int[2 * {{STATE_SET_SIZE}}];
     private final StringBuilder jjimage = new StringBuilder();
     private StringBuilder image = jjimage;
     private int jjimageLen;

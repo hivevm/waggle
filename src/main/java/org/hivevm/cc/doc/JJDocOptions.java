@@ -3,26 +3,25 @@
 
 package org.hivevm.cc.doc;
 
-import org.hivevm.cc.parser.Options;
+import org.hivevm.cc.HiveCCOptions;
 
 /**
  * The options, specific to JJDoc.
  *
  * @author Kees Jan Koster &lt;kjkoster@kjkoster.org&gt;
  */
-class JJDocOptions extends Options {
+class JJDocOptions extends HiveCCOptions {
 
   /**
    * Limit subclassing to derived classes.
    */
   public JJDocOptions() {
-    Options.optionValues.put("ONE_TABLE", Boolean.TRUE);
-    Options.optionValues.put("TEXT", Boolean.FALSE);
-    Options.optionValues.put("XTEXT", Boolean.FALSE);
-    Options.optionValues.put("BNF", Boolean.FALSE);
-
-    Options.optionValues.put("OUTPUT_FILE", "");
-    Options.optionValues.put("CSS", "");
+    set("ONE_TABLE", Boolean.TRUE);
+    set("TEXT", Boolean.FALSE);
+    set("XTEXT", Boolean.FALSE);
+    set("BNF", Boolean.FALSE);
+    set("OUTPUT_FILE", "");
+    set("CSS", "");
   }
 
   /**

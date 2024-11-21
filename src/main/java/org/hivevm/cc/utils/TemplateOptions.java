@@ -12,13 +12,23 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.hivevm.cc.parser.Options;
+
 
 /**
  * The {@link TemplateOptions} class.
  */
-public class TemplateOptions implements Environment {
+public class TemplateOptions implements Options {
 
+  private final Environment         environment;
   private final Map<String, Object> options = new HashMap<>();
+
+  /**
+   * @param environment
+   */
+  public TemplateOptions(Environment environment) {
+    this.environment = environment;
+  }
 
   /**
    * Returns <code>true</code> if the environment variable is set.
@@ -27,7 +37,7 @@ public class TemplateOptions implements Environment {
    */
   @Override
   public final boolean isSet(String name) {
-    return this.options.containsKey(name);
+    return this.options.containsKey(name) || this.environment.isSet(name);
   }
 
   /**
@@ -38,7 +48,7 @@ public class TemplateOptions implements Environment {
    */
   @Override
   public final Object get(String name) {
-    return this.options.get(name);
+    return this.options.containsKey(name) ? this.options.get(name) : this.environment.get(name);
   }
 
   /**

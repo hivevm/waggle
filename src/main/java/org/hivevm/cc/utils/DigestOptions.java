@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.utils;
 
-import org.hivevm.cc.parser.Options;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -13,9 +11,8 @@ import java.util.stream.Stream;
 /**
  * The {@link DigestOptions} class.
  */
-class DigestOptions implements Environment {
+public class DigestOptions implements Environment {
 
-  private final Options     options;
   private final Environment environment;
 
   private final Set<String> consumed = new HashSet<>();
@@ -23,21 +20,9 @@ class DigestOptions implements Environment {
   /**
    * Constructs an instance of {@link DigestOptions}.
    *
-   * @param options
    * @param environment
    */
-  public DigestOptions(Options options) {
-    this(options, new TemplateOptions());
-  }
-
-  /**
-   * Constructs an instance of {@link DigestOptions}.
-   *
-   * @param options
-   * @param environment
-   */
-  public DigestOptions(Options options, Environment environment) {
-    this.options = options;
+  public DigestOptions(Environment environment) {
     this.environment = environment;
   }
 
@@ -63,7 +48,7 @@ class DigestOptions implements Environment {
    */
   @Override
   public final boolean isSet(String name) {
-    return this.environment.isSet(name) || this.options.getOptions().containsKey(name);
+    return this.environment.isSet(name);
   }
 
   /**
@@ -74,9 +59,8 @@ class DigestOptions implements Environment {
    */
   @Override
   public final Object get(String name) {
-    Object value = this.environment.isSet(name) ? this.environment.get(name) : this.options.getOptions().get(name);
     this.consumed.add(name);
-    return value;
+    return this.environment.get(name);
   }
 
   /**

@@ -3,12 +3,12 @@
 
 package org.hivevm.cc.generator.java;
 
-import org.hivevm.cc.generator.ASTGenerator;
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.GeneratorName;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
+import org.hivevm.cc.generator.TreeGenerator;
 
 /**
  * The {@link JavaGenerator} class.
@@ -17,7 +17,7 @@ import org.hivevm.cc.generator.ParserGenerator;
 public class JavaGenerator extends GeneratorProvider {
 
   @Override
-  protected final ASTGenerator newASTGenerator() {
+  protected final TreeGenerator newASTGenerator() {
     return new JavaASTGenerator();
   }
 

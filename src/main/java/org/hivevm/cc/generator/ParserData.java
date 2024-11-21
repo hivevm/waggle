@@ -3,6 +3,12 @@
 
 package org.hivevm.cc.generator;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.Choice;
@@ -17,12 +23,6 @@ import org.hivevm.cc.parser.Sequence;
 import org.hivevm.cc.parser.ZeroOrMore;
 import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.semantic.Semanticize;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 
 /**
  * These lists are used to maintain expansions for which code generation in phase 2 and phase 3 is
@@ -87,6 +87,26 @@ public class ParserData {
     return this.request.isGenerated();
   }
 
+  public final int getDepthLimit() {
+    return options().getDepthLimit();
+  }
+
+  public final int getLookahead() {
+    return options().getLookahead();
+  }
+
+  public final boolean getCacheTokens() {
+    return options().getCacheTokens();
+  }
+
+  public final boolean getDebugParser() {
+    return options().getDebugParser();
+  }
+
+  public final boolean stopOnFirstError() {
+    return options().stopOnFirstError();
+  }
+
   public final int getTokenCount() {
     return this.request.getTokenCount();
   }
@@ -137,6 +157,14 @@ public class ParserData {
 
   public final int jj2Index() {
     return this.jj2index;
+  }
+
+  public final boolean getDebugLookahead() {
+    return options().getDebugLookahead();
+  }
+
+  public final boolean getErrorReporting() {
+    return options().getErrorReporting();
   }
 
   protected final void addMask(int[] maskVal, Lookahead lookahead) {

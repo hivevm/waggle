@@ -1,12 +1,12 @@
 PARSER_BEGIN(JJTreeParser)
-  MULTI: true,
+  NODE_MULTI: true,
   NODE_DEFAULT_VOID: true,
   NODE_SCOPE_HOOK: true,
   NODE_CLASS: "ASTNode",
   VISITOR: true,
   VISITOR_DATA_TYPE: "ASTWriter",
-  PACKAGE: "org.hivevm.cc.jjtree",
-  EXTENDS: "ASTParser"
+  JAVA_PACKAGE: "org.hivevm.cc.jjtree",
+  BASE_PARSER: "ASTParser"
 PARSER_END
 
 
@@ -200,9 +200,6 @@ void javacc_input() #Grammar :
   @end
   < RPAREN >
   ( ( option_binding() )* ) #Options
-  @code
-    normalize();
-  @end
   < _PARSER_END >
   ) #CompilationUnit(true)
   ( ( production() )+ ) #Productions

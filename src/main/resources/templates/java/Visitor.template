@@ -1,9 +1,9 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 public interface {{PARSER_NAME}}Visitor
 {
   {{RETURN_TYPE}} visit(Node node, {{ARGUMENT_TYPE}} data){{EXCEPTION}};
-@if(IS_MULTI)
+@if(NODE_MULTI)
 @foreach(node : NODES)
   {{RETURN_TYPE}} visit({{NODE_PREFIX}}{{node}} node, {{ARGUMENT_TYPE}} data){{EXCEPTION}};
 @end

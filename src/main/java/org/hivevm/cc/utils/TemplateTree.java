@@ -185,10 +185,7 @@ class TemplateTree implements Iterable<TemplateTree> {
     }
 
     Object value = environment.get(condition);
-    if (value == null) {
-      return false;
-    }
-    if ((value instanceof String) && ((String) value).isEmpty()) {
+    if ((value == null) || ((value instanceof String) && ((String) value).isEmpty())) {
       return false;
     }
     if ((value instanceof Number) && (((Number) value).intValue() == 0)) {

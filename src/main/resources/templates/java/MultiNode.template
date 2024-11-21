@@ -1,4 +1,4 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 public class {{NODE_TYPE}} extends {{NODE_CLASS:Node}} {
 

@@ -3,12 +3,12 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_{{NAME_UPPER}}_TREECONSTANTS_H
-#define JAVACC_{{NAME_UPPER}}_TREECONSTANTS_H
+#ifndef JAVACC_{{CPP_DEFINE}}_TREECONSTANTS_H
+#define JAVACC_{{CPP_DEFINE}}_TREECONSTANTS_H
 
 #include "JavaCC.h"
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 enum {
 @foreach(node : NODES)
@@ -24,7 +24,7 @@ static JJString jjtNodeName[] = {
     jjtNodeName_arr_{{node.ordinal}},
 @end
 };
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 #endif

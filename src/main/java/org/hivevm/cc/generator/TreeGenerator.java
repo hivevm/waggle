@@ -3,10 +3,12 @@
 
 package org.hivevm.cc.generator;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.hivevm.cc.jjtree.ASTBNFAction;
 import org.hivevm.cc.jjtree.ASTBNFDeclaration;
 import org.hivevm.cc.jjtree.ASTBNFNodeScope;
-import org.hivevm.cc.jjtree.ASTBNFNonTerminal;
 import org.hivevm.cc.jjtree.ASTBNFOneOrMore;
 import org.hivevm.cc.jjtree.ASTBNFSequence;
 import org.hivevm.cc.jjtree.ASTBNFZeroOrMore;
@@ -16,18 +18,25 @@ import org.hivevm.cc.jjtree.ASTExpansionNodeScope;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTNode;
 import org.hivevm.cc.jjtree.ASTNodeDescriptor;
-import org.hivevm.cc.jjtree.ASTProduction;
 import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.JJTreeGlobals;
 import org.hivevm.cc.jjtree.JJTreeParserDefaultVisitor;
 import org.hivevm.cc.jjtree.Node;
 import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.jjtree.Token;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
+public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
 
-public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
+  private final Set<String> nodesToGenerate = new HashSet<>();
+
+  protected final void addType(String nodeType) {
+    if (!nodeType.equals("Node")) {
+      this.nodesToGenerate.add(nodeType);
+    }
+  }
+
+  protected final Iterable<String> nodesToGenerate() {
+    return this.nodesToGenerate;
+  }
 
   @Override
   public final Object defaultVisit(Node node, ASTWriter data) {
@@ -75,7 +84,9 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
       }
       if (needClose) {
         writer.openCodeBlock(null);
-        insertCloseNodeCode(ns, writer, getIndentation(node) + "  ", false, node.jjtOptions());
+        String indent = writer.setIndent(getIndentation(node) + "  ");
+        insertCloseNodeCode(ns, writer, node.jjtOptions(), false);
+        writer.setIndent(indent);
         writer.closeCodeBlock();
       }
     }
@@ -84,7 +95,7 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
   }
 
   @Override
-  public Object visit(ASTCompilationUnit node, ASTWriter writer) {
+  public final Object visit(ASTCompilationUnit node, ASTWriter writer) {
     Token token = node.getFirstToken();
 
     while (true) {
@@ -109,8 +120,10 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
       }
 
       writer.openCodeBlock(node.node_scope.getNodeDescriptorText());
-      insertOpenNodeCode(node.node_scope, writer, indent, node.jjtOptions());
-      writer.print(indent + "try {");
+      String previous = writer.setIndent(indent);
+      writer.print(indent);
+      insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
+      writer.setIndent(previous);
       writer.closeCodeBlock();
     }
 
@@ -128,7 +141,9 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
     node.expansion_unit.jjtAccept(this, writer);
     writer.println();
     writer.print("}");
-    insertCatchBlocks(node.node_scope, writer, indent, node.expansion_unit);
+    String previous = writer.setIndent(indent);
+    insertCatchBlocks(node.node_scope, writer, node.expansion_unit);
+    writer.setIndent(previous);
     return true;
   }
 
@@ -136,13 +151,17 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
   public final Object visit(ASTExpansionNodeScope node, ASTWriter writer) {
     String indent = getIndentation(node.expansion_unit) + "  ";
     writer.openCodeBlock(node.node_scope.getNodeDescriptor().getDescriptor());
-    insertOpenNodeCode(node.node_scope, writer, indent, node.jjtOptions());
-    writer.print(indent + "try {");
+    String previous = writer.setIndent(indent);
+    writer.print(indent);
+    insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
+    writer.setIndent(previous);
     writer.closeCodeBlock();
 
     node.expansion_unit.jjtAccept(this, writer);
 
-    insertCatchBlocks(node.node_scope, writer, indent, node.expansion_unit);
+    previous = writer.setIndent(indent);
+    insertCatchBlocks(node.node_scope, writer, node.expansion_unit);
+    writer.setIndent(previous);
 
     // Print the "whiteOut" equivalent of the Node descriptor to preserve
     // line numbers in the generated file.
@@ -158,35 +177,11 @@ public abstract class ASTGenerator extends JJTreeParserDefaultVisitor {
     return s;
   }
 
-  protected final Enumeration<String> findThrown(NodeScope ns, ASTNode expansion_unit) {
-    Hashtable<String, String> thrown_set = new Hashtable<>();
-    findThrown(ns, thrown_set, expansion_unit);
-    return thrown_set.elements();
-  }
+  public abstract void generate(TreeOptions context);
 
+  protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context);
 
-  private void findThrown(NodeScope ns, Hashtable<String, String> thrown_set, ASTNode expansion_unit) {
-    if (expansion_unit instanceof ASTBNFNonTerminal) {
-      // Should really make the nonterminal explicitly maintain its name.
-      String nt = expansion_unit.getFirstToken().image;
-      ASTProduction prod = JJTreeGlobals.productions.get(nt);
-      if (prod != null) {
-        prod.throwElements().forEach(t -> thrown_set.put(t, t));
-      }
-    }
-    for (int i = 0; i < expansion_unit.jjtGetNumChildren(); ++i) {
-      ASTNode n = (ASTNode) expansion_unit.jjtGetChild(i);
-      findThrown(ns, thrown_set, n);
-    }
-  }
+  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context, boolean isFinal);
 
-  public abstract void generate(ASTGeneratorContext context);
-
-  protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, String indent,
-      ASTGeneratorContext context);
-
-  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, String indent, boolean isFinal,
-      ASTGeneratorContext context);
-
-  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, String indent, ASTNode expansion_unit);
+  protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, ASTNode expansion_unit);
 }

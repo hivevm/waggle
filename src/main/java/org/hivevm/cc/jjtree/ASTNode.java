@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.generator.ASTGeneratorContext;
+import org.hivevm.cc.generator.TreeOptions;
 
 public class ASTNode extends Node {
 
@@ -13,8 +13,12 @@ public class ASTNode extends Node {
     super(p, i);
   }
 
-  public final ASTGeneratorContext jjtOptions() {
-    return this.parser.getOptions();
+  public final JJTreeParser getParser() {
+    return this.parser;
+  }
+
+  public final TreeOptions jjtOptions() {
+    return getParser().getOptions();
   }
 
   @Override

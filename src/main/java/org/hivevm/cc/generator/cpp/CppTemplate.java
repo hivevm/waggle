@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.utils.TemplateProvider;
-
 import java.io.File;
+
+import org.hivevm.cc.generator.TemplateProvider;
+import org.hivevm.cc.parser.Options;
 
 
 /**

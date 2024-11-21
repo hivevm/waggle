@@ -3,24 +3,30 @@
 
 package org.hivevm.cc.generator.java;
 
-import org.hivevm.cc.generator.Lexer;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Locale;
+
+import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NfaStateData;
+import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.lexer.NfaState;
 import org.hivevm.cc.parser.Action;
 import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.RStringLiteral;
 import org.hivevm.cc.parser.RStringLiteral.KindInfo;
+import org.hivevm.cc.parser.RegExprSpec;
+import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.Token;
+import org.hivevm.cc.parser.TokenProduction;
 import org.hivevm.cc.utils.Encoding;
 import org.hivevm.cc.utils.TemplateOptions;
-import org.hivevm.cc.utils.TemplateProvider;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Locale;
 
 /**
  * Generate lexer.
@@ -33,11 +39,12 @@ class JavaLexerGenerator extends LexerGenerator {
       return;
     }
 
-    TemplateOptions options = new TemplateOptions();
-    options.add(Lexer.LOHI_BYTES, data.getLohiByte()).set("bytes", i -> getLohiBytes(data, i));
-    options.add(Lexer.STATES, data.stateNames()).set("NfaAndDfa", (n, w) -> dumpNfaAndDfa(data.getStateData(n), w));
-    options.add(Lexer.NON_ASCII_TABLE, data.getNonAsciiTableForMethod()).set("NON_ASCII_METHOD", s -> s.nonAsciiMethod)
-        .set("ASCII_MOVE", (s, w) -> DumpNonAsciiMoveMethod(s, data, w));
+    TemplateOptions options = new TemplateOptions(data.options());
+    options.add(LexerGenerator.LOHI_BYTES, data.getLohiByte()).set("bytes", i -> getLohiBytes(data, i));
+    options.add(LexerGenerator.STATES, data.getStateNames()).set("NfaAndDfa",
+        (n, w) -> dumpNfaAndDfa(data.getStateData(n), w));
+    options.add(LexerGenerator.NON_ASCII_TABLE, data.getNonAsciiTableForMethod())
+        .set("NON_ASCII_METHOD", s -> s.nonAsciiMethod).set("ASCII_MOVE", (s, w) -> DumpNonAsciiMoveMethod(s, data, w));
 
     options.set("LITERAL_IMAGES", () -> JavaLexerGenerator.getStrLiteralImages(data));
     options.set("STATES_FOR_STATE", () -> getStatesForState(data));
@@ -50,42 +57,71 @@ class JavaLexerGenerator extends LexerGenerator {
     options.setWriter("DumpGetNextToken", p -> DumpGetNextToken(p, data));
     options.setWriter("dumpStaticVarDeclarations", p -> DumpStaticVarDeclarations(p, data));
 
-    options.set("defaultLexState", data.defaultLexState());
-    options.set("maxOrdinal", data.maxOrdinal());
-    options.set("maxLexStates", data.maxLexStates());
-    options.set("keepLineCol", data.keepLineCol());
-    options.set("hasEmptyMatch", data.hasEmptyMatch());
-    options.set("hasSkip", data.hasSkip());
-    options.set("hasMore", data.hasMore());
-    options.set("hasSpecial", data.hasSpecial());
-    options.set("hasLoop", data.hasLoop());
-    options.set("hasMoreActions", data.hasMoreActions());
-    options.set("hasSkipActions", data.hasSkipActions());
-    options.set("hasTokenActions", data.hasTokenActions());
-    options.set("stateSetSize", data.stateSetSize());
-    options.set("hasActions", data.hasMoreActions() || data.hasSkipActions() || data.hasTokenActions());
-    options.set("lexStateNameLength", data.getStateCount());
-    options.set("generatedStates", data.totalNumStates());
-    options.set("jjCheckNAddStatesDualNeeded", data.jjCheckNAddStatesDualNeeded());
-    options.set("jjCheckNAddStatesUnaryNeeded", data.jjCheckNAddStatesUnaryNeeded());
+    options.set(LexerGenerator.DEFAULT_LEX_STATE, data.defaultLexState());
+    options.set(LexerGenerator.MAX_LEX_STATES, data.maxLexStates());
+    options.set(LexerGenerator.STATE_NAMES, data.getStateNames());
+    options.set(LexerGenerator.KEEP_LINE_COL, data.keepLineCol());
 
-    if ((data.options().getJavaLexer() != null) && !data.options().getJavaLexer().isEmpty()) {
-      options.set("LEXER", data.options().getJavaLexer());
-    }
+    options.set(LexerGenerator.HAS_SKIP, data.hasSkip());
+    options.set(LexerGenerator.HAS_MORE, data.hasMore());
+    options.set(LexerGenerator.HAS_LOOP, data.hasLoop());
+    options.set(LexerGenerator.HAS_SPECIAL, data.hasSpecial());
+
+    options.set(LexerGenerator.HAS_MOPRE_ACTIONS, data.hasMoreActions());
+    options.set(LexerGenerator.HAS_SKIP_ACTIONS, data.hasSkipActions());
+    options.set(LexerGenerator.HAS_TOKEN_ACTIONS, data.hasTokenActions());
+    options.set(LexerGenerator.HAS_EMPTY_MATCH, data.hasEmptyMatch());
+
+    options.set(LexerGenerator.STATE_SET_SIZE, data.stateSetSize());
+    options.set(LexerGenerator.DUAL_NEED, data.jjCheckNAddStatesDualNeeded());
+    options.set(LexerGenerator.UNARY_NEED, data.jjCheckNAddStatesUnaryNeeded());
+    options.set(LexerGenerator.STATE_COUNT, data.getStateCount());
 
     TemplateProvider provider = JavaTemplate.LEXER;
-    provider.render(data.options(), options, data.getParserName());
+    provider.render(options, data.getParserName());
+
+    generateConstants(data);
+  }
+
+  protected final void generateConstants(LexerData data) {
+    List<RegularExpression> expressions = new ArrayList<>();
+    for (TokenProduction tp : data.getTokenProductions()) {
+      for (RegExprSpec res : tp.getRespecs()) {
+        expressions.add(res.rexp);
+      }
+    }
+
+    TemplateOptions options = new TemplateOptions(data.options());
+    options.add("STATES", data.getStateCount()).set("name", i -> data.getStateName(i));
+    options.add("TOKENS", data.getOrderedsTokens()).set("ordinal", r -> r.getOrdinal()).set("label", r -> r.getLabel());
+    options.add("PRODUCTIONS", expressions).set("label", re -> {
+      StringBuffer buffer = new StringBuffer();
+
+      if (re instanceof RStringLiteral) {
+        buffer.append("\"\\\"" + Encoding.escape(Encoding.escape(((RStringLiteral) re).getImage())) + "\\\"\"");
+      } else if (!re.getLabel().equals("")) {
+        buffer.append("\"<" + re.getLabel() + ">\"");
+      } else if (re.getTpContext().getKind() == TokenProduction.Kind.TOKEN) {
+        JavaCCErrors.warning(re, "Consider giving this non-string token a label for better error reporting.");
+      } else {
+        buffer.append("\"<token of kind " + re.getOrdinal() + ">\"");
+      }
+
+      if (expressions.indexOf(re) < (expressions.size() - 1)) {
+        buffer.append(",");
+      }
+      return buffer.toString();
+    });
+
+    TemplateProvider.render(JavaTemplate.PARSER_CONSTANTS, options, data.getParserName());
+  }
+
+  @Override
+  protected final Language getLanguage() {
+    return Language.JAVA;
   }
 
   private void DumpStaticVarDeclarations(PrintWriter writer, LexerData data) {
-    writer.println();
-    writer.println("/** Lexer state names. */");
-    writer.println("public static final String[] lexStateNames = {");
-    for (int i = 0; i < data.maxLexStates(); i++) {
-      writer.println("   \"" + data.getStateName(i) + "\",");
-    }
-    writer.println("};");
-
     if (data.maxLexStates() > 1) {
       writer.println();
       writer.println("/** Lex State array. */");
@@ -148,53 +184,13 @@ class JavaLexerGenerator extends LexerGenerator {
         if ((i % 4) == 0) {
           writer.print("\n   ");
         }
-        writer.print("0x" + Long.toHexString(data.toMore(i)) + "L, ");
+        writer.print(toHexString(data.toMore(i)) + ", ");
       }
       writer.println("\n};");
     }
   }
 
   private void DumpGetNextToken(PrintWriter writer, LexerData data) {
-    int i;
-
-    writer.println("");
-    writer.println("int curLexState = " + data.defaultLexState() + ";");
-    writer.println("int defaultLexState = " + data.defaultLexState() + ";");
-    writer.println("int jjnewStateCnt;");
-    writer.println("int jjround;");
-    writer.println("int jjmatchedPos;");
-    writer.println("int jjmatchedKind;");
-    writer.println("");
-    writer.println("/** Get the next Token. */");
-    writer.println("public Token getNextToken()");
-    writer.println("{");
-    if (data.hasSpecial()) {
-      writer.println("  Token specialToken = null;");
-    }
-    writer.println("  Token matchedToken;");
-    writer.println("  int curPos = 0;");
-    writer.println("");
-    writer.println("  EOFLoop :\n  for (;;)");
-    writer.println("  {");
-    writer.println("   try");
-    writer.println("   {");
-    writer.println("      curChar = input_stream.BeginToken();");
-    writer.println("   }");
-    writer.println("   catch(Exception e)");
-    writer.println("   {");
-
-    if (data.options().getDebugTokenManager()) {
-      writer.println("      debugStream.println(\"Returning the <EOF> token.\\n\");");
-    }
-
-    writer.println("      jjmatchedKind = 0;");
-    writer.println("      jjmatchedPos = -1;");
-    writer.println("      matchedToken = jjFillToken();");
-
-    if (data.hasSpecial()) {
-      writer.println("      matchedToken.specialToken = specialToken;");
-    }
-
     if ((data.getNextStateForEof() != null) || (data.getActionForEof() != null)) {
       writer.println("      TokenLexicalActions(matchedToken);");
     }
@@ -229,7 +225,7 @@ class JavaLexerGenerator extends LexerGenerator {
     }
 
     prefix += "   ";
-    for (i = 0; i < data.maxLexStates(); i++) {
+    for (int i = 0; i < data.maxLexStates(); i++) {
       if (data.maxLexStates() > 1) {
         writer.println(caseStr + i + ":");
       }
@@ -483,10 +479,6 @@ class JavaLexerGenerator extends LexerGenerator {
     if (data.hasMore()) {
       writer.println(prefix + " }");
     }
-
-    writer.println("  }");
-    writer.println("}");
-    writer.println("");
   }
 
   private void DumpSkipActions(PrintWriter writer, LexerData data) {
@@ -889,6 +881,7 @@ class JavaLexerGenerator extends LexerGenerator {
     return String.format("{%s}", builder.toString());
   }
 
+  @Override
   protected final void dumpNfaStartStatesCode(PrintWriter writer, NfaStateData data,
       Hashtable<String, long[]>[] statesForPos) {
     if (data.getMaxStrKind() == 0) { // No need to generate this function
@@ -1042,6 +1035,7 @@ class JavaLexerGenerator extends LexerGenerator {
     writer.println("}");
   }
 
+  @Override
   protected final void dumpDfaCode(PrintWriter writer, NfaStateData data) {
     Hashtable<String, ?> tab;
     String key;
@@ -1256,7 +1250,8 @@ class JavaLexerGenerator extends LexerGenerator {
             if (((info.finalKinds[j] & (1L << k)) != 0L) && !data.isSubString(kind = ((j * 64) + k))) {
               if (((data.getIntermediateKinds() != null) && (data.getIntermediateKinds()[((j * 64) + k)] != null)
                   && (data.getIntermediateKinds()[((j * 64) + k)][i] < ((j * 64) + k))
-                  && (data.getIntermediateMatchedPos() != null) && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i))
+                  && (data.getIntermediateMatchedPos() != null)
+                  && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i))
                   || ((data.global.canMatchAnyChar(data.getStateIndex()) >= 0)
                       && (data.global.canMatchAnyChar(data.getStateIndex()) < ((j * 64) + k)))) {
                 break;
@@ -1311,7 +1306,8 @@ class JavaLexerGenerator extends LexerGenerator {
 
               if ((data.getIntermediateKinds() != null) && (data.getIntermediateKinds()[((j * 64) + k)] != null)
                   && (data.getIntermediateKinds()[((j * 64) + k)][i] < ((j * 64) + k))
-                  && (data.getIntermediateMatchedPos() != null) && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i)) {
+                  && (data.getIntermediateMatchedPos() != null)
+                  && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i)) {
                 JavaCCErrors.warning(" \"" + Encoding.escape(data.global.getImage((j * 64) + k))
                     + "\" cannot be matched as a string literal token " + "at line "
                     + GetLine(data.global, (j * 64) + k) + ", column " + GetColumn(data.global, (j * 64) + k)
@@ -1490,6 +1486,7 @@ class JavaLexerGenerator extends LexerGenerator {
     }
   }
 
+  @Override
   protected final void dumpMoveNfa(PrintWriter writer, NfaStateData data) {
     writer.println("private int " + "jjMoveNfa" + data.getLexerStateSuffix() + "(int startState, int curPos)");
     writer.println("{");

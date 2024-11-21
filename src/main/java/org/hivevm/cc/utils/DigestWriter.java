@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.utils;
 
-import org.hivevm.cc.HiveCC;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,10 +15,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.stream.Collectors;
 
+import org.hivevm.cc.HiveCCVersion;
+
 /**
  * The {@link DigestWriter} class.
  */
-class DigestWriter extends PrintWriter {
+public class DigestWriter extends PrintWriter {
 
   private static final String        NAME   = "HiveVM CC";
   private static final MessageDigest DIGEST = DigestWriter.createMD5();
@@ -110,6 +110,6 @@ class DigestWriter extends PrintWriter {
   public static DigestWriter createDigestWriter(File file, DigestOptions options) throws FileNotFoundException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     DigestOutputStream digest = new DigestOutputStream(bytes, DigestWriter.DIGEST);
-    return new DigestWriter(new FileOutputStream(file), digest, bytes, HiveCC.VERSION, options);
+    return new DigestWriter(new FileOutputStream(file), digest, bytes, HiveCCVersion.VERSION, options);
   }
 }

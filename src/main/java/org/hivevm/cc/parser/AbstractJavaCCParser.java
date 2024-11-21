@@ -3,10 +3,11 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.jjtree.JJTreeParserConstants;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hivevm.cc.HiveCCOptions;
+import org.hivevm.cc.jjtree.JJTreeParserConstants;
 
 /**
  * Utilities.
@@ -36,7 +37,7 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   /**
    * Gets the options.
    */
-  public Options getOptions() {
+  public HiveCCOptions getOptions() {
     throw new UnsupportedOperationException();
   }
 
@@ -92,10 +93,7 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   }
 
   private static boolean hexchar(char ch) {
-    if ((ch >= '0') && (ch <= '9')) {
-      return true;
-    }
-    if ((ch >= 'A') && (ch <= 'F')) {
+    if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F'))) {
       return true;
     }
     if ((ch >= 'a') && (ch <= 'f')) {
@@ -310,16 +308,16 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   protected final void setInputOption(Token o, Token v) {
     switch (v.kind) {
       case JJTreeParserConstants.INTEGER_LITERAL:
-        getOptions().setInputOption(o, v, o.image, Integer.valueOf(v.image));
+        getOptions().setOption(o, v, o.image, Integer.valueOf(v.image));
         break;
 
       case JJTreeParserConstants.TRUE:
       case JJTreeParserConstants.FALSE:
-        getOptions().setInputOption(o, v, o.image, Boolean.valueOf(v.image));
+        getOptions().setOption(o, v, o.image, Boolean.valueOf(v.image));
         break;
 
       default:
-        getOptions().setInputOption(o, v, o.image, remove_escapes_and_quotes(v, v.image));
+        getOptions().setOption(o, v, o.image, remove_escapes_and_quotes(v, v.image));
         break;
     }
   }

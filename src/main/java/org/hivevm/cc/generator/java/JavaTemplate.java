@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.generator.java;
 
-import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.utils.TemplateProvider;
-
 import java.io.File;
+
+import org.hivevm.cc.generator.TemplateProvider;
+import org.hivevm.cc.parser.Options;
 
 
 /**
@@ -77,7 +77,7 @@ enum JavaTemplate implements TemplateProvider {
    * @param options
    */
   public static File getFile(String filename, Options options) {
-    String packagePath = options.getJavaPackage().replace('.', File.separatorChar);
+    String packagePath = options.getJavaPackageName().replace('.', File.separatorChar);
     File outputDir = new File(options.getOutputDirectory(), packagePath);
     outputDir.mkdirs();
     return new File(outputDir, filename);

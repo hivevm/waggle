@@ -1,4 +1,4 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 /**
  * An implementation of interface CharStream, where the stream is assumed to contain only ASCII

@@ -105,7 +105,7 @@ public class ParserBuilder {
         la = (Lookahead) (((Sequence) nested_e).getUnits().get(0));
       } else {
         la = new Lookahead();
-        la.setAmount(data.options().getLookahead());
+        la.setAmount(data.getLookahead());
         la.setLaExpansion(nested_e);
       }
 
@@ -122,7 +122,7 @@ public class ParserBuilder {
         la = (Lookahead) (((Sequence) nested_e).getUnits().get(0));
       } else {
         la = new Lookahead();
-        la.setAmount(data.options().getLookahead());
+        la.setAmount(data.getLookahead());
         la.setLaExpansion(nested_e);
       }
 
@@ -140,7 +140,7 @@ public class ParserBuilder {
         la = (Lookahead) (((Sequence) nested_e).getUnits().get(0));
       } else {
         la = new Lookahead();
-        la.setAmount(data.options().getLookahead());
+        la.setAmount(data.getLookahead());
         la.setLaExpansion(nested_e);
       }
 

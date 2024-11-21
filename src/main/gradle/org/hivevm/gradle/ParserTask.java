@@ -3,12 +3,12 @@
 
 package org.hivevm.gradle;
 
-import org.gradle.api.Project;
-import org.hivevm.cc.Language;
-
 import java.util.List;
 
 import javax.inject.Inject;
+
+import org.gradle.api.Project;
+import org.hivevm.cc.Language;
 
 public class ParserTask {
 

@@ -3,15 +3,15 @@
 
 package org.hivevm.cc.parser;
 
-import org.hivevm.cc.ParserRequest;
-import org.hivevm.cc.semantic.SemanticRequest;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.hivevm.cc.ParserRequest;
+import org.hivevm.cc.semantic.SemanticRequest;
 
 /**
  * The {@link JavaCCData} class.
@@ -135,13 +135,18 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
   }
 
   @Override
+  public final String getParserName() {
+    return this.cu_name;
+  }
+
+  @Override
   public final boolean isGenerated() {
     return this.isGenerated;
   }
 
   @Override
-  public final String getParserName() {
-    return this.cu_name;
+  public final boolean ignoreCase() {
+    return options().getIgnoreCase();
   }
 
   @Override

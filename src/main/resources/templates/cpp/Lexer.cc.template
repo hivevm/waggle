@@ -17,17 +17,26 @@ static const unsigned long long jjbitVec{{index}}[] = { {{index.bytes}} };
 {{DumpStatesForStateCPP}}
 {{DumpStatesForKind}}
 @fi
-@if(hasLoop)
-static int  jjemptyLineNo[{{maxLexStates}}];
-static int  jjemptyColNo[{{maxLexStates}}];
-static bool jjbeenHere[{{maxLexStates}}];
+@if(HAS_LOOP)
+static int  jjemptyLineNo[{{MAX_LEX_STATES}}];
+static int  jjemptyColNo[{{MAX_LEX_STATES}}];
+static bool jjbeenHere[{{MAX_LEX_STATES}}];
 @fi
 
 /** Lexer state names. */
-{{STATE_NAMES}}
+@foreach(item : STATE_NAMES_AS_CHARS)
+static const JJChar lexStateNames_arr_{{item.index}}[] = 
+{{{item.chars}}, 0};
+@end
+static const JJString lexStateNames[] = {
+@foreach(i : MAX_LEX_STATES)
+lexStateNames_arr_{{i}}, 
+@end
+};
+
 {{DumpStaticVarDeclarations}}
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
   void {{PARSER_NAME}}TokenManager::setDebugStream(FILE *ds) { debugStream = ds; }
@@ -38,17 +47,17 @@ namespace {{NAMESPACE}} {
 Token * {{PARSER_NAME}}TokenManager::jjFillToken() {
    Token *t;
    JJString curTokenImage;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
    int beginLine   = -1;
    int endLine     = -1;
    int beginColumn = -1;
    int endColumn   = -1;
 @fi
-@if(hasEmptyMatch)
+@if(HAS_EMPTY_MATCH)
    if (jjmatchedPos < 0)
    {
        curTokenImage = image.c_str();
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
      if (reader->getTrackLineColumn()) {
         beginLine = endLine = reader->getEndLine();
         beginColumn = endColumn = reader->getEndColumn();
@@ -57,7 +66,7 @@ Token * {{PARSER_NAME}}TokenManager::jjFillToken() {
    } else {
      JJString im = jjstrLiteralImages[jjmatchedKind];
      curTokenImage = (im.length() == 0) ? reader->getImage() : im;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
     if (reader->getTrackLineColumn()) {
         beginLine = reader->getBeginLine();
         beginColumn = reader->getBeginColumn();
@@ -69,7 +78,7 @@ Token * {{PARSER_NAME}}TokenManager::jjFillToken() {
 @else
    JJString im = jjstrLiteralImages[jjmatchedKind];
    curTokenImage = (im.length() == 0) ? reader->getImage() : im;
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
    if (reader->getTrackLineColumn()) {
      beginLine = reader->getBeginLine();
      beginColumn = reader->getBeginColumn();
@@ -79,7 +88,7 @@ Token * {{PARSER_NAME}}TokenManager::jjFillToken() {
 @fi
 @fi
    t = Token::newToken(jjmatchedKind, curTokenImage);
-@if(keepLineCol)
+@if(KEEP_LINE_COOL)
 
    t->beginLine() = beginLine;
    t->endLine() = endLine;
@@ -94,7 +103,7 @@ Token * {{PARSER_NAME}}TokenManager::jjFillToken() {
 @end
 /** Get the next Token. */
 Token * {{PARSER_NAME}}TokenManager::getNextToken() {
-@if (hasSpecial)
+@if (HAS_SPECIAL)
   Token *specialToken = nullptr;
 @fi
   Token *matchedToken = nullptr;
@@ -105,8 +114,17 @@ Token * {{PARSER_NAME}}TokenManager::getNextToken() {
    EOFLoop:
    if (reader->endOfInput())
    {
+@if(DEBUG_TOKEN_MANAGER)
+      fprintf(debugStream, \"Returning the <EOF> token.\\n\");
+@fi
+      jjmatchedKind = 0;
+      jjmatchedPos = -1;
+      matchedToken = jjFillToken();
+@if(HAS_SPECIAL)
+      matchedToken->specialToken = specialToken;
+@fi
 {{DumpGetNextToken}}
-@if(maxLexStates)
+@if(MAX_LEX_STATES)
      }
      int error_line = reader->getEndLine();
      int error_column = reader->getEndColumn();
@@ -127,20 +145,20 @@ Token * {{PARSER_NAME}}TokenManager::getNextToken() {
      }
      errorHandler->lexicalError(EOFSeen, curLexState, error_line, error_column, error_after, curChar);
 @fi
-@if(hasMore)
+@if(HAS_MORE)
  }
 @fi
   }
 }
 
 
-@if(hasSkipActions)
+@if(HAS_SKIP_ACTIONS)
 {{DumpSkipActions}}
 @fi
-@if(hasMoreActions)
+@if(HAS_MORE_ACTIONS)
 {{DumpMoreActions(}}
 @fi
-@if(hasTokenActions)
+@if(HAS_TOKEN_ACTIONS)
 {{DumpTokenActions}}
 @fi
 /** Reinitialise parser. */
@@ -160,14 +178,14 @@ void {{PARSER_NAME}}TokenManager::ReInit(Reader * stream, int lexState)
   void {{PARSER_NAME}}TokenManager::ReInitRounds() {
     int i;
     jjround = 0x80000001;
-    for (i = {{stateSetSize}}; i-- > 0;)
+    for (i = {{STATE_SET_SIZE}}; i-- > 0;)
       jjrounds[i] = 0x80000000;
   }
 
 /** Switch to specified lex state. */
 void {{PARSER_NAME}}TokenManager::SwitchTo(int lexState)
 {
-    if (lexState > {{lexStateName}} || lexState < DEFAULT) {
+    if (lexState >= {{STATE_COUNT}} || lexState < 0) {
       JJString message;
       message += JJWIDE(Error: Ignoring invalid lexical state : );
       message += lexState; message += JJWIDE(. State unchanged.);
@@ -203,7 +221,7 @@ const  TokenManagerErrorHandler* OQLTokenManager::getErrorHandler() const {
     if (errorHandler) delete errorHandler, errorHandler = nullptr;    
   }
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

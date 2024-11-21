@@ -10,8 +10,8 @@
 #include "Token.h"
 
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 /**
  * This exception is thrown when parse errors are encountered.
@@ -85,7 +85,7 @@ private:
     JJString addEscapes(const JJString& str);
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

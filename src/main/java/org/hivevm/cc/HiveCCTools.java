@@ -3,9 +3,9 @@
 
 package org.hivevm.cc;
 
-import org.hivevm.cc.parser.JavaCCErrors;
-
 import java.io.File;
+
+import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
  * The {@link HiveCCTools} class.
@@ -17,7 +17,7 @@ public interface HiveCCTools {
    * tool's full name and its version.
    */
   static void bannerLine(String fullName, String ver) {
-    System.out.print("Java Compiler Compiler Version " + HiveCC.VERSION.toString() + " (" + fullName);
+    System.out.print("Java Compiler Compiler Version " + HiveCCVersion.VERSION.toString() + " (" + fullName);
     if (!ver.equals("")) {
       System.out.print(" Version " + ver);
     }

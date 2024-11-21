@@ -36,8 +36,8 @@ private:
 };
 }
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 StringReader::StringReader(InputStream * stream)
@@ -327,7 +327,7 @@ uint32_t StringReader::read() {
     return c + (readChar() & 0x3f);
 }
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

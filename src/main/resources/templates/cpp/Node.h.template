@@ -15,8 +15,8 @@
 #include "{{NODE_EXTENDS}}.h"
 @fi
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 @if(VISITOR)
 class {{PARSER_NAME}}Visitor;
@@ -84,7 +84,7 @@ public:
     virtual void dumpToBuffer(const JJString& prefix, const JJString& separator, JJString* sb) const;
     virtual int getId() const { return id;  }
 };
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

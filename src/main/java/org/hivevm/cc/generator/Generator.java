@@ -3,12 +3,12 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.IOException;
+import java.text.ParseException;
+
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTWriter;
-
-import java.io.IOException;
-import java.text.ParseException;
 
 /**
  * The {@link Generator} class.
@@ -29,5 +29,5 @@ public interface Generator {
    * @param writer
    * @param context
    */
-  void generateAST(ASTGrammar node, ASTWriter writer, ASTGeneratorContext context);
+  void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context);
 }

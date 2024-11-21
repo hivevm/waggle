@@ -8,8 +8,8 @@
 
 #include "{{NODE_CLASS:Node}}.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 class {{NODE_TYPE}} : public {{NODE_CLASS:Node}} {
@@ -23,7 +23,7 @@ public:
 @fi
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

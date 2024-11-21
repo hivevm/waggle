@@ -4,8 +4,8 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #include "ParseException.h"
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 ParseException::ParseException() {
@@ -118,7 +118,7 @@ JJString ParseException::addEscapes(const JJString& str) {
 */ return str;
 }
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

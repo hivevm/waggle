@@ -12,8 +12,8 @@
 #include "Token.h"
 #include "ParserErrorHandler.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 void TokenManagerErrorHandler::lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, JJString errorAfter, JJChar curChar) {
@@ -26,7 +26,7 @@ void TokenManagerErrorHandler::lexicalError(const JJString& errorMessage) {
     JJOUT << errorMessage << std::endl;
 }
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

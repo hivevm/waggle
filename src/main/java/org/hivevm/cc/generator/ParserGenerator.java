@@ -7,6 +7,15 @@ import org.hivevm.cc.parser.Token;
 
 public abstract class ParserGenerator extends CodeGenerator<ParserData> {
 
+  protected static final String LOOKAHEAD_NEEDED = "LOOKAHEAD_NEEDED";
+  protected static final String JJ2_INDEX        = "JJ2_INDEX";
+  protected static final String JJ2_OFFSET       = "JJ2_OFFSET";
+  protected static final String MASK_INDEX       = "MASK_INDEX";
+  protected static final String TOKEN_COUNT      = "TOKEN_COUNT";
+  protected static final String TOKEN_MASKS      = "TOKEN_MASKS";
+  protected static final String JJPARSER_USE_AST = "USE_AST";
+
+
   // Constants used in the following method "buildLookaheadChecker".
   protected enum LookaheadState {
     NOOPENSTM,

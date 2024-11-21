@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.RStringLiteral.KindInfo;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+
+import org.hivevm.cc.lexer.NfaState;
+import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 
 /**
  * The {@link NfaStateData} class.
@@ -180,35 +180,35 @@ public class NfaStateData {
   }
 
   public final Hashtable<String, KindInfo> getCharPosKind(int index) {
-    return charPosKind.get(index);
+    return this.charPosKind.get(index);
   }
 
   public final int getMaxLenForActive(int index) {
-    return maxLenForActive[index];
+    return this.maxLenForActive[index];
   }
 
   public final int[][] getIntermediateKinds() {
-    return intermediateKinds;
+    return this.intermediateKinds;
   }
 
   public final int[][] getIntermediateMatchedPos() {
-    return intermediateMatchedPos;
+    return this.intermediateMatchedPos;
   }
 
 
   public final int getMaxLen() {
-    return maxLen;
+    return this.maxLen;
   }
 
   public final int getMaxStrKind() {
-    return maxStrKind;
+    return this.maxStrKind;
   }
 
   public final boolean isSubString(int index) {
-    return subString[index];
+    return this.subString[index];
   }
 
   public final boolean isSubStringAtPos(int index) {
-    return subStringAtPos[index];
+    return this.subStringAtPos[index];
   }
 }

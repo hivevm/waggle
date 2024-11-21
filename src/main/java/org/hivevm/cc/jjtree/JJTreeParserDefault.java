@@ -3,18 +3,18 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.generator.ASTGeneratorContext;
-
 import java.io.Reader;
+
+import org.hivevm.cc.generator.TreeContext;
 
 /**
  * The {@link JJTreeParserDefault} implements a parser for the .jjt files.
  */
 public class JJTreeParserDefault extends JJTreeParser {
 
-  private final ASTGeneratorContext options;
+  private final TreeContext options;
 
-  public JJTreeParserDefault(Reader reader, ASTGeneratorContext options) {
+  public JJTreeParserDefault(Reader reader, TreeContext options) {
     super(new JJTreeParserTokenManager(new JavaCharStream(new StreamProvider(reader))));
     this.options = options;
   }
@@ -38,7 +38,7 @@ public class JJTreeParserDefault extends JJTreeParser {
   }
 
   @Override
-  protected final ASTGeneratorContext getOptions() {
+  protected final TreeContext getOptions() {
     return this.options;
   }
 }

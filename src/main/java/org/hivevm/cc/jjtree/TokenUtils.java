@@ -115,10 +115,7 @@ final class TokenUtils {
   }
 
   private static boolean hexchar(char ch) {
-    if ((ch >= '0') && (ch <= '9')) {
-      return true;
-    }
-    if ((ch >= 'A') && (ch <= 'F')) {
+    if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F'))) {
       return true;
     }
     if ((ch >= 'a') && (ch <= 'f')) {

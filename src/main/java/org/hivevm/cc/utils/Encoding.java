@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.utils;
 
-import org.hivevm.cc.parser.Options;
+import org.hivevm.cc.Language;
 
 /**
  * The {@link Encoding} class.
@@ -51,8 +51,8 @@ public interface Encoding {
    *
    * @param text
    */
-  static String escapeUnicode(String text) {
-    switch (Options.getOutputLanguage()) {
+  static String escapeUnicode(String text, Language language) {
+    switch (language) {
       case JAVA:
         StringBuilder builder = new StringBuilder(text.length());
         char ch;
@@ -71,7 +71,7 @@ public interface Encoding {
       default:
         // TODO :: CBA -- Require Unification of output language specific processing into a single
         // Enum class
-        throw new RuntimeException("Unhandled Output Language : " + Options.getOutputLanguage());
+        throw new RuntimeException("Unhandled Output Language : " + language);
     }
   }
 }

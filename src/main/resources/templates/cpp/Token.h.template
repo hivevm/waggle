@@ -8,8 +8,8 @@
 
 #include "JavaCC.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 /**
@@ -134,7 +134,7 @@ inline	void*& 			Token::value() 				{ return _value; }
 inline	const void* 	Token::value() const		{ return _value; }
 
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

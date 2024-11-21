@@ -1,10 +1,10 @@
 
 package org.hivevm.cc;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.nio.file.Files;
+
+import org.junit.jupiter.api.Test;
 
 class SmartIOTest {
 

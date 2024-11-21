@@ -4,8 +4,8 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #include "Token.h"
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 Token::Token() :  _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0)
@@ -52,7 +52,7 @@ Token::~Token()
 }
 
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

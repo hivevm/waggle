@@ -8,8 +8,8 @@
 
 #include "JavaCC.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 enum LexerErrors {
@@ -62,7 +62,7 @@ private:
     JJString message;
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

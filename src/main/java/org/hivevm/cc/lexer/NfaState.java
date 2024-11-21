@@ -3,13 +3,13 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.NfaStateData;
-import org.hivevm.cc.parser.JavaCCErrors;
-
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
+
+import org.hivevm.cc.generator.NfaStateData;
+import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
  * The state of a Non-deterministic Finite Automaton.
@@ -24,32 +24,32 @@ public class NfaState {
     return bitVec.equals(NfaState.ALL_BITS);
   }
 
-  public long[]                asciiMoves         = new long[2];
-  public char[]                charMoves          = null;
-  public char[]                rangeMoves         = null;
-  public NfaState              next               = null;
-  public NfaState              stateForCase;
-  public Vector<NfaState>      epsilonMoves       = new Vector<>();
-  public String                epsilonMovesString;
-  private NfaState[]           epsilonMoveArray;
+  public long[]              asciiMoves         = new long[2];
+  public char[]              charMoves          = null;
+  public char[]              rangeMoves         = null;
+  public NfaState            next               = null;
+  public NfaState            stateForCase;
+  public Vector<NfaState>    epsilonMoves       = new Vector<>();
+  public String              epsilonMovesString;
+  private NfaState[]         epsilonMoveArray;
 
-  private final int            id;
-  public int                   stateName          = -1;
-  public int                   kind               = Integer.MAX_VALUE;
-  public int                   lookingFor;
-  public int                   usefulEpsilonMoves = 0;
-  public int                   inNextOf;
-  public int                   lexState;
-  public int                   nonAsciiMethod     = -1;
-  public int                   kindToPrint        = Integer.MAX_VALUE;
-  public boolean               dummy              = false;
-  public boolean               isComposite        = false;
-  public int[]                 compositeStates    = null;
-  public boolean               isFinal            = false;
-  public Vector<Integer>       loByteVec;
-  public int[]                 nonAsciiMoveIndices;
-  private int                  onlyChar           = 0;
-  private char                 matchSingleChar;
+  private final int          id;
+  public int                 stateName          = -1;
+  public int                 kind               = Integer.MAX_VALUE;
+  public int                 lookingFor;
+  public int                 usefulEpsilonMoves = 0;
+  public int                 inNextOf;
+  public int                 lexState;
+  public int                 nonAsciiMethod     = -1;
+  public int                 kindToPrint        = Integer.MAX_VALUE;
+  public boolean             dummy              = false;
+  public boolean             isComposite        = false;
+  public int[]               compositeStates    = null;
+  public boolean             isFinal            = false;
+  public Vector<Integer>     loByteVec;
+  public int[]               nonAsciiMoveIndices;
+  private int                onlyChar           = 0;
+  private char               matchSingleChar;
 
   private final NfaStateData data;
 
@@ -684,11 +684,7 @@ public class NfaState {
       return true;
     }
 
-    if ((moves1 == null) || (moves2 == null)) {
-      return false;
-    }
-
-    if (moves1.length != moves2.length) {
+    if ((moves1 == null) || (moves2 == null) || (moves1.length != moves2.length)) {
       return false;
     }
 

@@ -16,9 +16,11 @@ public interface ParserRequest {
 
   Options options();
 
+  String getParserName();
+
   boolean isGenerated();
 
-  String getParserName();
+  boolean ignoreCase();
 
   int getStateCount();
 
@@ -37,8 +39,4 @@ public interface ParserRequest {
   Iterable<NormalProduction> getNormalProductions();
 
   NormalProduction getProductionTable(String name);
-
-  default boolean ignoreCase() {
-    return options().getIgnoreCase();
-  }
 }

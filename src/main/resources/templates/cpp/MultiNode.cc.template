@@ -8,8 +8,8 @@
 #include "{{PARSER_NAME}}Visitor.h"
 @fi
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
   
   {{NODE_TYPE}}::{{NODE_TYPE}}(int id) : {{NODE_CLASS:Node}}(id) {
@@ -27,7 +27,7 @@ namespace {{NAMESPACE}} {
   }
 @fi
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

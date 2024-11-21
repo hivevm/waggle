@@ -3,23 +3,23 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.Language;
-import org.hivevm.cc.ParserRequest;
-import org.hivevm.cc.jjtree.ASTGrammar;
-import org.hivevm.cc.jjtree.ASTWriter;
-
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.stream.Stream;
 
+import org.hivevm.cc.Language;
+import org.hivevm.cc.ParserRequest;
+import org.hivevm.cc.jjtree.ASTGrammar;
+import org.hivevm.cc.jjtree.ASTWriter;
+
 /**
  * The {@link GeneratorProvider} class.
  */
 public abstract class GeneratorProvider implements Generator {
 
-  protected abstract ASTGenerator newASTGenerator();
+  protected abstract TreeGenerator newASTGenerator();
 
   protected abstract FileGenerator newFileGenerator();
 
@@ -50,8 +50,8 @@ public abstract class GeneratorProvider implements Generator {
    * @param context
    */
   @Override
-  public final void generateAST(ASTGrammar node, ASTWriter writer, ASTGeneratorContext context) {
-    ASTGenerator generator = newASTGenerator();
+  public final void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context) {
+    TreeGenerator generator = newASTGenerator();
     node.jjtAccept(generator, writer);
     generator.generate(context);
   }

@@ -13,8 +13,8 @@
 
 using namespace std;
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 class TreeState {
 private: 
@@ -80,7 +80,7 @@ public:
     void clear();
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

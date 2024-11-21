@@ -6,8 +6,8 @@
 #include "TreeState.h"
 #include "Node.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 @if(NODE_FACTORY)
@@ -177,7 +177,7 @@ void TreeState::clear() {
         delete (*it);
 }
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

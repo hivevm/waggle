@@ -3,16 +3,16 @@
 
 package org.hivevm.cc.doc;
 
+import java.io.FileInputStream;
+import java.text.ParseException;
+
+import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.HiveCCTools;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
-import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StreamProvider;
-
-import java.io.FileInputStream;
-import java.text.ParseException;
 
 /**
  * Main class.
@@ -71,7 +71,7 @@ public final class JJDocMain extends JJDocGlobals {
    */
   public static void main(String args[]) throws Exception {
     JavaCCErrors.reInit();
-    Options options = new JJDocOptions();
+    JJDocOptions options = new JJDocOptions();
 
     HiveCCTools.bannerLine("Documentation Generator", "0.1.4");
 
@@ -112,7 +112,7 @@ public final class JJDocMain extends JJDocGlobals {
         }
         JJDocGlobals.input_file = fp.getName();
         parser = new JavaCCParserDefault(
-            new StreamProvider(new FileInputStream(args[args.length - 1]), options.getGrammarEncoding()), options);
+            new StreamProvider(new FileInputStream(args[args.length - 1]), HiveCCOptions.getFileEncoding()), options);
       } catch (SecurityException se) {
         JJDocGlobals.error("Security violation while trying to open " + args[args.length - 1]);
       } catch (java.io.FileNotFoundException e) {

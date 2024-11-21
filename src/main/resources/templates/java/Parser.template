@@ -1,21 +1,22 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
-@foreach(name : IMPORTS)
+@foreach(name : JAVA_IMPORTS)
 import {{name}};
 @end
-public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(IS_GENERATED){{PARSER_NAME}}TreeConstants, @fi{{PARSER_NAME}}Constants {
-@if(IS_GENERATED)
+public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implements @if(USE_AST){{PARSER_NAME}}TreeConstants, @fi{{PARSER_NAME}}Constants {
+@if(USE_AST)
+
   protected JJT{{PARSER_NAME}}State jjtree = new JJT{{PARSER_NAME}}State();
 @fi
 
 @foreach(p : NORMALPRODUCTIONS)
-{{p.routine}}
+{{p.phase}}
 @end
 @foreach(la : LOOKAHEADS)
-{{la.routine}}
+{{la.phase}}
 @end
 @foreach(e : EXPANSIONS)
-{{e.routine}}
+{{e.phase}}
 @end
 
   /** Generated Token Manager. */
@@ -31,7 +32,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @if(DEPTH_LIMIT)
   private int                jj_depth;
 @fi
-@if(maskIndex)
+@if(MASK_INDEX)
   private Token              jj_scanpos, jj_lastpos;
   private int                jj_la;
 @if(LOOKAHEAD_NEEDED)
@@ -42,14 +43,14 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @fi
 @if(ERROR_REPORTING)
   private int                jj_gen;
-  private final int[]        jj_la1    = new int[{{maskIndex}}];
-@foreach(index : TOKEN_MAX_SIZE)
+  private final int[]        jj_la1    = new int[{{MASK_INDEX}}];
+@foreach(index : TOKEN_MASKS)
   private static final int[] jj_la1_{{index}}  = { {{index.mask}}};
 @end
 @fi
-@if(maskIndex)
+@if(MASK_INDEX)
 @if(ERROR_REPORTING)
-  private final JJCalls[]    jj_2_rtns = new JJCalls[{{jj2Index}}];
+  private final JJCalls[]    jj_2_rtns = new JJCalls[{{JJ2_INDEX}}];
   private boolean            jj_rescan = false;
   private int                jj_gc     = 0;
 @fi
@@ -75,12 +76,12 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @fi
 @if(ERROR_REPORTING)
     this.jj_gen = 0;
-@if(maskIndex)
-    for (int i = 0; i < {{maskIndex}}; i++) {
+@if(MASK_INDEX)
+    for (int i = 0; i < {{MASK_INDEX}}; i++) {
       this.jj_la1[i] = -1;
     }
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
     for (int i = 0; i < this.jj_2_rtns.length; i++) {
       this.jj_2_rtns[i] = new JJCalls();
     }
@@ -107,11 +108,11 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @fi
 @if(ERROR_REPORTING)
     jj_gen = 0;
-@if(maskIndex)
-    for (int i = 0; i < {{maskIndex}}; i++)
+@if(MASK_INDEX)
+    for (int i = 0; i < {{MASK_INDEX}}; i++)
       jj_la1[i] = -1;
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
     for (int i = 0; i < jj_2_rtns.length; i++)
       jj_2_rtns[i] = new JJCalls();
 @fi
@@ -130,16 +131,16 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @if(DEPTH_LIMIT)
     jj_depth = -1;
 @fi
-@if(IS_GENERATED)
+@if(USE_AST)
     jjtree.reset();
 @fi
 @if(ERROR_REPORTING)
     jj_gen = 0;
-@if(maskIndex)
-    for (int i = 0; i < {{maskIndex}}; i++)
+@if(MASK_INDEX)
+    for (int i = 0; i < {{MASK_INDEX}}; i++)
       jj_la1[i] = -1;
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
     for (int i = 0; i < jj_2_rtns.length; i++)
       jj_2_rtns[i] = new JJCalls();
 @fi
@@ -164,7 +165,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
     if (token.kind == kind) {
 @if(ERROR_REPORTING)
       jj_gen++;
-@if(jj2Index)
+@if(JJ2_INDEX)
       if (++jj_gc > 100) {
         jj_gc = 0;
         for (int i = 0; i < jj_2_rtns.length; i++) {
@@ -193,7 +194,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
     throw generateParseException();
   }
 
-@if(jj2Index)
+@if(JJ2_INDEX)
   @SuppressWarnings("serial")
   static private final class LookaheadSuccess extends java.lang.RuntimeException {
     @Override
@@ -293,7 +294,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
   private final java.util.List<int[]> jj_expentries = new java.util.ArrayList<>();
   private int[]                       jj_expentry;
   private int                         jj_kind       = -1;
-@if(jj2Index)
+@if(JJ2_INDEX)
   private final int[]                 jj_lasttokens = new int[100];
   private int                         jj_endpos;
 @fi
@@ -339,15 +340,15 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
   /** Generate ParseException. */
   public ParseException generateParseException() {
     this.jj_expentries.clear();
-    boolean[] la1tokens = new boolean[{{tokenCount}}];
+    boolean[] la1tokens = new boolean[{{TOKEN_COUNT}}];
     if (this.jj_kind >= 0) {
       la1tokens[this.jj_kind] = true;
       this.jj_kind = -1;
     }
-    for (int i = 0; i < {{maskIndex}}; i++) {
+    for (int i = 0; i < {{MASK_INDEX}}; i++) {
       if (this.jj_la1[i] == this.jj_gen) {
         for (int j = 0; j < 32; j++) {
-@foreach(index : TOKEN_MAX_SIZE)
+@foreach(index : TOKEN_MASKS_LA1)
           if (({{PARSER_NAME}}.jj_la1_{{index}}[i] & (1 << j)) != 0) {
             la1tokens[{{index.la1}}j] = true;
           }
@@ -355,14 +356,14 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
         }
       }
     }
-    for (int i = 0; i < {{tokenCount}}; i++) {
+    for (int i = 0; i < {{TOKEN_COUNT}}; i++) {
       if (la1tokens[i]) {
         this.jj_expentry = new int[1];
         this.jj_expentry[0] = i;
         this.jj_expentries.add(this.jj_expentry);
       }
     }
-@if(jj2Index)
+@if(JJ2_INDEX)
     this.jj_endpos = 0;
     jj_rescan_token();
     jj_add_error_token(0, 0);
@@ -461,11 +462,11 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
   final public void disable_tracing() {}
 
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
 @if(ERROR_REPORTING)
   private void jj_rescan_token() {
     this.jj_rescan = true;
-    for (int i = 0; i < {{jj2Index}}; i++) {
+    for (int i = 0; i < {{JJ2_INDEX}}; i++) {
       try {
         JJCalls p = this.jj_2_rtns[i];
 
@@ -474,7 +475,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
             this.jj_la = p.arg;
             this.jj_lastpos = this.jj_scanpos = p.first;
             switch (i) {
-@foreach(index : JJ2_INDEX)
+@foreach(index : JJ2_OFFSET)
               case {{index}}:
                 jj_3_{{index.offset}}();
                 break;
@@ -513,7 +514,7 @@ public class {{PARSER_NAME}}@if(EXTENDS) extends {{EXTENDS}}@fi implements @if(I
 @fi
 @fi
 
-@if(IS_GENERATED)
+@if(USE_AST)
 
   protected final Node rootNode() {
     return this.jjtree.rootNode();

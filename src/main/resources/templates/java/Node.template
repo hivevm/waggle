@@ -1,4 +1,4 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 @if(NODE_EXTENDS)
 public class Node extends {{NODE_EXTENDS}} implements Tree {

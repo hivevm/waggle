@@ -9,8 +9,8 @@
 #include "JavaCC.h"
 #include "Reader.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 /**
@@ -138,7 +138,7 @@ private:
     void updateLineColumn(uint32_t c);
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

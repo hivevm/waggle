@@ -1,4 +1,4 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 /*
  * All AST nodes must implement this interface. It provides basic machinery for constructing the

@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.jjtree;
 
-class ASTBNF extends ASTProduction {
+public class ASTBNF extends ASTProduction {
 
   public ASTBNF(JJTreeParser p, int id) {
     super(p, id);

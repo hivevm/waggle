@@ -1,4 +1,4 @@
-package {{PACKAGE}};
+package {{JAVA_PACKAGE}};
 
 /**
  * Token literal values and constants.

@@ -3,20 +3,17 @@
 
 package org.hivevm.cc.generator.cpp;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.LexerData;
+import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.ParseException;
 import org.hivevm.cc.parser.RStringLiteral;
-import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
-import org.hivevm.cc.utils.TemplateOptions;
-import org.hivevm.cc.utils.TemplateProvider;
-
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Generates the Constants file.
@@ -25,22 +22,6 @@ class CppFileGenerator implements FileGenerator {
 
   @Override
   public final void generate(LexerData context) throws ParseException {
-    List<RegularExpression> expressions = new ArrayList<>();
-    for (TokenProduction tp : context.getTokenProductions()) {
-      for (RegExprSpec res : tp.getRespecs()) {
-        expressions.add(res.rexp);
-      }
-    }
-
-    TemplateOptions options = new TemplateOptions();
-    options.add("STATES", context.getStateCount()).set("name", i -> context.getStateName(i));
-    options.add("TOKENS", context.getOrderedsTokens()).set("ordinal", r -> r.getOrdinal()).set("label",
-        r -> r.getLabel());
-    options.add("REGEXPS", expressions.size() + 1)
-        .set("label", (i, w) -> CppFileGenerator.getRegExp(w, false, i, expressions))
-        .set("image", (i, w) -> CppFileGenerator.getRegExp(w, true, i, expressions));
-
-
     TemplateProvider.render(CppTemplate.JAVACC, context.options());
 
     TemplateProvider.render(CppTemplate.TOKEN, context.options());
@@ -59,11 +40,9 @@ class CppFileGenerator implements FileGenerator {
     TemplateProvider.render(CppTemplate.PARSEEXCEPTION_H, context.options());
     TemplateProvider.render(CppTemplate.PARSERHANDLER, context.options());
     TemplateProvider.render(CppTemplate.PARSERHANDLER_H, context.options());
-
-    TemplateProvider.render(CppTemplate.PARSER_CONSTANTS, context.options(), options, context.getParserName());
   }
 
-  private static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RegularExpression> expressions) {
+  static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RegularExpression> expressions) {
     if (i == 0) {
       CppFileGenerator.printCharArray(writer, "<EOF>");
     } else {

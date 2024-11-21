@@ -4,8 +4,6 @@
 package org.hivevm.cc;
 
 
-import org.hivevm.cc.parser.Options;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -18,7 +16,7 @@ public class ParserBuilder {
 
   private Language     language;
   private File         targetDir;
-  private List<String> excludes;
+  private List<String> customNodes;
 
   private File         treeFile;
   private File         parserFile;
@@ -48,8 +46,8 @@ public class ParserBuilder {
    *
    * @param excludes
    */
-  public final ParserBuilder setExcludes(List<String> excludes) {
-    this.excludes = excludes;
+  public final ParserBuilder setCustomNodes(List<String> excludes) {
+    this.customNodes = excludes;
     return this;
   }
 
@@ -88,8 +86,8 @@ public class ParserBuilder {
       arguments.add("-CODE_GENERATOR=" + this.language.name());
       arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
       if (this.parserFile == null) {
-        if ((this.excludes != null) && !this.excludes.isEmpty()) {
-          arguments.add("-NODE_EXCLUDES=" + String.join(",", this.excludes));
+        if ((this.customNodes != null) && !this.customNodes.isEmpty()) {
+          arguments.add("-NODE_CUSTOM=" + String.join(",", this.customNodes));
         }
         arguments.add(this.treeFile.getAbsolutePath());
 
@@ -113,7 +111,7 @@ public class ParserBuilder {
    * Run the parser generator.
    */
   public final void interpret(String text) {
-    Options options = new Options();
+    HiveCCOptions options = new HiveCCOptions();
     try {
       ParserInterpreter interpreter = new ParserInterpreter(options);
       File file = this.parserFile;

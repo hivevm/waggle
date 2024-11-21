@@ -3,12 +3,6 @@
 
 package org.hivevm.cc;
 
-import org.hivevm.cc.utils.Version;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 /**
  * This package contains data created as a result of parsing and semanticizing a JavaCC input file.
  * This data is what is used by the back-ends of JavaCC as well as any other back-end of JavaCC
@@ -18,18 +12,18 @@ public interface HiveCC {
 
   String PARSER_NAME                = "PARSER_NAME";
 
-  String JJTREE_MULTI               = "MULTI";
+  String JJTREE_MULTI               = "NODE_MULTI";
   String JJTREE_NODE_TYPE           = "NODE_TYPE";
   String JJTREE_NODE_PREFIX         = "NODE_PREFIX";
-  String JJTREE_NODE_PACKAGE        = "NODE_PACKAGE";
   String JJTREE_NODE_EXTENDS        = "NODE_EXTENDS";
-  String JJTREE_NODE_EXCLUDES       = "NODE_EXCLUDES";
+  String JJTREE_NODE_FACTORY        = "NODE_FACTORY";
+  String JJTREE_NODE_CUSTOM         = "NODE_CUSTOM";
   String JJTREE_NODE_CLASS          = "NODE_CLASS";
   String JJTREE_NODE_DEFAULT_VOID   = "NODE_DEFAULT_VOID";
   String JJTREE_NODE_SCOPE_HOOK     = "NODE_SCOPE_HOOK";
+
   String JJTREE_OUTPUT_FILE         = "OUTPUT_FILE";
   String JJTREE_TRACK_TOKENS        = "TRACK_TOKENS";
-  String JJTREE_NODE_FACTORY        = "NODE_FACTORY";
   String JJTREE_BUILD_NODE_FILES    = "BUILD_NODE_FILES";
 
   String JJTREE_VISITOR             = "VISITOR";
@@ -56,28 +50,14 @@ public interface HiveCC {
   String JJPARSER_KEEP_LINE_COLUMN        = "KEEP_LINE_COLUMN";
   String JJPARSER_DEPTH_LIMIT             = "DEPTH_LIMIT";
 
-  String JJPARSER_JAVA_PACKAGE            = "PACKAGE";
-  String JJPARSER_JAVA_IMPORTS            = "IMPORTS";
-  String JJPARSER_JAVA_EXTENDS            = "EXTENDS";
-  String JJPARSER_JAVA_LEXER              = "LEXER";
+  String JJPARSER_BASE_LEXER              = "BASE_LEXER";
+  String JJPARSER_BASE_PARSER             = "BASE_PARSER";
+
+  String JJPARSER_JAVA_PACKAGE            = "JAVA_PACKAGE";
+  String JJPARSER_JAVA_IMPORTS            = "JAVA_IMPORTS";
 
   String JJPARSER_CPP_DEFINE              = "CPP_DEFINE";
-  String JJPARSER_CPP_NAMESPACE           = "NAMESPACE";
-  String JJPARSER_CPP_STOP_ON_FIRST_ERROR = "STOP_ON_FIRST_ERROR";
-  String JJPARSER_CPP_STACK_LIMIT         = "STACK_LIMIT";
-
-
-  Version VERSION = HiveCC.load();
-
-  static Version load() {
-    String version = "0.0";
-    try (InputStream stream = HiveCC.class.getResourceAsStream("/version")) {
-      Properties properties = new Properties();
-      properties.load(stream);
-      version = properties.getProperty("release", "0.0");
-    } catch (IOException e) {
-      System.err.println("Could not read version.properties: " + e);
-    }
-    return Version.parse(version);
-  }
+  String JJPARSER_CPP_NAMESPACE           = "CPP_NAMESPACE";
+  String JJPARSER_CPP_STACK_LIMIT         = "CPP_STACK_LIMIT";
+  String JJPARSER_CPP_STOP_ON_FIRST_ERROR = "CPP_STOP_ON_FIRST_ERROR";
 }

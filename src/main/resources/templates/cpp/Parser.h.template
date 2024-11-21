@@ -12,13 +12,13 @@
 #include "TokenManager.h"
 #include "ParserErrorHandler.h"
 #include "{{PARSER_NAME}}Constants.h"
-@if(IS_GENERATED)
+@if(USE_AST)
 #include "{{PARSER_NAME}}Tree.h"
 #include "TreeState.h"
 @fi
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 
 @fi
   struct JJCalls {
@@ -32,8 +32,8 @@ namespace {{NAMESPACE}} {
 
 class {{PARSER_NAME}} {
 public:
-@foreach(p : PRODUCTIONS_LHS)
-  void {{p.lhs}}();
+@foreach(p : PRODUCTION_NAMES)
+  void {{p.method}}();
 @end
 
 @foreach(la : LOOKAHEADS)
@@ -66,7 +66,7 @@ public:
 
 private: 
   int                    jj_ntk;
-  JJCalls                jj_2_rtns[{{jj2Index}} + 1];
+  JJCalls                jj_2_rtns[{{JJ2_INDEX}} + 1];
   bool                   jj_rescan;
   int                    jj_gc;
   Token*                 jj_scanpos;
@@ -75,7 +75,7 @@ private:
   bool                   jj_lookingAhead;  // Whether we are looking ahead.
   bool                   jj_semLA;
   int                    jj_gen;
-  int                    jj_la1[{{maskIndex}} + 1];
+  int                    jj_la1[{{MASK_INDEX}} + 1];
   ParserErrorHandler*    errorHandler = nullptr;
 
 protected: 
@@ -93,7 +93,7 @@ protected:
     ~__jj_depth_inc(){ parent->jj_depth--; }
   };
 @fi
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
   public: size_t jj_stack_limit;
   private: void* jj_stack_base;
   private: bool jj_stack_error;
@@ -104,11 +104,11 @@ public:
   virtual ~{{PARSER_NAME}}();
 void ReInit(TokenManager* tokenManager);
 void clear();
-@if(STACK_LIMIT)
+@if(CPP_STACK_LIMIT)
  virtual bool jj_stack_check(bool init);
 @fi
 Token * jj_consume_token(int kind);
-@if(jj2Index)
+@if(JJ2_INDEX)
 bool jj_scan_token(int kind);
 @fi
 Token * getNextToken();
@@ -121,7 +121,7 @@ private:
 @if(ERROR_REPORTING)
   int **jj_expentries;
   int *jj_expentry;
-@if(jj2Index)
+@if(JJ2_INDEX)
   void jj_add_error_token(int kind, int pos);
 @fi
 
@@ -152,7 +152,7 @@ public:
   void enable_la_tracing();
   void disable_la_tracing();
 @fi
-@if(jj2Index)
+@if(JJ2_INDEX)
 @if(ERROR_REPORTING)
   void jj_rescan_token();
   void jj_save(int index, int xla);
@@ -162,13 +162,13 @@ protected:
   virtual void jjtreeOpenNodeScope(Node * node) = 0;
   virtual void jjtreeCloseNodeScope(Node * node) = 0;
 
-@if(IS_GENERATED)
+@if(USE_AST)
   TreeState jjtree;
 @fi
 private:
   bool jj_done;
 };
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

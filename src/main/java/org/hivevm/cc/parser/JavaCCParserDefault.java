@@ -3,15 +3,16 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.HiveCCOptions;
 
 /**
  * The {@link JavaCCParserDefault} class.
  */
 public class JavaCCParserDefault extends JavaCCParser {
 
-  private final Options options;
+  private final HiveCCOptions options;
 
-  public JavaCCParserDefault(Provider stream, Options options) {
+  public JavaCCParserDefault(Provider stream, HiveCCOptions options) {
     super(stream);
     this.options = options;
   }
@@ -20,7 +21,7 @@ public class JavaCCParserDefault extends JavaCCParser {
    * Gets the {@link #options}.
    */
   @Override
-  public final Options getOptions() {
+  public final HiveCCOptions getOptions() {
     return this.options;
   }
 }

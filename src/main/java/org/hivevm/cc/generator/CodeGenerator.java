@@ -3,6 +3,7 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.Language;
 import org.hivevm.cc.parser.JavaCCParserConstants;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.utils.Encoding;
@@ -13,6 +14,8 @@ public abstract class CodeGenerator<D> {
 
 
   public abstract void generate(D context);
+
+  protected abstract Language getLanguage();
 
   protected final void genTokenSetup(Token t) {
     Token tt = t;
@@ -76,7 +79,7 @@ public abstract class CodeGenerator<D> {
       retval += " ";
     }
     if ((t.kind == JavaCCParserConstants.STRING_LITERAL) || (t.kind == JavaCCParserConstants.CHARACTER_LITERAL)) {
-      retval += Encoding.escapeUnicode(t.image);
+      retval += Encoding.escapeUnicode(t.image, getLanguage());
     } else if (t.image.startsWith(CodeBlock.CODE.image)) {
       retval += CodeBlock.CODE.strip(t.image);
     } else {

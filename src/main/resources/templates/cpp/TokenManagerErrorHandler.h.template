@@ -9,8 +9,8 @@
 #include "JavaCC.h"
 #include "Token.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 class TokenManagerErrorHandler {
@@ -36,7 +36,7 @@ private:
     int error_count;
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

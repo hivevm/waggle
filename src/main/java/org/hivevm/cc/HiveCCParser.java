@@ -3,20 +3,19 @@
 
 package org.hivevm.cc;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+
 import org.hivevm.cc.generator.Generator;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
-import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StreamProvider;
 import org.hivevm.cc.semantic.Semanticize;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 
 /**
  * Entry point.
@@ -38,7 +37,7 @@ public abstract class HiveCCParser {
     }
 
     if ((args.length == 1) && args[args.length - 1].equalsIgnoreCase("-version")) {
-      System.out.println(HiveCC.VERSION.toString());
+      System.out.println(HiveCCVersion.VERSION.toString());
       System.exit(0);
     }
 
@@ -46,7 +45,7 @@ public abstract class HiveCCParser {
 
     String filename = args[args.length - 1];
 
-    Options options = new Options();
+    HiveCCOptions options = new HiveCCOptions();
     if (options.isOption(filename)) {
       System.out.println("Last argument \"" + filename + "\" is not a filename.");
       System.exit(1);
@@ -63,7 +62,7 @@ public abstract class HiveCCParser {
     try {
       System.out.println("Reading from file " + filename + " ...");
 
-      Reader reader = new InputStreamReader(new FileInputStream(filename), options.getGrammarEncoding());
+      Reader reader = new InputStreamReader(new FileInputStream(filename), HiveCCOptions.getFileEncoding());
       JavaCCData request = new JavaCCData(HiveCCTree.isGenerated(filename), options);
       JavaCCParser parser = new JavaCCParserDefault(new StreamProvider(reader), options);
       parser.initialize(request);
@@ -72,9 +71,10 @@ public abstract class HiveCCParser {
       // Initialize the parser data
       HiveCCTools.createOutputDir(options.getOutputDirectory());
       Semanticize.semanticize(request, options);
-      options.setStringOption(HiveCC.PARSER_NAME, request.getParserName());
+      options.setParser(request.getParserName());
+      Language language = options.getOutputLanguage();
 
-      Generator generator = GeneratorProvider.generatorFor(Options.getOutputLanguage());
+      Generator generator = GeneratorProvider.generatorFor(language);
       generator.generate(request);
 
       if (!JavaCCErrors.hasError()) {

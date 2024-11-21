@@ -14,8 +14,8 @@
 #include "Token.h"
 #include "TokenManagerErrorHandler.h"
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 /**
@@ -69,7 +69,7 @@ public:
     bool trace_enabled() const { return trace; }
 };
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

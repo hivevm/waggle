@@ -11,11 +11,11 @@ import org.hivevm.cc.parser.RegularExpression;
 import org.hivevm.cc.parser.TokenProduction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The {@link LexerData} provides the request data for the lexer generator.
@@ -25,7 +25,6 @@ public class LexerData {
   private final ParserRequest request;
   final int                   maxOrdinal;
   final int                   maxLexStates;
-  final Set<String>           stateNames;
 
 
   final int[]    lexStates;
@@ -96,11 +95,10 @@ public class LexerData {
    * @param maxOrdinal
    * @param maxLexStates
    */
-  LexerData(ParserRequest request, int maxOrdinal, int maxLexStates, Set<String> stateNames) {
+  LexerData(ParserRequest request, int maxOrdinal, int maxLexStates) {
     this.request = request;
     this.maxOrdinal = maxOrdinal;
     this.maxLexStates = maxLexStates;
-    this.stateNames = stateNames;
 
     this.curKind = 0;
     this.nonAsciiTableForMethod = new ArrayList<>();
@@ -168,24 +166,24 @@ public class LexerData {
   }
 
   public final Iterable<RegularExpression> getOrderedsTokens() {
-    return request.getOrderedsTokens();
+    return this.request.getOrderedsTokens();
   }
 
   public final Iterable<Integer> getLohiByte() {
-    return lohiByte.keySet();
+    return this.lohiByte.keySet();
   }
 
 
   public final List<int[]> getOrderedStateSet() {
-    return orderedStateSet;
+    return this.orderedStateSet;
   }
 
   public final Iterable<TokenProduction> getTokenProductions() {
-    return request.getTokenProductions();
+    return this.request.getTokenProductions();
   }
 
   public final Iterable<NfaState> getNonAsciiTableForMethod() {
-    return nonAsciiTableForMethod;
+    return this.nonAsciiTableForMethod;
   }
 
   public final int maxOrdinal() {
@@ -194,10 +192,6 @@ public class LexerData {
 
   public final int maxLexStates() {
     return this.maxLexStates;
-  }
-
-  public final Iterable<String> stateNames() {
-    return this.stateNames;
   }
 
   public final boolean jjCheckNAddStatesUnaryNeeded() {
@@ -249,19 +243,19 @@ public class LexerData {
   }
 
   public final boolean canLoop(int index) {
-    return canLoop[index];
+    return this.canLoop[index];
   }
 
   public final boolean canReachOnMore(int index) {
-    return canReachOnMore[index];
+    return this.canReachOnMore[index];
   }
 
   public final int initMatch(int index) {
-    return initMatch[index];
+    return this.initMatch[index];
   }
 
   public final int canMatchAnyChar(int index) {
-    return canMatchAnyChar[index];
+    return this.canMatchAnyChar[index];
   }
 
   public final String getNextStateForEof() {
@@ -282,6 +276,10 @@ public class LexerData {
 
   public final String getStateName(int index) {
     return this.lexStateNames[index];
+  }
+
+  public final List<String> getStateNames() {
+    return Arrays.asList(this.lexStateNames);
   }
 
   public final int getCurrentKind() {
@@ -326,58 +324,58 @@ public class LexerData {
   }
 
   public final String getAllBitVectors(int index) {
-    return allBitVectors.get(index);
+    return this.allBitVectors.get(index);
   }
 
   public final int[][] getKinds() {
-    return kinds;
+    return this.kinds;
   }
 
   public final int[][][] getStatesForState() {
-    return statesForState;
+    return this.statesForState;
   }
 
   public final int stateSetSize() {
-    return stateSetSize;
+    return this.stateSetSize;
   }
 
   public final int totalNumStates() {
-    return totalNumStates;
+    return this.totalNumStates;
   }
 
   public final int defaultLexState() {
-    return defaultLexState;
+    return this.defaultLexState;
   }
 
   public final String newLexState(int index) {
-    return newLexState[index];
+    return this.newLexState[index];
   }
 
   public final boolean ignoreCase(int index) {
-    return ignoreCase[index];
+    return this.ignoreCase[index];
   }
 
   public final Action actions(int index) {
-    return actions[index];
+    return this.actions[index];
   }
 
   public final NfaState singlesToSkip(int index) {
-    return singlesToSkip[index];
+    return this.singlesToSkip[index];
   }
 
   public final long toSkip(int index) {
-    return toSkip[index];
+    return this.toSkip[index];
   }
 
   public final long toSpecial(int index) {
-    return toSpecial[index];
+    return this.toSpecial[index];
   }
 
   public final long toMore(int index) {
-    return toMore[index];
+    return this.toMore[index];
   }
 
   public final long toToken(int index) {
-    return toToken[index];
+    return this.toToken[index];
   }
 }

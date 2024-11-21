@@ -10,8 +10,8 @@
 #include "{{PARSER_NAME}}Visitor.h"
 @fi
 
-@if(NAMESPACE)
-namespace {{NAMESPACE}} {
+@if(CPP_NAMESPACE)
+namespace {{CPP_NAMESPACE}} {
 @fi
 
 Node::Node(int id) 
@@ -141,7 +141,7 @@ void Node::dump(const JJString& prefix) const {
 }
 
 
-@if(NAMESPACE)
+@if(CPP_NAMESPACE)
 }
 @fi
 

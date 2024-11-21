@@ -30,7 +30,6 @@ class TemplateEnvironment implements Environment {
    */
   @Override
   public final boolean isSet(String name) {
-    // return options.containsKey(name);
     return this.options.containsKey(name) || this.environment.isSet(name);
   }
 
@@ -41,7 +40,6 @@ class TemplateEnvironment implements Environment {
    */
   @Override
   public final Object get(String name) {
-    // return options.get(name);
     return this.options.containsKey(name) ? this.options.get(name) : this.environment.get(name);
   }
 

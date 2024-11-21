@@ -3,16 +3,6 @@
 
 package org.hivevm.cc;
 
-import org.hivevm.cc.generator.ASTGeneratorContext;
-import org.hivevm.cc.generator.Generator;
-import org.hivevm.cc.generator.GeneratorProvider;
-import org.hivevm.cc.jjtree.ASTGrammar;
-import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.JJTreeGlobals;
-import org.hivevm.cc.jjtree.JJTreeParserDefault;
-import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.Options;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -25,6 +15,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.hivevm.cc.generator.Generator;
+import org.hivevm.cc.generator.GeneratorProvider;
+import org.hivevm.cc.generator.TreeContext;
+import org.hivevm.cc.generator.TreeOptions;
+import org.hivevm.cc.jjtree.ASTGrammar;
+import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.jjtree.JJTreeParserDefault;
+import org.hivevm.cc.parser.JavaCCErrors;
 
 public class HiveCCTree {
 
@@ -70,7 +69,7 @@ public class HiveCCTree {
   }
 
 
-  private static File createTreeFile(String jjt, ASTGeneratorContext options) {
+  private static File createTreeFile(String jjt, TreeOptions options) {
     String filename = options.getOutputFile();
 
     if (filename.equals("")) {
@@ -108,11 +107,10 @@ public class HiveCCTree {
     }
 
     JavaCCErrors.reInit();
-    JJTreeGlobals.initialize();
 
     String filename = args[args.length - 1];
 
-    ASTGeneratorContext options = new ASTGeneratorContext();
+    TreeContext options = new TreeContext();
     if (options.isOption(filename)) {
       System.out.println("Last argument \"" + filename + "\" is not a filename.");
       System.exit(1);
@@ -137,7 +135,7 @@ public class HiveCCTree {
     try {
       System.out.println("Reading from file " + filename + " ...");
 
-      Reader reader = new InputStreamReader(new FileInputStream(filename), options.getGrammarEncoding());
+      Reader reader = new InputStreamReader(new FileInputStream(filename), HiveCCOptions.getFileEncoding());
       JJTreeParserDefault parser = new JJTreeParserDefault(reader, options);
       ASTGrammar root = parser.parse();
 
@@ -145,11 +143,11 @@ public class HiveCCTree {
         root.dump(" ");
       }
 
-      System.out.println("opt:" + Options.getOutputLanguage());
+      Language language = options.getOutputLanguage();
+      System.out.println("opt:" + language);
 
-      Generator generator = GeneratorProvider.generatorFor(Options.getOutputLanguage());
-
-      try (ASTWriter writer = new ASTWriter(jjFile, Options.getOutputLanguage())) {
+      Generator generator = GeneratorProvider.generatorFor(language);
+      try (ASTWriter writer = new ASTWriter(jjFile, language)) {
         HiveCCTree.writeGenerated(writer);
         generator.generateAST(root, writer, options);
       } catch (IOException ioe) {
