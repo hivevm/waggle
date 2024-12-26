@@ -8,7 +8,7 @@ package org.hivevm.cc.semantic;
  */
 class MatchInfo {
 
-  int[] match;
+  final int[] match;
   int   firstFreeLoc;
 
   /**

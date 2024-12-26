@@ -1,5 +1,5 @@
 plugins {
-  id 'com.gradle.plugin-publish' version '1.3.0'
+  id 'com.gradle.plugin-publish' version '1.3.1'
   id "org.hivevm.cc" version "1.0.4"
   id 'java-gradle-plugin'
   id 'maven-publish'
@@ -23,8 +23,8 @@ group	= 'org.hivevm'
 
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
 }
 
 
@@ -38,7 +38,7 @@ dependencies {
 
   // Use JUnit test framework
   // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
-  testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.3'
+  testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.12.1'
 }
 
 

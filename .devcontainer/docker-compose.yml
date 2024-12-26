@@ -1,0 +1,12 @@
+services:
+
+  java:
+    container_name: java
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/data
+    ports:
+      - 8080:8080
+    restart: unless-stopped

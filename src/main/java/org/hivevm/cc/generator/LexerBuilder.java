@@ -10,7 +10,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
-
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.lexer.Nfa;
 import org.hivevm.cc.lexer.NfaState;
@@ -133,9 +132,9 @@ public class LexerBuilder {
             }
 
             temp = curRE.accept(new NfaVisitor(ignore), stateData);
-            temp.end.isFinal = true;
-            temp.end.kind = curRE.getOrdinal();
-            stateData.getInitialState().AddMove(temp.start);
+            temp.end().isFinal = true;
+            temp.end().kind = curRE.getOrdinal();
+            stateData.getInitialState().AddMove(temp.start());
           }
 
           if (kinds.length < curRE.getOrdinal()) {

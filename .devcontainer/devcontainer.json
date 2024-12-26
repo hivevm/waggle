@@ -1,0 +1,10 @@
+{
+    "name": "HiveVM CC",
+    "image": "eclipse-temurin:21",
+    "onCreateCommand": "apt update && apt install git -y",
+    "customizations": {
+        "vscode": {
+        "extensions": ["vscjava.vscode-java-pack", "github.vscode-github-actions"]
+        }
+    }
+}

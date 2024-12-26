@@ -3,11 +3,15 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.security.DigestOutputStream;
 
+import org.hivevm.cc.HiveCCVersion;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.utils.DigestOptions;
@@ -73,7 +77,12 @@ public interface TemplateProvider {
    */
   static void generate(File file, String filename, String templateName, Environment opt) {
     DigestOptions options = new DigestOptions(opt);
-    try (PrintWriter writer = DigestWriter.createDigestWriter(file, options)) {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    DigestOutputStream digest = new DigestOutputStream(bytes, DigestWriter.DIGEST);
+    String banner = "HiveVM CC v." + HiveCCVersion.VERSION.toString("0.0");
+
+    try (PrintWriter writer =
+        new DigestWriter(new FileOutputStream(file), digest, bytes, banner, options)) {
       String path = String.format("/templates/%s.template", templateName);
       InputStream stream = Template.class.getResourceAsStream(path);
       if (stream == null) {

@@ -5,7 +5,6 @@ package org.hivevm.cc.lexer;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.hivevm.cc.generator.NfaStateData;
 import org.hivevm.cc.parser.CharacterRange;
 import org.hivevm.cc.parser.JavaCCErrors;
@@ -68,8 +67,8 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
     expr.setTransformed();
     Nfa retVal = new Nfa(data);
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
     int i;
 
     for (i = 0; i < expr.getDescriptors().size(); i++) {
@@ -101,8 +100,8 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     }
 
     Nfa retVal = new Nfa(data);
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
 
     for (Object element : expr.getChoices()) {
       Nfa temp;
@@ -110,8 +109,8 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
       temp = curRE.accept(this, data);
 
-      startState.AddMove(temp.start);
-      temp.end.AddMove(finalState);
+      startState.AddMove(temp.start());
+      temp.end().AddMove(finalState);
     }
 
     return retVal;
@@ -130,14 +129,14 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
   @Override
   public Nfa visit(ROneOrMore expr, NfaStateData data) {
     Nfa retVal = new Nfa(data);
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
 
     Nfa temp = expr.getRegexpr().accept(this, data);
 
-    startState.AddMove(temp.start);
-    temp.end.AddMove(temp.start);
-    temp.end.AddMove(finalState);
+    startState.AddMove(temp.start());
+    temp.end().AddMove(temp.start());
+    temp.end().AddMove(finalState);
 
     return retVal;
   }
@@ -175,8 +174,8 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     }
 
     Nfa retVal = new Nfa(data);
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
     Nfa temp1;
     Nfa temp2 = null;
 
@@ -184,17 +183,17 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
     curRE = expr.getUnits().get(0);
     temp1 = curRE.accept(this, data);
-    startState.AddMove(temp1.start);
+    startState.AddMove(temp1.start());
 
     for (int i = 1; i < expr.getUnits().size(); i++) {
       curRE = expr.getUnits().get(i);
 
       temp2 = curRE.accept(this, data);
-      temp1.end.AddMove(temp2.start);
+      temp1.end().AddMove(temp2.start());
       temp1 = temp2;
     }
 
-    temp2.end.AddMove(finalState);
+    temp2.end().AddMove(finalState);
 
     return retVal;
   }
@@ -239,12 +238,12 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     Nfa temp = expr.getRegexpr().accept(this, data);
 
 
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
-    startState.AddMove(temp.start);
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
+    startState.AddMove(temp.start());
     startState.AddMove(finalState);
-    temp.end.AddMove(finalState);
-    temp.end.AddMove(temp.start);
+    temp.end().AddMove(finalState);
+    temp.end().AddMove(temp.start());
 
     return retVal;
   }
@@ -254,11 +253,11 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     Nfa retVal = new Nfa(data);
     Nfa temp = expr.getRegexpr().accept(this, data);
 
-    NfaState startState = retVal.start;
-    NfaState finalState = retVal.end;
-    startState.AddMove(temp.start);
+    NfaState startState = retVal.start();
+    NfaState finalState = retVal.end();
+    startState.AddMove(temp.start());
     startState.AddMove(finalState);
-    temp.end.AddMove(finalState);
+    temp.end().AddMove(finalState);
 
     return retVal;
   }
