@@ -211,7 +211,7 @@ void option_binding() #OptionBinding :
     Token o;
 @end
 {
-  ( o=<IDENTIFIER> ) < COLON >
+  o=<IDENTIFIER> < COLON >
   ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
   @code
     SELF.initialize(o.image, setInputOption(o, this.token));
@@ -477,7 +477,7 @@ ASTNodeDescriptor node_descriptor() #NodeDescriptor :
 @end
 {
   < HASH >
-  ( s=Name() @code SELF.name = s; @end
+  ( s=TypeParameter() @code SELF.name = s; @end
   | t=<VOID> @code SELF.name = t.image; @end
   )
   [
@@ -556,20 +556,6 @@ void ResultType() :
   < VOID > | Type()
 }
 
-String Name() :
-/*
- * A lookahead of 2 is required below since "Name" can be followed
- * by a ".*" when used in the context of an "ImportDeclaration".
- */
-@code
-    String s, ss;
-@end
-{
-  s=TypeParameter()
-  ( LOOKAHEAD(2) < DOT > ss=TypeParameter() @code s = String.join(".", s, ss); @end )*
-  @code return s; @end
-}
-
 
 /*
  * Expression syntax follows.
@@ -583,7 +569,7 @@ void PrimaryPrefix() :
 {
   Literal()
 | < LPAREN > Expression() < RPAREN >
-| Name()
+| TypeParameter()
 }
 
 void PrimarySuffix() :

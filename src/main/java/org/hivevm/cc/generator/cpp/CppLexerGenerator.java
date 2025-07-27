@@ -433,7 +433,7 @@ class CppLexerGenerator extends LexerGenerator {
           writer.println(prefix + "      jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
 
           writer.println(prefix + "   if (!reader->endOfInput()) {");
-          writer.println(prefix + "         curChar = reader->read(); // TOL: Support Unicode");
+          writer.println(prefix + "         curChar = reader->read(); // UTF8: Support Unicode");
 
           if (data.options().getDebugTokenManager()) {
             writer.println("   fprintf(debugStream, " + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
@@ -857,7 +857,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     writer.println("   if (reader->endOfInput()) { return pos + 1; }");
-    writer.println("   curChar = reader->read(); // TOL: Support Unicode");
+    writer.println("   curChar = reader->read(); // UTF8: Support Unicode");
 
     if (data.global.options().getDebugTokenManager()) {
       writer.println("   fprintf(debugStream, " + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
@@ -1637,7 +1637,7 @@ class CppLexerGenerator extends LexerGenerator {
       writer.println("   int seenUpto;");
       writer.println("   reader->backup(seenUpto = curPos + 1);");
       writer.println("   assert(!reader->endOfInput());");
-      writer.println("   curChar = reader->read(); // TOL: Support Unicode");
+      writer.println("   curChar = reader->read(); // UTF8: Support Unicode");
       writer.println("   curPos = 0;");
     }
 
@@ -1717,7 +1717,7 @@ class CppLexerGenerator extends LexerGenerator {
     } else {
       writer.println("      if (reader->endOfInput()) { return curPos; }");
     }
-    writer.println("      curChar = reader->read(); // TOL: Support Unicode");
+    writer.println("      curChar = reader->read(); // UTF8: Support Unicode");
 
     if (data.global.options().getDebugTokenManager()) {
       writer.println("   fprintf(debugStream, " + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
@@ -1736,7 +1736,7 @@ class CppLexerGenerator extends LexerGenerator {
       writer.println("   if (curPos < toRet)");
       writer.println("      for (i = toRet - MIN(curPos, seenUpto); i-- > 0; )");
       writer.println("        {  assert(!reader->endOfInput());");
-      writer.println("           curChar = reader->read(); } // TOL: Support Unicode");
+      writer.println("           curChar = reader->read(); } // UTF8: Support Unicode");
       writer.println("");
       writer.println("   if (jjmatchedPos < strPos)");
       writer.println("   {");

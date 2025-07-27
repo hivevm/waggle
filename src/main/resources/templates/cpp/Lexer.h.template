@@ -107,7 +107,7 @@ protected:
   JJString                  image;
   int                       jjimageLen;
   int                       lengthOfMatch;
-  uint32_t                  curChar; // TOL: Support Unicode
+  uint32_t                  curChar; // UTF8: Support Unicode
   TokenManagerErrorHandler* errorHandler = nullptr;
 
 public:
