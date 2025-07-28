@@ -9,8 +9,11 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.hivevm.cc.ParserRequest;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.semantic.SemanticRequest;
 
 /**
@@ -18,21 +21,21 @@ import org.hivevm.cc.semantic.SemanticRequest;
  */
 public class JavaCCData implements SemanticRequest, ParserRequest {
 
-  private final Options                    options;
-  private final boolean                    isGenerated;
-  private Action                           actForEof;
-  private String                           nextStateForEof;
+  private final Options options;
+  private final boolean isGenerated;
+  private       Action  actForEof;
+  private       String  nextStateForEof;
 
   /**
    * The name of the parser class (what appears in PARSER_BEGIN and PARSER_END).
    */
-  private String                           cu_name;
+  private String cu_name;
 
   /**
    * The total number of distinct tokens. This is therefore one more than the largest assigned token
    * ordinal.
    */
-  private int                              tokenCount;
+  private int tokenCount;
 
   /**
    * A mapping of lexical state strings to their integer internal representation. Integers are
@@ -51,14 +54,14 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
    * A list of all grammar productions - normal and JAVACODE - in the order they appear in the input
    * file. Each entry here will be a subclass of "NormalProduction".
    */
-  private final List<NormalProduction>                                                     bnfproductions       =
+  private final List<NormalProduction> bnfproductions =
       new ArrayList<>();
 
   /**
    * Contains the same entries as "named_tokens_table", but this is an ordered list which is ordered
    * by the order of appearance in the input file.
    */
-  private final List<RegularExpression>                                                    ordered_named_tokens =
+  private final List<RExpression> ordered_named_tokens =
       new ArrayList<>();
 
   /**
@@ -69,21 +72,21 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
    * hashtable. This third level hashtable contains the actual string of the simple token and maps
    * it to its RegularExpression.
    */
-  private final Hashtable<String, Hashtable<String, Hashtable<String, RegularExpression>>> simple_tokens_table  =
+  private final Hashtable<String, Hashtable<String, Hashtable<String, RExpression>>> simple_tokens_table =
       new Hashtable<>();
 
   /**
    * A symbol table of all grammar productions - normal and JAVACODE. The symbol table is indexed by
    * the name of the left hand side non-terminal. Its contents are of type "NormalProduction".
    */
-  private final Map<String, NormalProduction>                                              production_table     =
+  private final Map<String, NormalProduction> production_table =
       new HashMap<>();
 
   /**
    * The list of all TokenProductions from the input file. This list includes implicit
    * TokenProductions that are created for uses of regular expressions within BNF productions.
    */
-  private final List<TokenProduction>                                                      rexprlist            =
+  private final List<TokenProduction> rexprlist =
       new ArrayList<>();
 
   /**
@@ -92,7 +95,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
    * token corresponding to this entry. If there are multiple labels representing the same ordinal
    * value, then only one label is stored.
    */
-  private final Map<Integer, String>                                                       names_of_tokens      =
+  private final Map<Integer, String> names_of_tokens =
       new HashMap<>();
 
   /**
@@ -152,11 +155,6 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
   @Override
   public final Set<String> getStateNames() {
     return this.lexstate_S2I.keySet();
-  }
-
-  @Override
-  public final String getStateName(int index) {
-    return this.lexstate_I2S.get(index);
   }
 
   @Override
@@ -225,17 +223,18 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
   }
 
   @Override
-  public final Iterable<RegularExpression> getOrderedsTokens() {
+  public final Iterable<RExpression> getOrderedsTokens() {
     return this.ordered_named_tokens;
   }
 
   @Override
-  public final void addOrderedNamedToken(RegularExpression token) {
+  public final void addOrderedNamedToken(RExpression token) {
     this.ordered_named_tokens.add(token);
   }
 
   @Override
-  public final Hashtable<String, Hashtable<String, RegularExpression>> getSimpleTokenTable(String stateName) {
+  public final Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(
+      String stateName) {
     return this.simple_tokens_table.get(stateName);
   }
 
@@ -245,7 +244,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
   }
 
   @Override
-  public final void setNamesOfToken(RegularExpression expression) {
-    this.names_of_tokens.put(expression.ordinal, expression.getLabel());
+  public final void setNamesOfToken(RExpression expression) {
+    this.names_of_tokens.put(expression.getOrdinal(), expression.getLabel());
   }
 }

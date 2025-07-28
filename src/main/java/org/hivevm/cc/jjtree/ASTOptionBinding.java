@@ -5,7 +5,6 @@ package org.hivevm.cc.jjtree;
 
 public class ASTOptionBinding extends ASTNode {
 
-  private String  name;
   private boolean suppressed;
 
   public ASTOptionBinding(JJTreeParser p, int id) {
@@ -14,23 +13,15 @@ public class ASTOptionBinding extends ASTNode {
   }
 
   void initialize(String n, String v) {
-    this.name = n;
-
     // If an option is specific to JJTree it should not be written out
     // to the output file for JavaCC.
-
-    if (getParser().isOptionJJTreeOnly(this.name)) {
+    if (getParser().isOptionJJTreeOnly(n))
       this.suppressed = true;
-    }
   }
 
   @Override
   public String translateImage(Token t) {
-    if (this.suppressed) {
-      return whiteOut(t);
-    } else {
-      return t.image;
-    }
+    return this.suppressed ? whiteOut(t) : t.image;
   }
 
   @Override

@@ -10,8 +10,8 @@ import java.util.List;
 
 public class ASTProduction extends ASTNode {
 
-  String                     name;
-  private int                nextNodeScopeNumber;
+  String name;
+  private       int          nextNodeScopeNumber;
   private final List<String> throws_list;
 
 
@@ -42,8 +42,4 @@ public class ASTProduction extends ASTNode {
     return i;
   }
 
-  @Override
-  public Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
-    return visitor.visit(this, data);
-  }
 }

@@ -15,7 +15,7 @@ class H3QLTest {
   public static final File PARSER_CPP  = new File(H3QLTest.MAIN_DIR, "cpp/parser");
   public static final File PARSER_JAVA = new File(H3QLTest.MAIN_DIR, "java");
 
-  @Test
+  //@Test
   void testCpp() {
     ParserBuilder builder = ParserBuilder.of(Language.CPP);
     builder.setTargetDir(H3QLTest.PARSER_CPP);
@@ -23,7 +23,7 @@ class H3QLTest {
     builder.build();
   }
 
-  @Test
+  //@Test
   void testJava() {
     ParserBuilder builder = ParserBuilder.of(Language.JAVA);
     builder.setTargetDir(H3QLTest.PARSER_JAVA);

@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.hivevm.cc.generator.Generator;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.TreeContext;
@@ -27,12 +26,10 @@ import org.hivevm.cc.parser.JavaCCErrors;
 
 public class HiveCCTree {
 
-  private static final Pattern GENERATED = Pattern.compile("@generated\\(([^\\)]+)\\)");
+  private static final Pattern GENERATED = Pattern.compile("@generated\\(([^)]+)\\)");
 
   /**
    * Writes the generated string.
-   *
-   * @param writer
    */
   private static void writeGenerated(PrintWriter writer) {
     writer.println("/* @generated(JJTree) */");
@@ -40,21 +37,16 @@ public class HiveCCTree {
 
   /**
    * Parses the tool list from the generated string.
-   *
-   * @param text
    */
   private static List<String> readToolNameList(String text) {
     Matcher matcher = HiveCCTree.GENERATED.matcher(text);
-    while (matcher.find()) {
+    if (matcher.find())
       return Arrays.asList(matcher.group(1).split(","));
-    }
     return Collections.emptyList();
   }
 
   /**
    * Returns true if tool name passed is one of the tool names returned by getToolNames(fileName).
-   *
-   * @param fileName
    */
   static boolean isGenerated(String fileName) {
     try (InputStream stream = new FileInputStream(fileName)) {
@@ -64,7 +56,8 @@ public class HiveCCTree {
           return true;
         }
       }
-    } catch (IOException e) {}
+    } catch (IOException ignored) {
+    }
     return false;
   }
 
@@ -81,11 +74,13 @@ public class HiveCCTree {
       int di = jjt.lastIndexOf('.');
       if (di == -1) {
         filename = jjt + ".jj";
-      } else {
+      }
+      else {
         String suffix = jjt.substring(di);
         if (suffix.equals(".jj")) {
           filename = jjt + ".jj";
-        } else {
+        }
+        else {
           filename = jjt.substring(0, di) + ".jj";
         }
       }
@@ -97,11 +92,11 @@ public class HiveCCTree {
   /**
    * A main program that exercises the parser.
    */
-  public static void main(String args[]) throws Exception {
+  public static void main(String[] args) throws Exception {
     HiveCCTools.bannerLine("Tree Builder", "");
 
     if (args.length == 0) {
-      System.err.println("");
+      System.err.println();
       System.err.println("Missing arguments");
       System.exit(1);
     }
@@ -135,7 +130,8 @@ public class HiveCCTree {
     try {
       System.out.println("Reading from file " + filename + " ...");
 
-      Reader reader = new InputStreamReader(new FileInputStream(filename), HiveCCOptions.getFileEncoding());
+      Reader reader = new InputStreamReader(new FileInputStream(filename),
+          HiveCCOptions.getFileEncoding());
       JJTreeParserDefault parser = new JJTreeParserDefault(reader, options);
       ASTGrammar root = parser.parse();
 
@@ -155,7 +151,7 @@ public class HiveCCTree {
         System.exit(1);
       }
 
-      System.out.println("Annotated grammar generated successfully in " + jjFile.toString());
+      System.out.println("Annotated grammar generated successfully in " + jjFile);
 
     } catch (IOException ioe) {
       System.out.println("Error setting input: " + ioe.getMessage());

@@ -4,7 +4,6 @@
 package org.hivevm.cc.parser;
 
 import java.io.File;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.utils.Environment;
 

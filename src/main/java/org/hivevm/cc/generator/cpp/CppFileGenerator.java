@@ -5,15 +5,13 @@ package org.hivevm.cc.generator.cpp;
 
 import java.io.PrintWriter;
 import java.util.List;
-
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.TemplateProvider;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.RStringLiteral;
+import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.ParseException;
-import org.hivevm.cc.parser.RStringLiteral;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
 
 /**
  * Generates the Constants file.
@@ -21,7 +19,7 @@ import org.hivevm.cc.parser.TokenProduction;
 class CppFileGenerator implements FileGenerator {
 
   @Override
-  public final void generate(LexerData context) throws ParseException {
+  public final void generate(LexerData context) {
     TemplateProvider.render(CppTemplate.JAVACC, context.options());
 
     TemplateProvider.render(CppTemplate.TOKEN, context.options());
@@ -42,23 +40,28 @@ class CppFileGenerator implements FileGenerator {
     TemplateProvider.render(CppTemplate.PARSERHANDLER_H, context.options());
   }
 
-  static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RegularExpression> expressions) {
+  static void getRegExp(PrintWriter writer, boolean isImage, int i, List<RExpression> expressions) {
     if (i == 0) {
       CppFileGenerator.printCharArray(writer, "<EOF>");
-    } else {
-      RegularExpression expr = expressions.get(i - 1);
+    }
+    else {
+      RExpression expr = expressions.get(i - 1);
       if (expr instanceof RStringLiteral) {
         if (isImage) {
           CppFileGenerator.printCharArray(writer, ((RStringLiteral) expr).getImage());
-        } else {
+        }
+        else {
           CppFileGenerator.printCharArray(writer, "<" + expr.getLabel() + ">");
         }
-      } else if (expr.getLabel().isEmpty()) {
+      }
+      else if (expr.getLabel().isEmpty()) {
         if (expr.getTpContext().getKind() == TokenProduction.Kind.TOKEN) {
-          JavaCCErrors.warning(expr, "Consider giving this non-string token a label for better error reporting.");
+          JavaCCErrors.warning(expr,
+              "Consider giving this non-string token a label for better error reporting.");
         }
         CppFileGenerator.printCharArray(writer, "<token of kind " + expr.getOrdinal() + ">");
-      } else {
+      }
+      else {
         CppFileGenerator.printCharArray(writer, "<" + expr.getLabel() + ">");
       }
     }

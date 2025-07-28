@@ -6,21 +6,21 @@ package org.hivevm.cc.lexer;
 import java.util.ArrayList;
 import java.util.List;
 import org.hivevm.cc.generator.NfaStateData;
-import org.hivevm.cc.parser.CharacterRange;
+import org.hivevm.cc.model.CharacterRange;
+import org.hivevm.cc.model.RCharacterList;
+import org.hivevm.cc.model.RChoice;
+import org.hivevm.cc.model.REndOfFile;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.RJustName;
+import org.hivevm.cc.model.ROneOrMore;
+import org.hivevm.cc.model.RRepetitionRange;
+import org.hivevm.cc.model.RSequence;
+import org.hivevm.cc.model.RStringLiteral;
+import org.hivevm.cc.model.RZeroOrMore;
+import org.hivevm.cc.model.RZeroOrOne;
+import org.hivevm.cc.model.RegularExpressionVisitor;
+import org.hivevm.cc.model.SingleCharacter;
 import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.RCharacterList;
-import org.hivevm.cc.parser.RChoice;
-import org.hivevm.cc.parser.REndOfFile;
-import org.hivevm.cc.parser.RJustName;
-import org.hivevm.cc.parser.ROneOrMore;
-import org.hivevm.cc.parser.RRepetitionRange;
-import org.hivevm.cc.parser.RSequence;
-import org.hivevm.cc.parser.RStringLiteral;
-import org.hivevm.cc.parser.RZeroOrMore;
-import org.hivevm.cc.parser.RZeroOrOne;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.RegularExpressionVisitor;
-import org.hivevm.cc.parser.SingleCharacter;
 
 /**
  * The {@link NfaVisitor} class.
@@ -31,8 +31,6 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
   /**
    * Constructs an instance of {@link NfaVisitor}.
-   *
-   * @param ignoreCase
    */
   public NfaVisitor(boolean ignoreCase) {
     this.ignoreCase = ignoreCase;
@@ -53,15 +51,15 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
         expr.SortDescriptors();
       }
 
-      if (expr.isNegated_list()) {
+      if (expr.isNegated_list())
         expr.RemoveNegation(); // This also sorts the list
-      } else {
+      else
         expr.SortDescriptors();
-      }
     }
 
-    if ((expr.getDescriptors().size() == 0) && !expr.isNegated_list()) {
-      JavaCCErrors.semantic_error(this, "Empty character set is not allowed as it will not match any character.");
+    if ((expr.getDescriptors().isEmpty()) && !expr.isNegated_list()) {
+      JavaCCErrors.semantic_error(this,
+          "Empty character set is not allowed as it will not match any character.");
       return new Nfa(data);
     }
 
@@ -73,16 +71,16 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
     for (i = 0; i < expr.getDescriptors().size(); i++) {
       if (expr.getDescriptors().get(i) instanceof SingleCharacter) {
-        startState.AddChar(((SingleCharacter) expr.getDescriptors().get(i)).ch);
-      } else // if (descriptors.get(i) instanceof CharacterRange)
+        startState.AddChar(((SingleCharacter) expr.getDescriptors().get(i)).getChar());
+      }
+      else // if (descriptors.get(i) instanceof CharacterRange)
       {
         CharacterRange cr = (CharacterRange) expr.getDescriptors().get(i);
 
-        if (cr.getLeft() == cr.getRight()) {
+        if (cr.getLeft() == cr.getRight())
           startState.AddChar(cr.getLeft());
-        } else {
+        else
           startState.AddRange(cr.getLeft(), cr.getRight());
-        }
       }
     }
 
@@ -95,20 +93,15 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
   public Nfa visit(RChoice expr, NfaStateData data) {
     expr.CompressCharLists();
 
-    if (expr.getChoices().size() == 1) {
-      return expr.getChoices().get(0).accept(this, data);
-    }
+    if (expr.getChoices().size() == 1)
+      return expr.getChoices().getFirst().accept(this, data);
 
     Nfa retVal = new Nfa(data);
     NfaState startState = retVal.start();
     NfaState finalState = retVal.end();
 
-    for (Object element : expr.getChoices()) {
-      Nfa temp;
-      RegularExpression curRE = (RegularExpression) element;
-
-      temp = curRE.accept(this, data);
-
+    for (RExpression element : expr.getChoices()) {
+      Nfa temp = element.accept(this, data);
       startState.AddMove(temp.start());
       temp.end().AddMove(finalState);
     }
@@ -143,35 +136,26 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
   @Override
   public Nfa visit(RRepetitionRange expr, NfaStateData data) {
-    List<RegularExpression> units = new ArrayList<>();
-    RSequence seq;
+    RSequence seq = new RSequence();
+    seq.setOrdinal(Integer.MAX_VALUE);
     int i;
 
-    for (i = 0; i < expr.getMin(); i++) {
-      units.add(expr.getRegexpr());
-    }
+    for (i = 0; i < expr.getMin(); i++)
+      seq.getUnits().add(expr.getRegexpr());
 
     if (expr.hasMax() && (expr.getMax() == -1)) // Unlimited
-    {
-      RZeroOrMore zoo = new RZeroOrMore();
-      zoo.setRegexpr(expr.getRegexpr());
-      units.add(zoo);
-    }
+      seq.getUnits().add(new RZeroOrMore(expr.getRegexpr()));
 
-    while (i++ < expr.getMax()) {
-      RZeroOrOne zoo = new RZeroOrOne();
-      zoo.setRegexpr(expr.getRegexpr());
-      units.add(zoo);
-    }
-    seq = new RSequence(units);
+    while (i++ < expr.getMax())
+      seq.getUnits().add(new RZeroOrOne(expr.getRegexpr()));
+
     return seq.accept(this, data);
   }
 
   @Override
   public Nfa visit(RSequence expr, NfaStateData data) {
-    if (expr.getUnits().size() == 1) {
-      return expr.getUnits().get(0).accept(this, data);
-    }
+    if (expr.getUnits().size() == 1)
+      return expr.getUnits().getFirst().accept(this, data);
 
     Nfa retVal = new Nfa(data);
     NfaState startState = retVal.start();
@@ -179,9 +163,9 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     Nfa temp1;
     Nfa temp2 = null;
 
-    RegularExpression curRE;
+    RExpression curRE;
 
-    curRE = expr.getUnits().get(0);
+    curRE = expr.getUnits().getFirst();
     temp1 = curRE.accept(this, data);
     startState.AddMove(temp1.start());
 
@@ -209,9 +193,8 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
     NfaState theStartState = startState;
     NfaState finalState = null;
 
-    if (expr.getImage().length() == 0) {
+    if (expr.getImage().isEmpty())
       return new Nfa(theStartState, theStartState);
-    }
 
     int i;
 
@@ -236,7 +219,6 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
   public Nfa visit(RZeroOrMore expr, NfaStateData data) {
     Nfa retVal = new Nfa(data);
     Nfa temp = expr.getRegexpr().accept(this, data);
-
 
     NfaState startState = retVal.start();
     NfaState finalState = retVal.end();

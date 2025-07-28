@@ -3,12 +3,10 @@
 
 package org.hivevm.cc.generator;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.stream.Stream;
-
 import org.hivevm.cc.Language;
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.jjtree.ASTGrammar;
@@ -29,11 +27,9 @@ public abstract class GeneratorProvider implements Generator {
 
   /**
    * Generates the parser files.
-   *
-   * @param request
    */
   @Override
-  public final void generate(ParserRequest request) throws IOException, ParseException {
+  public final void generate(ParserRequest request) throws ParseException {
     LexerData dataLexer = new LexerBuilder().build(request);
     ParserData dataParser = new ParserBuilder().build(request);
 
@@ -44,10 +40,6 @@ public abstract class GeneratorProvider implements Generator {
 
   /**
    * Generates the Abstract Syntax Tree.
-   *
-   * @param node
-   * @param writer
-   * @param context
    */
   @Override
   public final void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context) {
@@ -58,8 +50,6 @@ public abstract class GeneratorProvider implements Generator {
 
   /**
    * Lookups for a {@link Generator} for the provided language.
-   *
-   * @param language
    */
   public static Generator generatorFor(Language language) {
     ServiceLoader<Generator> loader = ServiceLoader.load(Generator.class);

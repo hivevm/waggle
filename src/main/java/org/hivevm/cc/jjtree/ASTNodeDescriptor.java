@@ -9,14 +9,13 @@ import java.util.List;
 
 public class ASTNodeDescriptor extends ASTNode {
 
+  private static final List<String>              nodeIds   = new ArrayList<>();
+  private static final List<String>              nodeNames = new ArrayList<>();
+  private static final Hashtable<String, String> nodeSeen  = new Hashtable<>();
 
-  private static List<String>              nodeIds   = new ArrayList<>();
-  private static List<String>              nodeNames = new ArrayList<>();
-  private static Hashtable<String, String> nodeSeen  = new Hashtable<>();
 
-
-  String          name;
-  boolean         isGT;
+  String  name;
+  boolean isGT;
   private String  text;
   private boolean faked;
 
@@ -61,11 +60,10 @@ public class ASTNodeDescriptor extends ASTNode {
 
   @Override
   public String toString() {
-    if (this.faked) {
+    if (this.faked)
       return "(faked) " + this.name;
-    } else {
+    else
       return super.toString() + ": " + this.name;
-    }
   }
 
   public void setExpressionText(String text) {
@@ -73,11 +71,9 @@ public class ASTNodeDescriptor extends ASTNode {
   }
 
   public String getDescriptor() {
-    if (this.text == null) {
-      return this.name;
-    } else {
-      return "#" + this.name + "(" + (this.isGT ? ">" : "") + this.text + ")";
-    }
+    return this.text == null
+        ? this.name
+        : "#" + this.name + "(" + (this.isGT ? ">" : "") + this.text + ")";
   }
 
   public String getNodeType() {
@@ -93,9 +89,11 @@ public class ASTNodeDescriptor extends ASTNode {
   public String closeNode(String nodeVar) {
     if (this.text == null) {
       return "jjtree.closeNodeScope(" + nodeVar + ", true);";
-    } else if (this.isGT) {
+    }
+    else if (this.isGT) {
       return "jjtree.closeNodeScope(" + nodeVar + ", jjtree.nodeArity() >" + this.text + ");";
-    } else {
+    }
+    else {
       return "jjtree.closeNodeScope(" + nodeVar + ", " + this.text + ");";
     }
   }

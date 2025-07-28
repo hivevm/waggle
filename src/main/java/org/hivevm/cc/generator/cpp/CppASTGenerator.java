@@ -6,7 +6,6 @@ package org.hivevm.cc.generator.cpp;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.generator.TreeGenerator;
@@ -31,11 +30,15 @@ class CppASTGenerator extends TreeGenerator {
     writer.print(nodeClass + " *" + ns.nodeVar + " = ");
     if (context.getNodeFactory().equals("*")) {
       // Old-style multiple-implementations.
-      writer.println("(" + nodeClass + "*)" + nodeClass + "::jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-    } else if (context.getNodeFactory().length() > 0) {
+      writer.println(
+          "(" + nodeClass + "*)" + nodeClass + "::jjtCreate(" + ns.getNodeDescriptor().getNodeId()
+              + ");");
+    }
+    else if (!context.getNodeFactory().isEmpty()) {
       writer.println("(" + nodeClass + "*)" + context.getNodeFactory() + "->jjtCreate("
           + ns.getNodeDescriptor().getNodeId() + ");");
-    } else {
+    }
+    else {
       writer.println("new " + nodeClass + "(" + ns.getNodeDescriptor().getNodeId() + ");");
     }
 
@@ -54,7 +57,8 @@ class CppASTGenerator extends TreeGenerator {
   }
 
   @Override
-  protected final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions options, boolean isFinal) {
+  protected final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions options,
+      boolean isFinal) {
     String closeNode = ns.getNodeDescriptor().closeNode(ns.nodeVar);
     writer.println(closeNode);
     if (ns.usesCloseNodeVar() && !isFinal) {
@@ -142,7 +146,8 @@ class CppASTGenerator extends TreeGenerator {
     }
 
     List<String> nodeNames =
-        ASTNodeDescriptor.getNodeNames().stream().filter(n -> !n.equals("void")).collect(Collectors.toList());
+        ASTNodeDescriptor.getNodeNames().stream().filter(n -> !n.equals("void"))
+            .collect(Collectors.toList());
 
     TemplateOptions options = new TemplateOptions(context);
     options.add("NODES", nodeNames).set("type", n -> context.getNodePrefix() + n);
@@ -164,22 +169,22 @@ class CppASTGenerator extends TreeGenerator {
   }
 
   private void generateNode(TreeOptions context) {
-    TemplateOptions optionMap = new TemplateOptions(context);
+    var optionMap = new TemplateOptions(context);
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppASTGenerator.getVisitorReturnType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE, CppASTGenerator.getVisitorArgumentType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
-        Boolean.valueOf(CppASTGenerator.getVisitorReturnType(context).equals("void")));
+        CppASTGenerator.getVisitorReturnType(context).equals("void"));
 
     TemplateProvider template = CppTemplate.NODE;
     template.render(optionMap);
   }
 
   private void generateNodeInterface(TreeOptions context) {
-    TemplateOptions optionMap = new TemplateOptions(context);
+    var optionMap = new TemplateOptions(context);
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppASTGenerator.getVisitorReturnType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE, CppASTGenerator.getVisitorArgumentType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
-        Boolean.valueOf(CppASTGenerator.getVisitorReturnType(context).equals("void")));
+        CppASTGenerator.getVisitorReturnType(context).equals("void"));
 
     TemplateProvider template = CppTemplate.NODE_H;
     template.render(optionMap);
@@ -190,7 +195,7 @@ class CppASTGenerator extends TreeGenerator {
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppASTGenerator.getVisitorReturnType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE, CppASTGenerator.getVisitorArgumentType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
-        Boolean.valueOf(CppASTGenerator.getVisitorReturnType(context).equals("void")));
+        CppASTGenerator.getVisitorReturnType(context).equals("void"));
     optionMap.set(HiveCC.JJTREE_NODE_TYPE, "Tree");
 
     TemplateProvider template = CppTemplate.TREE;
@@ -205,10 +210,12 @@ class CppASTGenerator extends TreeGenerator {
       }
 
       TemplateOptions optionMap = new TemplateOptions(context);
-      optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppASTGenerator.getVisitorReturnType(context));
-      optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE, CppASTGenerator.getVisitorArgumentType(context));
+      optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE,
+          CppASTGenerator.getVisitorReturnType(context));
+      optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE,
+          CppASTGenerator.getVisitorArgumentType(context));
       optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
-          Boolean.valueOf(CppASTGenerator.getVisitorReturnType(context).equals("void")));
+          CppASTGenerator.getVisitorReturnType(context).equals("void"));
       optionMap.set(HiveCC.JJTREE_NODE_TYPE, node);
 
       TemplateProvider template = CppTemplate.MULTINODE;
@@ -222,7 +229,7 @@ class CppASTGenerator extends TreeGenerator {
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, CppASTGenerator.getVisitorReturnType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_DATA_TYPE, CppASTGenerator.getVisitorArgumentType(context));
     optionMap.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
-        Boolean.valueOf(CppASTGenerator.getVisitorReturnType(context).equals("void")));
+        CppASTGenerator.getVisitorReturnType(context).equals("void"));
     optionMap.set("NODES", nodesToGenerate());
 
     TemplateProvider template = CppTemplate.TREE_ONE;

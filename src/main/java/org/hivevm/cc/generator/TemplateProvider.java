@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.DigestOutputStream;
-
 import org.hivevm.cc.HiveCCVersion;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
@@ -43,9 +42,6 @@ public interface TemplateProvider {
 
   /**
    * Renders a {@link TemplateProvider}.
-   *
-   * @param template
-   * @param options
    */
   static void render(TemplateProvider provider, Options options) {
     File file = provider.getFile(options, null);
@@ -55,11 +51,6 @@ public interface TemplateProvider {
 
   /**
    * Renders a {@link TemplateProvider}.
-   *
-   * @param provider
-   * @param options
-   * @param options2
-   * @param name
    */
   static void render(TemplateProvider provider, Options options, String name) {
     File file = provider.getFile(options, name);
@@ -69,11 +60,6 @@ public interface TemplateProvider {
 
   /**
    * Generates a {@link File} from a template.
-   *
-   * @param name
-   * @param file
-   * @param opt
-   * @param env
    */
   static void generate(File file, String filename, String templateName, Environment opt) {
     DigestOptions options = new DigestOptions(opt);

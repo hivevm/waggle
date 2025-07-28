@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class DigestWriter extends PrintWriter {
 
-  public static final MessageDigest   DIGEST = DigestWriter.createMD5();
+  public static final MessageDigest DIGEST = DigestWriter.createMD5();
 
 
   private final OutputStream          stream;
@@ -27,10 +27,6 @@ public class DigestWriter extends PrintWriter {
 
   /**
    * Constructs an instance of {@link DigestWriter}.
-   *
-   * @param digest
-   * @param stream
-   * @param bytes
    */
   public DigestWriter(OutputStream stream, DigestOutputStream digest, ByteArrayOutputStream bytes,
       String banner, DigestOptions options) {
@@ -65,7 +61,8 @@ public class DigestWriter extends PrintWriter {
       writer.println();
       writer.printf("// Checksum=%s (Do not edit this line!)\n", checksum);
       if (this.options.hasConsumed()) {
-        writer.printf("// Options: %s\n", this.options.consumed().collect(Collectors.joining(", ")));
+        writer.printf("// Options: %s\n",
+            this.options.consumed().collect(Collectors.joining(", ")));
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -85,8 +82,6 @@ public class DigestWriter extends PrintWriter {
 
   /**
    * Creates an MD5 based checksum of the bytes.
-   *
-   * @param bytes
    */
   private static String toChecksum(byte[] bytes) {
     StringBuilder builder = new StringBuilder();

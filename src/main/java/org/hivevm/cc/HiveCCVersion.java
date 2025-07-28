@@ -6,7 +6,6 @@ package org.hivevm.cc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
 import org.hivevm.cc.utils.Version;
 
 /**

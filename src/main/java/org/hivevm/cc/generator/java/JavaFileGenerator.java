@@ -6,7 +6,6 @@ package org.hivevm.cc.generator.java;
 import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.generator.TemplateProvider;
-import org.hivevm.cc.parser.ParseException;
 
 /**
  * Generates the Constants file.
@@ -14,7 +13,7 @@ import org.hivevm.cc.parser.ParseException;
 class JavaFileGenerator implements FileGenerator {
 
   @Override
-  public final void generate(LexerData context) throws ParseException {
+  public final void generate(LexerData context) {
     TemplateProvider.render(JavaTemplate.TOKEN, context.options());
     TemplateProvider.render(JavaTemplate.TOKEN_EXCEPTION, context.options());
 

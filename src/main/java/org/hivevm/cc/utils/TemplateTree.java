@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.jetbrains.annotations.NotNull;
 
 class TemplateTree implements Iterable<TemplateTree> {
 
@@ -18,7 +19,7 @@ class TemplateTree implements Iterable<TemplateTree> {
     NONE,
     EXPR,
     SWITCH,
-    FOREACH;
+    FOREACH
   }
 
 
@@ -49,20 +50,18 @@ class TemplateTree implements Iterable<TemplateTree> {
     return this.option;
   }
 
-  public TemplateTree newText(String text) {
+  public void newText(String text) {
     TemplateTree node = new TemplateTree();
     node.text = text;
     this.nodes.add(node);
-    return node;
   }
 
-  public TemplateTree newExpr(String text, String option) {
+  public void newExpr(String text, String option) {
     TemplateTree node = new TemplateTree();
     node.kind = Kind.EXPR;
     node.text = text;
     node.option = option;
     this.nodes.add(node);
-    return node;
   }
 
   public TemplateTree newSwitch() {
@@ -89,15 +88,12 @@ class TemplateTree implements Iterable<TemplateTree> {
   }
 
   @Override
-  public final Iterator<TemplateTree> iterator() {
+  public final @NotNull Iterator<TemplateTree> iterator() {
     return this.nodes.iterator();
   }
 
   /**
    * Use the template.
-   *
-   * @param writer
-   * @param environment
    */
   public final void render(PrintWriter writer, Environment environment) {
     render(writer, environment, null, null, null);
@@ -105,12 +101,9 @@ class TemplateTree implements Iterable<TemplateTree> {
 
   /**
    * Use the template.
-   *
-   * @param writer
-   * @param lines
-   * @param env
    */
-  private void render(PrintWriter writer, Environment env, Object item, String global, String local) {
+  private void render(PrintWriter writer, Environment env, Object item, String global,
+      String local) {
     for (TemplateTree child : this) {
       switch (child.kind()) {
         case EXPR:
@@ -126,13 +119,16 @@ class TemplateTree implements Iterable<TemplateTree> {
           if (option != null) {
             boolean validate = validate(param, env);
             writer.print(validate ? instance : option);
-          } else if (instance instanceof Supplier) {
+          }
+          else if (instance instanceof Supplier) {
             Supplier<Object> func = (Supplier<Object>) instance;
             writer.print(func.get());
-          } else if (instance instanceof Function) {
+          }
+          else if (instance instanceof Function) {
             Function<Object, Object> func = (Function<Object, Object>) instance;
             writer.print(func.apply(item));
-          } else {
+          }
+          else {
             writer.print(instance);
           }
           break;
@@ -172,10 +168,8 @@ class TemplateTree implements Iterable<TemplateTree> {
 
   /**
    * Validates the condition against the properties.
-   *
-   * @param condition
    */
-  private final boolean validate(String condition, Environment environment) {
+  private boolean validate(String condition, Environment environment) {
     if (condition.startsWith("!")) { // negative condition
       return !validate(condition.substring(1), environment);
     }

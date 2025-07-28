@@ -5,11 +5,10 @@ package org.hivevm.cc.semantic;
 
 import java.util.Hashtable;
 import java.util.Set;
-
-import org.hivevm.cc.parser.Action;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 
 /**
  * The {@link SemanticRequest} class.
@@ -21,8 +20,6 @@ public interface SemanticRequest {
   int addTokenCount();
 
   Set<String> getStateNames();
-
-  String getStateName(int index);
 
   Integer getStateIndex(String name);
 
@@ -42,9 +39,9 @@ public interface SemanticRequest {
 
   NormalProduction setProductionTable(NormalProduction production);
 
-  void addOrderedNamedToken(RegularExpression token);
+  void addOrderedNamedToken(RExpression token);
 
-  Hashtable<String, Hashtable<String, RegularExpression>> getSimpleTokenTable(String stateName);
+  Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(String stateName);
 
-  void setNamesOfToken(RegularExpression expression);
+  void setNamesOfToken(RExpression expression);
 }

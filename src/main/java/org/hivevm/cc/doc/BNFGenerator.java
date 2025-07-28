@@ -4,27 +4,22 @@
 package org.hivevm.cc.doc;
 
 import java.io.PrintWriter;
-
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.NonTerminal;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.RCharacterList;
-import org.hivevm.cc.parser.RJustName;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RCharacterList;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.RJustName;
+import org.hivevm.cc.model.TokenProduction;
 
 class BNFGenerator implements Generator {
 
-  private PrintWriter        ostr;
+  private       PrintWriter  ostr;
   private final JJDocOptions opts;
-  private boolean            printing = true;
+  private       boolean      printing = true;
 
   /**
    * Constructs an instance of {@link BNFGenerator}.
-   *
-   * @param ostr
-   * @param opts
-   * @param printing
    */
   public BNFGenerator(JJDocOptions opts) {
     this.opts = opts;
@@ -35,36 +30,41 @@ class BNFGenerator implements Generator {
     if (this.opts.getOutputFile().equals("")) {
       if (JJDocGlobals.input_file.equals("standard input")) {
         return new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
-      } else {
+      }
+      else {
         String ext = ".bnf";
         int i = JJDocGlobals.input_file.lastIndexOf('.');
         if (i == -1) {
           JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
-        } else {
+        }
+        else {
           String suffix = JJDocGlobals.input_file.substring(i);
           if (suffix.equals(ext)) {
             JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
-          } else {
+          }
+          else {
             JJDocGlobals.output_file = JJDocGlobals.input_file.substring(0, i) + ext;
           }
         }
       }
-    } else {
+    }
+    else {
       JJDocGlobals.output_file = this.opts.getOutputFile();
     }
     try {
       this.ostr = new java.io.PrintWriter(new java.io.FileWriter(JJDocGlobals.output_file));
     } catch (java.io.IOException e) {
       JJDocGlobals
-          .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file + ".  Using standard output.");
+          .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file
+              + ".  Using standard output.");
       this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
     }
 
     return this.ostr;
   }
 
-  private void println(String s) {
-    print(s + "\n");
+  private void println() {
+    print("\n");
   }
 
   @Override
@@ -90,39 +90,47 @@ class BNFGenerator implements Generator {
   }
 
   @Override
-  public void specialTokens(String s) {}
+  public void specialTokens(String s) {
+  }
 
 
   @Override
-  public void nonterminalsStart() {}
+  public void nonterminalsStart() {
+  }
 
   @Override
-  public void nonterminalsEnd() {}
+  public void nonterminalsEnd() {
+  }
 
   @Override
-  public void tokensStart() {}
+  public void tokensStart() {
+  }
 
   @Override
-  public void tokensEnd() {}
+  public void tokensEnd() {
+  }
 
   @Override
-  public void expansionEnd(Expansion e, boolean first) {}
+  public void expansionEnd(Expansion e, boolean first) {
+  }
 
   @Override
-  public void nonTerminalStart(NonTerminal nt) {}
+  public void nonTerminalStart(NonTerminal nt) {
+  }
 
   @Override
-  public void nonTerminalEnd(NonTerminal nt) {}
+  public void nonTerminalEnd(NonTerminal nt) {
+  }
 
   @Override
   public void productionStart(NormalProduction np) {
-    println("");
+    println();
     print(np.getLhs() + " ::= ");
   }
 
   @Override
   public void productionEnd(NormalProduction np) {
-    println("");
+    println();
   }
 
   @Override
@@ -133,14 +141,14 @@ class BNFGenerator implements Generator {
   }
 
   @Override
-  public void reStart(RegularExpression r) {
+  public void reStart(RExpression r) {
     if (r.getClass().equals(RJustName.class) || r.getClass().equals(RCharacterList.class)) {
       this.printing = false;
     }
   }
 
   @Override
-  public void reEnd(RegularExpression r) {
+  public void reEnd(RExpression r) {
     this.printing = true;
   }
 

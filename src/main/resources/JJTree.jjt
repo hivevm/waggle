@@ -51,7 +51,7 @@ SPECIAL_TOKEN :
 MORE :
 {
   "//" : IN_SINGLE_LINE_COMMENT
-| <"/**" ~["/"]> @code input_stream.backup(1); @end : IN_FORMAL_COMMENT
+| "/**" @code input_stream.backup(1); @end : IN_FORMAL_COMMENT
 | "/*" : IN_MULTI_LINE_COMMENT
 | "@code" : PARSER_CODE
 }
@@ -66,7 +66,7 @@ SPECIAL_TOKEN :
 <IN_FORMAL_COMMENT>
 SPECIAL_TOKEN :
 {
-  <FORMAL_COMMENT: "*/" > : DEFAULT
+  "*/" : DEFAULT
 }
 
 <IN_MULTI_LINE_COMMENT>
@@ -195,14 +195,14 @@ void javacc_input() #Grammar :
 {
   (
   < _PARSER_BEGIN > < LPAREN > identifier()
-  @code
+@code
     setParserName(0);
-  @end
+@end
   < RPAREN >
-  ( ( option_binding() )* ) #Options
+  ( ( option_binding() ) * ) #Options
   < _PARSER_END >
   ) #CompilationUnit(true)
-  ( ( production() )+ ) #Productions
+  ( ( production() ) + ) #Productions
   <EOF>
 }
 
@@ -213,9 +213,9 @@ void option_binding() #OptionBinding :
 {
   o=<IDENTIFIER> < COLON >
   ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
-  @code
+@code
     SELF.initialize(o.image, setInputOption(o, this.token));
-  @end
+@end
   ( < COMMA > )?
 }
 
@@ -240,36 +240,35 @@ void bnf_production() #BNF :
     ASTNode eu;
 @end
 {
-  @code
+@code
     prod = SELF;
-  @end
+@end
   ResultType() t1=identifier() < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() )* ] < RPAREN >
   [ nd=node_descriptor() ]
   < COLON >
-  @code
+@code
 	prod.name = t1.image;
 	ns = new NodeScope(prod, nd);
-  @end
-  ( < ECODE >
-  < ECODE_END > ) ?
+@end
+  ( < ECODE > < ECODE_END > ) ?
   (
-    @code
+@code
 	  SELF.node_scope = ns;
-	@end
+@end
   ) #BNFDeclaration
 
   < LBRACE >
   (
     eu=expansion_choices(prod)
-    @code
+@code
 	  SELF.node_scope = ns;
 	  SELF.expansion_unit = eu;
-	@end
+@end
   ) #BNFNodeScope
  < RBRACE >
-  @code
+@code
     addProduction(prod);
-  @end
+@end
 }
 
 
@@ -301,7 +300,9 @@ void regexpr_spec() #RESpec :
 ASTNode expansion_choices(ASTProduction p) #BNFChoice(>1) :
 {
   expansion(p) ( < BIT_OR > expansion(p) )*
-  @code return (ASTNode)jjtree.peekNode(); @end
+@code
+  return (ASTNode)jjtree.peekNode();
+@end
 }
 
 void expansion(ASTProduction p) #BNFSequence(>1) :
@@ -315,12 +316,12 @@ void expansion(ASTProduction p) #BNFSequence(>1) :
     (
       eu=expansion_unit(p)
       [ nd=node_descriptor() ]
-      @code
+@code
 	    if (jjtree.nodeCreated()) {
 	      SELF.node_scope = new NodeScope(p, nd);
 	      SELF.expansion_unit = eu;
 	    }
-	  @end
+@end
     ) #ExpansionNodeScope(>1)
   )+
 }
@@ -346,12 +347,13 @@ void local_lookahead(ASTProduction p) :
     < COMMA >	@code commaAtEnd = true; @end
   ]
   [ LOOKAHEAD(0, { checkEmpty(getToken(1)) } )
-    expansion_choices(p)
-	@code emptyLA = false; commaAtEnd = false; @end
+expansion_choices(p)
+@code
+  emptyLA = false; commaAtEnd = false;
+@end
   ]
   [ LOOKAHEAD(0, { checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1)) } )
-    < COMMA >
-	@code commaAtEnd = true; @end
+    < COMMA > @code commaAtEnd = true; @end
   ]
   [ LOOKAHEAD(0, { checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd) } )
     < LBRACE > [ Expression() ] < RBRACE >
@@ -394,9 +396,9 @@ ASTNode expansion_unit(ASTProduction p) :
   )
   @code ((ASTNode)jjtree.peekNode()).setFirstToken(t); @end
 )
-  @code
+@code
 	return (ASTNode)jjtree.peekNode();
-  @end
+@end
 }
 
 void regular_expression() :
@@ -457,7 +459,10 @@ Token identifier() :
     Token t;
 @end
 {
-  t=<IDENTIFIER> @code return t; @end
+  t=<IDENTIFIER>
+@code
+  return t;
+@end
 }
 
 Token value() :

@@ -8,7 +8,6 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.generator.TreeGenerator;
@@ -34,11 +33,14 @@ class JavaASTGenerator extends TreeGenerator {
     writer.print(nodeClass + " " + ns.nodeVar + " = ");
     if (context.getNodeFactory().equals("*")) {
       // Old-style multiple-implementations.
-      writer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-    } else if (context.getNodeFactory().length() > 0) {
+      writer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId()  + ");");
+    }
+    else if (!context.getNodeFactory().isEmpty()) {
       writer.println(
-          "(" + nodeClass + ")" + context.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-    } else {
+          "(" + nodeClass + ")" + context.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor()
+              .getNodeId() + ");");
+    }
+    else {
       writer.println("new " + nodeClass + "(this, " + ns.getNodeDescriptor().getNodeId() + ");");
     }
 
@@ -57,7 +59,8 @@ class JavaASTGenerator extends TreeGenerator {
   }
 
   @Override
-  protected final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context, boolean isFinal) {
+  protected final void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context,
+      boolean isFinal) {
     String closeNode = ns.getNodeDescriptor().closeNode(ns.nodeVar);
     writer.println(closeNode);
     if (ns.usesCloseNodeVar() && !isFinal) {
@@ -92,7 +95,7 @@ class JavaASTGenerator extends TreeGenerator {
         writer.println("  }");
       }
 
-      String thrown = null;
+      String thrown;
       while (thrown_names.hasMoreElements()) {
         thrown = thrown_names.nextElement();
         writer.println("  if (" + ns.exceptionVar + " instanceof " + thrown + ") {");
@@ -150,7 +153,8 @@ class JavaASTGenerator extends TreeGenerator {
     }
 
     Stream<String> nodes = ASTNodeDescriptor.getNodeNames().stream().filter(n -> !n.equals("void"));
-    String argumentType = context.getVisitorDataType().equals("") ? "Object" : context.getVisitorDataType().trim();
+    String argumentType =
+        context.getVisitorDataType().equals("") ? "Object" : context.getVisitorDataType().trim();
     String returnValue = JavaASTGenerator.returnValue(context.getVisitorReturnType(), argumentType);
     boolean isVoidReturnType = "void".equals(context.getVisitorReturnType());
 
@@ -183,7 +187,7 @@ class JavaASTGenerator extends TreeGenerator {
 
   private void generateTreeNodes(TreeOptions context) {
     TemplateOptions options = new TemplateOptions(context);
-    options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, Boolean.valueOf(context.getVisitorReturnType().equals("void")));
+    options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, context.getVisitorReturnType().equals("void"));
 
     Set<String> excludes = context.getExcudeNodes();
     for (String nodeType : nodesToGenerate()) {
@@ -213,36 +217,26 @@ class JavaASTGenerator extends TreeGenerator {
       return " data";
     }
 
-    switch (returnType) {
-      case "boolean":
-        return " false";
-      case "int":
-        return " 0";
-      case "long":
-        return " 0L";
-      case "double":
-        return " 0.0d";
-      case "float":
-        return " 0.0f";
-      case "short":
-        return " 0";
-      case "byte":
-        return " 0";
-      case "char":
-        return " '\u0000'";
-      default:
-        return " null";
-    }
+    return switch (returnType) {
+      case "boolean" -> " false";
+      case "int", "short", "byte" -> " 0";
+      case "long" -> " 0L";
+      case "double" -> " 0.0d";
+      case "float" -> " 0.0f";
+      case "char" -> " '\u0000'";
+      default -> " null";
+    };
   }
 
-  private final Enumeration<String> findThrown(NodeScope ns, ASTNode expansion_unit) {
+  private Enumeration<String> findThrown(NodeScope ns, ASTNode expansion_unit) {
     Hashtable<String, String> thrown_set = new Hashtable<>();
     findThrown(ns, thrown_set, expansion_unit);
     return thrown_set.elements();
   }
 
 
-  private void findThrown(NodeScope ns, Hashtable<String, String> thrown_set, ASTNode expansion_unit) {
+  private void findThrown(NodeScope ns, Hashtable<String, String> thrown_set,
+      ASTNode expansion_unit) {
     if (expansion_unit instanceof ASTBNFNonTerminal) {
       // Should really make the nonterminal explicitly maintain its name.
       String nt = expansion_unit.getFirstToken().image;

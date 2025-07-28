@@ -3,6 +3,12 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.model.CharacterRange;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.SingleCharacter;
+import org.hivevm.cc.model.TokenProduction;
+
 /**
  * Output error messages and keep track of totals.
  */
@@ -12,26 +18,26 @@ public final class JavaCCErrors {
   private static int semantic_error_count = 0;
   private static int warning_count        = 0;
 
-  private JavaCCErrors() {}
+  private JavaCCErrors() {
+  }
 
   private static void printLocationInfo(Object node) {
-    if (node instanceof NormalProduction) {
-      NormalProduction n = (NormalProduction) node;
+    if (node instanceof NormalProduction n) {
       System.err.print("Line " + n.getLine() + ", Column " + n.getColumn() + ": ");
-    } else if (node instanceof TokenProduction) {
-      TokenProduction n = (TokenProduction) node;
+    }
+    else if (node instanceof TokenProduction n) {
       System.err.print("Line " + n.getLine() + ", Column " + n.getColumn() + ": ");
-    } else if (node instanceof Expansion) {
-      Expansion n = (Expansion) node;
+    }
+    else if (node instanceof Expansion n) {
       System.err.print("Line " + n.getLine() + ", Column " + n.getColumn() + ": ");
-    } else if (node instanceof CharacterRange) {
-      CharacterRange n = (CharacterRange) node;
+    }
+    else if (node instanceof CharacterRange n) {
       System.err.print("Line " + n.getLine() + ", Column " + n.getColumn() + ": ");
-    } else if (node instanceof SingleCharacter) {
-      SingleCharacter n = (SingleCharacter) node;
+    }
+    else if (node instanceof SingleCharacter n) {
       System.err.print("Line " + n.getLine() + ", Column " + n.getColumn() + ": ");
-    } else if (node instanceof Token) {
-      Token t = (Token) node;
+    }
+    else if (node instanceof Token t) {
       System.err.print("Line " + t.beginLine + ", Column " + t.beginColumn + ": ");
     }
   }

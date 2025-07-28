@@ -4,7 +4,6 @@
 package org.hivevm.cc.generator.cpp;
 
 import java.io.File;
-
 import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.parser.Options;
 

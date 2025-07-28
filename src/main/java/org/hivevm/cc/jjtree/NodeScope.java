@@ -5,28 +5,24 @@ package org.hivevm.cc.jjtree;
 
 public class NodeScope {
 
-  private final ASTProduction production;
-  private ASTNodeDescriptor   node_descriptor;
+  private final ASTNodeDescriptor node_descriptor;
 
-  public String               closedVar;
-  public String               exceptionVar;
-  public String               nodeVar;
-  private final int           scopeNumber;
+  public final  String closedVar;
+  public final  String exceptionVar;
+  public final  String nodeVar;
+  private final int    scopeNumber;
 
   NodeScope(ASTProduction p, ASTNodeDescriptor n) {
-    this.production = p;
-
     if (n == null) {
-      String nm = this.production.name;
-      if (p.jjtOptions().getNodeDefaultVoid()) {
+      String nm = p.name;
+      if (p.jjtOptions().getNodeDefaultVoid())
         nm = "void";
-      }
       this.node_descriptor = ASTNodeDescriptor.indefinite(p.parser, nm);
-    } else {
-      this.node_descriptor = n;
     }
+    else
+      this.node_descriptor = n;
 
-    this.scopeNumber = this.production.getNodeScopeNumber(this);
+    this.scopeNumber = p.getNodeScopeNumber(this);
     this.nodeVar = constructVariable("n");
     this.closedVar = constructVariable("c");
     this.exceptionVar = constructVariable("e");
@@ -64,16 +60,21 @@ public class NodeScope {
   }
 
   public static NodeScope getEnclosingNodeScope(Node node) {
-    if (node instanceof ASTBNFDeclaration) {
-      return ((ASTBNFDeclaration) node).node_scope;
-    }
+    if (node instanceof ASTBNFDeclaration n)
+      return n.node_scope;
     for (Node n = node.jjtGetParent(); n != null; n = n.jjtGetParent()) {
-      if (n instanceof ASTBNFDeclaration) {
-        return ((ASTBNFDeclaration) n).node_scope;
-      } else if (n instanceof ASTBNFNodeScope) {
-        return ((ASTBNFNodeScope) n).node_scope;
-      } else if (n instanceof ASTExpansionNodeScope) {
-        return ((ASTExpansionNodeScope) n).node_scope;
+      switch (n) {
+        case ASTBNFDeclaration astbnfDeclaration -> {
+          return astbnfDeclaration.node_scope;
+        }
+        case ASTBNFNodeScope astbnfNodeScope -> {
+          return astbnfNodeScope.node_scope;
+        }
+        case ASTExpansionNodeScope astExpansionNodeScope -> {
+          return astExpansionNodeScope.node_scope;
+        }
+        default -> {
+        }
       }
     }
     return null;

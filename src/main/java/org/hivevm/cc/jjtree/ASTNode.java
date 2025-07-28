@@ -37,7 +37,7 @@ public class ASTNode extends Node {
 
 
   /*****************************************************************
-   *
+   * <p>
    * The following is added manually to enhance all tree nodes with attributes that store the first
    * and last tokens corresponding to each node, as well as to print the tokens back to the
    * specified output stream.
@@ -68,16 +68,13 @@ public class ASTNode extends Node {
 
   String whiteOut(Token t) {
     StringBuilder sb = new StringBuilder(t.image.length());
-
     for (int i = 0; i < t.image.length(); ++i) {
       char ch = t.image.charAt(i);
-      if ((ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f')) {
+      if ((ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f'))
         sb.append(' ');
-      } else {
+      else
         sb.append(ch);
-      }
     }
-
     return sb.toString();
   }
 }

@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-
 import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.RStringLiteral.KindInfo;
 
 /**
  * The {@link NfaStateData} class.
@@ -24,40 +22,40 @@ public class NfaStateData {
 
 
   // RString
-  int     maxLen;
-  int     maxStrKind;
-  boolean subString[];
-  boolean subStringAtPos[];
+  int       maxLen;
+  int       maxStrKind;
+  boolean[] subString;
+  boolean[] subStringAtPos;
 
 
-  int[]   maxLenForActive;
+  final int[] maxLenForActive;
   int[][] intermediateKinds;
   int[][] intermediateMatchedPos;
 
 
-  Hashtable<String, long[]>[]       statesForPos;
-  List<Hashtable<String, KindInfo>> charPosKind;
+  Hashtable<String, long[]>[] statesForPos;
+  final List<Hashtable<String, KindInfo>> charPosKind;
 
   // NfaState
-  public boolean               done;
-  public boolean               mark[];
-  public boolean               hasNFA;
-  boolean                      hasMixed;
-  boolean                      createStartNfa;
+  public boolean   done;
+  public boolean[] mark;
+  public boolean   hasNFA;
+  boolean hasMixed;
+  boolean createStartNfa;
 
-  private int                  idCnt;
-  private int                  generatedStates;
-  private List<NfaState>       allStates;
+  private       int            idCnt;
+  private       int            generatedStates;
+  private       List<NfaState> allStates;
   private final List<NfaState> indexedAllStates;
 
 
-  int                                    dummyStateIndex;
-  private final Hashtable<String, int[]> allNextStates;
-  final Hashtable<String, Integer>       stateNameForComposite;
-  final Hashtable<String, int[]>         compositeStateTable;
-  final Hashtable<String, String>        stateBlockTable;
-  final Hashtable<String, int[]>         stateSetsToFix;
-  public Hashtable<String, NfaState>     equivStatesTable;
+  int dummyStateIndex;
+  private final Hashtable<String, int[]>    allNextStates;
+  final         Hashtable<String, Integer>  stateNameForComposite;
+  final         Hashtable<String, int[]>    compositeStateTable;
+  final         Hashtable<String, String>   stateBlockTable;
+  final         Hashtable<String, int[]>    stateSetsToFix;
+  public final  Hashtable<String, NfaState> equivStatesTable;
 
 
   NfaStateData(LexerData data, String name) {
@@ -93,7 +91,6 @@ public class NfaStateData {
     this.stateBlockTable = new Hashtable<>();
     this.stateSetsToFix = new Hashtable<>();
     this.equivStatesTable = new Hashtable<>();
-
 
     // Do at end
     this.initialState = new NfaState(this);
@@ -210,5 +207,38 @@ public class NfaStateData {
 
   public final boolean isSubStringAtPos(int index) {
     return this.subStringAtPos[index];
+  }
+
+
+  public static final class KindInfo {
+
+    public final long[] validKinds;
+    public final long[] finalKinds;
+
+    private int validKindCnt = 0;
+    private int finalKindCnt = 0;
+
+    public KindInfo(int maxKind) {
+      this.validKinds = new long[(maxKind / 64) + 1];
+      this.finalKinds = new long[(maxKind / 64) + 1];
+    }
+
+    public void InsertValidKind(int kind) {
+      this.validKinds[kind / 64] |= (1L << (kind % 64));
+      this.validKindCnt++;
+    }
+
+    public void InsertFinalKind(int kind) {
+      this.finalKinds[kind / 64] |= (1L << (kind % 64));
+      this.finalKindCnt++;
+    }
+
+    public boolean hasValidKindCnt() {
+      return this.validKindCnt != 0;
+    }
+
+    public boolean hasFinalKindCnt() {
+      return this.finalKindCnt != 0;
+    }
   }
 }

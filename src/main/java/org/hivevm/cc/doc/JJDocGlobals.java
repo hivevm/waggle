@@ -5,18 +5,17 @@ package org.hivevm.cc.doc;
 
 /**
  * Global variables for JJDoc.
- *
  */
 class JJDocGlobals {
 
   /**
    * The name of the input file.
    */
-  static String    input_file;
+  static String input_file;
   /**
    * The name of the output file.
    */
-  static String    output_file;
+  static String output_file;
 
   /**
    * The Generator to create output with.
@@ -33,22 +32,29 @@ class JJDocGlobals {
     if (JJDocGlobals.generator == null) {
       if (opts.getText()) {
         JJDocGlobals.generator = new TextGenerator(opts);
-      } else if (opts.getBNF()) {
+      }
+      else if (opts.getBNF()) {
         JJDocGlobals.generator = new BNFGenerator(opts);
-      } else if (opts.getXText()) {
+      }
+      else if (opts.getXText()) {
         JJDocGlobals.generator = new XTextGenerator(opts);
-      } else {
+      }
+      else {
         JJDocGlobals.generator = new HTMLGenerator(opts);
       }
-    } else if (opts.getText()) {
+    }
+    else if (opts.getText()) {
       if (JJDocGlobals.generator instanceof HTMLGenerator) {
         JJDocGlobals.generator = new TextGenerator(opts);
       }
-    } else if (opts.getBNF()) {
+    }
+    else if (opts.getBNF()) {
       JJDocGlobals.generator = new BNFGenerator(opts);
-    } else if (opts.getXText()) {
+    }
+    else if (opts.getXText()) {
       JJDocGlobals.generator = new XTextGenerator(opts);
-    } else if (JJDocGlobals.generator instanceof TextGenerator) {
+    }
+    else if (JJDocGlobals.generator instanceof TextGenerator) {
       JJDocGlobals.generator = new HTMLGenerator(opts);
     }
     return JJDocGlobals.generator;

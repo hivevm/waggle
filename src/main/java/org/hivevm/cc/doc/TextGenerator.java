@@ -4,20 +4,19 @@
 package org.hivevm.cc.doc;
 
 import java.io.PrintWriter;
-
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.NonTerminal;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 
 /**
  * Output BNF in text format.
  */
 class TextGenerator implements Generator {
 
-  protected PrintWriter  ostr;
-  protected JJDocOptions opts;
+  protected       PrintWriter  ostr;
+  protected final JJDocOptions opts;
 
   public TextGenerator(JJDocOptions opts) {
     this.opts = opts;
@@ -92,7 +91,8 @@ class TextGenerator implements Generator {
    * @see org.hivevm.cc.doc.Generator#nonterminalsEnd()
    */
   @Override
-  public void nonterminalsEnd() {}
+  public void nonterminalsEnd() {
+  }
 
   /**
    * {@inheritDoc}
@@ -117,12 +117,13 @@ class TextGenerator implements Generator {
    * @see org.hivevm.cc.doc.Generator#tokensEnd()
    */
   @Override
-  public void tokensEnd() {}
+  public void tokensEnd() {
+  }
 
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#productionStart(org.hivevm.cc.parser.NormalProduction)
+   * @see org.hivevm.cc.doc.Generator#productionStart(NormalProduction)
    */
   @Override
   public void productionStart(NormalProduction np) {
@@ -132,7 +133,7 @@ class TextGenerator implements Generator {
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#productionEnd(org.hivevm.cc.parser.NormalProduction)
+   * @see org.hivevm.cc.doc.Generator#productionEnd(NormalProduction)
    */
   @Override
   public void productionEnd(NormalProduction np) {
@@ -142,7 +143,7 @@ class TextGenerator implements Generator {
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#expansionStart(org.hivevm.cc.parser.Expansion, boolean)
+   * @see org.hivevm.cc.doc.Generator#expansionStart(Expansion, boolean)
    */
   @Override
   public void expansionStart(Expansion e, boolean first) {
@@ -154,42 +155,47 @@ class TextGenerator implements Generator {
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#expansionEnd(org.hivevm.cc.parser.Expansion, boolean)
+   * @see org.hivevm.cc.doc.Generator#expansionEnd(Expansion, boolean)
    */
   @Override
-  public void expansionEnd(Expansion e, boolean first) {}
+  public void expansionEnd(Expansion e, boolean first) {
+  }
 
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#nonTerminalStart(org.hivevm.cc.parser.NonTerminal)
+   * @see org.hivevm.cc.doc.Generator#nonTerminalStart(NonTerminal)
    */
   @Override
-  public void nonTerminalStart(NonTerminal nt) {}
+  public void nonTerminalStart(NonTerminal nt) {
+  }
 
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#nonTerminalEnd(org.hivevm.cc.parser.NonTerminal)
+   * @see org.hivevm.cc.doc.Generator#nonTerminalEnd(NonTerminal)
    */
   @Override
-  public void nonTerminalEnd(NonTerminal nt) {}
+  public void nonTerminalEnd(NonTerminal nt) {
+  }
 
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#reStart(org.hivevm.cc.parser.RegularExpression)
+   * @see org.hivevm.cc.doc.Generator#reStart(RExpression)
    */
   @Override
-  public void reStart(RegularExpression r) {}
+  public void reStart(RExpression r) {
+  }
 
   /**
    * {@inheritDoc}
    *
-   * @see org.hivevm.cc.doc.Generator#reEnd(org.hivevm.cc.parser.RegularExpression)
+   * @see org.hivevm.cc.doc.Generator#reEnd(RExpression)
    */
   @Override
-  public void reEnd(RegularExpression r) {}
+  public void reEnd(RExpression r) {
+  }
 
   /**
    * Create an output stream for the generated Jack code. Try to open a file based on the name of
@@ -200,28 +206,33 @@ class TextGenerator implements Generator {
     if (this.opts.getOutputFile().equals("")) {
       if (JJDocGlobals.input_file.equals("standard input")) {
         return new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
-      } else {
+      }
+      else {
         String ext = ".html";
 
         if (this.opts.getText()) {
           ext = ".txt";
-        } else if (this.opts.getXText()) {
+        }
+        else if (this.opts.getXText()) {
           ext = ".xtext";
         }
 
         int i = JJDocGlobals.input_file.lastIndexOf('.');
         if (i == -1) {
           JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
-        } else {
+        }
+        else {
           String suffix = JJDocGlobals.input_file.substring(i);
           if (suffix.equals(ext)) {
             JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
-          } else {
+          }
+          else {
             JJDocGlobals.output_file = JJDocGlobals.input_file.substring(0, i) + ext;
           }
         }
       }
-    } else {
+    }
+    else {
       JJDocGlobals.output_file = this.opts.getOutputFile();
     }
 
@@ -229,7 +240,8 @@ class TextGenerator implements Generator {
       this.ostr = new java.io.PrintWriter(new java.io.FileWriter(JJDocGlobals.output_file));
     } catch (java.io.IOException e) {
       JJDocGlobals
-          .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file + ".  Using standard output.");
+          .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file
+              + ".  Using standard output.");
       this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
     }
 

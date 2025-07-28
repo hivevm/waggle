@@ -9,12 +9,10 @@ package org.hivevm.cc.semantic;
 class MatchInfo {
 
   final int[] match;
-  int   firstFreeLoc;
+  int firstFreeLoc;
 
   /**
    * Constructs an instance of {@link MatchInfo}.
-   *
-   * @param match
    */
   MatchInfo(int limit) {
     this.match = new int[limit];

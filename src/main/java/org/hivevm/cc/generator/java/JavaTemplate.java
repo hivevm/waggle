@@ -4,7 +4,6 @@
 package org.hivevm.cc.generator.java;
 
 import java.io.File;
-
 import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.parser.Options;
 
@@ -72,9 +71,6 @@ enum JavaTemplate implements TemplateProvider {
 
   /**
    * Get the Java file to generate.
-   *
-   * @param filename
-   * @param options
    */
   public static File getFile(String filename, Options options) {
     String packagePath = options.getJavaPackageName().replace('.', File.separatorChar);

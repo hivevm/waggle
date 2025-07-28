@@ -3,14 +3,12 @@
 
 package org.hivevm.cc.utils;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Generates boiler-plate files from templates.
@@ -22,19 +20,18 @@ public class Template {
   private static final String COND_ELSE    = "else";
   private static final String COND_FOREACH = "foreach";
 
-  private static final String COND_END     = "end";
-  private static final String COND_END_IF  = "fi";
+  private static final String COND_END    = "end";
+  private static final String COND_END_IF = "fi";
 
   // COMMAND (ARGUMENT (,ARGUMENT)* )?
   private static final Pattern COMMAND = Pattern.compile(
       "@(if|elif|else|foreach|fi|end)(?:\\s*(?:\\(([^\\)]+)\\)))?\\n?|\\{\\{([^\\{\\}\\:]+)(?:\\:([^\\}]*))?\\}\\}");
 
-  private final byte[]         bytes;
-  private final Environment    environment;
+  private final byte[]      bytes;
+  private final Environment environment;
 
   /**
-   * @param bytes
-   * @param environment
+   *
    */
   public Template(byte[] bytes, Environment environment) {
     this.bytes = bytes;
@@ -43,10 +40,8 @@ public class Template {
 
   /**
    * Use the template.
-   *
-   * @param writer
    */
-  public final void render(PrintWriter writer) throws IOException {
+  public final void render(PrintWriter writer) {
     String data = new String(this.bytes, StandardCharsets.UTF_8);
     Matcher matcher = Template.COMMAND.matcher(data);
 
@@ -61,10 +56,6 @@ public class Template {
 
   /**
    * Use the template.
-   *
-   * @param writer
-   * @param lines
-   * @param env
    */
   private int walk(TemplateTree node, String data, int offset, Matcher matcher) {
     while (matcher.find()) {
@@ -96,8 +87,8 @@ public class Template {
             return offset;
 
           case COND_FOREACH:
-            List<String> args =
-                Arrays.asList(matcher.group(2).split(":")).stream().map(k -> k.trim()).collect(Collectors.toList());
+            List<String> args = Arrays.stream(matcher.group(2).split(":")).map(String::trim)
+                .toList();
             child = node.newForEach(args.get(0), args.get(1));
             offset = walk(child, data, offset, matcher);
             break;
@@ -105,7 +96,8 @@ public class Template {
           default:
             break;
         }
-      } else {
+      }
+      else {
         node.newExpr(matcher.group(3), matcher.group(4));
       }
     }

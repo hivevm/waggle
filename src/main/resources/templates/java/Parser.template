@@ -150,17 +150,15 @@ public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implemen
   private Token jj_consume_token(int kind) throws ParseException {
 @if(CACHE_TOKENS)
     Token oldToken = token;
-    if ((token = jj_nt).next != null)
-      jj_nt = jj_nt.next;
-    else
-      jj_nt = jj_nt.next = token_source.getNextToken();
+    if ((token = jj_nt).next == null)
+      jj_nt.next = token_source.getNextToken();
+    jj_nt = jj_nt.next;
 @else
     Token oldToken;
-    if ((oldToken = token).next != null)
-      token = token.next;
-    else
-      token = token.next = token_source.getNextToken();
-      jj_ntk = -1;
+    if ((oldToken = token).next == null)
+      token.next = token_source.getNextToken();
+    token = token.next;
+    jj_ntk = -1;
 @fi
     if (token.kind == kind) {
 @if(ERROR_REPORTING)

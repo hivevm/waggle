@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * The {@link Version} implements the semantic version syntax
  * ({@link https://semver.org/spec/v2.0.0.html}. Depending on the software the major.minor.patch are
  * interpreted differently.
- *
+ * <p>
  * On the API the interpretation of the version number is following:
  *
  * <pre>
@@ -18,18 +18,18 @@ import java.util.regex.Pattern;
  * - MINOR version when you add functionality in a backwards compatible manner, and
  * - PATCH version when you make backwards compatible bug fixes.
  * </pre>
- *
- * On an released client software the version number is interpreted as following:
+ * <p>
+ * On a released client software the version number is interpreted as following:
  *
  * <pre>
  * - MAJOR defines the year of release,
  * - MINOR defines the month of release
  * - PATCH version when you make backwards compatible bug fixes.
  * </pre>
- *
+ * <p>
  * For the interpretation of a full version text see the Backus–Naur Form Grammar from the
  * specification.
- *
+ * <p>
  * E.g.:
  *
  * <pre>
@@ -43,29 +43,24 @@ import java.util.regex.Pattern;
  */
 public class Version implements Comparable<Version> {
 
-  private static final String  PATTERN =
+  private static final String PATTERN =
       "(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?";
 
-  private static final Pattern PARSE   = Pattern.compile(Version.PATTERN);
-  private static final Pattern MATCH   = Pattern.compile("^" + Version.PATTERN + "$");
-  private static final Pattern FORMAT  = Pattern.compile("([0]+)\\.([0]+)(?:\\.([0]+))?(?:-([0]+))?(?:\\+([0]+))?");
+  private static final Pattern PARSE  = Pattern.compile(Version.PATTERN);
+  private static final Pattern MATCH  = Pattern.compile("^" + Version.PATTERN + "$");
+  private static final Pattern FORMAT = Pattern.compile(
+      "([0]+)\\.([0]+)(?:\\.([0]+))?(?:-([0]+))?(?:\\+([0]+))?");
 
 
-  private final int    major;
-  private final int    minor;
-  private final int    patch;
+  private final int major;
+  private final int minor;
+  private final int patch;
 
   private final String name;
   private final String build;
 
   /**
    * Constructs an instance of {@link Version}.
-   *
-   * @param major
-   * @param minor
-   * @param patch
-   * @param name
-   * @param build
    */
   protected Version(int major, int minor, int patch, String name, String build) {
     this.major = major;
@@ -112,16 +107,16 @@ public class Version implements Comparable<Version> {
 
   /**
    * Compares this {@link Version} with the specified {@link Version} for order.
-   *
-   * @param other
    */
   @Override
   public int compareTo(Version other) {
     if (getMajor() != other.getMajor()) { // Major version
       return getMajor() > other.getMajor() ? -1 : 1;
-    } else if (getMinor() != other.getMinor()) { // Minor version
+    }
+    else if (getMinor() != other.getMinor()) { // Minor version
       return getMinor() > other.getMinor() ? -1 : 1;
-    } else if (getPatch() != other.getPatch()) { // Patch version
+    }
+    else if (getPatch() != other.getPatch()) { // Patch version
       return getPatch() > other.getPatch() ? -1 : 1;
     }
     return 0;
@@ -153,8 +148,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Returns a string representation of the version, using the provided format.
-   *
-   * @param format
    */
   public final String toString(String format) {
     Matcher matcher = Version.FORMAT.matcher(format);
@@ -167,7 +160,7 @@ public class Version implements Comparable<Version> {
     buffer.append(String.format(text, getMajor(), getMinor()));
     if (matcher.group(3) != null) {
       text = ".%0" + matcher.group(3).length() + "d";
-      buffer.append(String.format(text, getPatch() < 0 ? 0 : getPatch()));
+      buffer.append(String.format(text, Math.max(getPatch(), 0)));
     }
     if ((matcher.group(4) != null) && (getName() != null)) {
       buffer.append("-");
@@ -182,9 +175,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Creates a new instance of {@link Version}
-   *
-   * @param major
-   * @param minor
    */
   public static Version of(int major, int minor) {
     return Version.of(major, minor, -1, null, null);
@@ -192,10 +182,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Creates a new instance of {@link Version}
-   *
-   * @param major
-   * @param minor
-   * @param patch
    */
   public static Version of(int major, int minor, int patch) {
     return Version.of(major, minor, patch, null, null);
@@ -203,11 +189,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Creates a new instance of {@link Version}
-   *
-   * @param major
-   * @param minor
-   * @param prerelease
-   * @param build
    */
   public static Version of(int major, int minor, String pre, String build) {
     return Version.of(major, minor, -1, pre, build);
@@ -215,12 +196,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Creates a new instance of {@link Version}
-   *
-   * @param major
-   * @param minor
-   * @param patch
-   * @param pre
-   * @param build
    */
   public static Version of(int major, int minor, int patch, String pre, String build) {
     return new Version(major, minor, patch, pre, build);
@@ -229,8 +204,6 @@ public class Version implements Comparable<Version> {
   /**
    * Parses a {@link Version} from the text. Instead of the {@link #parse(String)}, the method
    * expects an exact matching of the version without any preceding and succeeding character.
-   *
-   * @param text
    */
   public static Version of(String text) throws IllegalArgumentException {
     return Version.parse(text, Version.MATCH);
@@ -238,8 +211,6 @@ public class Version implements Comparable<Version> {
 
   /**
    * Parses a new instance of {@link Version}
-   *
-   * @param text
    */
   public static Version parse(String text) throws IllegalArgumentException {
     return Version.parse(text, Version.PARSE);
@@ -248,9 +219,6 @@ public class Version implements Comparable<Version> {
   /**
    * Parses a new instance of {@link Version}. The provided pattern must contain named groups with
    * the names: major, minor, patch, name, build.
-   *
-   * @param text
-   * @param pattern
    */
   public static Version parse(String text, Pattern pattern) throws IllegalArgumentException {
     if (text == null) {

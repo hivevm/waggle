@@ -10,7 +10,8 @@ import org.hivevm.cc.parser.JavaCCErrors;
  */
 final class TokenUtils {
 
-  private TokenUtils() {}
+  private TokenUtils() {
+  }
 
   static String remove_escapes_and_quotes(Token t, String str) {
     String retval = "";
@@ -104,33 +105,29 @@ final class TokenUtils {
             }
           }
         }
-        JavaCCErrors.parse_error(t, "Encountered non-hex character '" + ch + "' at position " + index
-            + " of string - Unicode escape must have 4 hex digits after it.");
+        JavaCCErrors.parse_error(t,
+            "Encountered non-hex character '" + ch + "' at position " + index
+                + " of string - Unicode escape must have 4 hex digits after it.");
         return retval;
       }
-      JavaCCErrors.parse_error(t, "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
+      JavaCCErrors.parse_error(t,
+          "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
       return retval;
     }
     return retval;
   }
 
   private static boolean hexchar(char ch) {
-    if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F'))) {
+    if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F')))
       return true;
-    }
-    if ((ch >= 'a') && (ch <= 'f')) {
-      return true;
-    }
-    return false;
+    return (ch >= 'a') && (ch <= 'f');
   }
 
   private static int hexval(char ch) {
-    if ((ch >= '0') && (ch <= '9')) {
+    if ((ch >= '0') && (ch <= '9'))
       return (ch) - ('0');
-    }
-    if ((ch >= 'A') && (ch <= 'F')) {
+    if ((ch >= 'A') && (ch <= 'F'))
       return ((ch) - ('A')) + 10;
-    }
     return ((ch) - ('a')) + 10;
   }
 }

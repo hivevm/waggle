@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.TreeContext;
 
@@ -81,9 +80,11 @@ abstract class ASTParser {
 
   protected abstract Token getToken(int index);
 
-  protected void jjtreeOpenNodeScope(Node n) throws ParseException {}
+  protected void jjtreeOpenNodeScope(Node n) throws ParseException {
+  }
 
-  protected void jjtreeCloseNodeScope(Node n) throws ParseException {}
+  protected void jjtreeCloseNodeScope(Node n) throws ParseException {
+  }
 
   protected TreeContext getOptions() {
     throw new UnsupportedOperationException();
@@ -96,12 +97,9 @@ abstract class ASTParser {
   protected boolean notTailOfExpansionUnit() {
     Token t;
     t = getToken(1);
-    if ((t.kind == JJTreeParserConstants.BIT_OR) || (t.kind == JJTreeParserConstants.COMMA)
-        || (t.kind == JJTreeParserConstants.RPAREN) || (t.kind == JJTreeParserConstants.RBRACE)
-        || (t.kind == JJTreeParserConstants.RBRACKET)) {
-      return false;
-    }
-    return true;
+    return (t.kind != JJTreeParserConstants.BIT_OR) && (t.kind != JJTreeParserConstants.COMMA)
+        && (t.kind != JJTreeParserConstants.RPAREN) && (t.kind != JJTreeParserConstants.RBRACE)
+        && (t.kind != JJTreeParserConstants.RBRACKET);
   }
 
   protected boolean checkEmptyLA(boolean emptyLA, Token token) {
@@ -117,6 +115,7 @@ abstract class ASTParser {
   }
 
   protected boolean checkEmpty(Token token) {
-    return (token.kind != JJTreeParserConstants.RPAREN) && (token.kind != JJTreeParserConstants.LBRACE);
+    return (token.kind != JJTreeParserConstants.RPAREN) && (token.kind
+        != JJTreeParserConstants.LBRACE);
   }
 }

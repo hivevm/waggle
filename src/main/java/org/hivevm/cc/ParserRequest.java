@@ -3,11 +3,11 @@
 
 package org.hivevm.cc;
 
-import org.hivevm.cc.parser.Action;
-import org.hivevm.cc.parser.NormalProduction;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
 
 /**
  * The {@link ParserRequest} class.
@@ -32,7 +32,7 @@ public interface ParserRequest {
 
   String getNameOfToken(int ordinal);
 
-  Iterable<RegularExpression> getOrderedsTokens();
+  Iterable<RExpression> getOrderedsTokens();
 
   Iterable<TokenProduction> getTokenProductions();
 

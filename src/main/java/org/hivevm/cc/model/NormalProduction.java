@@ -1,20 +1,16 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.parser;
+package org.hivevm.cc.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.hivevm.cc.parser.Token;
 
 /**
  * Describes JavaCC productions.
  */
-
-public class NormalProduction {
-
-  // The line and column number of the construct that corresponds most closely to this node.
-  private int column;
-  private int line;
+public class NormalProduction extends Expansion {
 
   // The NonTerminal nodes which refer to this production.
   private final List<Object> parents = new ArrayList<>();
@@ -32,20 +28,20 @@ public class NormalProduction {
    * Each entry in this list is a list of tokens that represents an exception in the throws list of
    * this production. This list does not include ParseException which is always thrown.
    */
-  private List<List<Token>> throws_list           = new ArrayList<>();
+  private List<List<Token>> throws_list = new ArrayList<>();
 
   // The RHS of this production. Not used for JavaCodeProduction.
   private Expansion expansion;
 
   // This boolean flag is true if this production can expand to empty.
-  private boolean            emptyPossible  = false;
+  private boolean emptyPossible = false;
 
   /**
    * A list of all non-terminals that this one can expand to without having to consume any tokens.
    * Also an index that shows how many pointers exist.
    */
   private NormalProduction[] leftExpansions = new NormalProduction[10];
-  public int                 leIndex        = 0;
+  public  int                leIndex        = 0;
 
   /**
    * The following variable is used to maintain state information for the left-recursion
@@ -54,34 +50,13 @@ public class NormalProduction {
    * node has been traversed. i.e., -1 indicates partially processed, and 1 indicates fully
    * processed.
    */
-  private int                walkStatus     = 0;
+  private int walkStatus = 0;
 
   // The first and last tokens from the input stream that represent this production.
   private Token lastToken;
   private Token firstToken;
 
-  /**
-   * @return the line
-   */
-  public int getLine() {
-    return this.line;
-  }
-
-  /**
-   * @param column the column to set
-   */
-  public void setLocation(Token token) {
-    this.line = token.beginLine;
-    this.column = token.beginColumn;
-  }
-
-  /**
-   * @return the column
-   */
-  public int getColumn() {
-    return this.column;
-  }
-
+  protected NormalProduction() {}
   /**
    * @return the parents
    */
@@ -191,7 +166,7 @@ public class NormalProduction {
   /**
    * @param firstToken the firstToken to set
    */
-  Token setFirstToken(Token firstToken) {
+  public Token setFirstToken(Token firstToken) {
     this.firstToken = firstToken;
     return firstToken;
   }

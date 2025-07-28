@@ -12,44 +12,49 @@ public interface Encoding {
 
   /**
    * Escapes special ASCII characters.
-   *
-   * @param text
    */
   static String escape(String text) {
-    String retval = "";
+    StringBuilder retval = new StringBuilder();
     char ch;
     for (int i = 0; i < text.length(); i++) {
       ch = text.charAt(i);
       if (ch == '\b') {
-        retval += "\\b";
-      } else if (ch == '\t') {
-        retval += "\\t";
-      } else if (ch == '\n') {
-        retval += "\\n";
-      } else if (ch == '\f') {
-        retval += "\\f";
-      } else if (ch == '\r') {
-        retval += "\\r";
-      } else if (ch == '\"') {
-        retval += "\\\"";
-      } else if (ch == '\'') {
-        retval += "\\\'";
-      } else if (ch == '\\') {
-        retval += "\\\\";
-      } else if ((ch < 0x20) || (ch > 0x7e)) {
+        retval.append("\\b");
+      }
+      else if (ch == '\t') {
+        retval.append("\\t");
+      }
+      else if (ch == '\n') {
+        retval.append("\\n");
+      }
+      else if (ch == '\f') {
+        retval.append("\\f");
+      }
+      else if (ch == '\r') {
+        retval.append("\\r");
+      }
+      else if (ch == '\"') {
+        retval.append("\\\"");
+      }
+      else if (ch == '\'') {
+        retval.append("\\'");
+      }
+      else if (ch == '\\') {
+        retval.append("\\\\");
+      }
+      else if ((ch < 0x20) || (ch > 0x7e)) {
         String s = "0000" + Integer.toString(ch, 16);
-        retval += "\\u" + s.substring(s.length() - 4);
-      } else {
-        retval += ch;
+        retval.append("\\u").append(s.substring(s.length() - 4));
+      }
+      else {
+        retval.append(ch);
       }
     }
-    return retval;
+    return retval.toString();
   }
 
   /**
    * Escapes special UNICODE characters.
-   *
-   * @param text
    */
   static String escapeUnicode(String text, Language language) {
     switch (language) {
@@ -58,10 +63,12 @@ public interface Encoding {
         char ch;
         for (int i = 0; i < text.length(); i++) {
           ch = text.charAt(i);
-          if (((ch < 0x20) || (ch > 0x7e)) && (ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f')) {
+          if (((ch < 0x20) || (ch > 0x7e)) && (ch != '\t') && (ch != '\n') && (ch != '\r') && (ch
+              != '\f')) {
             String s = "0000" + Integer.toString(ch, 16);
-            builder.append("\\u" + s.substring(s.length() - 4));
-          } else {
+            builder.append("\\u").append(s.substring(s.length() - 4));
+          }
+          else {
             builder.append(ch);
           }
         }

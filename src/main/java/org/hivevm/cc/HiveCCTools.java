@@ -4,7 +4,6 @@
 package org.hivevm.cc;
 
 import java.io.File;
-
 import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
@@ -17,7 +16,8 @@ public interface HiveCCTools {
    * tool's full name and its version.
    */
   static void bannerLine(String fullName, String ver) {
-    System.out.print("Java Compiler Compiler Version " + HiveCCVersion.VERSION.toString() + " (" + fullName);
+    System.out.print(
+        "Java Compiler Compiler Version " + HiveCCVersion.VERSION.toString() + " (" + fullName);
     if (!ver.equals("")) {
       System.out.print(" Version " + ver);
     }
@@ -26,7 +26,8 @@ public interface HiveCCTools {
 
   static void createOutputDir(File outputDir) {
     if (!outputDir.exists()) {
-      JavaCCErrors.warning("Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
+      JavaCCErrors.warning(
+          "Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
 
       if (!outputDir.mkdirs()) {
         JavaCCErrors.semantic_error("Cannot create the output directory : " + outputDir);
@@ -40,7 +41,8 @@ public interface HiveCCTools {
     }
 
     if (!outputDir.canWrite()) {
-      JavaCCErrors.semantic_error("Cannot write to the output output directory : \"" + outputDir + "\"");
+      JavaCCErrors.semantic_error(
+          "Cannot write to the output output directory : \"" + outputDir + "\"");
     }
   }
 }

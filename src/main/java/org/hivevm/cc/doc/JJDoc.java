@@ -4,35 +4,35 @@
 package org.hivevm.cc.doc;
 
 import java.util.Iterator;
-
-import org.hivevm.cc.parser.Action;
-import org.hivevm.cc.parser.BNFProduction;
-import org.hivevm.cc.parser.CharacterRange;
-import org.hivevm.cc.parser.Choice;
-import org.hivevm.cc.parser.Expansion;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.BNFProduction;
+import org.hivevm.cc.model.CharacterRange;
+import org.hivevm.cc.model.Choice;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.Lookahead;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.OneOrMore;
+import org.hivevm.cc.model.RCharacterList;
+import org.hivevm.cc.model.RChoice;
+import org.hivevm.cc.model.REndOfFile;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.RJustName;
+import org.hivevm.cc.model.ROneOrMore;
+import org.hivevm.cc.model.RRepetitionRange;
+import org.hivevm.cc.model.RSequence;
+import org.hivevm.cc.model.RStringLiteral;
+import org.hivevm.cc.model.RZeroOrMore;
+import org.hivevm.cc.model.RZeroOrOne;
+import org.hivevm.cc.model.RegularExpression;
+import org.hivevm.cc.model.Sequence;
+import org.hivevm.cc.model.SingleCharacter;
+import org.hivevm.cc.model.TokenProduction;
+import org.hivevm.cc.model.ZeroOrMore;
+import org.hivevm.cc.model.ZeroOrOne;
 import org.hivevm.cc.parser.JavaCCData;
-import org.hivevm.cc.parser.Lookahead;
-import org.hivevm.cc.parser.NonTerminal;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.OneOrMore;
-import org.hivevm.cc.parser.RCharacterList;
-import org.hivevm.cc.parser.RChoice;
-import org.hivevm.cc.parser.REndOfFile;
-import org.hivevm.cc.parser.RJustName;
-import org.hivevm.cc.parser.ROneOrMore;
-import org.hivevm.cc.parser.RRepetitionRange;
-import org.hivevm.cc.parser.RSequence;
-import org.hivevm.cc.parser.RStringLiteral;
-import org.hivevm.cc.parser.RZeroOrMore;
-import org.hivevm.cc.parser.RZeroOrOne;
 import org.hivevm.cc.parser.RegExprSpec;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.Sequence;
-import org.hivevm.cc.parser.SingleCharacter;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.parser.TokenProduction;
-import org.hivevm.cc.parser.ZeroOrMore;
-import org.hivevm.cc.parser.ZeroOrOne;
 import org.hivevm.cc.utils.Encoding;
 
 /**
@@ -57,11 +57,10 @@ class JJDoc extends JJDocGlobals {
   }
 
   private static void emitTopLevelSpecialTokens(Token tok) {
-    if (tok == null) {
+    if (tok == null)
       // Strange ...
       return;
-    }
-    tok = JJDoc.getPrecedingSpecialToken(tok);
+    JJDoc.getPrecedingSpecialToken(tok);
   }
 
   /*
@@ -75,15 +74,8 @@ class JJDoc extends JJDocGlobals {
     for (TokenProduction tp : prods) {
       JJDoc.emitTopLevelSpecialTokens(tp.getFirstToken());
 
-
       gen.handleTokenProduction(tp);
 
-      // if (!token.equals("")) {
-      // gen.tokenStart(tp);
-      // String token = getStandardTokenProductionText(tp);
-      // gen.text(token);
-      // gen.tokenEnd(tp);
-      // }
     }
     gen.tokensEnd();
   }
@@ -93,7 +85,8 @@ class JJDoc extends JJDocGlobals {
     if (tp.isExplicit()) {
       if (tp.getLexStates() == null) {
         token += "<*> ";
-      } else {
+      }
+      else {
         token += "<";
         for (int i = 0; i < tp.getLexStates().length; ++i) {
           token += tp.getLexStates()[i];
@@ -108,7 +101,7 @@ class JJDoc extends JJDocGlobals {
         token += " [IGNORE_CASE]";
       }
       token += " : {\n";
-      for (Iterator<RegExprSpec> it2 = tp.getRespecs().iterator(); it2.hasNext();) {
+      for (Iterator<RegExprSpec> it2 = tp.getRespecs().iterator(); it2.hasNext(); ) {
         RegExprSpec res = it2.next();
 
         token += JJDoc.emitRE(res.rexp);
@@ -133,17 +126,16 @@ class JJDoc extends JJDocGlobals {
       JJDoc.emitTopLevelSpecialTokens(np.getFirstToken());
       if (np instanceof BNFProduction) {
         gen.productionStart(np);
-        if (np.getExpansion() instanceof Choice) {
+        if (np.getExpansion() instanceof Choice c) {
           boolean first = true;
-          Choice c = (Choice) np.getExpansion();
-          for (Object element : c.getChoices()) {
-            Expansion e = (Expansion) (element);
-            gen.expansionStart(e, first);
-            JJDoc.emitExpansionTree(e, gen);
-            gen.expansionEnd(e, first);
+          for (Expansion element : c.getChoices()) {
+            gen.expansionStart(element, first);
+            JJDoc.emitExpansionTree(element, gen);
+            gen.expansionEnd(element, first);
             first = false;
           }
-        } else {
+        }
+        else {
           gen.expansionStart(np.getExpansion(), true);
           JJDoc.emitExpansionTree(np.getExpansion(), gen);
           gen.expansionEnd(np.getExpansion(), true);
@@ -156,34 +148,27 @@ class JJDoc extends JJDocGlobals {
 
   private static void emitExpansionTree(Expansion exp, Generator gen) {
     // gen.text("[->" + exp.getClass().getName() + "]");
-    if (exp instanceof Action) {
-      JJDoc.emitExpansionAction();
-    } else if (exp instanceof Choice) {
-      JJDoc.emitExpansionChoice((Choice) exp, gen);
-    } else if (exp instanceof Lookahead) {
-      JJDoc.emitExpansionLookahead();
-    } else if (exp instanceof NonTerminal) {
-      JJDoc.emitExpansionNonTerminal((NonTerminal) exp, gen);
-    } else if (exp instanceof OneOrMore) {
-      JJDoc.emitExpansionOneOrMore((OneOrMore) exp, gen);
-    } else if (exp instanceof RegularExpression) {
-      JJDoc.emitExpansionRegularExpression((RegularExpression) exp, gen);
-    } else if (exp instanceof Sequence) {
-      JJDoc.emitExpansionSequence((Sequence) exp, gen);
-    } else if (exp instanceof ZeroOrMore) {
-      JJDoc.emitExpansionZeroOrMore((ZeroOrMore) exp, gen);
-    } else if (exp instanceof ZeroOrOne) {
-      JJDoc.emitExpansionZeroOrOne((ZeroOrOne) exp, gen);
-    } else {
-      JJDocGlobals.error("Oops: Unknown expansion type.");
+    switch (exp) {
+      case Action action -> JJDoc.emitExpansionAction();
+      case Choice choice -> JJDoc.emitExpansionChoice(choice, gen);
+      case Lookahead lookahead -> JJDoc.emitExpansionLookahead();
+      case NonTerminal nonTerminal -> JJDoc.emitExpansionNonTerminal(nonTerminal, gen);
+      case OneOrMore oneOrMore -> JJDoc.emitExpansionOneOrMore(oneOrMore, gen);
+      case RegularExpression regularExpression ->
+          JJDoc.emitExpansionRegularExpression((RExpression)regularExpression, gen);
+      case Sequence sequence -> JJDoc.emitExpansionSequence(sequence, gen);
+      case ZeroOrMore zeroOrMore -> JJDoc.emitExpansionZeroOrMore(zeroOrMore, gen);
+      case ZeroOrOne zeroOrOne -> JJDoc.emitExpansionZeroOrOne(zeroOrOne, gen);
+      case null, default -> JJDocGlobals.error("Oops: Unknown expansion type.");
     }
     // gen.text("[<-" + exp.getClass().getName() + "]");
   }
 
-  private static void emitExpansionAction() {}
+  private static void emitExpansionAction() {
+  }
 
   private static void emitExpansionChoice(Choice c, Generator gen) {
-    for (Iterator<Expansion> it = c.getChoices().iterator(); it.hasNext();) {
+    for (Iterator<Expansion> it = c.getChoices().iterator(); it.hasNext(); ) {
       Expansion e = it.next();
       JJDoc.emitExpansionTree(e, gen);
       if (it.hasNext()) {
@@ -192,7 +177,8 @@ class JJDoc extends JJDocGlobals {
     }
   }
 
-  private static void emitExpansionLookahead() {}
+  private static void emitExpansionLookahead() {
+  }
 
   private static void emitExpansionNonTerminal(NonTerminal nt, Generator gen) {
     gen.nonTerminalStart(nt);
@@ -206,9 +192,9 @@ class JJDoc extends JJDocGlobals {
     gen.text(" )+");
   }
 
-  private static void emitExpansionRegularExpression(RegularExpression r, Generator gen) {
+  private static void emitExpansionRegularExpression(RExpression r, Generator gen) {
     String reRendered = JJDoc.emitRE(r);
-    if (!reRendered.equals("")) {
+    if (!reRendered.isEmpty()) {
       gen.reStart(r);
       gen.text(reRendered);
       gen.reEnd(r);
@@ -249,9 +235,9 @@ class JJDoc extends JJDocGlobals {
     gen.text(" )?");
   }
 
-  static String emitRE(RegularExpression re) {
+  static String emitRE(RExpression re) {
     String returnString = "";
-    boolean hasLabel = !re.getLabel().equals("");
+    boolean hasLabel = !re.getLabel().isEmpty();
     boolean justName = re instanceof RJustName;
     boolean eof = re instanceof REndOfFile;
     boolean isString = re instanceof RStringLiteral;
@@ -269,102 +255,95 @@ class JJDoc extends JJDocGlobals {
         }
       }
     }
-    if (re instanceof RCharacterList) {
-      RCharacterList cl = (RCharacterList) re;
-      if (cl.isNegated_list()) {
-        returnString += "~";
-      }
-      returnString += "[";
-      for (Iterator<Object> it = cl.getDescriptors().iterator(); it.hasNext();) {
-        Object o = it.next();
-        if (o instanceof SingleCharacter) {
-          returnString += "\"";
-          char s[] = { ((SingleCharacter) o).ch };
-          returnString += Encoding.escape(new String(s));
-          returnString += "\"";
-        } else if (o instanceof CharacterRange) {
-          returnString += "\"";
-          char s[] = { ((CharacterRange) o).getLeft() };
-          returnString += Encoding.escape(new String(s));
-          returnString += "\"-\"";
-          s[0] = ((CharacterRange) o).getRight();
-          returnString += Encoding.escape(new String(s));
-          returnString += "\"";
-        } else {
-          JJDocGlobals.error("Oops: unknown character list element type.");
+    switch (re) {
+      case RCharacterList cl -> {
+        if (cl.isNegated_list()) {
+          returnString += "~";
         }
-        if (it.hasNext()) {
+        returnString += "[";
+        for (Iterator<Object> it = cl.getDescriptors().iterator(); it.hasNext(); ) {
+          Object o = it.next();
+          if (o instanceof SingleCharacter c) {
+            returnString += "\"";
+            char[] s = {c.getChar()};
+            returnString += Encoding.escape(new String(s));
+            returnString += "\"";
+          }
+          else if (o instanceof CharacterRange range) {
+            returnString += "\"";
+            char[] s = {range.getLeft()};
+            returnString += Encoding.escape(new String(s));
+            returnString += "\"-\"";
+            s[0] = range.getRight();
+            returnString += Encoding.escape(new String(s));
+            returnString += "\"";
+          }
+          else {
+            JJDocGlobals.error("Oops: unknown character list element type.");
+          }
+          if (it.hasNext())
+            returnString += ",";
+        }
+        returnString += "]";
+      }
+      case RChoice c -> {
+        for (Iterator<RExpression> it = c.getChoices().iterator(); it.hasNext(); ) {
+          RExpression sub = it.next();
+          returnString += JJDoc.emitRE(sub);
+          if (it.hasNext())
+            returnString += " | ";
+        }
+      }
+      case REndOfFile rEndOfFile -> returnString += "EOF";
+      case RJustName jn -> returnString += jn.getLabel();
+      case ROneOrMore om -> {
+        returnString += "(";
+        returnString += JJDoc.emitRE(om.getRegexpr());
+        returnString += ")+";
+      }
+      case RSequence s -> {
+        for (Iterator<RExpression> it = s.getUnits().iterator(); it.hasNext(); ) {
+          RExpression sub = it.next();
+          boolean needParens = sub instanceof RChoice;
+          if (needParens) {
+            returnString += "(";
+          }
+          returnString += JJDoc.emitRE(sub);
+          if (needParens) {
+            returnString += ")";
+          }
+          if (it.hasNext()) {
+            returnString += " ";
+          }
+        }
+      }
+      case RStringLiteral sl -> returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
+      case RZeroOrMore zm -> {
+        returnString += "(";
+        returnString += JJDoc.emitRE(zm.getRegexpr());
+        returnString += ")*";
+      }
+      case RZeroOrOne zo -> {
+        returnString += "(";
+        returnString += JJDoc.emitRE(zo.getRegexpr());
+        returnString += ")?";
+      }
+      case RRepetitionRange zo -> {
+        returnString += "(";
+        returnString += JJDoc.emitRE(zo.getRegexpr());
+        returnString += ")";
+        returnString += "{";
+        if (zo.hasMax()) {
+          returnString += zo.getMin();
           returnString += ",";
+          returnString += zo.getMax();
         }
+        else {
+          returnString += zo.getMin();
+        }
+        returnString += "}";
       }
-      returnString += "]";
-    } else if (re instanceof RChoice) {
-      RChoice c = (RChoice) re;
-      for (Iterator<RegularExpression> it = c.getChoices().iterator(); it.hasNext();) {
-        RegularExpression sub = it.next();
-        returnString += JJDoc.emitRE(sub);
-        if (it.hasNext()) {
-          returnString += " | ";
-        }
-      }
-    } else if (re instanceof REndOfFile) {
-      returnString += "EOF";
-    } else if (re instanceof RJustName) {
-      RJustName jn = (RJustName) re;
-      returnString += jn.getLabel();
-    } else if (re instanceof ROneOrMore) {
-      ROneOrMore om = (ROneOrMore) re;
-      returnString += "(";
-      returnString += JJDoc.emitRE(om.getRegexpr());
-      returnString += ")+";
-    } else if (re instanceof RSequence) {
-      RSequence s = (RSequence) re;
-      for (Iterator<RegularExpression> it = s.getUnits().iterator(); it.hasNext();) {
-        RegularExpression sub = it.next();
-        boolean needParens = false;
-        if (sub instanceof RChoice) {
-          needParens = true;
-        }
-        if (needParens) {
-          returnString += "(";
-        }
-        returnString += JJDoc.emitRE(sub);
-        if (needParens) {
-          returnString += ")";
-        }
-        if (it.hasNext()) {
-          returnString += " ";
-        }
-      }
-    } else if (re instanceof RStringLiteral) {
-      RStringLiteral sl = (RStringLiteral) re;
-      returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
-    } else if (re instanceof RZeroOrMore) {
-      RZeroOrMore zm = (RZeroOrMore) re;
-      returnString += "(";
-      returnString += JJDoc.emitRE(zm.getRegexpr());
-      returnString += ")*";
-    } else if (re instanceof RZeroOrOne) {
-      RZeroOrOne zo = (RZeroOrOne) re;
-      returnString += "(";
-      returnString += JJDoc.emitRE(zo.getRegexpr());
-      returnString += ")?";
-    } else if (re instanceof RRepetitionRange) {
-      RRepetitionRange zo = (RRepetitionRange) re;
-      returnString += "(";
-      returnString += JJDoc.emitRE(zo.getRegexpr());
-      returnString += ")";
-      returnString += "{";
-      if (zo.hasMax()) {
-        returnString += zo.getMin();
-        returnString += ",";
-        returnString += zo.getMax();
-      } else {
-        returnString += zo.getMin();
-      }
-      returnString += "}";
-    } else {
-      JJDocGlobals.error("Oops: Unknown regular expression type.");
+      default -> JJDocGlobals.error("Oops: Unknown regular expression type.");
     }
     if (needBrackets) {
       returnString += ">";

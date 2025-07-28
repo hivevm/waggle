@@ -5,7 +5,6 @@ package org.hivevm.cc.doc;
 
 import java.io.FileInputStream;
 import java.text.ParseException;
-
 import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.HiveCCTools;
 import org.hivevm.cc.parser.JavaCCData;
@@ -19,7 +18,8 @@ import org.hivevm.cc.parser.StreamProvider;
  */
 public final class JJDocMain extends JJDocGlobals {
 
-  private JJDocMain() {}
+  private JJDocMain() {
+  }
 
   private static void help_message() {
     JJDocGlobals.info("");
@@ -69,7 +69,7 @@ public final class JJDocMain extends JJDocGlobals {
   /**
    * A main program that exercises the parser.
    */
-  public static void main(String args[]) throws Exception {
+  public static void main(String[] args) throws Exception {
     JavaCCErrors.reInit();
     JJDocOptions options = new JJDocOptions();
 
@@ -79,12 +79,14 @@ public final class JJDocMain extends JJDocGlobals {
     if (args.length == 0) {
       JJDocMain.help_message();
       System.exit(1);
-    } else {
+    }
+    else {
       JJDocGlobals.info("(type \"jjdoc\" with no arguments for help)");
     }
 
     if (options.isOption(args[args.length - 1])) {
-      JJDocGlobals.error("Last argument \"" + args[args.length - 1] + "\" is not a filename or \"-\".  ");
+      JJDocGlobals.error(
+          "Last argument \"" + args[args.length - 1] + "\" is not a filename or \"-\".  ");
       System.exit(1);
     }
     for (int arg = 0; arg < (args.length - 1); arg++) {
@@ -97,10 +99,12 @@ public final class JJDocMain extends JJDocGlobals {
 
     if (args[args.length - 1].equals("-")) {
       JJDocGlobals.info("Reading from standard input . . .");
-      parser = new JavaCCParserDefault(new StreamProvider(new java.io.DataInputStream(System.in)), options);
+      parser = new JavaCCParserDefault(new StreamProvider(new java.io.DataInputStream(System.in)),
+          options);
       JJDocGlobals.input_file = "standard input";
       JJDocGlobals.output_file = "standard output";
-    } else {
+    }
+    else {
       JJDocGlobals.info("Reading from file " + args[args.length - 1] + " . . .");
       try {
         java.io.File fp = new java.io.File(args[args.length - 1]);
@@ -108,11 +112,13 @@ public final class JJDocMain extends JJDocGlobals {
           JJDocGlobals.error("File " + args[args.length - 1] + " not found.");
         }
         if (fp.isDirectory()) {
-          JJDocGlobals.error(args[args.length - 1] + " is a directory. Please use a valid file name.");
+          JJDocGlobals.error(
+              args[args.length - 1] + " is a directory. Please use a valid file name.");
         }
         JJDocGlobals.input_file = fp.getName();
         parser = new JavaCCParserDefault(
-            new StreamProvider(new FileInputStream(args[args.length - 1]), HiveCCOptions.getFileEncoding()), options);
+            new StreamProvider(new FileInputStream(args[args.length - 1]),
+                HiveCCOptions.getFileEncoding()), options);
       } catch (SecurityException se) {
         JJDocGlobals.error("Security violation while trying to open " + args[args.length - 1]);
       } catch (java.io.FileNotFoundException e) {
@@ -129,13 +135,17 @@ public final class JJDocMain extends JJDocGlobals {
 
       if (!JavaCCErrors.hasError()) {
         if (!JavaCCErrors.hasWarning()) {
-          JJDocGlobals.info("Grammar documentation generated successfully in " + JJDocGlobals.output_file);
-        } else {
           JJDocGlobals.info(
-              "Grammar documentation generated with 0 errors and " + JavaCCErrors.get_warning_count() + " warnings.");
+              "Grammar documentation generated successfully in " + JJDocGlobals.output_file);
+        }
+        else {
+          JJDocGlobals.info(
+              "Grammar documentation generated with 0 errors and "
+                  + JavaCCErrors.get_warning_count() + " warnings.");
         }
         System.exit(0);
-      } else {
+      }
+      else {
         JJDocGlobals.error("Detected " + JavaCCErrors.get_error_count() + " errors and "
             + JavaCCErrors.get_warning_count() + " warnings.");
         System.exit((JavaCCErrors.get_error_count() == 0) ? 0 : 1);

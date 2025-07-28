@@ -5,7 +5,6 @@ package org.hivevm.cc.generator;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.hivevm.cc.jjtree.ASTBNFAction;
 import org.hivevm.cc.jjtree.ASTBNFDeclaration;
 import org.hivevm.cc.jjtree.ASTBNFNodeScope;
@@ -17,7 +16,6 @@ import org.hivevm.cc.jjtree.ASTCompilationUnit;
 import org.hivevm.cc.jjtree.ASTExpansionNodeScope;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTNode;
-import org.hivevm.cc.jjtree.ASTNodeDescriptor;
 import org.hivevm.cc.jjtree.ASTWriter;
 import org.hivevm.cc.jjtree.JJTreeParserDefaultVisitor;
 import org.hivevm.cc.jjtree.Node;
@@ -71,7 +69,8 @@ public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
             needClose = false;
             break;
           }
-        } else if ((p instanceof ASTBNFZeroOrOne) || (p instanceof ASTBNFZeroOrMore)
+        }
+        else if ((p instanceof ASTBNFZeroOrOne) || (p instanceof ASTBNFZeroOrMore)
             || (p instanceof ASTBNFOneOrMore)) {
           needClose = false;
           break;
@@ -113,7 +112,8 @@ public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
       String indent = "";
       if (node.getLastToken().next == node.getFirstToken()) {
         indent = "  ";
-      } else {
+      }
+      else {
         for (int i = 1; i < node.getFirstToken().beginColumn; ++i) {
           indent += " ";
         }
@@ -165,7 +165,7 @@ public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
 
     // Print the "whiteOut" equivalent of the Node descriptor to preserve
     // line numbers in the generated file.
-    ((ASTNodeDescriptor) node.jjtGetChild(1)).jjtAccept(this, writer);
+    node.jjtGetChild(1).jjtAccept(this, writer);
     return null;
   }
 
@@ -181,7 +181,8 @@ public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
 
   protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context);
 
-  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context, boolean isFinal);
+  protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context,
+      boolean isFinal);
 
   protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, ASTNode expansion_unit);
 }

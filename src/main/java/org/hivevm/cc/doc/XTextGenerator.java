@@ -3,12 +3,11 @@
 
 package org.hivevm.cc.doc;
 
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.NonTerminal;
-import org.hivevm.cc.parser.NormalProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.parser.RegExprSpec;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
 
 /**
  * Output BNF in HTML 3.2 format.
@@ -29,13 +28,10 @@ class XTextGenerator extends TextGenerator {
       sb.append(regularExpressionText);
 
       if (res.nsTok != null) {
-        sb.append(" : " + res.nsTok.image);
+        sb.append(" : ").append(res.nsTok.image);
       }
 
       sb.append("\n");
-      // if (it2.hasNext()) {
-      // sb.append("| ");
-      // }
     }
 
     // text(sb.toString());
@@ -43,16 +39,6 @@ class XTextGenerator extends TextGenerator {
 
   private void println(String s) {
     print(s + "\n");
-  }
-
-  @Override
-  public void text(String s) {
-    print(s);
-  }
-
-  @Override
-  public void print(String s) {
-    this.ostr.print(s);
   }
 
 
@@ -81,25 +67,24 @@ class XTextGenerator extends TextGenerator {
 
 
   @Override
-  public void nonterminalsStart() {}
+  public void nonterminalsStart() {
+  }
 
   @Override
-  public void nonterminalsEnd() {}
+  public void tokensStart() {
+  }
 
   @Override
-  public void tokensStart() {}
+  public void productionStart(NormalProduction np) {
+  }
 
   @Override
-  public void tokensEnd() {}
+  public void productionEnd(NormalProduction np) {
+  }
 
   @Override
-  public void productionStart(NormalProduction np) {}
-
-  @Override
-  public void productionEnd(NormalProduction np) {}
-
-  @Override
-  public void expansionStart(Expansion e, boolean first) {}
+  public void expansionStart(Expansion e, boolean first) {
+  }
 
   @Override
   public void expansionEnd(Expansion e, boolean first) {
@@ -116,9 +101,4 @@ class XTextGenerator extends TextGenerator {
     print(";");
   }
 
-  @Override
-  public void reStart(RegularExpression r) {}
-
-  @Override
-  public void reEnd(RegularExpression r) {}
 }

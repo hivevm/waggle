@@ -18,13 +18,11 @@ public class ParserBuilder {
   private File         targetDir;
   private List<String> customNodes;
 
-  private File         treeFile;
-  private File         parserFile;
+  private File treeFile;
+  private File parserFile;
 
   /**
    * Set the code generator.
-   *
-   * @param language
    */
   public final ParserBuilder setCodeGenerator(Language language) {
     this.language = language;
@@ -33,8 +31,6 @@ public class ParserBuilder {
 
   /**
    * Set the output directory.
-   *
-   * @param targetDir
    */
   public final ParserBuilder setTargetDir(File targetDir, String... pathes) {
     this.targetDir = ParserBuilder.toFile(targetDir, pathes);
@@ -43,8 +39,6 @@ public class ParserBuilder {
 
   /**
    * Set the nodes that should not be generated.
-   *
-   * @param excludes
    */
   public final ParserBuilder setCustomNodes(List<String> excludes) {
     this.customNodes = excludes;
@@ -53,8 +47,6 @@ public class ParserBuilder {
 
   /**
    * Set the jj file.
-   *
-   * @param file
    */
   public final ParserBuilder setParserFile(File file, String... pathes) {
     this.parserFile = ParserBuilder.toFile(file, pathes);
@@ -63,8 +55,6 @@ public class ParserBuilder {
 
   /**
    * Set the jj file.
-   *
-   * @param file
    */
   public final ParserBuilder setTreeFile(File file, String... pathes) {
     this.treeFile = ParserBuilder.toFile(file, pathes);
@@ -91,17 +81,19 @@ public class ParserBuilder {
         }
         arguments.add(this.treeFile.getAbsolutePath());
 
-        HiveCCTree.main(arguments.toArray(new String[arguments.size()]));
+        HiveCCTree.main(arguments.toArray(new String[0]));
 
         String path = this.treeFile.getAbsolutePath();
         int offset = path.lastIndexOf("/");
         int length = path.lastIndexOf(".");
-        arguments.set(arguments.size() - 1, this.targetDir + path.substring(offset, length) + ".jj");
-      } else {
+        arguments.set(arguments.size() - 1,
+            this.targetDir + path.substring(offset, length) + ".jj");
+      }
+      else {
         arguments.add(this.parserFile.getAbsolutePath());
       }
 
-      HiveCCParser.main(arguments.toArray(new String[arguments.size()]));
+      HiveCCParser.main(arguments.toArray(new String[0]));
     } catch (Throwable e) {
       e.printStackTrace();
     }

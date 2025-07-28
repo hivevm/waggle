@@ -4,7 +4,6 @@
 package org.hivevm.cc.jjtree;
 
 import java.io.Reader;
-
 import org.hivevm.cc.generator.TreeContext;
 
 /**

@@ -6,7 +6,6 @@ package org.hivevm.cc.jjtree;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-
 import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.CodeBlock;
 import org.hivevm.cc.utils.Encoding;
@@ -22,7 +21,7 @@ public class ASTWriter extends PrintWriter {
 
 
   private final Language language;
-  private String         indent;
+  private       String   indent;
 
 
   // Indicates whether the token should be replaced by white space or replaced with the actual node
@@ -31,9 +30,6 @@ public class ASTWriter extends PrintWriter {
 
   /**
    * Constructs an instance of {@link ASTWriter}.
-   *
-   * @param file
-   * @param language
    */
   public ASTWriter(File file, Language language) throws FileNotFoundException {
     super(file);
@@ -86,9 +82,6 @@ public class ASTWriter extends PrintWriter {
 
   /**
    * Prints the token for the node
-   *
-   * @param node
-   * @param token
    */
   public final void printToken(ASTNode node, Token token) {
     Token tt = token.specialToken;
@@ -125,10 +118,12 @@ public class ASTWriter extends PrintWriter {
       if (token.image.equals(ASTWriter.JJTREE)) {
         print(s.getNodeVariable());
         print(" ");
-      } else if (token.image.equals(")")) {
+      }
+      else if (token.image.equals(")")) {
         print(" ");
         this.whitingOut = false;
-      } else {
+      }
+      else {
         for (int i = 0; i < token.image.length(); ++i) {
           print(" ");
         }
@@ -142,20 +137,16 @@ public class ASTWriter extends PrintWriter {
    * This method prints the tokens corresponding to this node recursively calling the print methods
    * of its children. Overriding this print method in appropriate nodes gives the output the added
    * stuff not in the input.
-   *
-   * @param node
-   * @param visitor
    */
   public final Object handleJJTreeNode(ASTNode node, JJTreeParserVisitor visitor) {
-    if (node.getLastToken().next == node.getFirstToken()) {
+    if (node.getLastToken().next == node.getFirstToken())
       return null;
-    }
 
     Token tokenFirst = node.getFirstToken();
     Token token = new Token();
     token.next = tokenFirst;
 
-    ASTNode n = null;
+    ASTNode n;
     Object end = null;
     for (int ord = 0; ord < node.jjtGetNumChildren(); ord++) {
       n = (ASTNode) node.jjtGetChild(ord);

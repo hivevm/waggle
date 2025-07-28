@@ -19,8 +19,6 @@ public class DigestOptions implements Environment {
 
   /**
    * Constructs an instance of {@link DigestOptions}.
-   *
-   * @param environment
    */
   public DigestOptions(Environment environment) {
     this.environment = environment;
@@ -43,8 +41,6 @@ public class DigestOptions implements Environment {
 
   /**
    * Returns <code>true</code> if the environment variable is set.
-   *
-   * @param name
    */
   @Override
   public final boolean isSet(String name) {
@@ -54,8 +50,6 @@ public class DigestOptions implements Environment {
   /**
    * Returns the value to which the specified key is mapped, or {@code null} if this map contains no
    * mapping for the key.
-   *
-   * @param name
    */
   @Override
   public final Object get(String name) {
@@ -65,9 +59,6 @@ public class DigestOptions implements Environment {
 
   /**
    * Sets a key/value option.
-   *
-   * @param name
-   * @param value
    */
   @Override
   public final void set(String name, Object value) {
@@ -76,8 +67,6 @@ public class DigestOptions implements Environment {
 
   /**
    * Return <code>true</code> if the value is a primitive and printable value.
-   *
-   * @param value
    */
   private static boolean isPrintableOption(Object value) {
     return (value instanceof String) || (value instanceof Number) || (value instanceof Boolean);
@@ -85,14 +74,10 @@ public class DigestOptions implements Environment {
 
   /**
    * Gets the printed version of the value.
-   *
-   * @param name
-   * @param value
    */
   private static String toPrintable(String name, Object value) {
-    if ((value instanceof Number) || (value instanceof Boolean)) {
+    if ((value instanceof Number) || (value instanceof Boolean))
       return String.format("%s=%s", name, value);
-    }
     return String.format("%s='%s'", name, value);
   }
 }

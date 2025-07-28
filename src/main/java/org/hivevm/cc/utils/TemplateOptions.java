@@ -11,7 +11,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.hivevm.cc.parser.Options;
 
 
@@ -24,7 +23,7 @@ public class TemplateOptions implements Options {
   private final Map<String, Object> options = new HashMap<>();
 
   /**
-   * @param environment
+   *
    */
   public TemplateOptions(Environment environment) {
     this.environment = environment;
@@ -32,8 +31,6 @@ public class TemplateOptions implements Options {
 
   /**
    * Returns <code>true</code> if the environment variable is set.
-   *
-   * @param name
    */
   @Override
   public final boolean isSet(String name) {
@@ -43,8 +40,6 @@ public class TemplateOptions implements Options {
   /**
    * Returns the value to which the specified key is mapped, or {@code null} if this map contains no
    * mapping for the key.
-   *
-   * @param name
    */
   @Override
   public final Object get(String name) {
@@ -53,9 +48,6 @@ public class TemplateOptions implements Options {
 
   /**
    * Sets a key/value option.
-   *
-   * @param name
-   * @param value
    */
   @Override
   public final void set(String name, Object value) {
@@ -96,8 +88,6 @@ public class TemplateOptions implements Options {
 
     /**
      * Constructs an instance of {@link Mapper}.
-     *
-     * @param name
      */
     private Mapper(String name) {
       this.name = name;

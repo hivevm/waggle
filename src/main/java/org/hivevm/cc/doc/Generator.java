@@ -3,18 +3,17 @@
 
 package org.hivevm.cc.doc;
 
-import org.hivevm.cc.parser.Expansion;
-import org.hivevm.cc.parser.NonTerminal;
-import org.hivevm.cc.parser.NormalProduction;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 
 /**
  * A report generator for a grammar.
  *
  * @author timp
  * @since 11-Dec-2006
- *
  */
 interface Generator {
 
@@ -89,7 +88,7 @@ interface Generator {
   /**
    * Output start of an Expansion.
    *
-   * @param e Expansion being output
+   * @param e     Expansion being output
    * @param first whether this is the first expansion
    */
   void expansionStart(Expansion e, boolean first);
@@ -97,7 +96,7 @@ interface Generator {
   /**
    * Output end of Expansion.
    *
-   * @param e Expansion being output
+   * @param e     Expansion being output
    * @param first whether this is the first expansion
    */
   void expansionEnd(Expansion e, boolean first);
@@ -121,12 +120,12 @@ interface Generator {
    *
    * @param re the RegularExpression being output
    */
-  void reStart(RegularExpression re);
+  void reStart(RExpression re);
 
   /**
    * Output end of regular expression.
    *
    * @param re the RegularExpression being output
    */
-  void reEnd(RegularExpression re);
+  void reEnd(RExpression re);
 }

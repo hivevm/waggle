@@ -5,9 +5,15 @@ package org.hivevm.cc.parser;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.jjtree.JJTreeParserConstants;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.BNFProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NormalProduction;
+import org.hivevm.cc.model.REndOfFile;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 
 /**
  * Utilities.
@@ -23,11 +29,10 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
    * lookaheads are used in syntactic lookahead productions. This is to prevent typos such as
    * leaving out the comma in LOOKAHEAD( foo(), {check()} ).
    */
-  protected int      inLocalLA;
+  protected int inLocalLA;
 
   /**
    * Constructs an instance of {@link AbstractJavaCCParser}.
-   *
    */
   protected AbstractJavaCCParser() {
     this.nextFreeLexState = 1;
@@ -54,7 +59,7 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   }
 
   protected void production_addexpansion(BNFProduction p, Expansion e) {
-    e.parent = p;
+    e.setParent(p);
     p.setExpansion(e);
   }
 
@@ -66,7 +71,8 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     for (int i = 0; i < p.getLexStates().length; i++) {
       for (int j = 0; j < i; j++) {
         if (p.getLexStates()[i].equals(p.getLexStates()[j])) {
-          JavaCCErrors.parse_error(p, "Multiple occurrence of \"" + p.getLexStates()[i] + "\" in lexical state list.");
+          JavaCCErrors.parse_error(p,
+              "Multiple occurrence of \"" + p.getLexStates()[i] + "\" in lexical state list.");
         }
       }
       if (this.data.hasLexState(p.getLexStates()[i])) {
@@ -75,14 +81,14 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     }
   }
 
-  protected void add_inline_regexpr(RegularExpression r) {
+  protected void add_inline_regexpr(RExpression r) {
     if (!(r instanceof REndOfFile)) {
-      TokenProduction p = new TokenProduction();
+      var p = new TokenProduction();
       p.setExplicit(false);
-      p.setLexStates(new String[] { "DEFAULT" });
+      p.setLexStates(new String[]{"DEFAULT"});
       p.setKind(TokenProduction.Kind.TOKEN);
-      RegExprSpec res = new RegExprSpec();
-      res.rexp = r;
+
+      var res = new RegExprSpec(r);
       res.rexp.setTpContext(p);
       res.act = new Action();
       res.nextState = null;
@@ -96,19 +102,14 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F'))) {
       return true;
     }
-    if ((ch >= 'a') && (ch <= 'f')) {
-      return true;
-    }
-    return false;
+    return (ch >= 'a') && (ch <= 'f');
   }
 
   private static int hexval(char ch) {
-    if ((ch >= '0') && (ch <= '9')) {
+    if ((ch >= '0') && (ch <= '9'))
       return (ch) - ('0');
-    }
-    if ((ch >= 'A') && (ch <= 'F')) {
+    if ((ch >= 'A') && (ch <= 'F'))
       return ((ch) - ('A')) + 10;
-    }
     return ((ch) - ('a')) + 10;
   }
 
@@ -204,11 +205,13 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
             }
           }
         }
-        JavaCCErrors.parse_error(t, "Encountered non-hex character '" + ch + "' at position " + index + " of string "
-            + "- Unicode escape must have 4 hex digits after it.");
+        JavaCCErrors.parse_error(t,
+            "Encountered non-hex character '" + ch + "' at position " + index + " of string "
+                + "- Unicode escape must have 4 hex digits after it.");
         return retval;
       }
-      JavaCCErrors.parse_error(t, "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
+      JavaCCErrors.parse_error(t,
+          "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
       return retval;
     }
     return retval;
@@ -218,7 +221,8 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     if (s.length() != 1) {
       JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
       return ' ';
-    } else {
+    }
+    else {
       return s.charAt(0);
     }
   }
@@ -227,11 +231,13 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     if (s.length() != 1) {
       JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
       return ' ';
-    } else if ((left.charAt(0)) > (s.charAt(0))) {
-      JavaCCErrors.parse_error(t, "Right end of character range \'" + s
-          + "\' has a lower ordinal value than the left end of character range \'" + left + "\'.");
+    }
+    else if ((left.charAt(0)) > (s.charAt(0))) {
+      JavaCCErrors.parse_error(t, "Right end of character range '" + s
+          + "' has a lower ordinal value than the left end of character range '" + left + "'.");
       return left.charAt(0);
-    } else {
+    }
+    else {
       return s.charAt(0);
     }
   }
@@ -243,12 +249,9 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   protected boolean notTailOfExpansionUnit() {
     Token t;
     t = getToken(1);
-    if ((t.kind == JavaCCParserConstants.BIT_OR) || (t.kind == JavaCCParserConstants.COMMA)
-        || (t.kind == JavaCCParserConstants.RPAREN) || (t.kind == JavaCCParserConstants.RBRACE)
-        || (t.kind == JavaCCParserConstants.RBRACKET)) {
-      return false;
-    }
-    return true;
+    return (t.kind != JavaCCParserConstants.BIT_OR) && (t.kind != JavaCCParserConstants.COMMA)
+        && (t.kind != JavaCCParserConstants.RPAREN) && (t.kind != JavaCCParserConstants.RBRACE)
+        && (t.kind != JavaCCParserConstants.RBRACKET);
   }
 
   protected abstract Token getNextToken();
@@ -285,15 +288,14 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
 
   protected abstract void Name(List<Token> tokens) throws ParseException;
 
-  protected abstract void ResultType(List<Token> tokens) throws ParseException;
-
   protected abstract void TypeArguments(List<Token> tokens) throws ParseException;
 
   protected boolean checkEmptyLA(boolean emptyLA, Token token) {
     return !emptyLA && (token.kind != JavaCCParserConstants.RPAREN);
   }
 
-  protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd, Token token) {
+  protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd,
+      Token ignoredToken) {
     return !emptyLA && !commaAtEnd && (getToken(1).kind != JavaCCParserConstants.RPAREN);
   }
 
@@ -302,7 +304,8 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
   }
 
   protected boolean checkEmpty(Token token) {
-    return (token.kind != JavaCCParserConstants.RPAREN) && (token.kind != JavaCCParserConstants.LBRACE);
+    return (token.kind != JavaCCParserConstants.RPAREN) && (token.kind
+        != JavaCCParserConstants.LBRACE);
   }
 
   protected final void setInputOption(Token o, Token v) {

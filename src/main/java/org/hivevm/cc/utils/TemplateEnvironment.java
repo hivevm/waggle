@@ -16,8 +16,6 @@ class TemplateEnvironment implements Environment {
 
   /**
    * Constructs an instance of {@link TemplateEnvironment}.
-   *
-   * @param environment
    */
   public TemplateEnvironment(Environment environment) {
     this.environment = environment;
@@ -25,8 +23,6 @@ class TemplateEnvironment implements Environment {
 
   /**
    * Return <code>true</code> if the environment variable is set.
-   *
-   * @param name
    */
   @Override
   public final boolean isSet(String name) {
@@ -35,8 +31,6 @@ class TemplateEnvironment implements Environment {
 
   /**
    * Get the environment variable by name
-   *
-   * @param name
    */
   @Override
   public final Object get(String name) {
@@ -45,9 +39,6 @@ class TemplateEnvironment implements Environment {
 
   /**
    * Set an environment variable by name
-   *
-   * @param name
-   * @param value
    */
   @Override
   public void set(String name, Object value) {

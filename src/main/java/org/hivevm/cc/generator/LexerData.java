@@ -3,19 +3,18 @@
 
 package org.hivevm.cc.generator;
 
-import org.hivevm.cc.ParserRequest;
-import org.hivevm.cc.lexer.NfaState;
-import org.hivevm.cc.parser.Action;
-import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.parser.RegularExpression;
-import org.hivevm.cc.parser.TokenProduction;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import org.hivevm.cc.ParserRequest;
+import org.hivevm.cc.lexer.NfaState;
+import org.hivevm.cc.model.Action;
+import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
+import org.hivevm.cc.parser.Options;
 
 /**
  * The {@link LexerData} provides the request data for the lexer generator.
@@ -23,24 +22,24 @@ import java.util.Map;
 public class LexerData {
 
   private final ParserRequest request;
-  final int                   maxOrdinal;
-  final int                   maxLexStates;
+  final         int           maxOrdinal;
+  final         int           maxLexStates;
 
 
   final int[]    lexStates;
   final String[] lexStateNames;
 
-  int            curKind;
+  int curKind;
 
 
-  int                              lohiByteCnt;
+  int lohiByteCnt;
   final Map<Integer, long[]>       lohiByte;
   final Hashtable<String, Integer> lohiByteTab;
 
-  List<NfaState>                   nonAsciiTableForMethod;
-  List<String>                     allBitVectors;
-  int[][]                          kinds;
-  int[][][]                        statesForState;
+  final List<NfaState> nonAsciiTableForMethod;
+  final List<String>   allBitVectors;
+  int[][]   kinds;
+  int[][][] statesForState;
 
 
   public boolean boilerPlateDumped;
@@ -50,7 +49,7 @@ public class LexerData {
   boolean jjCheckNAddStatesDualNeeded;
 
   // public for NFA
-  public int                            lastIndex;
+  public       int                      lastIndex;
   public final Hashtable<String, int[]> tableToDump;
   public final List<int[]>              orderedStateSet;
 
@@ -58,42 +57,38 @@ public class LexerData {
   private final Map<String, NfaStateData> stateData = new HashMap<>();
 
   // RString
-  final String[]            allImages;
+  final String[] allImages;
 
-  final String[]            newLexState;
-  final boolean[]           ignoreCase;
-  final Action[]            actions;
-  int                       stateSetSize;
-  int                       totalNumStates;
-  final NfaState[]          singlesToSkip;
+  final String[]  newLexState;
+  final boolean[] ignoreCase;
+  final Action[]  actions;
+  int stateSetSize;
+  int totalNumStates;
+  final NfaState[] singlesToSkip;
 
-  final long[]              toSkip;
-  final long[]              toSpecial;
-  final long[]              toMore;
-  final long[]              toToken;
-  int                       defaultLexState;
+  final long[] toSkip;
+  final long[] toSpecial;
+  final long[] toMore;
+  final long[] toToken;
+  int defaultLexState;
 
-  final RegularExpression[] rexprs;
-  final int[]               initMatch;
-  final int[]               canMatchAnyChar;
-  boolean                   hasEmptyMatch;
-  final boolean[]           canLoop;
-  boolean                   hasLoop        = false;
-  final boolean[]           canReachOnMore;
-  boolean                   hasSkipActions = false;
-  boolean                   hasMoreActions = false;
-  boolean                   hasTokenActions;
-  boolean                   hasSpecial     = false;
-  boolean                   hasSkip        = false;
-  boolean                   hasMore        = false;
-  boolean                   keepLineCol;
+  final RExpression[] rexprs;
+  final int[]         initMatch;
+  final int[]         canMatchAnyChar;
+  boolean hasEmptyMatch;
+  final boolean[] canLoop;
+  boolean hasLoop;
+  final boolean[] canReachOnMore;
+  boolean hasSkipActions;
+  boolean hasMoreActions;
+  boolean hasTokenActions;
+  boolean hasSpecial;
+  boolean hasSkip;
+  boolean hasMore;
+  final boolean keepLineCol;
 
   /**
    * Constructs an instance of {@link LexerData}.
-   *
-   * @param request
-   * @param maxOrdinal
-   * @param maxLexStates
    */
   LexerData(ParserRequest request, int maxOrdinal, int maxLexStates) {
     this.request = request;
@@ -148,7 +143,7 @@ public class LexerData {
     this.hasEmptyMatch = false;
     this.lexStates = new int[this.maxOrdinal];
     this.ignoreCase = new boolean[this.maxOrdinal];
-    this.rexprs = new RegularExpression[this.maxOrdinal];
+    this.rexprs = new RExpression[this.maxOrdinal];
     this.allImages = new String[this.maxOrdinal];
     this.canReachOnMore = new boolean[this.maxLexStates];
 
@@ -165,7 +160,7 @@ public class LexerData {
     return this.request.getParserName();
   }
 
-  public final Iterable<RegularExpression> getOrderedsTokens() {
+  public final Iterable<RExpression> getOrderedsTokens() {
     return this.request.getOrderedsTokens();
   }
 

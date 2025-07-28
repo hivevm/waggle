@@ -1,30 +1,22 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.parser;
+package org.hivevm.cc.model;
+
+import org.hivevm.cc.parser.Token;
 
 /**
  * Describes one-or-more expansions (e.g., foo+).
  */
-
 public class OneOrMore extends Expansion {
 
-  /**
-   * The expansion which is repeated one or more times.
-   */
-  private Expansion expansion;
+  private final Expansion expansion;
 
-  public OneOrMore() {}
-
-  OneOrMore(Token t, Expansion e) {
-    setLocation(t);
+  public OneOrMore(Expansion e) {
     this.expansion = e;
-    this.expansion.parent = this;
+    this.expansion.setParent(this);
   }
 
-  /**
-   * Gets the {@link Expansionn}.
-   */
   public final Expansion getExpansion() {
     return this.expansion;
   }

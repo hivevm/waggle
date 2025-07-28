@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
 
@@ -30,10 +29,10 @@ public class HiveCCOptions implements Options {
   static {
     TreeSet<OptionInfo> temp = new TreeSet<>();
 
-    temp.add(new OptionInfo(HiveCC.JJPARSER_LOOKAHEAD, Integer.valueOf(1)));
+    temp.add(new OptionInfo(HiveCC.JJPARSER_LOOKAHEAD, 1));
 
-    temp.add(new OptionInfo(HiveCC.JJPARSER_CHOICE_AMBIGUITY_CHECK, Integer.valueOf(2)));
-    temp.add(new OptionInfo(HiveCC.JJPARSER_OTHER_AMBIGUITY_CHECK, Integer.valueOf(1)));
+    temp.add(new OptionInfo(HiveCC.JJPARSER_CHOICE_AMBIGUITY_CHECK, 2));
+    temp.add(new OptionInfo(HiveCC.JJPARSER_OTHER_AMBIGUITY_CHECK, 1));
     temp.add(new OptionInfo(HiveCC.JJPARSER_NO_DFA, Boolean.FALSE));
     temp.add(new OptionInfo(HiveCC.JJPARSER_DEBUG_PARSER, Boolean.FALSE));
 
@@ -50,7 +49,7 @@ public class HiveCCOptions implements Options {
 
     temp.add(new OptionInfo(HiveCC.JJPARSER_OUTPUT_DIRECTORY, "."));
     temp.add(new OptionInfo(HiveCC.JJPARSER_CODEGENERATOR, HiveCCOptions.OUTPUT_LANGUAGE__JAVA));
-    temp.add(new OptionInfo(HiveCC.JJPARSER_DEPTH_LIMIT, Integer.valueOf(0)));
+    temp.add(new OptionInfo(HiveCC.JJPARSER_DEPTH_LIMIT, 0));
 
     temp.add(new OptionInfo(HiveCC.JJPARSER_BASE_PARSER, ""));
     temp.add(new OptionInfo(HiveCC.JJPARSER_BASE_LEXER, ""));
@@ -77,13 +76,13 @@ public class HiveCCOptions implements Options {
    * Keep track of what options were set as a command line argument. We use this to see if the
    * options set from the command line and the ones set in the input files clash in any way.
    */
-  private final Set<String>         cmdLineSetting;
+  private final Set<String> cmdLineSetting;
 
   /**
    * Keep track of what options were set from the grammar file. We use this to see if the options
    * set from the command line and the ones set in the input files clash in any way.
    */
-  private final Set<String>         inputFileSetting;
+  private final Set<String> inputFileSetting;
 
   // Limit subclassing to derived classes.
   public HiveCCOptions() {
@@ -110,41 +109,47 @@ public class HiveCCOptions implements Options {
   public final void setOption(Object nameloc, Object valueloc, String name, Object value) {
     String nameUpperCase = name.toUpperCase();
     if (!this.optionValues.containsKey(nameUpperCase)) {
-      JavaCCErrors.warning(nameloc, "Bad option name \"" + name + "\".  Option setting will be ignored.");
+      JavaCCErrors.warning(nameloc,
+          "Bad option name \"" + name + "\".  Option setting will be ignored.");
       return;
     }
 
     if (name.equalsIgnoreCase(HiveCC.JJTREE_NODE_FACTORY) && (value.getClass() == Boolean.class)) {
       if (((Boolean) value)) {
         value = "*";
-      } else {
+      }
+      else {
         value = "";
       }
     }
 
     final Object existingValue = this.optionValues.get(nameUpperCase);
     if (existingValue != null) {
-      Object object = null;
+      Object object;
       if (value instanceof List) {
-        object = ((List<?>) value).get(0);
-      } else {
+        object = ((List<?>) value).getFirst();
+      }
+      else {
         object = value;
       }
-      boolean isValidInteger = ((object instanceof Integer) && (((Integer) value).intValue() <= 0));
+      boolean isValidInteger = ((object instanceof Integer) && ((Integer) value <= 0));
       if (isValidInteger) {
         JavaCCErrors.warning(valueloc,
-            "Bad option value \"" + value + "\" for \"" + name + "\".  Option setting will be ignored.");
+            "Bad option value \"" + value + "\" for \"" + name
+                + "\".  Option setting will be ignored.");
         return;
       }
 
       if (this.inputFileSetting.contains(nameUpperCase)) {
-        JavaCCErrors.warning(nameloc, "Duplicate option setting for \"" + name + "\" will be ignored.");
+        JavaCCErrors.warning(nameloc,
+            "Duplicate option setting for \"" + name + "\" will be ignored.");
         return;
       }
 
       if (this.cmdLineSetting.contains(nameUpperCase)) {
         if (!existingValue.equals(value)) {
-          JavaCCErrors.warning(nameloc, "Command line setting of \"" + name + "\" modifies option value in file.");
+          JavaCCErrors.warning(nameloc,
+              "Command line setting of \"" + name + "\" modifies option value in file.");
         }
         return;
       }
@@ -157,15 +162,14 @@ public class HiveCCOptions implements Options {
 
   /**
    * Process a single command-line option. The option is parsed and stored in the optionValues map.
-   *
-   * @param arg
    */
   public final void setCmdLineOption(String arg) {
     final String s;
 
     if (arg.charAt(0) == '-') {
       s = arg.substring(1);
-    } else {
+    }
+    else {
       s = arg;
     }
 
@@ -180,43 +184,48 @@ public class HiveCCOptions implements Options {
 
     if (index1 < 0) {
       index = index2;
-    } else if (index2 < 0) {
-      index = index1;
-    } else if (index1 < index2) {
-      index = index1;
-    } else {
-      index = index2;
     }
+    else if (index2 < 0) {
+      index = index1;
+    }
+    else
+      index = Math.min(index1, index2);
 
     if (index < 0) {
       name = s.toUpperCase();
       if (this.optionValues.containsKey(name)) {
         Val = Boolean.TRUE;
-      } else if ((name.length() > 2) && (name.charAt(0) == 'N') && (name.charAt(1) == 'O')) {
+      }
+      else if ((name.length() > 2) && (name.charAt(0) == 'N') && (name.charAt(1) == 'O')) {
         Val = Boolean.FALSE;
         name = name.substring(2);
-      } else {
+      }
+      else {
         System.out.println("Warning: Bad option \"" + arg + "\" will be ignored.");
         return;
       }
-    } else {
+    }
+    else {
       name = s.substring(0, index).toUpperCase();
       if (s.substring(index + 1).equalsIgnoreCase("TRUE")) {
         Val = Boolean.TRUE;
-      } else if (s.substring(index + 1).equalsIgnoreCase("FALSE")) {
+      }
+      else if (s.substring(index + 1).equalsIgnoreCase("FALSE")) {
         Val = Boolean.FALSE;
-      } else {
+      }
+      else {
         try {
           int i = Integer.parseInt(s.substring(index + 1));
           if (i <= 0) {
             System.out.println("Warning: Bad option value in \"" + arg + "\" will be ignored.");
             return;
           }
-          Val = Integer.valueOf(i);
+          Val = i;
         } catch (NumberFormatException e) {
           Val = s.substring(index + 1);
           // i.e., there is space for two '"'s in value
-          if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (s.charAt(s.length() - 1) == '"'))) {
+          if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (
+              s.charAt(s.length() - 1) == '"'))) {
             // remove the two '"'s.
             Val = s.substring(index + 2, s.length() - 1);
           }
@@ -249,7 +258,8 @@ public class HiveCCOptions implements Options {
     String language = (String) this.optionValues.get(HiveCC.JJPARSER_CODEGENERATOR);
     if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE__CPP)) {
       return Language.CPP;
-    } else if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE__JAVA)) {
+    }
+    else if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE__JAVA)) {
       return Language.JAVA;
     }
     return Language.JAVA;
@@ -294,17 +304,15 @@ public class HiveCCOptions implements Options {
         if (other._default != null) {
           return false;
         }
-      } else if (!this._default.equals(other._default)) {
+      }
+      else if (!this._default.equals(other._default)) {
         return false;
       }
       if (this._name == null) {
-        if (other._name != null) {
-          return false;
-        }
-      } else if (!this._name.equals(other._name)) {
-        return false;
+        return other._name == null;
       }
-      return true;
+      else
+        return this._name.equals(other._name);
     }
 
     @Override
@@ -332,7 +340,8 @@ public class HiveCCOptions implements Options {
   @Override
   public void set(String name, Object value) {
     if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
-      value = ((value instanceof String) && !value.toString().isEmpty()) ? Arrays.asList(value.toString().split(","))
+      value = ((value instanceof String) && !value.toString().isEmpty()) ? Arrays.asList(
+          value.toString().split(","))
           : Collections.emptyList();
     }
     this.optionValues.put(name, value);
