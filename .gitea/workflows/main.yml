@@ -1,5 +1,5 @@
 name: HiveVM CC
-
+run-name: Gitea Actions on ${{ gitea.actor }}
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-cc:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
