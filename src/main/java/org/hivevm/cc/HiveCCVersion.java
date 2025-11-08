@@ -6,6 +6,7 @@ package org.hivevm.cc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
 import org.hivevm.cc.utils.Version;
 
 /**
@@ -15,17 +16,18 @@ import org.hivevm.cc.utils.Version;
  */
 public interface HiveCCVersion {
 
-  Version VERSION = HiveCCVersion.load();
+    Version VERSION = HiveCCVersion.load();
 
-  static Version load() {
-    String version = "0.0";
-    try (InputStream stream = HiveCCVersion.class.getResourceAsStream("/version")) {
-      Properties properties = new Properties();
-      properties.load(stream);
-      version = properties.getProperty("release", "0.0");
-    } catch (IOException e) {
-      System.err.println("Could not read version.properties: " + e);
+    static Version load() {
+        String version = "0.0";
+        try (InputStream stream = HiveCCVersion.class.getResourceAsStream("/version")) {
+            Properties properties = new Properties();
+            properties.load(stream);
+            version = properties.getProperty("release", "0.0");
+        }
+        catch (IOException e) {
+            System.err.println("Could not read version.properties: " + e);
+        }
+        return Version.parse(version);
     }
-    return Version.parse(version);
-  }
 }

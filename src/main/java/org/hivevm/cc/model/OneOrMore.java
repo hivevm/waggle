@@ -10,14 +10,14 @@ import org.hivevm.cc.parser.Token;
  */
 public class OneOrMore extends Expansion {
 
-  private final Expansion expansion;
+    private final Expansion expansion;
 
-  public OneOrMore(Expansion e) {
-    this.expansion = e;
-    this.expansion.setParent(this);
-  }
+    public OneOrMore(Expansion e) {
+        this.expansion = e;
+        this.expansion.setParent(this);
+    }
 
-  public final Expansion getExpansion() {
-    return this.expansion;
-  }
+    public final Expansion getExpansion() {
+        return this.expansion;
+    }
 }

@@ -7,31 +7,31 @@ import org.hivevm.cc.parser.Token;
 
 public class Production {
 
-  // The line and column number of the construct that corresponds most closely to this node.
-  private int line;
-  private int column;
+    // The line and column number of the construct that corresponds most closely to this node.
+    private int line;
+    private int column;
 
-  public final int getLine() {
-    return this.line;
-  }
+    public final int getLine() {
+        return this.line;
+    }
 
-  public final int getColumn() {
-    return this.column;
-  }
+    public final int getColumn() {
+        return this.column;
+    }
 
-  /**
-   * Sets the position in the source.
-   */
-  public final void setLocation(Expansion expansion) {
-    this.line = expansion.getLine();
-    this.column = expansion.getColumn();
-  }
+    /**
+     * Sets the position in the source.
+     */
+    public final void setLocation(Expansion expansion) {
+        this.line = expansion.getLine();
+        this.column = expansion.getColumn();
+    }
 
-  /**
-   * Sets the position in the source.
-   */
-  public final void setLocation(Token token) {
-    this.line = token.beginLine;
-    this.column = token.beginColumn;
-  }
+    /**
+     * Sets the position in the source.
+     */
+    public final void setLocation(Token token) {
+        this.line = token.beginLine;
+        this.column = token.beginColumn;
+    }
 }

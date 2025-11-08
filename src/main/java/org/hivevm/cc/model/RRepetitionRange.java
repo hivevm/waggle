@@ -8,36 +8,36 @@ package org.hivevm.cc.model;
  */
 public class RRepetitionRange extends RExpression {
 
-  private final RExpression regexpr;
-  private final int         min;
-  private final int         max;
-  private final boolean     hasMax;
+    private final RExpression regexpr;
+    private final int         min;
+    private final int         max;
+    private final boolean     hasMax;
 
-  public RRepetitionRange(RExpression regexpr, int min, int max, boolean hasMax) {
-    this.regexpr = regexpr;
-    this.min = min;
-    this.max = max;
-    this.hasMax = hasMax;
-  }
+    public RRepetitionRange(RExpression regexpr, int min, int max, boolean hasMax) {
+        this.regexpr = regexpr;
+        this.min = min;
+        this.max = max;
+        this.hasMax = hasMax;
+    }
 
-  public final int getMin() {
-    return this.min;
-  }
+    public final int getMin() {
+        return this.min;
+    }
 
-  public final int getMax() {
-    return this.max;
-  }
+    public final int getMax() {
+        return this.max;
+    }
 
-  public final boolean hasMax() {
-    return this.hasMax;
-  }
+    public final boolean hasMax() {
+        return this.hasMax;
+    }
 
-  public final RExpression getRegexpr() {
-    return this.regexpr;
-  }
+    public final RExpression getRegexpr() {
+        return this.regexpr;
+    }
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 }

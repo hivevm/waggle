@@ -5,15 +5,15 @@ package org.hivevm.cc.jjtree;
 
 public class ASTBNFNodeScope extends ASTNode {
 
-  public NodeScope node_scope;
-  public ASTNode   expansion_unit;
+    public NodeScope node_scope;
+    public ASTNode   expansion_unit;
 
-  public ASTBNFNodeScope(JJTreeParser p, int id) {
-    super(p, id);
-  }
+    public ASTBNFNodeScope(JJTreeParser p, int id) {
+        super(p, id);
+    }
 
-  @Override
-  public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+        return visitor.visit(this, data);
+    }
 }

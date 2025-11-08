@@ -8,21 +8,21 @@ package org.hivevm.cc.utils;
  */
 public interface Environment {
 
-  boolean isSet(String name);
+    boolean isSet(String name);
 
-  Object get(String name);
+    Object get(String name);
 
-  void set(String name, Object value);
+    void set(String name, Object value);
 
-  default int intValue(final String option) {
-    return ((Integer) get(option));
-  }
+    default int intValue(final String option) {
+        return ((Integer) get(option));
+    }
 
-  default boolean booleanValue(final String option) {
-    return ((Boolean) get(option));
-  }
+    default boolean booleanValue(final String option) {
+        return ((Boolean) get(option));
+    }
 
-  default String stringValue(final String option) {
-    return ((String) get(option));
-  }
+    default String stringValue(final String option) {
+        return ((String) get(option));
+    }
 }

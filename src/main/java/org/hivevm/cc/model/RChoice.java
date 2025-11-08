@@ -11,75 +11,75 @@ import java.util.List;
  */
 public class RChoice extends RExpression {
 
-  /**
-   * The list of choices of this regular expression. Each list component will narrow to
-   * RegularExpression.
-   */
-  private final List<RExpression> choices = new ArrayList<>();
+    /**
+     * The list of choices of this regular expression. Each list component will narrow to
+     * RegularExpression.
+     */
+    private final List<RExpression> choices = new ArrayList<>();
 
-  public final List<RExpression> getChoices() {
-    return this.choices;
-  }
-
-  public final void CompressCharLists() {
-    CompressChoices(); // Unroll nested choices
-    RExpression curRE;
-    RCharacterList curCharList = null;
-
-    for (int i = 0; i < getChoices().size(); i++) {
-      curRE = getChoices().get(i);
-
-      while (curRE instanceof RJustName) {
-        curRE = ((RJustName) curRE).getRegexpr();
-      }
-
-      if ((curRE instanceof RStringLiteral) && (((RStringLiteral) curRE).getImage().length()
-          == 1)) {
-        getChoices().set(i,
-            curRE = new RCharacterList(((RStringLiteral) curRE).getImage().charAt(0)));
-      }
-
-      if (curRE instanceof RCharacterList) {
-        if (((RCharacterList) curRE).isNegated_list()) {
-          ((RCharacterList) curRE).RemoveNegation();
-        }
-
-        List<Object> tmp = ((RCharacterList) curRE).getDescriptors();
-
-        if (curCharList == null) {
-          curCharList = new RCharacterList();
-          getChoices().set(i, curCharList);
-        }
-        else
-          getChoices().remove(i--);
-
-        for (int j = tmp.size(); j-- > 0; )
-          curCharList.getDescriptors().add(tmp.get(j));
-      }
+    public final List<RExpression> getChoices() {
+        return this.choices;
     }
-  }
 
-  private void CompressChoices() {
-    RExpression curRE;
+    public final void CompressCharLists() {
+        CompressChoices(); // Unroll nested choices
+        RExpression curRE;
+        RCharacterList curCharList = null;
 
-    for (int i = 0; i < getChoices().size(); i++) {
-      curRE = getChoices().get(i);
+        for (int i = 0; i < getChoices().size(); i++) {
+            curRE = getChoices().get(i);
 
-      while (curRE instanceof RJustName rJustName) {
-        curRE = rJustName.getRegexpr();
-      }
+            while (curRE instanceof RJustName) {
+                curRE = ((RJustName) curRE).getRegexpr();
+            }
 
-      if (curRE instanceof RChoice rChoice) {
-        getChoices().remove(i--);
-        for (int j = rChoice.getChoices().size(); j-- > 0; ) {
-          getChoices().add(rChoice.getChoices().get(j));
+            if ((curRE instanceof RStringLiteral) && (((RStringLiteral) curRE).getImage().length()
+                    == 1)) {
+                getChoices().set(i,
+                        curRE = new RCharacterList(((RStringLiteral) curRE).getImage().charAt(0)));
+            }
+
+            if (curRE instanceof RCharacterList) {
+                if (((RCharacterList) curRE).isNegated_list()) {
+                    ((RCharacterList) curRE).RemoveNegation();
+                }
+
+                List<Object> tmp = ((RCharacterList) curRE).getDescriptors();
+
+                if (curCharList == null) {
+                    curCharList = new RCharacterList();
+                    getChoices().set(i, curCharList);
+                }
+                else
+                    getChoices().remove(i--);
+
+                for (int j = tmp.size(); j-- > 0; )
+                    curCharList.getDescriptors().add(tmp.get(j));
+            }
         }
-      }
     }
-  }
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    private void CompressChoices() {
+        RExpression curRE;
+
+        for (int i = 0; i < getChoices().size(); i++) {
+            curRE = getChoices().get(i);
+
+            while (curRE instanceof RJustName rJustName) {
+                curRE = rJustName.getRegexpr();
+            }
+
+            if (curRE instanceof RChoice rChoice) {
+                getChoices().remove(i--);
+                for (int j = rChoice.getChoices().size(); j-- > 0; ) {
+                    getChoices().add(rChoice.getChoices().get(j));
+                }
+            }
+        }
+    }
+
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 }

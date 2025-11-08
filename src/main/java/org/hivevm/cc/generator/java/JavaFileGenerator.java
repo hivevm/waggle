@@ -12,16 +12,16 @@ import org.hivevm.cc.generator.TemplateProvider;
  */
 class JavaFileGenerator implements FileGenerator {
 
-  @Override
-  public final void generate(LexerData context) {
-    TemplateProvider.render(JavaTemplate.TOKEN, context.options());
-    TemplateProvider.render(JavaTemplate.TOKEN_EXCEPTION, context.options());
+    @Override
+    public final void generate(LexerData context) {
+        TemplateProvider.render(JavaTemplate.TOKEN, context.options());
+        TemplateProvider.render(JavaTemplate.TOKEN_EXCEPTION, context.options());
 
-    TemplateProvider.render(JavaTemplate.PROVIDER, context.options());
-    TemplateProvider.render(JavaTemplate.STRING_PROVIDER, context.options());
-    TemplateProvider.render(JavaTemplate.STREAM_PROVIDER, context.options());
-    TemplateProvider.render(JavaTemplate.CHAR_STREAM, context.options());
+        TemplateProvider.render(JavaTemplate.PROVIDER, context.options());
+        TemplateProvider.render(JavaTemplate.STRING_PROVIDER, context.options());
+        TemplateProvider.render(JavaTemplate.STREAM_PROVIDER, context.options());
+        TemplateProvider.render(JavaTemplate.CHAR_STREAM, context.options());
 
-    TemplateProvider.render(JavaTemplate.PARSER_EXCEPTION, context.options());
-  }
+        TemplateProvider.render(JavaTemplate.PARSER_EXCEPTION, context.options());
+    }
 }

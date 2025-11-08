@@ -8,14 +8,14 @@ package org.hivevm.cc.semantic;
  */
 class MatchInfo {
 
-  final int[] match;
-  int firstFreeLoc;
+    final int[] match;
+    int firstFreeLoc;
 
-  /**
-   * Constructs an instance of {@link MatchInfo}.
-   */
-  MatchInfo(int limit) {
-    this.match = new int[limit];
-    this.firstFreeLoc = 0;
-  }
+    /**
+     * Constructs an instance of {@link MatchInfo}.
+     */
+    MatchInfo(int limit) {
+        this.match = new int[limit];
+        this.firstFreeLoc = 0;
+    }
 }

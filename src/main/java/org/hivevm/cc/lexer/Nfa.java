@@ -10,7 +10,7 @@ import org.hivevm.cc.generator.NfaStateData;
  */
 public record Nfa(NfaState start, NfaState end) {
 
-  Nfa(NfaStateData data) {
-    this(new NfaState(data), new NfaState(data));
-  }
+    Nfa(NfaStateData data) {
+        this(new NfaState(data), new NfaState(data));
+    }
 }

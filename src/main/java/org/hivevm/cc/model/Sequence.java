@@ -5,6 +5,7 @@ package org.hivevm.cc.model;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.hivevm.cc.parser.Token;
 
 /**
@@ -12,14 +13,14 @@ import org.hivevm.cc.parser.Token;
  */
 public class Sequence extends Expansion {
 
-  // The list of units in this expansion sequence. Each List component will narrow to Expansion.
-  private final List<? super Expansion> units;
+    // The list of units in this expansion sequence. Each List component will narrow to Expansion.
+    private final List<? super Expansion> units;
 
-  public Sequence() {
-    this.units = new ArrayList<>();
-  }
+    public Sequence() {
+        this.units = new ArrayList<>();
+    }
 
-  public final List<? super Expansion> getUnits() {
-    return this.units;
-  }
+    public final List<? super Expansion> getUnits() {
+        return this.units;
+    }
 }

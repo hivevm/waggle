@@ -4,6 +4,7 @@
 package org.hivevm.cc;
 
 import java.io.File;
+
 import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
@@ -11,38 +12,38 @@ import org.hivevm.cc.parser.JavaCCErrors;
  */
 public interface HiveCCTools {
 
-  /**
-   * This prints the banner line when the various tools are invoked. This takes as argument the
-   * tool's full name and its version.
-   */
-  static void bannerLine(String fullName, String ver) {
-    System.out.print(
-        "Java Compiler Compiler Version " + HiveCCVersion.VERSION.toString() + " (" + fullName);
-    if (!ver.equals("")) {
-      System.out.print(" Version " + ver);
-    }
-    System.out.println(")");
-  }
-
-  static void createOutputDir(File outputDir) {
-    if (!outputDir.exists()) {
-      JavaCCErrors.warning(
-          "Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
-
-      if (!outputDir.mkdirs()) {
-        JavaCCErrors.semantic_error("Cannot create the output directory : " + outputDir);
-        return;
-      }
+    /**
+     * This prints the banner line when the various tools are invoked. This takes as argument the
+     * tool's full name and its version.
+     */
+    static void bannerLine(String fullName, String ver) {
+        System.out.print(
+                "Java Compiler Compiler Version " + HiveCCVersion.VERSION.toString() + " (" + fullName);
+        if (!ver.equals("")) {
+            System.out.print(" Version " + ver);
+        }
+        System.out.println(")");
     }
 
-    if (!outputDir.isDirectory()) {
-      JavaCCErrors.semantic_error("\"" + outputDir + " is not a valid output directory.");
-      return;
-    }
+    static void createOutputDir(File outputDir) {
+        if (!outputDir.exists()) {
+            JavaCCErrors.warning(
+                    "Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
 
-    if (!outputDir.canWrite()) {
-      JavaCCErrors.semantic_error(
-          "Cannot write to the output output directory : \"" + outputDir + "\"");
+            if (!outputDir.mkdirs()) {
+                JavaCCErrors.semantic_error("Cannot create the output directory : " + outputDir);
+                return;
+            }
+        }
+
+        if (!outputDir.isDirectory()) {
+            JavaCCErrors.semantic_error("\"" + outputDir + " is not a valid output directory.");
+            return;
+        }
+
+        if (!outputDir.canWrite()) {
+            JavaCCErrors.semantic_error(
+                    "Cannot write to the output output directory : \"" + outputDir + "\"");
+        }
     }
-  }
 }

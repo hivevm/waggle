@@ -4,6 +4,7 @@
 package org.hivevm.cc.generator;
 
 import java.text.ParseException;
+
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTWriter;
@@ -13,13 +14,13 @@ import org.hivevm.cc.jjtree.ASTWriter;
  */
 public interface Generator {
 
-  /**
-   * Generates the parser.
-   */
-  void generate(ParserRequest request) throws ParseException;
+    /**
+     * Generates the parser.
+     */
+    void generate(ParserRequest request) throws ParseException;
 
-  /**
-   * Generates the Abstract Syntax Tree.
-   */
-  void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context);
+    /**
+     * Generates the Abstract Syntax Tree.
+     */
+    void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context);
 }

@@ -8,13 +8,13 @@ package org.hivevm.cc.model;
  */
 public class SingleCharacter extends Production {
 
-  private final char ch;
+    private final char ch;
 
-  public SingleCharacter(char c) {
-    this.ch = c;
-  }
+    public SingleCharacter(char c) {
+        this.ch = c;
+    }
 
-  public char getChar() {
-    return this.ch;
-  }
+    public char getChar() {
+        return this.ch;
+    }
 }

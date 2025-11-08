@@ -5,6 +5,7 @@ package org.hivevm.cc.model;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.hivevm.cc.parser.Token;
 
 /**
@@ -12,12 +13,12 @@ import org.hivevm.cc.parser.Token;
  */
 public class Action extends Expansion {
 
-  private final List<Token> action_tokens = new ArrayList<>();
+    private final List<Token> action_tokens = new ArrayList<>();
 
-  public Action() {
-  }
+    public Action() {
+    }
 
-  public List<Token> getActionTokens() {
-    return this.action_tokens;
-  }
+    public List<Token> getActionTokens() {
+        return this.action_tokens;
+    }
 }

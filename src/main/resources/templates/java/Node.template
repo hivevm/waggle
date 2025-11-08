@@ -1,19 +1,20 @@
 package {{JAVA_PACKAGE}};
 
 @if(NODE_EXTENDS)
-public class Node extends {{NODE_EXTENDS}} implements Tree {
+public class Node extends {{NODE_EXTENDS}} {
 @else
-public class Node implements Tree {
+public class Node {
 @fi
 
-  protected Node   parent;
-  protected Node[] children;
-  protected int    id;
-  protected Object value;
-  protected {{PARSER_NAME}}    parser;
+  private final int id;
+  private final {{PARSER_NAME}} parser;
+
+  private Node   parent;
+  private Node[] children;
+  private Object value;
 @if(TRACK_TOKENS)
-  protected Token firstToken;
-  protected Token lastToken;
+  private Token  firstToken;
+  private Token  lastToken;
 @fi
 
   public Node({{PARSER_NAME}} p, int i) {
@@ -21,29 +22,26 @@ public class Node implements Tree {
     this.parser = p;
   }
 
-@if(NODE_FACTORY)
-  public static Node jjtCreate({{PARSER_NAME}} p, int id) {
-    return new Node(p, id);
+  public int getId() {
+    return this.id;
   }
 
-@fi
-  @Override
+  public {{PARSER_NAME}} jjtParser() {
+    return parser;
+  }
+
   public void jjtOpen() {}
 
-  @Override
   public void jjtClose() {}
 
-  @Override
   public void jjtSetParent(Node n) {
     this.parent = n;
   }
 
-  @Override
   public Node jjtGetParent() {
     return this.parent;
   }
 
-  @Override
   public void jjtAddChild(Node n, int i) {
     if (this.children == null) {
       this.children = new Node[i + 1];
@@ -55,12 +53,10 @@ public class Node implements Tree {
     this.children[i] = n;
   }
 
-  @Override
   public Node jjtGetChild(int i) {
     return this.children[i];
   }
 
-  @Override
   public int jjtGetNumChildren() {
     return (this.children == null) ? 0 : this.children.length;
   }
@@ -139,9 +135,10 @@ public class Node implements Tree {
       }
     }
   }
+@if(NODE_FACTORY)
 
-  @Override
-  public int getId() {
-    return this.id;
+  public static Node jjtCreate({{PARSER_NAME}} p, int id) {
+    return new Node(p, id);
   }
+@fi
 }

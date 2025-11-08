@@ -9,8 +9,8 @@ package org.hivevm.cc.model;
 
 public class REndOfFile extends RExpression {
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 }

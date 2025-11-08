@@ -10,14 +10,14 @@ import org.hivevm.cc.model.Production;
  */
 class Container {
 
-  private Production member;
+    private Production member;
 
-  <P extends Production> P get() {
-    return (P)this.member;
-  }
+    <P extends Production> P get() {
+        return (P) this.member;
+    }
 
-  <P extends Production> P set(P member) {
-    this.member = member;
-    return member;
-  }
+    <P extends Production> P set(P member) {
+        this.member = member;
+        return member;
+    }
 }

@@ -14,112 +14,114 @@ import java.util.List;
  */
 public class ParserBuilder {
 
-  private Language     language;
-  private File         targetDir;
-  private List<String> customNodes;
+    private Language     language;
+    private File         targetDir;
+    private List<String> customNodes;
 
-  private File treeFile;
-  private File parserFile;
+    private File treeFile;
+    private File parserFile;
 
-  /**
-   * Set the code generator.
-   */
-  public final ParserBuilder setCodeGenerator(Language language) {
-    this.language = language;
-    return this;
-  }
+    /**
+     * Set the code generator.
+     */
+    public final ParserBuilder setCodeGenerator(Language language) {
+        this.language = language;
+        return this;
+    }
 
-  /**
-   * Set the output directory.
-   */
-  public final ParserBuilder setTargetDir(File targetDir, String... pathes) {
-    this.targetDir = ParserBuilder.toFile(targetDir, pathes);
-    return this;
-  }
+    /**
+     * Set the output directory.
+     */
+    public final ParserBuilder setTargetDir(File targetDir, String... pathes) {
+        this.targetDir = ParserBuilder.toFile(targetDir, pathes);
+        return this;
+    }
 
-  /**
-   * Set the nodes that should not be generated.
-   */
-  public final ParserBuilder setCustomNodes(List<String> excludes) {
-    this.customNodes = excludes;
-    return this;
-  }
+    /**
+     * Set the nodes that should not be generated.
+     */
+    public final ParserBuilder setCustomNodes(List<String> excludes) {
+        this.customNodes = excludes;
+        return this;
+    }
 
-  /**
-   * Set the jj file.
-   */
-  public final ParserBuilder setParserFile(File file, String... pathes) {
-    this.parserFile = ParserBuilder.toFile(file, pathes);
-    return this;
-  }
+    /**
+     * Set the jj file.
+     */
+    public final ParserBuilder setParserFile(File file, String... pathes) {
+        this.parserFile = ParserBuilder.toFile(file, pathes);
+        return this;
+    }
 
-  /**
-   * Set the jj file.
-   */
-  public final ParserBuilder setTreeFile(File file, String... pathes) {
-    this.treeFile = ParserBuilder.toFile(file, pathes);
-    return this;
-  }
+    /**
+     * Set the jj file.
+     */
+    public final ParserBuilder setTreeFile(File file, String... pathes) {
+        this.treeFile = ParserBuilder.toFile(file, pathes);
+        return this;
+    }
 
-  public static ParserBuilder of(Language language) {
-    ParserBuilder builder = new ParserBuilder();
-    builder.setCodeGenerator(language);
-    return builder;
-  }
+    public static ParserBuilder of(Language language) {
+        ParserBuilder builder = new ParserBuilder();
+        builder.setCodeGenerator(language);
+        return builder;
+    }
 
-  /**
-   * Run the parser generator.
-   */
-  public final void build() {
-    try {
-      List<String> arguments = new ArrayList<>();
-      arguments.add("-CODE_GENERATOR=" + this.language.name());
-      arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
-      if (this.parserFile == null) {
-        if ((this.customNodes != null) && !this.customNodes.isEmpty()) {
-          arguments.add("-NODE_CUSTOM=" + String.join(",", this.customNodes));
+    /**
+     * Run the parser generator.
+     */
+    public final void build() {
+        try {
+            List<String> arguments = new ArrayList<>();
+            arguments.add("-CODE_GENERATOR=" + this.language.name());
+            arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
+            if (this.parserFile == null) {
+                if ((this.customNodes != null) && !this.customNodes.isEmpty()) {
+                    arguments.add("-NODE_CUSTOM=" + String.join(",", this.customNodes));
+                }
+                arguments.add(this.treeFile.getAbsolutePath());
+
+                HiveCCTree.main(arguments.toArray(new String[0]));
+
+                String path = this.treeFile.getAbsolutePath();
+                int offset = path.lastIndexOf("/");
+                int length = path.lastIndexOf(".");
+                arguments.set(arguments.size() - 1,
+                        this.targetDir + path.substring(offset, length) + ".jj");
+            }
+            else {
+                arguments.add(this.parserFile.getAbsolutePath());
+            }
+
+            HiveCCParser.main(arguments.toArray(new String[0]));
         }
-        arguments.add(this.treeFile.getAbsolutePath());
-
-        HiveCCTree.main(arguments.toArray(new String[0]));
-
-        String path = this.treeFile.getAbsolutePath();
-        int offset = path.lastIndexOf("/");
-        int length = path.lastIndexOf(".");
-        arguments.set(arguments.size() - 1,
-            this.targetDir + path.substring(offset, length) + ".jj");
-      }
-      else {
-        arguments.add(this.parserFile.getAbsolutePath());
-      }
-
-      HiveCCParser.main(arguments.toArray(new String[0]));
-    } catch (Throwable e) {
-      e.printStackTrace();
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
-  }
 
-  /**
-   * Run the parser generator.
-   */
-  public final void interpret(String text) {
-    HiveCCOptions options = new HiveCCOptions();
-    try {
-      ParserInterpreter interpreter = new ParserInterpreter(options);
-      File file = this.parserFile;
-      if (file == null) {
-        String name = this.treeFile.getName();
-        String jjName = name.substring(0, name.length() - 1);
-        file = new File(this.targetDir, jjName);
-      }
-      String grammar = new String(Files.readAllBytes(file.toPath()));
-      interpreter.runTokenizer(grammar, text);
-    } catch (Throwable e) {
-      e.printStackTrace();
+    /**
+     * Run the parser generator.
+     */
+    public final void interpret(String text) {
+        HiveCCOptions options = new HiveCCOptions();
+        try {
+            ParserInterpreter interpreter = new ParserInterpreter(options);
+            File file = this.parserFile;
+            if (file == null) {
+                String name = this.treeFile.getName();
+                String jjName = name.substring(0, name.length() - 1);
+                file = new File(this.targetDir, jjName);
+            }
+            String grammar = new String(Files.readAllBytes(file.toPath()));
+            interpreter.runTokenizer(grammar, text);
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
-  }
 
-  private static File toFile(File file, String... pathes) {
-    return (pathes.length == 0) ? file : new File(file, String.join(File.separator, pathes));
-  }
+    private static File toFile(File file, String... pathes) {
+        return (pathes.length == 0) ? file : new File(file, String.join(File.separator, pathes));
+    }
 }

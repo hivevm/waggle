@@ -4,6 +4,7 @@
 package org.hivevm.cc.jjtree;
 
 import java.io.Reader;
+
 import org.hivevm.cc.generator.TreeContext;
 
 /**
@@ -11,33 +12,33 @@ import org.hivevm.cc.generator.TreeContext;
  */
 public class JJTreeParserDefault extends JJTreeParser {
 
-  private final TreeContext options;
+    private final TreeContext options;
 
-  public JJTreeParserDefault(Reader reader, TreeContext options) {
-    super(new JJTreeParserTokenManager(new JavaCharStream(new StreamProvider(reader))));
-    this.options = options;
-  }
+    public JJTreeParserDefault(Reader reader, TreeContext options) {
+        super(new JJTreeParserTokenManager(new JavaCharStream(new StreamProvider(reader))));
+        this.options = options;
+    }
 
-  /**
-   * Parses the {@link Reader} and creates the abstract syntax tree.
-   */
-  public final ASTGrammar parse() throws ParseException {
-    javacc_input();
-    return (ASTGrammar) this.jjtree.rootNode();
-  }
+    /**
+     * Parses the {@link Reader} and creates the abstract syntax tree.
+     */
+    public final ASTGrammar parse() throws ParseException {
+        javacc_input();
+        return (ASTGrammar) this.jjtree.rootNode();
+    }
 
-  @Override
-  protected final void jjtreeOpenNodeScope(Node n) {
-    ((ASTNode) n).setFirstToken(getToken(1));
-  }
+    @Override
+    protected final void jjtreeOpenNodeScope(Node n) {
+        ((ASTNode) n).setFirstToken(getToken(1));
+    }
 
-  @Override
-  protected final void jjtreeCloseNodeScope(Node n) {
-    ((ASTNode) n).setLastToken(getToken(0));
-  }
+    @Override
+    protected final void jjtreeCloseNodeScope(Node n) {
+        ((ASTNode) n).setLastToken(getToken(0));
+    }
 
-  @Override
-  protected final TreeContext getOptions() {
-    return this.options;
-  }
+    @Override
+    protected final TreeContext getOptions() {
+        return this.options;
+    }
 }

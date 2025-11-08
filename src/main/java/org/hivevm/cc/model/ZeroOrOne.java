@@ -10,14 +10,14 @@ import org.hivevm.cc.parser.Token;
  */
 public class ZeroOrOne extends Expansion {
 
-  private final Expansion expansion;
+    private final Expansion expansion;
 
-  public ZeroOrOne(Expansion e) {
-    this.expansion = e;
-    e.setParent(this);
-  }
+    public ZeroOrOne(Expansion e) {
+        this.expansion = e;
+        e.setParent(this);
+    }
 
-  public final Expansion getExpansion() {
-    return this.expansion;
-  }
+    public final Expansion getExpansion() {
+        return this.expansion;
+    }
 }

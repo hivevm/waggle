@@ -155,9 +155,10 @@ public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implemen
     jj_nt = jj_nt.next;
 @else
     Token oldToken;
-    if ((oldToken = token).next == null)
-      token.next = token_source.getNextToken();
-    token = token.next;
+    if ((oldToken = token).next != null)
+      token = token.next;
+    else
+      token = token.next = token_source.getNextToken();
     jj_ntk = -1;
 @fi
     if (token.kind == kind) {

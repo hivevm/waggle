@@ -12,64 +12,64 @@ import org.hivevm.cc.HiveCCOptions;
  */
 class JJDocOptions extends HiveCCOptions {
 
-  /**
-   * Limit subclassing to derived classes.
-   */
-  public JJDocOptions() {
-    set("ONE_TABLE", Boolean.TRUE);
-    set("TEXT", Boolean.FALSE);
-    set("XTEXT", Boolean.FALSE);
-    set("BNF", Boolean.FALSE);
-    set("OUTPUT_FILE", "");
-    set("CSS", "");
-  }
+    /**
+     * Limit subclassing to derived classes.
+     */
+    public JJDocOptions() {
+        set("ONE_TABLE", Boolean.TRUE);
+        set("TEXT", Boolean.FALSE);
+        set("XTEXT", Boolean.FALSE);
+        set("BNF", Boolean.FALSE);
+        set("OUTPUT_FILE", "");
+        set("CSS", "");
+    }
 
-  /**
-   * Find the one table value.
-   *
-   * @return The requested one table value.
-   */
-  boolean getOneTable() {
-    return booleanValue("ONE_TABLE");
-  }
+    /**
+     * Find the one table value.
+     *
+     * @return The requested one table value.
+     */
+    boolean getOneTable() {
+        return booleanValue("ONE_TABLE");
+    }
 
-  /**
-   * Find the CSS value.
-   *
-   * @return The requested CSS value.
-   */
-  String getCSS() {
-    return stringValue("CSS");
-  }
+    /**
+     * Find the CSS value.
+     *
+     * @return The requested CSS value.
+     */
+    String getCSS() {
+        return stringValue("CSS");
+    }
 
-  /**
-   * Find the text value.
-   *
-   * @return The requested text value.
-   */
-  boolean getText() {
-    return booleanValue("TEXT");
-  }
+    /**
+     * Find the text value.
+     *
+     * @return The requested text value.
+     */
+    boolean getText() {
+        return booleanValue("TEXT");
+    }
 
-  boolean getXText() {
-    return booleanValue("XTEXT");
-  }
+    boolean getXText() {
+        return booleanValue("XTEXT");
+    }
 
-  /**
-   * Find the BNF value.
-   *
-   * @return The requested text value.
-   */
-  boolean getBNF() {
-    return booleanValue("BNF");
-  }
+    /**
+     * Find the BNF value.
+     *
+     * @return The requested text value.
+     */
+    boolean getBNF() {
+        return booleanValue("BNF");
+    }
 
-  /**
-   * Find the output file value.
-   *
-   * @return The requested output value.
-   */
-  String getOutputFile() {
-    return stringValue("OUTPUT_FILE");
-  }
+    /**
+     * Find the output file value.
+     *
+     * @return The requested output value.
+     */
+    String getOutputFile() {
+        return stringValue("OUTPUT_FILE");
+    }
 }

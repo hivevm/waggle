@@ -8,23 +8,23 @@ package org.hivevm.cc.model;
  */
 public class RStringLiteral extends RExpression {
 
-  private final String image;
+    private final String image;
 
-  public RStringLiteral(String image) {
-    this.image = image;
-  }
+    public RStringLiteral(String image) {
+        this.image = image;
+    }
 
-  public final String getImage() {
-    return this.image;
-  }
+    public final String getImage() {
+        return this.image;
+    }
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 
-  @Override
-  public String toString() {
-    return super.toString() + " - " + this.image;
-  }
+    @Override
+    public String toString() {
+        return super.toString() + " - " + this.image;
+    }
 }

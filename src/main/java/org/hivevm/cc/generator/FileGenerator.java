@@ -8,5 +8,5 @@ package org.hivevm.cc.generator;
  */
 public interface FileGenerator {
 
-  void generate(LexerData context);
+    void generate(LexerData context);
 }

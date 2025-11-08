@@ -11,36 +11,36 @@ import org.hivevm.cc.parser.JavaCCErrors;
 
 public class CharacterRange extends Production {
 
-  /**
-   * The leftmost and the rightmost characters in this character range.
-   */
-  private char right;
+    /**
+     * The leftmost and the rightmost characters in this character range.
+     */
+    private char right;
 
-  private char left;
+    private char left;
 
-  public CharacterRange(char l, char r) {
-    if (l > r) {
-      JavaCCErrors.semantic_error(this, "Invalid range : \"" + (int) l + "\" - \"" + (int) r
-          + "\". First character should be less than or equal to the second one in a range.");
+    public CharacterRange(char l, char r) {
+        if (l > r) {
+            JavaCCErrors.semantic_error(this, "Invalid range : \"" + (int) l + "\" - \"" + (int) r
+                    + "\". First character should be less than or equal to the second one in a range.");
+        }
+
+        setLeft(l);
+        setRight(r);
     }
 
-    setLeft(l);
-    setRight(r);
-  }
+    public void setLeft(char left) {
+        this.left = left;
+    }
 
-  public void setLeft(char left) {
-    this.left = left;
-  }
+    public char getLeft() {
+        return this.left;
+    }
 
-  public char getLeft() {
-    return this.left;
-  }
+    public void setRight(char right) {
+        this.right = right;
+    }
 
-  public void setRight(char right) {
-    this.right = right;
-  }
-
-  public char getRight() {
-    return this.right;
-  }
+    public char getRight() {
+        return this.right;
+    }
 }

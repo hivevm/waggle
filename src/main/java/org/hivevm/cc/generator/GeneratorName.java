@@ -9,5 +9,5 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(value = RetentionPolicy.RUNTIME)
 public @interface GeneratorName {
 
-  String value() default "";
+    String value() default "";
 }

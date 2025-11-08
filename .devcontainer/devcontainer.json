@@ -1,10 +1,25 @@
 {
-    "name": "HiveVM CC",
-    "image": "eclipse-temurin:21",
-    "onCreateCommand": "apt update && apt install git -y",
-    "customizations": {
-        "vscode": {
-        "extensions": ["vscjava.vscode-java-pack", "github.vscode-github-actions"]
-        }
+  "name": "HiveVM CC Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/java:21",
+  "runArgs": [
+    "--network=host"
+  ],,
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21"
     }
+  },
+
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "github.vscode-github-actions"
+      ]
+    }
+  }
 }

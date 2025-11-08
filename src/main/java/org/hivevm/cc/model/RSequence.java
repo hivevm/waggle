@@ -12,18 +12,18 @@ import java.util.List;
 
 public class RSequence extends RExpression {
 
-  private final List<RExpression> units;
+    private final List<RExpression> units;
 
-  public RSequence() {
-    this.units = new ArrayList<>();
-  }
+    public RSequence() {
+        this.units = new ArrayList<>();
+    }
 
-  public final List<RExpression> getUnits() {
-    return this.units;
-  }
+    public final List<RExpression> getUnits() {
+        return this.units;
+    }
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 }

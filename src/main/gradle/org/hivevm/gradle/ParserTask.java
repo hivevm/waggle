@@ -4,6 +4,7 @@
 package org.hivevm.gradle;
 
 import org.gradle.api.Project;
+
 import org.hivevm.cc.Language;
 
 import javax.inject.Inject;
@@ -11,25 +12,25 @@ import java.util.List;
 
 public class ParserTask {
 
-  private final Project project;
+    private final Project project;
 
 
-  public String       name;
-  public Language     target;
+    public String   name;
+    public Language target;
 
-  public String       jjFile;
-  public String       jjtFile;
+    public String jjFile;
+    public String jjtFile;
 
-  public String       output;
-  public List<String> treeNodes;
+    public String       output;
+    public List<String> treeNodes;
 
 
-  @Inject
-  public ParserTask(Project project) {
-    this.project = project;
-  }
+    @Inject
+    public ParserTask(Project project) {
+        this.project = project;
+    }
 
-  public final Project getProject() {
-    return this.project;
-  }
+    public final Project getProject() {
+        return this.project;
+    }
 }

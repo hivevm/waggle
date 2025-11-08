@@ -14,29 +14,29 @@ import org.hivevm.cc.parser.Options;
  */
 public interface ParserRequest {
 
-  Options options();
+    Options options();
 
-  String getParserName();
+    String getParserName();
 
-  boolean isGenerated();
+    boolean isGenerated();
 
-  boolean ignoreCase();
+    boolean ignoreCase();
 
-  int getStateCount();
+    int getStateCount();
 
-  int getTokenCount();
+    int getTokenCount();
 
-  Action getActionForEof();
+    Action getActionForEof();
 
-  String getNextStateForEof();
+    String getNextStateForEof();
 
-  String getNameOfToken(int ordinal);
+    String getNameOfToken(int ordinal);
 
-  Iterable<RExpression> getOrderedsTokens();
+    Iterable<RExpression> getOrderedsTokens();
 
-  Iterable<TokenProduction> getTokenProductions();
+    Iterable<TokenProduction> getTokenProductions();
 
-  Iterable<NormalProduction> getNormalProductions();
+    Iterable<NormalProduction> getNormalProductions();
 
-  NormalProduction getProductionTable(String name);
+    NormalProduction getProductionTable(String name);
 }

@@ -6,6 +6,7 @@ package org.hivevm.cc;
 
 public enum Language {
 
-  JAVA,
-  CPP
+    CPP,
+    JAVA,
+    RUST
 }

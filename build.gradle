@@ -1,8 +1,8 @@
 plugins {
-  id 'com.gradle.plugin-publish' version '1.3.1'
-  id 'org.hivevm.cc' version '1.0.4'
-  id 'java-gradle-plugin'
-  id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '1.3.1'
+    id 'org.hivevm.cc' version '1.0.5'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
 
@@ -13,50 +13,48 @@ apply plugin: 'java-gradle-plugin'
 
 
 repositories {
-  mavenLocal()
-  mavenCentral()
+    mavenLocal()
+    mavenCentral()
 }
 
 
-version = '1.0.4'
+version = '1.0.5'
 group	= 'org.hivevm'
 
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_21
-  targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 
 allprojects {
-  tasks.withType(Javadoc).all {
-    enabled = false 
-  }
+    tasks.withType(Javadoc).all {
+        enabled = false
+    }
 }
 
 
 dependencies {
-  implementation gradleApi()
+    implementation gradleApi()
 
-  // Use JUnit test framework
-  // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
-  // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
-  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.13.3'
-  // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-runner
-  testImplementation("org.junit.platform:junit-platform-runner:1.13.3")
+    // Use JUnit test framework//
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
+    // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-launcher
+    testImplementation("org.junit.platform:junit-platform-launcher:6.0.1")
 }
 
 
 sourceSets {
-  main {
-    java {
-      srcDirs += 'src/main/gradle'
-      srcDirs += 'src/main/generated'
+    main {
+        java {
+            srcDirs += 'src/main/gradle'
+            srcDirs += 'src/main/generated'
+        }
+        resources {
+        }
     }
-    resources {
-    }
-  }
 /*
   test {
     java {
@@ -72,13 +70,13 @@ test {
 }
 
 jar {
-	manifest {
-		attributes 'Implementation-Title': 'HiveVM Compiler Compiler'
-		attributes 'Implementation-Version': project.version
-	}
-	
-	exclude('JavaCC.jj')
-	exclude('JJTree.jjt')
+    manifest {
+        attributes 'Implementation-Title': 'HiveVM Compiler Compiler'
+        attributes 'Implementation-Version': project.version
+    }
+
+    exclude('JavaCC.jj')
+    exclude('JJTree.jjt')
 }
 
 
@@ -89,12 +87,12 @@ gradlePlugin {
   plugins {
     create("gradle") {
       id = 'org.hivevm.cc'
-      displayName = 'HiveVM CC'
-      description = 'HiveVM parser generator for Java/C++/Rust'
-      implementationClass = 'org.hivevm.gradle.HiveCCPlugin'
-      tags.set(["hivevm", "compiler-compiler", "parser generator"])
+            displayName = 'HiveVM CC'
+            description = 'HiveVM parser generator for Java/C++/Rust'
+            implementationClass = 'org.hivevm.gradle.HiveCCPlugin'
+            tags.set(["hivevm", "compiler-compiler", "parser generator"])
+        }
     }
-  }
 }
 
 
@@ -115,15 +113,15 @@ parserProject {
   }
 
   // task {
-  //   name       = 'oql4java'
-  //   output     = '/data/smartIO/develop/parser/parser/src/main/java'
-  //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
-  // }
+    //   name       = 'oql4java'
+    //   output     = '/data/smartIO/develop/parser/parser/src/main/java'
+    //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
+    // }
 
-  // task {
-  //   name       = 'oql4cpp'
-  //   target     = 'cpp'
-  //   output     = '/data/smartIO/develop/core-cpp/text/parser'
-  //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
-  // }
+    // task {
+    //   name       = 'oql4cpp'
+    //   target     = 'cpp'
+    //   output     = '/data/smartIO/develop/core-cpp/text/parser'
+    //   jjtFile    = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
+    // }
 }

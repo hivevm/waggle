@@ -1,11 +1,11 @@
 ![Status](https://img.shields.io/github/actions/workflow/status/hivevm/cc/main.yml?label=Build)
 ![GitHub License](https://img.shields.io/github/license/hivevm/cc?label=License&link=https%3A%2F%2Fopensource.org%2Flicense%2Fbsd-3-clause)
 
-
 # HiveVM - Parser Generator
 
 HiveVM Compiler-Compiler (HiveVM CC) is a fork of JavaCC 7.0.13.
 The overall goal is to maintain *mostly* compatibility to JavaCC, but:
+
 * The code itself should be better maintainable
 * Organize 
 
@@ -14,7 +14,6 @@ A parser generator is a tool that reads a grammar specification and converts it 
 In addition to the parser generator itself, HiveVM CC provides other standard capabilities related to parser generation such as tree building (via a tool called JJTree included with HiveVM CC), actions and debugging.
 
 All you need to run a HiveVM CC parser, once generated, is a Java Runtime Environment (JRE).
-
 
 ## Configure Settings
 
@@ -43,7 +42,6 @@ parserProject {
   }
 }
 ~~~
-
 
 ## Features
 
@@ -91,6 +89,7 @@ Examples of illegal strings are:
 `{}{}`, `}{}}`, `{ }`, `{x}` // ... etc
 
 ### Grammar
+
 ```java
 PARSER_BEGIN(Example)
 
@@ -123,6 +122,7 @@ void MatchedBraces() :
 ```
 
 ### Output
+
 ```java
 $ java Example
 {{}}<return>

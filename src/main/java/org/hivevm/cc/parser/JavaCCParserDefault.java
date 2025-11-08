@@ -10,18 +10,18 @@ import org.hivevm.cc.HiveCCOptions;
  */
 public class JavaCCParserDefault extends JavaCCParser {
 
-  private final HiveCCOptions options;
+    private final HiveCCOptions options;
 
-  public JavaCCParserDefault(Provider stream, HiveCCOptions options) {
-    super(stream);
-    this.options = options;
-  }
+    public JavaCCParserDefault(Provider stream, HiveCCOptions options) {
+        super(stream);
+        this.options = options;
+    }
 
-  /**
-   * Gets the {@link #options}.
-   */
-  @Override
-  public final HiveCCOptions getOptions() {
-    return this.options;
-  }
+    /**
+     * Gets the {@link #options}.
+     */
+    @Override
+    public final HiveCCOptions getOptions() {
+        return this.options;
+    }
 }

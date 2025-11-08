@@ -7,74 +7,70 @@ import org.hivevm.cc.generator.TreeOptions;
 
 public class ASTNode extends Node {
 
-  private int myOrdinal;
+    private int myOrdinal;
 
-  ASTNode(JJTreeParser p, int i) {
-    super(p, i);
-  }
-
-  public final JJTreeParser getParser() {
-    return this.parser;
-  }
-
-  public final TreeOptions jjtOptions() {
-    return getParser().getOptions();
-  }
-
-  @Override
-  public void jjtAddChild(Node n, int i) {
-    super.jjtAddChild(n, i);
-    ((ASTNode) n).setOrdinal(i);
-  }
-
-  public int getOrdinal() {
-    return this.myOrdinal;
-  }
-
-  public void setOrdinal(int o) {
-    this.myOrdinal = o;
-  }
-
-
-  /*****************************************************************
-   * <p>
-   * The following is added manually to enhance all tree nodes with attributes that store the first
-   * and last tokens corresponding to each node, as well as to print the tokens back to the
-   * specified output stream.
-   *
-   *****************************************************************/
-
-  private Token first, last;
-
-  public Token getFirstToken() {
-    return this.first;
-  }
-
-  public void setFirstToken(Token t) {
-    this.first = t;
-  }
-
-  public Token getLastToken() {
-    return this.last;
-  }
-
-  public void setLastToken(Token t) {
-    this.last = t;
-  }
-
-  public String translateImage(Token t) {
-    return t.image;
-  }
-
-  String whiteOut(Token t) {
-    StringBuilder sb = new StringBuilder(t.image.length());
-    for (int i = 0; i < t.image.length(); ++i) {
-      char ch = t.image.charAt(i);
-      if ((ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f'))
-        sb.append(' ');
-      else
-        sb.append(ch);
+    ASTNode(JJTreeParser p, int i) {
+        super(p, i);
     }
-    return sb.toString();
-  }
+
+    public final TreeOptions jjtOptions() {
+        return jjtParser().getOptions();
+    }
+
+    @Override
+    public void jjtAddChild(Node n, int i) {
+        super.jjtAddChild(n, i);
+        ((ASTNode) n).setOrdinal(i);
+    }
+
+    public int getOrdinal() {
+        return this.myOrdinal;
+    }
+
+    public void setOrdinal(int o) {
+        this.myOrdinal = o;
+    }
+
+
+    /*****************************************************************
+     * <p>
+     * The following is added manually to enhance all tree nodes with attributes that store the first
+     * and last tokens corresponding to each node, as well as to print the tokens back to the
+     * specified output stream.
+     *
+     *****************************************************************/
+
+    private Token first, last;
+
+    public Token getFirstToken() {
+        return this.first;
+    }
+
+    public void setFirstToken(Token t) {
+        this.first = t;
+    }
+
+    public Token getLastToken() {
+        return this.last;
+    }
+
+    public void setLastToken(Token t) {
+        this.last = t;
+    }
+
+    public String translateImage(Token t) {
+        return t.image;
+    }
+
+    String whiteOut(Token t) {
+        StringBuilder sb = new StringBuilder(t.image.length());
+        for (int i = 0; i < t.image.length(); ++i) {
+            char ch = t.image.charAt(i);
+            if ((ch != '\t') && (ch != '\n') && (ch != '\r') && (ch != '\f'))
+                sb.append(' ');
+            else
+                sb.append(ch);
+        }
+        return sb.toString();
+    }
 }

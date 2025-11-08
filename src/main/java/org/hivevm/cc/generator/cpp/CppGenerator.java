@@ -16,23 +16,23 @@ import org.hivevm.cc.generator.TreeGenerator;
 @GeneratorName("Cpp")
 public class CppGenerator extends GeneratorProvider {
 
-  @Override
-  protected final TreeGenerator newASTGenerator() {
-    return new CppASTGenerator();
-  }
+    @Override
+    protected final TreeGenerator newASTGenerator() {
+        return new CppASTGenerator();
+    }
 
-  @Override
-  protected final FileGenerator newFileGenerator() {
-    return new CppFileGenerator();
-  }
+    @Override
+    protected final FileGenerator newFileGenerator() {
+        return new CppFileGenerator();
+    }
 
-  @Override
-  protected final LexerGenerator newLexerGenerator() {
-    return new CppLexerGenerator();
-  }
+    @Override
+    protected final LexerGenerator newLexerGenerator() {
+        return new CppLexerGenerator();
+    }
 
-  @Override
-  protected final ParserGenerator newParserGenerator() {
-    return new CppParserGenerator();
-  }
+    @Override
+    protected final ParserGenerator newParserGenerator() {
+        return new CppParserGenerator();
+    }
 }

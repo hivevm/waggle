@@ -11,181 +11,182 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.jetbrains.annotations.NotNull;
 
 class TemplateTree implements Iterable<TemplateTree> {
 
-  public enum Kind {
-    NONE,
-    EXPR,
-    SWITCH,
-    FOREACH
-  }
+    public enum Kind {
+        NONE,
+        EXPR,
+        SWITCH,
+        FOREACH
+    }
 
 
-  private Kind   kind;
-  private String text;
-  private String option;
+    private Kind   kind;
+    private String text;
+    private String option;
 
 
-  private final List<TemplateTree> nodes = new ArrayList<>();
+    private final List<TemplateTree> nodes = new ArrayList<>();
 
 
-  /**
-   * Constructs an instance of {@link TemplateTree}.
-   */
-  public TemplateTree() {
-    this.kind = Kind.NONE;
-  }
+    /**
+     * Constructs an instance of {@link TemplateTree}.
+     */
+    public TemplateTree() {
+        this.kind = Kind.NONE;
+    }
 
-  public final Kind kind() {
-    return this.kind;
-  }
+    public final Kind kind() {
+        return this.kind;
+    }
 
-  public final String text() {
-    return this.text;
-  }
+    public final String text() {
+        return this.text;
+    }
 
-  public final String option() {
-    return this.option;
-  }
+    public final String option() {
+        return this.option;
+    }
 
-  public void newText(String text) {
-    TemplateTree node = new TemplateTree();
-    node.text = text;
-    this.nodes.add(node);
-  }
+    public void newText(String text) {
+        TemplateTree node = new TemplateTree();
+        node.text = text;
+        this.nodes.add(node);
+    }
 
-  public void newExpr(String text, String option) {
-    TemplateTree node = new TemplateTree();
-    node.kind = Kind.EXPR;
-    node.text = text;
-    node.option = option;
-    this.nodes.add(node);
-  }
+    public void newExpr(String text, String option) {
+        TemplateTree node = new TemplateTree();
+        node.kind = Kind.EXPR;
+        node.text = text;
+        node.option = option;
+        this.nodes.add(node);
+    }
 
-  public TemplateTree newSwitch() {
-    TemplateTree node = new TemplateTree();
-    node.kind = Kind.SWITCH;
-    this.nodes.add(node);
-    return node;
-  }
+    public TemplateTree newSwitch() {
+        TemplateTree node = new TemplateTree();
+        node.kind = Kind.SWITCH;
+        this.nodes.add(node);
+        return node;
+    }
 
-  public TemplateTree newCase(String cond) {
-    TemplateTree node = new TemplateTree();
-    node.text = cond;
-    this.nodes.add(node);
-    return node;
-  }
+    public TemplateTree newCase(String cond) {
+        TemplateTree node = new TemplateTree();
+        node.text = cond;
+        this.nodes.add(node);
+        return node;
+    }
 
-  public TemplateTree newForEach(String item, String list) {
-    TemplateTree node = new TemplateTree();
-    node.kind = Kind.FOREACH;
-    node.text = item;
-    node.option = list;
-    this.nodes.add(node);
-    return node;
-  }
+    public TemplateTree newForEach(String item, String list) {
+        TemplateTree node = new TemplateTree();
+        node.kind = Kind.FOREACH;
+        node.text = item;
+        node.option = list;
+        this.nodes.add(node);
+        return node;
+    }
 
-  @Override
-  public final @NotNull Iterator<TemplateTree> iterator() {
-    return this.nodes.iterator();
-  }
+    @Override
+    public final @NotNull Iterator<TemplateTree> iterator() {
+        return this.nodes.iterator();
+    }
 
-  /**
-   * Use the template.
-   */
-  public final void render(PrintWriter writer, Environment environment) {
-    render(writer, environment, null, null, null);
-  }
+    /**
+     * Use the template.
+     */
+    public final void render(PrintWriter writer, Environment environment) {
+        render(writer, environment, null, null, null);
+    }
 
-  /**
-   * Use the template.
-   */
-  private void render(PrintWriter writer, Environment env, Object item, String global,
-      String local) {
-    for (TemplateTree child : this) {
-      switch (child.kind()) {
-        case EXPR:
-          String param = child.text();
+    /**
+     * Use the template.
+     */
+    private void render(PrintWriter writer, Environment env, Object item, String global,
+                        String local) {
+        for (TemplateTree child : this) {
+            switch (child.kind()) {
+                case EXPR:
+                    String param = child.text();
 
-          // Replace qualified parameter for iterators
-          if (param.startsWith(local + ".")) {
-            param = global + "." + param.substring(local.length() + 1);
-          }
+                    // Replace qualified parameter for iterators
+                    if (param.startsWith(local + ".")) {
+                        param = global + "." + param.substring(local.length() + 1);
+                    }
 
-          String option = child.option();
-          Object instance = env.get(param);
-          if (option != null) {
-            boolean validate = validate(param, env);
-            writer.print(validate ? instance : option);
-          }
-          else if (instance instanceof Supplier) {
-            Supplier<Object> func = (Supplier<Object>) instance;
-            writer.print(func.get());
-          }
-          else if (instance instanceof Function) {
-            Function<Object, Object> func = (Function<Object, Object>) instance;
-            writer.print(func.apply(item));
-          }
-          else {
-            writer.print(instance);
-          }
-          break;
+                    String option = child.option();
+                    Object instance = env.get(param);
+                    if (option != null) {
+                        boolean validate = validate(param, env);
+                        writer.print(validate ? instance : option);
+                    }
+                    else if (instance instanceof Supplier) {
+                        Supplier<Object> func = (Supplier<Object>) instance;
+                        writer.print(func.get());
+                    }
+                    else if (instance instanceof Function) {
+                        Function<Object, Object> func = (Function<Object, Object>) instance;
+                        writer.print(func.apply(item));
+                    }
+                    else {
+                        writer.print(instance);
+                    }
+                    break;
 
-        case SWITCH:
-          boolean hasFound = false;
-          Iterator<TemplateTree> iterator = child.iterator();
-          while (!hasFound && iterator.hasNext()) {
-            TemplateTree next = iterator.next();
-            if ((next.text() == null) || validate(next.text(), env)) {
-              hasFound = true;
-              next.render(writer, env, item, global, local);
+                case SWITCH:
+                    boolean hasFound = false;
+                    Iterator<TemplateTree> iterator = child.iterator();
+                    while (!hasFound && iterator.hasNext()) {
+                        TemplateTree next = iterator.next();
+                        if ((next.text() == null) || validate(next.text(), env)) {
+                            hasFound = true;
+                            next.render(writer, env, item, global, local);
+                        }
+                    }
+                    break;
+
+                case FOREACH:
+                    instance = env.get(child.option());
+                    Iterable<?> iterable = (instance instanceof Integer)
+                            ? IntStream.range(0, (Integer) instance).boxed().collect(Collectors.toList())
+                            : (Iterable<?>) instance;
+
+                    Environment e = new TemplateEnvironment(env);
+                    for (Object value : iterable) {
+                        e.set(child.text(), value);
+                        child.render(writer, e, value, child.option(), child.text());
+                    }
+                    break;
+
+                case NONE:
+                    writer.append(child.text());
+                default:
+                    break;
             }
-          }
-          break;
-
-        case FOREACH:
-          instance = env.get(child.option());
-          Iterable<?> iterable = (instance instanceof Integer)
-              ? IntStream.range(0, (Integer) instance).boxed().collect(Collectors.toList())
-              : (Iterable<?>) instance;
-
-          Environment e = new TemplateEnvironment(env);
-          for (Object value : iterable) {
-            e.set(child.text(), value);
-            child.render(writer, e, value, child.option(), child.text());
-          }
-          break;
-
-        case NONE:
-          writer.append(child.text());
-        default:
-          break;
-      }
-    }
-  }
-
-  /**
-   * Validates the condition against the properties.
-   */
-  private boolean validate(String condition, Environment environment) {
-    if (condition.startsWith("!")) { // negative condition
-      return !validate(condition.substring(1), environment);
+        }
     }
 
-    if (!environment.isSet(condition)) {
-      return false;
-    }
+    /**
+     * Validates the condition against the properties.
+     */
+    private boolean validate(String condition, Environment environment) {
+        if (condition.startsWith("!")) { // negative condition
+            return !validate(condition.substring(1), environment);
+        }
 
-    Object value = environment.get(condition);
-    if ((value == null) || ((value instanceof String) && ((String) value).isEmpty())) {
-      return false;
-    }
-    if ((value instanceof Number) && (((Number) value).intValue() == 0)) {
-      return false;
-    }
+        if (!environment.isSet(condition)) {
+            return false;
+        }
 
-    return (!(value instanceof Boolean) || ((Boolean) value));
-  }
+        Object value = environment.get(condition);
+        if ((value == null) || ((value instanceof String) && ((String) value).isEmpty())) {
+            return false;
+        }
+        if ((value instanceof Number) && (((Number) value).intValue() == 0)) {
+            return false;
+        }
+
+        return (!(value instanceof Boolean) || ((Boolean) value));
+    }
 }

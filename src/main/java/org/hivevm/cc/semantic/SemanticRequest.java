@@ -5,6 +5,7 @@ package org.hivevm.cc.semantic;
 
 import java.util.Hashtable;
 import java.util.Set;
+
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.NormalProduction;
 import org.hivevm.cc.model.RExpression;
@@ -15,33 +16,33 @@ import org.hivevm.cc.model.TokenProduction;
  */
 public interface SemanticRequest {
 
-  void unsetTokenCount();
+    void unsetTokenCount();
 
-  int addTokenCount();
+    int addTokenCount();
 
-  Set<String> getStateNames();
+    Set<String> getStateNames();
 
-  Integer getStateIndex(String name);
+    Integer getStateIndex(String name);
 
-  Action getActionForEof();
+    Action getActionForEof();
 
-  void setActionForEof(Action action);
+    void setActionForEof(Action action);
 
-  String getNextStateForEof();
+    String getNextStateForEof();
 
-  void setNextStateForEof(String state);
+    void setNextStateForEof(String state);
 
-  Iterable<TokenProduction> getTokenProductions();
+    Iterable<TokenProduction> getTokenProductions();
 
-  Iterable<NormalProduction> getNormalProductions();
+    Iterable<NormalProduction> getNormalProductions();
 
-  NormalProduction getProductionTable(String name);
+    NormalProduction getProductionTable(String name);
 
-  NormalProduction setProductionTable(NormalProduction production);
+    NormalProduction setProductionTable(NormalProduction production);
 
-  void addOrderedNamedToken(RExpression token);
+    void addOrderedNamedToken(RExpression token);
 
-  Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(String stateName);
+    Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(String stateName);
 
-  void setNamesOfToken(RExpression expression);
+    void setNamesOfToken(RExpression expression);
 }

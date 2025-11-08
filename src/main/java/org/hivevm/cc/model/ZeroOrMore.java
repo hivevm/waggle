@@ -8,14 +8,14 @@ package org.hivevm.cc.model;
  */
 public class ZeroOrMore extends Expansion {
 
-  private final Expansion expansion;
+    private final Expansion expansion;
 
-  public ZeroOrMore(Expansion expansion) {
-    this.expansion = expansion;
-    this.expansion.setParent(this);
-  }
+    public ZeroOrMore(Expansion expansion) {
+        this.expansion = expansion;
+        this.expansion.setParent(this);
+    }
 
-  public final Expansion getExpansion() {
-    return this.expansion;
-  }
+    public final Expansion getExpansion() {
+        return this.expansion;
+    }
 }

@@ -5,6 +5,7 @@ package org.hivevm.cc.model;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.hivevm.cc.parser.Token;
 
 /**
@@ -14,42 +15,42 @@ import org.hivevm.cc.parser.Token;
 
 public class NonTerminal extends Expansion {
 
-  private String           name;
-  private NormalProduction prod;
+    private String           name;
+    private NormalProduction prod;
 
-  private       List<Token> lhsTokens;
-  private final List<Token> argument_tokens;
+    private       List<Token> lhsTokens;
+    private final List<Token> argument_tokens;
 
-  public NonTerminal() {
-    this.lhsTokens = new ArrayList<>();
-    this.argument_tokens = new ArrayList<>();
-  }
+    public NonTerminal() {
+        this.lhsTokens = new ArrayList<>();
+        this.argument_tokens = new ArrayList<>();
+    }
 
-  public void setLhsTokens(List<Token> lhsTokens) {
-    this.lhsTokens = lhsTokens;
-  }
+    public void setLhsTokens(List<Token> lhsTokens) {
+        this.lhsTokens = lhsTokens;
+    }
 
-  public List<Token> getLhsTokens() {
-    return this.lhsTokens;
-  }
+    public List<Token> getLhsTokens() {
+        return this.lhsTokens;
+    }
 
-  public String getName() {
-    return this.name;
-  }
+    public String getName() {
+        return this.name;
+    }
 
-  public List<Token> getArgumentTokens() {
-    return this.argument_tokens;
-  }
+    public List<Token> getArgumentTokens() {
+        return this.argument_tokens;
+    }
 
-  public NormalProduction getProd() {
-    return this.prod;
-  }
+    public NormalProduction getProd() {
+        return this.prod;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public NormalProduction setProd(NormalProduction prod) {
-    return this.prod = prod;
-  }
+    public NormalProduction setProd(NormalProduction prod) {
+        return this.prod = prod;
+    }
 }

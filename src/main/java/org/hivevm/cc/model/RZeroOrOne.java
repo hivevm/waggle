@@ -8,18 +8,18 @@ package org.hivevm.cc.model;
  */
 public class RZeroOrOne extends RExpression {
 
-  private final RExpression regexpr;
+    private final RExpression regexpr;
 
-  public RZeroOrOne(RExpression regexpr) {
-    this.regexpr = regexpr;
-  }
+    public RZeroOrOne(RExpression regexpr) {
+        this.regexpr = regexpr;
+    }
 
-  public final RExpression getRegexpr() {
-    return this.regexpr;
-  }
+    public final RExpression getRegexpr() {
+        return this.regexpr;
+    }
 
-  @Override
-  public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-    return visitor.visit(this, data);
-  }
+    @Override
+    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
+        return visitor.visit(this, data);
+    }
 }

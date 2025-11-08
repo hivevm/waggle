@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.hivevm.cc.generator.Generator;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.TreeContext;
@@ -26,136 +27,139 @@ import org.hivevm.cc.parser.JavaCCErrors;
 
 public class HiveCCTree {
 
-  private static final Pattern GENERATED = Pattern.compile("@generated\\(([^)]+)\\)");
+    private static final Pattern GENERATED = Pattern.compile("@generated\\(([^)]+)\\)");
 
-  /**
-   * Writes the generated string.
-   */
-  private static void writeGenerated(PrintWriter writer) {
-    writer.println("/* @generated(JJTree) */");
-  }
+    /**
+     * Writes the generated string.
+     */
+    private static void writeGenerated(PrintWriter writer) {
+        writer.println("/* @generated(JJTree) */");
+    }
 
-  /**
-   * Parses the tool list from the generated string.
-   */
-  private static List<String> readToolNameList(String text) {
-    Matcher matcher = HiveCCTree.GENERATED.matcher(text);
-    if (matcher.find())
-      return Arrays.asList(matcher.group(1).split(","));
-    return Collections.emptyList();
-  }
+    /**
+     * Parses the tool list from the generated string.
+     */
+    private static List<String> readToolNameList(String text) {
+        Matcher matcher = HiveCCTree.GENERATED.matcher(text);
+        if (matcher.find())
+            return Arrays.asList(matcher.group(1).split(","));
+        return Collections.emptyList();
+    }
 
-  /**
-   * Returns true if tool name passed is one of the tool names returned by getToolNames(fileName).
-   */
-  static boolean isGenerated(String fileName) {
-    try (InputStream stream = new FileInputStream(fileName)) {
-      String data = new String(stream.readAllBytes());
-      for (String element : HiveCCTree.readToolNameList(data)) {
-        if ("JJTree".equals(element)) {
-          return true;
+    /**
+     * Returns true if tool name passed is one of the tool names returned by getToolNames(fileName).
+     */
+    static boolean isGenerated(String fileName) {
+        try (InputStream stream = new FileInputStream(fileName)) {
+            String data = new String(stream.readAllBytes());
+            for (String element : HiveCCTree.readToolNameList(data)) {
+                if ("JJTree".equals(element)) {
+                    return true;
+                }
+            }
         }
-      }
-    } catch (IOException ignored) {
-    }
-    return false;
-  }
-
-
-  private static File createTreeFile(String jjt, TreeOptions options) {
-    String filename = options.getOutputFile();
-
-    if (filename.equals("")) {
-      int s = jjt.lastIndexOf(File.separatorChar);
-      if (s >= 0) {
-        jjt = jjt.substring(s + 1);
-      }
-
-      int di = jjt.lastIndexOf('.');
-      if (di == -1) {
-        filename = jjt + ".jj";
-      }
-      else {
-        String suffix = jjt.substring(di);
-        if (suffix.equals(".jj")) {
-          filename = jjt + ".jj";
+        catch (IOException ignored) {
         }
-        else {
-          filename = jjt.substring(0, di) + ".jj";
+        return false;
+    }
+
+
+    private static File createTreeFile(String jjt, TreeOptions options) {
+        String filename = options.getOutputFile();
+
+        if (filename.equals("")) {
+            int s = jjt.lastIndexOf(File.separatorChar);
+            if (s >= 0) {
+                jjt = jjt.substring(s + 1);
+            }
+
+            int di = jjt.lastIndexOf('.');
+            if (di == -1) {
+                filename = jjt + ".jj";
+            }
+            else {
+                String suffix = jjt.substring(di);
+                if (suffix.equals(".jj")) {
+                    filename = jjt + ".jj";
+                }
+                else {
+                    filename = jjt.substring(0, di) + ".jj";
+                }
+            }
         }
-      }
+
+        return new File(options.getOutputDirectory(), filename);
     }
 
-    return new File(options.getOutputDirectory(), filename);
-  }
+    /**
+     * A main program that exercises the parser.
+     */
+    public static void main(String[] args) throws Exception {
+        HiveCCTools.bannerLine("Tree Builder", "");
 
-  /**
-   * A main program that exercises the parser.
-   */
-  public static void main(String[] args) throws Exception {
-    HiveCCTools.bannerLine("Tree Builder", "");
+        if (args.length == 0) {
+            System.err.println();
+            System.err.println("Missing arguments");
+            System.exit(1);
+        }
 
-    if (args.length == 0) {
-      System.err.println();
-      System.err.println("Missing arguments");
-      System.exit(1);
+        JavaCCErrors.reInit();
+
+        String filename = args[args.length - 1];
+
+        TreeContext options = new TreeContext();
+        if (options.isOption(filename)) {
+            System.out.println("Last argument \"" + filename + "\" is not a filename.");
+            System.exit(1);
+        }
+
+        for (int arg = 0; arg < (args.length - 1); arg++) {
+            if (!options.isOption(args[arg])) {
+                System.out.println("Argument \"" + args[arg] + "\" must be an option setting.");
+                System.exit(1);
+            }
+            options.setCmdLineOption(args[arg]);
+        }
+        options.validate();
+
+        HiveCCTools.createOutputDir(options.getOutputDirectory());
+        File jjFile = HiveCCTree.createTreeFile(filename, options);
+
+        if (HiveCCTree.isGenerated(filename)) {
+            throw new IOException(filename + " was generated by jjtree.  Cannot run jjtree again.");
+        }
+
+        try {
+            System.out.println("Reading from file " + filename + " ...");
+
+            Reader reader = new InputStreamReader(new FileInputStream(filename),
+                    HiveCCOptions.getFileEncoding());
+            JJTreeParserDefault parser = new JJTreeParserDefault(reader, options);
+            ASTGrammar root = parser.parse();
+
+            if (Boolean.getBoolean("jjtree-dump")) {
+                root.dump(" ");
+            }
+
+            Language language = options.getOutputLanguage();
+            System.out.println("opt:" + language);
+
+            Generator generator = GeneratorProvider.generatorFor(language);
+            try (ASTWriter writer = new ASTWriter(jjFile, language)) {
+                HiveCCTree.writeGenerated(writer);
+                generator.generateAST(root, writer, options);
+            }
+            catch (IOException ioe) {
+                System.out.println("Error setting input: " + ioe.getMessage());
+                System.exit(1);
+            }
+
+            System.out.println("Annotated grammar generated successfully in " + jjFile);
+
+        }
+        catch (IOException ioe) {
+            System.out.println("Error setting input: " + ioe.getMessage());
+            System.exit(1);
+        }
     }
-
-    JavaCCErrors.reInit();
-
-    String filename = args[args.length - 1];
-
-    TreeContext options = new TreeContext();
-    if (options.isOption(filename)) {
-      System.out.println("Last argument \"" + filename + "\" is not a filename.");
-      System.exit(1);
-    }
-
-    for (int arg = 0; arg < (args.length - 1); arg++) {
-      if (!options.isOption(args[arg])) {
-        System.out.println("Argument \"" + args[arg] + "\" must be an option setting.");
-        System.exit(1);
-      }
-      options.setCmdLineOption(args[arg]);
-    }
-    options.validate();
-
-    HiveCCTools.createOutputDir(options.getOutputDirectory());
-    File jjFile = HiveCCTree.createTreeFile(filename, options);
-
-    if (HiveCCTree.isGenerated(filename)) {
-      throw new IOException(filename + " was generated by jjtree.  Cannot run jjtree again.");
-    }
-
-    try {
-      System.out.println("Reading from file " + filename + " ...");
-
-      Reader reader = new InputStreamReader(new FileInputStream(filename),
-          HiveCCOptions.getFileEncoding());
-      JJTreeParserDefault parser = new JJTreeParserDefault(reader, options);
-      ASTGrammar root = parser.parse();
-
-      if (Boolean.getBoolean("jjtree-dump")) {
-        root.dump(" ");
-      }
-
-      Language language = options.getOutputLanguage();
-      System.out.println("opt:" + language);
-
-      Generator generator = GeneratorProvider.generatorFor(language);
-      try (ASTWriter writer = new ASTWriter(jjFile, language)) {
-        HiveCCTree.writeGenerated(writer);
-        generator.generateAST(root, writer, options);
-      } catch (IOException ioe) {
-        System.out.println("Error setting input: " + ioe.getMessage());
-        System.exit(1);
-      }
-
-      System.out.println("Annotated grammar generated successfully in " + jjFile);
-
-    } catch (IOException ioe) {
-      System.out.println("Error setting input: " + ioe.getMessage());
-      System.exit(1);
-    }
-  }
 }

@@ -16,23 +16,23 @@ import org.hivevm.cc.generator.TreeGenerator;
 @GeneratorName("Java")
 public class JavaGenerator extends GeneratorProvider {
 
-  @Override
-  protected final TreeGenerator newASTGenerator() {
-    return new JavaASTGenerator();
-  }
+    @Override
+    protected final TreeGenerator newASTGenerator() {
+        return new JavaASTGenerator();
+    }
 
-  @Override
-  protected final FileGenerator newFileGenerator() {
-    return new JavaFileGenerator();
-  }
+    @Override
+    protected final FileGenerator newFileGenerator() {
+        return new JavaFileGenerator();
+    }
 
-  @Override
-  protected final LexerGenerator newLexerGenerator() {
-    return new JavaLexerGenerator();
-  }
+    @Override
+    protected final LexerGenerator newLexerGenerator() {
+        return new JavaLexerGenerator();
+    }
 
-  @Override
-  protected final ParserGenerator newParserGenerator() {
-    return new JavaParserGenerator();
-  }
+    @Override
+    protected final ParserGenerator newParserGenerator() {
+        return new JavaParserGenerator();
+    }
 }
