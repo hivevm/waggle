@@ -14,7 +14,7 @@ class H3QLTest {
     public static final File PARSER_JJT  = new File(H3QLTest.MAIN_DIR, "resources/org/hivevm/criteria/parser");
     public static final File PARSER_CPP  = new File(H3QLTest.MAIN_DIR, "cpp/parser");
     public static final File PARSER_JAVA = new File(H3QLTest.MAIN_DIR, "java");
-    public static final File PARSER_RUST = new File(H3QLTest.MAIN_DIR, "rust");
+    public static final File PARSER_RUST = new File("/data/Workspace/tilepackage/src");
 
     @Test
     @Disabled
@@ -38,8 +38,8 @@ class H3QLTest {
     @Disabled
     void testRust() {
         ParserBuilder builder = ParserBuilder.of(Language.RUST);
-        builder.setTargetDir(H3QLTest.PARSER_JAVA);
-        builder.setTreeFile(H3QLTest.PARSER_RUST, "OQL.jjt");
+        builder.setTargetDir(H3QLTest.PARSER_RUST);
+        builder.setTreeFile(H3QLTest.PARSER_JJT, "OQL.jjt");
         builder.build();
     }
 

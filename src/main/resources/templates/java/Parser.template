@@ -3,7 +3,7 @@ package {{JAVA_PACKAGE}};
 @foreach(name : JAVA_IMPORTS)
 import {{name}};
 @end
-public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implements @if(USE_AST){{PARSER_NAME}}TreeConstants, @fi{{PARSER_NAME}}Constants {
+public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implements {{PARSER_NAME}}Constants {
 @if(USE_AST)
 
   protected JJT{{PARSER_NAME}}State jjtree = new JJT{{PARSER_NAME}}State();
@@ -21,7 +21,6 @@ public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implemen
 
   /** Generated Token Manager. */
   public {{PARSER_NAME}}TokenManager     token_source;
-  JavaCharStream             jj_input_stream;
   /** Current token. */
   public Token               token;
   /** Next token. */
@@ -63,30 +62,7 @@ public class {{PARSER_NAME}}@if(BASE_PARSER) extends {{BASE_PARSER}}@fi implemen
 @fi
   /** Constructor. */
   public {{PARSER_NAME}}(Provider stream) {
-    jj_input_stream = new JavaCharStream(stream);
-    token_source = new {{PARSER_NAME}}TokenManager(jj_input_stream);
-    this.token = new Token();
-@if(CACHE_TOKENS)
-    this.token.next = this.jj_nt = this.token_source.getNextToken();
-@else
-	 jj_ntk = -1;
-@fi
-@if(DEPTH_LIMIT)
-    jj_depth = -1;
-@fi
-@if(ERROR_REPORTING)
-    this.jj_gen = 0;
-@if(MASK_INDEX)
-    for (int i = 0; i < {{MASK_INDEX}}; i++) {
-      this.jj_la1[i] = -1;
-    }
-@fi
-@if(JJ2_INDEX)
-    for (int i = 0; i < this.jj_2_rtns.length; i++) {
-      this.jj_2_rtns[i] = new JJCalls();
-    }
-@fi
-@fi
+    this(new {{PARSER_NAME}}TokenManager(new JavaCharStream(stream)));
   }
 
   /** Constructor. */

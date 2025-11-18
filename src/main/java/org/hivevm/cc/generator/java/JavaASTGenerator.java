@@ -42,7 +42,7 @@ class JavaASTGenerator extends TreeGenerator {
                             .getNodeId() + ");");
         }
         else {
-            writer.println("new " + nodeClass + "(this, " + ns.getNodeDescriptor().getNodeId() + ");");
+            writer.println("new " + nodeClass + "(this, " + context.getParserName() + "TreeConstants." + ns.getNodeDescriptor().getNodeId() + ");");
         }
 
         if (ns.usesCloseNodeVar()) {

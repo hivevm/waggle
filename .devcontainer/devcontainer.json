@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/java:21",
   "runArgs": [
     "--network=host"
-  ],,
+  ],
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/java:1": {
