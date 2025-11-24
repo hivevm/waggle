@@ -5,14 +5,14 @@ package org.hivevm.cc.jjtree;
 
 public class ASTBNF extends ASTProduction {
 
-    public ASTBNF(JJTreeParser p, int id) {
+    public ASTBNF(Parser p, int id) {
         super(p, id);
         addThrow("ParseException");
         addThrow("RuntimeException");
     }
 
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 

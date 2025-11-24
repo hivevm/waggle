@@ -19,13 +19,13 @@ public class ASTNodeDescriptor extends ASTNode {
     private String  text;
     private boolean faked;
 
-    public ASTNodeDescriptor(JJTreeParser p, int id) {
+    public ASTNodeDescriptor(Parser p, int id) {
         super(p, id);
         this.faked = false;
     }
 
-    static ASTNodeDescriptor indefinite(JJTreeParser p, String s) {
-        ASTNodeDescriptor nd = new ASTNodeDescriptor(p, JJTreeParserTreeConstants.JJTNODEDESCRIPTOR);
+    static ASTNodeDescriptor indefinite(Parser p, String s) {
+        ASTNodeDescriptor nd = new ASTNodeDescriptor(p, NodeType.JJTNODEDESCRIPTOR);
         nd.name = s;
         nd.setNodeIdValue();
         nd.faked = true;
@@ -77,7 +77,7 @@ public class ASTNodeDescriptor extends ASTNode {
     }
 
     public String getNodeType() {
-        return jjtOptions().getMulti() ? jjtOptions().getNodePrefix() + this.name : "Node";
+        return jjtOptions().getMulti() ? "AST" + this.name : "Node";
     }
 
 
@@ -104,7 +104,7 @@ public class ASTNodeDescriptor extends ASTNode {
     }
 
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 }

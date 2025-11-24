@@ -10,8 +10,8 @@ import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.HiveCCTools;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
+import org.hivevm.cc.parser.Parser;
 import org.hivevm.cc.parser.StreamProvider;
 
 /**
@@ -76,7 +76,7 @@ public final class JJDocMain extends JJDocGlobals {
 
         HiveCCTools.bannerLine("Documentation Generator", "0.1.4");
 
-        JavaCCParser parser = null;
+        Parser parser = null;
         if (args.length == 0) {
             JJDocMain.help_message();
             System.exit(1);

@@ -1,0 +1,45 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#ifndef JAVACC_TOKEN_MANAGER_ERROR_HANDLER
+#define JAVACC_TOKEN_MANAGER_ERROR_HANDLER
+
+#include "JavaCC.h"
+#include "Token.h"
+
+//@if(CPP_NAMESPACE)
+namespace __CPP_NAMESPACE__ {
+//@fi
+
+class TokenManagerErrorHandler {
+public:
+    TokenManagerErrorHandler() : error_count(0) {}
+    virtual ~TokenManagerErrorHandler() {}
+
+    // Returns a detailed message for the Error when it is thrown by the
+    // token manager to indicate a lexical error.
+    // Parameters :
+    //    EOFSeen     : indicates if EOF caused the lexical error
+    //    curLexState : lexical state in which this error occurred
+    //    errorLine   : line number when the error occurred
+    //    errorColumn : column number when the error occurred
+    //    errorAfter  : prefix that was seen before this error occurred
+    //    curchar     : the offending character
+    //
+    virtual void lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, JJString errorAfter, JJChar curChar);
+    virtual void lexicalError(const JJString& errorMessage);
+    int  getErrorCount() const { return error_count; }
+
+private:
+    int error_count;
+};
+
+//@if(CPP_NAMESPACE)
+}
+//@fi
+
+#endif
+
+#pragma GCC diagnostic pop

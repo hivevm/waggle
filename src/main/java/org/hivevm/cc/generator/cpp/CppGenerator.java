@@ -17,16 +17,6 @@ import org.hivevm.cc.generator.TreeGenerator;
 public class CppGenerator extends GeneratorProvider {
 
     @Override
-    protected final TreeGenerator newASTGenerator() {
-        return new CppASTGenerator();
-    }
-
-    @Override
-    protected final FileGenerator newFileGenerator() {
-        return new CppFileGenerator();
-    }
-
-    @Override
     protected final LexerGenerator newLexerGenerator() {
         return new CppLexerGenerator();
     }
@@ -34,5 +24,34 @@ public class CppGenerator extends GeneratorProvider {
     @Override
     protected final ParserGenerator newParserGenerator() {
         return new CppParserGenerator();
+    }
+
+    @Override
+    protected final TreeGenerator newASTGenerator() {
+        return new CppASTGenerator();
+    }
+
+    @Override
+    protected final FileGenerator newFileGenerator() {
+        return context -> {
+            CppSources.JAVACC.render(context.options());
+
+            CppSources.TOKEN.render(context.options());
+            CppSources.TOKEN_H.render(context.options());
+            CppSources.TOKENMANAGER.render(context.options());
+            CppSources.TOKENNANAGERERROR.render(context.options());
+            CppSources.TOKENNANAGERERROR_H.render(context.options());
+            CppSources.TOKENNANAGERHANDLER.render(context.options());
+            CppSources.TOKENNANAGERHANDLER_H.render(context.options());
+
+            CppSources.READER.render(context.options());
+            CppSources.STRINGREADER.render(context.options());
+            CppSources.STRINGREADER_H.render(context.options());
+
+            CppSources.PARSEEXCEPTION.render(context.options());
+            CppSources.PARSEEXCEPTION_H.render(context.options());
+            CppSources.PARSERHANDLER.render(context.options());
+            CppSources.PARSERHANDLER_H.render(context.options());
+        };
     }
 }

@@ -24,7 +24,6 @@ public class TreeContext extends HiveCCOptions implements TreeOptions {
         set(HiveCC.JJTREE_BUILD_NODE_FILES, Boolean.TRUE);
         set(HiveCC.JJTREE_VISITOR, Boolean.FALSE);
         set(HiveCC.JJTREE_TRACK_TOKENS, Boolean.FALSE);
-        set(HiveCC.JJTREE_NODE_PREFIX, "AST");
         set(HiveCC.JJTREE_NODE_EXTENDS, "");
         set(HiveCC.JJTREE_NODE_CLASS, "");
         set(HiveCC.JJTREE_NODE_FACTORY, "");
@@ -39,6 +38,7 @@ public class TreeContext extends HiveCCOptions implements TreeOptions {
         set(HiveCC.JJPARSER_JAVA_IMPORTS, "");
         set(HiveCC.JJPARSER_BASE_PARSER, "");
         set(HiveCC.JJPARSER_BASE_LEXER, "");
+        set(HiveCC.JJPARSER_RUST_MODULE, "");
         set(HiveCC.JJPARSER_CPP_NAMESPACE, "");
     }
 

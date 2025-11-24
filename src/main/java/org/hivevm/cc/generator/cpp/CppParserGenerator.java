@@ -3,14 +3,13 @@
 
 package org.hivevm.cc.generator.cpp;
 
-import java.io.PrintWriter;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
-import org.hivevm.cc.generator.TemplateProvider;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.BNFProduction;
 import org.hivevm.cc.model.Choice;
@@ -23,11 +22,11 @@ import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.Sequence;
 import org.hivevm.cc.model.ZeroOrMore;
 import org.hivevm.cc.model.ZeroOrOne;
-import org.hivevm.cc.parser.JavaCCParserConstants;
+import org.hivevm.cc.parser.ParserConstants;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.semantic.Semanticize;
-import org.hivevm.cc.utils.Encoding;
-import org.hivevm.cc.utils.TemplateOptions;
+import org.hivevm.source.SourceWriter;
+import org.hivevm.source.Template;
 
 /**
  * Implements the {@link ParserGenerator} for the C++ language.
@@ -36,32 +35,35 @@ class CppParserGenerator extends ParserGenerator {
 
     @Override
     public void generate(ParserData data) {
-        TemplateOptions options = new TemplateOptions(data.options());
+        var options = Template.newContext(data.options());
         options.set(ParserGenerator.JJPARSER_USE_AST, data.isGenerated());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
         options.set(ParserGenerator.JJ2_INDEX, data.jj2Index());
         options.set(ParserGenerator.MASK_INDEX, data.maskIndex());
         options.set(ParserGenerator.TOKEN_COUNT, data.getTokenCount());
 
-        options.add(ParserGenerator.JJ2_OFFSET, data.jj2Index()).set("offset", i -> (i + 1));
-        options.add(ParserGenerator.TOKEN_MASKS, ((data.getTokenCount() - 1) / 32) + 1).set("mask",
-                i -> data.maskVals().stream().map(v -> "0x" + Integer.toHexString(v[i]))
-                        .collect(Collectors.joining(",")));
+        options.add(ParserGenerator.JJ2_OFFSET, data.jj2Index())
+            .set("JJ2_OFFSET_INDEX", i -> i)
+            .set("JJ2_OFFSET_VALUE", i -> (i + 1));
+        options.add(ParserGenerator.TOKEN_MASKS, ((data.getTokenCount() - 1) / 32) + 1)
+            .set("TOKEN_MASKS_INDEX", i -> i)
+            .set("TOKEN_MASKS_VALUE",i -> data.maskVals().stream().map(v ->
+                    "0x" + Integer.toHexString(v[i])).collect(Collectors.joining(",")));
 
-        options.add("PRODUCTION_NAMES", data.getProductions()).set("method", NormalProduction::getLhs);
+        options.add("PRODUCTION_NAMES", data.getProductions())
+            .set("PRODUCTION_NAMES_METHOD", NormalProduction::getLhs);
         options.add("NORMALPRODUCTIONS", data.getProductions())
-                .set("phase", (n, p) -> generatePhase1((BNFProduction) n,
-                        generatePhase1Expansion(data, n.getExpansion()), data.getParserName(), p, data));
+            .set("NORMALPRODUCTIONS_PHASE", (n, p) ->
+                generatePhase1((BNFProduction) n, generatePhase1Expansion(data, n.getExpansion()), data.getParserName(), p, data));
         options.add("LOOKAHEADS", data.getLoakaheads())
-                .set("phase", (e, p) -> generatePhase2(e.getLaExpansion(), p, data));
-        options.add("EXPANSIONS", data.getExpansions()).set("phase",
-                (e, p) -> generatePhase3Routine(data, e, data.getCount(e), p));
+            .set("LOOKAHEADS_PHASE", (e, p) ->
+                generatePhase2(e.getLaExpansion(), p, data));
+        options.add("EXPANSIONS", data.getExpansions())
+            .set("EXPANSIONS_PHASE", (e, p) ->
+                generatePhase3Routine(data, e, data.getCount(e), p));
 
-        TemplateProvider provider = CppTemplate.PARSER;
-        provider.render(options, data.getParserName());
-
-        provider = CppTemplate.PARSER_H;
-        provider.render(options, data.getParserName());
+        CppSources.PARSER.render(options, data.getParserName());
+        CppSources.PARSER_H.render(options, data.getParserName());
     }
 
     @Override
@@ -76,18 +78,18 @@ class CppParserGenerator extends ParserGenerator {
      * The characters '\u0003' and '\u0004' are used to delineate portions of text where '\n's should
      * not be followed by an indentation.
      */
-    private void generatePhase1(BNFProduction p, String code, String parserName, PrintWriter writer,
+    private void generatePhase1(BNFProduction p, String code, String parserName, SourceWriter writer,
                                 ParserData data) {
-        Token t = p.getReturnTypeTokens().getFirst();
+        var t = p.getReturnTypeTokens().getFirst();
 
-        boolean voidReturn = (t.kind == JavaCCParserConstants.VOID);
+        boolean voidReturn = (t.kind == ParserConstants.VOID);
         String error_ret = genHeaderMethod(p, t, parserName, writer);
 
-        writer.print(" {");
+        writer.append(" {");
 
         if ((data.stopOnFirstError() && (error_ret != null)) || ((data.getDepthLimit() > 0)
                 && !voidReturn)) {
-            writer.print(error_ret);
+            writer.append(error_ret);
         }
         else {
             error_ret = null;
@@ -97,12 +99,12 @@ class CppParserGenerator extends ParserGenerator {
 
         int indentamt = 4;
         if (data.getDebugParser()) {
-            writer.println();
-            writer.println("    JJEnter<std::function<void()>> jjenter([this]() {trace_call  (\""
-                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
-            writer.println("    JJExit <std::function<void()>> jjexit ([this]() {trace_return(\""
-                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
-            writer.println("    try {");
+            writer.new_line();
+            writer.append("    JJEnter<std::function<void()>> jjenter([this]() {trace_call  (\""
+                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });").new_line();
+            writer.append("    JJExit <std::function<void()>> jjexit ([this]() {trace_return(\""
+                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });").new_line();
+            writer.append("    try {").new_line();
             indentamt = 6;
         }
 
@@ -110,9 +112,9 @@ class CppParserGenerator extends ParserGenerator {
             genTokenSetup((p.getDeclarationTokens().getFirst()));
             for (Token token : p.getDeclarationTokens()) {
                 t = token;
-                writer.print(getStringToPrint(t));
+                writer.append(getStringToPrint(t));
             }
-            writer.print(getTrailingComments(t));
+            writer.append(getTrailingComments(t));
         }
 
         char ch = ' ';
@@ -127,13 +129,13 @@ class CppParserGenerator extends ParserGenerator {
             }
             else if ((ch == '\n') || (ch == '\r')) {
                 if (indentOn) {
-                    writer.println();
+                    writer.new_line();
                     for (int i0 = 0; i0 < indentamt; i0++) {
-                        writer.print(" ");
+                        writer.append(" ");
                     }
                 }
                 else {
-                    writer.println();
+                    writer.new_line();
                 }
             }
             else if (ch == '\u0001') {
@@ -149,56 +151,55 @@ class CppParserGenerator extends ParserGenerator {
                 indentOn = true;
             }
             else {
-                writer.print(ch);
+                writer.append("" + ch);
             }
         }
-        writer.println();
+        writer.new_line();
 
         if (!p.getDeclarationEndTokens().isEmpty()) {
             genTokenSetup((p.getDeclarationEndTokens().getFirst()));
             for (Token token : p.getDeclarationEndTokens()) {
                 t = token;
-                writer.print(getStringToPrint(t));
+                writer.append(getStringToPrint(t));
             }
-            writer.println();
+            writer.new_line();
         }
 
         if (data.getDebugParser()) {
-            writer.println("    } catch(...) { }");
+            writer.append("    } catch(...) { }").new_line();
         }
         if (!voidReturn) {
-            writer.println("assert(false);");
+            writer.append("assert(false);").new_line();
         }
         if (error_ret != null) {
-            writer.println("\n#undef __ERROR_RET__");
+            writer.append("\n#undef __ERROR_RET__").new_line();
         }
-        writer.println("}");
-        writer.println();
+        writer.append("}").new_line();
+        writer.new_line();
     }
 
     private String generatePhase1Expansion(ParserData data, Expansion e) {
         String retval = "";
         Token t = null;
-        if (e instanceof RExpression e_nrw) {
+        if (e instanceof RExpression re) {
             retval += "\n";
-            if (!e_nrw.getLhsTokens().isEmpty()) {
-                genTokenSetup((e_nrw.getLhsTokens().getFirst()));
-                for (Token token : e_nrw.getLhsTokens()) {
+            if (!re.getLhsTokens().isEmpty()) {
+                genTokenSetup((re.getLhsTokens().getFirst()));
+                for (Token token : re.getLhsTokens()) {
                     t = token;
                     retval += getStringToPrint(t);
                 }
                 retval += getTrailingComments(t);
                 retval += " = ";
             }
-            String tail = e_nrw.getRhsToken() == null ? ");" : ")->" + e_nrw.getRhsToken().image + ";";
-            if (e_nrw.getLabel().equals("")) {
-                String label = data.getNameOfToken(e_nrw.getOrdinal());
-                retval +=
-                        "jj_consume_token(" + Objects.requireNonNullElseGet(label, () -> e_nrw.getOrdinal())
-                                + tail;
+            String tail = re.getRhsToken() == null ? ");" : ")->" + re.getRhsToken().image + ";";
+            if (re.getLabel().equals("")) {
+                String label = data.getNameOfToken(re.getOrdinal());
+                retval += "jj_consume_token(" + Objects.requireNonNullElseGet(label, () -> re.getOrdinal())
+                        + tail;
             }
             else {
-                retval += "jj_consume_token(" + e_nrw.getLabel() + tail;
+                retval += "jj_consume_token(" + re.getLabel() + tail;
             }
 
             if (data.stopOnFirstError()) {
@@ -404,7 +405,6 @@ class CppParserGenerator extends ParserGenerator {
                 // genFirstSet may find that semantic attributes are appropriate for the next
                 // token. In which case, it sets jj2LA to true.
                 if (!jj2LA) {
-
                     // This case is if there is no applicable semantic lookahead and the lookahead
                     // is one (excluding the earlier cases such as JAVACODE, etc.).
                     switch (state) {
@@ -525,7 +525,7 @@ class CppParserGenerator extends ParserGenerator {
         return retval;
     }
 
-    private String genHeaderMethod(BNFProduction p, Token t, String parserName, PrintWriter writer) {
+    private String genHeaderMethod(BNFProduction p, Token t, String parserName, SourceWriter writer) {
         StringBuilder sig = new StringBuilder();
         String ret, params;
 
@@ -536,20 +536,20 @@ class CppParserGenerator extends ParserGenerator {
         genTokenSetup(t);
         getLeadingComments(t);
         sig.append(t.image);
-        if (t.kind == JavaCCParserConstants.VOID) {
+        if (t.kind == ParserConstants.VOID) {
             void_ret = true;
         }
-        if (t.kind == JavaCCParserConstants.STAR) {
+        if (t.kind == ParserConstants.STAR) {
             ptr_ret = true;
         }
 
         for (int i = 1; i < p.getReturnTypeTokens().size(); i++) {
             t = (p.getReturnTypeTokens().get(i));
             sig.append(getStringToPrint(t));
-            if (t.kind == JavaCCParserConstants.VOID) {
+            if (t.kind == ParserConstants.VOID) {
                 void_ret = true;
             }
-            if (t.kind == JavaCCParserConstants.STAR) {
+            if (t.kind == ParserConstants.STAR) {
                 ptr_ret = true;
             }
         }
@@ -571,7 +571,7 @@ class CppParserGenerator extends ParserGenerator {
         params = sig.toString();
 
         // For now, just ignore comments
-        writer.print("\n" + ret + " " + parserName + "::" + p.getLhs() + params);
+        writer.append("\n" + ret + " " + parserName + "::" + p.getLhs() + params);
 
         // Generate a default value for error return.
         String default_return;
@@ -591,60 +591,58 @@ class CppParserGenerator extends ParserGenerator {
                 "#define __ERROR_RET__ ERROR_RET_" + method_name + "\n";
     }
 
-    private void genStackCheck(boolean voidReturn, PrintWriter writer, ParserData data) {
+    private void genStackCheck(boolean voidReturn, SourceWriter writer, ParserData data) {
         if (data.getDepthLimit() > 0) {
             if (!voidReturn) {
-                writer.println("if(jj_depth_error){ return __ERROR_RET__; }");
+                writer.append("if(jj_depth_error){ return __ERROR_RET__; }").new_line();
             }
             else {
-                writer.println("if(jj_depth_error){ return; }");
+                writer.append("if(jj_depth_error){ return; }").new_line();
             }
-            writer.println("__jj_depth_inc __jj_depth_counter(this);");
-            writer.println("if(jj_depth > " + data.getDepthLimit() + ") {");
-            writer.println("  jj_depth_error = true;");
-            writer.println("  jj_consume_token(-1);");
-            writer.println(
-                    "  errorHandler->parseError(token, getToken(1), __FUNCTION__), hasError = true;");
+            writer.append("__jj_depth_inc __jj_depth_counter(this);").new_line();
+            writer.append("if(jj_depth > " + data.getDepthLimit() + ") {").new_line();
+            writer.append("  jj_depth_error = true;").new_line();
+            writer.append("  jj_consume_token(-1);").new_line();
+            writer.append("  errorHandler->parseError(token, getToken(1), __FUNCTION__), hasError = true;").new_line();
             if (!voidReturn) {
-                writer.println("  return __ERROR_RET__;"); // Non-recoverable error
+                writer.append("  return __ERROR_RET__;").new_line(); // Non-recoverable error
             }
             else {
-                writer.println("  return;"); // Non-recoverable error
+                writer.append("  return;").new_line(); // Non-recoverable error
             }
-            writer.println("}");
+            writer.append("}").new_line();
         }
     }
 
-    private void generatePhase2(Expansion e, PrintWriter writer, ParserData data) {
-        writer.println("  inline bool jj_2" + e.internalName() + "(int xla) {");
-        writer.println("    jj_la = xla; jj_lastpos = jj_scanpos = token;");
+    private void generatePhase2(Expansion e, SourceWriter writer, ParserData data) {
+        writer.append("  inline bool jj_2" + e.internalName() + "(int xla) {").new_line();
+        writer.append("    jj_la = xla; jj_lastpos = jj_scanpos = token;").new_line();
 
         String ret_suffix = "";
         if (data.getDepthLimit() > 0) {
             ret_suffix = " && !jj_depth_error";
         }
 
-        writer.println("    jj_done = false;");
-        writer.println("    return (!jj_3" + e.internalName() + "() || jj_done)" + ret_suffix + ";");
+        writer.append("    jj_done = false;").new_line();
+        writer.append("    return (!jj_3" + e.internalName() + "() || jj_done)" + ret_suffix + ";").new_line();
         if (data.getErrorReporting()) {
-            writer.println(
-                    "    { jj_save(" + (Integer.parseInt(e.internalName().substring(1)) - 1) + ", xla); }");
+            writer.append("    { jj_save(" + (Integer.parseInt(e.internalName().substring(1)) - 1) + ", xla); }").new_line();
         }
-        writer.println("  }");
-        writer.println();
+        writer.append("  }").new_line();
+        writer.new_line();
     }
 
-    private void generatePhase3Routine(ParserData data, Expansion e, int count, PrintWriter writer) {
-        if (e.internalName().startsWith("jj_scan_token")) {
+    private void generatePhase3Routine(ParserData data, Expansion e, int count, SourceWriter writer) {
+        if (e.internalName().startsWith("jj_scan_token"))
             return;
+
+        writer.append(" inline bool jj_3" + e.internalName() + "()").new_line();
+        writer.append(" {\n").new_line();
+        writer.append("    if (jj_done) return true;").new_line();
+        if (data.getDepthLimit() > 0) {
+            writer.append("#define __ERROR_RET__ true").new_line();
         }
 
-        writer.println(" inline bool jj_3" + e.internalName() + "()");
-        writer.println(" {\n");
-        writer.println("    if (jj_done) return true;");
-        if (data.getDepthLimit() > 0) {
-            writer.println("#define __ERROR_RET__ true");
-        }
         genStackCheck(false, writer, data);
         boolean xsp_declared = false;
         Expansion jj3_expansion = null;
@@ -652,24 +650,23 @@ class CppParserGenerator extends ParserGenerator {
             String prefix = "    ";
             if (data.getErrorReporting())
                 prefix += "if (!jj_rescan) ";
-            writer.println(prefix + "trace_call(\""
-                    + Encoding.escapeUnicode(np.getLhs(), Language.CPP) + "(LOOKING AHEAD...)\");");
+            writer.append(prefix + "trace_call(\"" + Encoding.escapeUnicode(np.getLhs(), Language.CPP) + "(LOOKING AHEAD...)\");").new_line();
             jj3_expansion = e;
         }
 
         buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, e, count, writer);
 
-        writer.println("    " + genReturn(jj3_expansion, false, data));
+        writer.append("    " + genReturn(jj3_expansion, false, data)).new_line();
         if (data.getDepthLimit() > 0) {
-            writer.println("#undef __ERROR_RET__");
+            writer.append("#undef __ERROR_RET__").new_line();
         }
-        writer.println("  }");
-        writer.println();
+        writer.append("  }").new_line();
+        writer.new_line();
     }
 
     private boolean buildPhase3RoutineRecursive(ParserData data, Expansion jj3_expansion,
                                                 boolean xsp_declared,
-                                                Expansion e, int count, PrintWriter writer) {
+                                                Expansion e, int count, SourceWriter writer) {
         if (e.internalName().startsWith("jj_scan_token")) {
             return xsp_declared;
         }
@@ -678,13 +675,13 @@ class CppParserGenerator extends ParserGenerator {
             case RExpression e_nrw -> {
                 if (e_nrw.getLabel().isEmpty()) {
                     String label = data.getNameOfToken(e_nrw.getOrdinal());
-                    writer.println("    if (jj_scan_token(" + Objects.requireNonNullElseGet(label,
-                            () -> e_nrw.getOrdinal()) + ")) " + genReturn(jj3_expansion, true, data));
+                    writer.append("    if (jj_scan_token(" + Objects.requireNonNullElseGet(label,
+                            () -> e_nrw.getOrdinal()) + ")) " + genReturn(jj3_expansion, true, data)).new_line();
                 }
                 else {
-                    writer.println(
+                    writer.append(
                             "    if (jj_scan_token(" + e_nrw.getLabel() + ")) " + genReturn(jj3_expansion, true,
-                                    data));
+                                    data)).new_line();
                 }
             }
             case NonTerminal e_nrw -> {
@@ -694,17 +691,16 @@ class CppParserGenerator extends ParserGenerator {
                 // variables are the same.
                 NormalProduction ntprod = data.getProduction(e_nrw.getName());
                 Expansion ntexp = ntprod.getExpansion();
-                writer.println(
-                        "    if (" + genjj_3Call(ntexp) + ") " + genReturn(jj3_expansion, true, data));
+                writer.append("    if (" + genjj_3Call(ntexp) + ") " + genReturn(jj3_expansion, true, data)).new_line();
             }
             case Choice e_nrw -> {
                 Sequence nested_seq;
                 if (e_nrw.getChoices().size() != 1) {
                     if (!xsp_declared) {
                         xsp_declared = true;
-                        writer.println("    Token* xsp;");
+                        writer.append("    Token* xsp;").new_line();
                     }
-                    writer.println("    xsp = jj_scanpos;");
+                    writer.append("    xsp = jj_scanpos;").new_line();
                 }
 
                 Token t = null;
@@ -712,31 +708,31 @@ class CppParserGenerator extends ParserGenerator {
                     nested_seq = (Sequence) (e_nrw.getChoices().get(i));
                     Lookahead la = (Lookahead) (nested_seq.getUnits().getFirst());
                     if (!la.getActionTokens().isEmpty()) {
-                        writer.println("    jj_lookingAhead = true;");
-                        writer.print("    jj_semLA = ");
+                        writer.append("    jj_lookingAhead = true;").new_line();
+                        writer.append("    jj_semLA = ");
                         genTokenSetup((la.getActionTokens().getFirst()));
                         for (Token token : la.getActionTokens()) {
                             t = token;
-                            writer.print(getStringToPrint(t));
+                            writer.append(getStringToPrint(t));
                         }
-                        writer.print(getTrailingComments(t));
-                        writer.println(";");
-                        writer.println("    jj_lookingAhead = false;");
+                        writer.append(getTrailingComments(t));
+                        writer.append(";").new_line();
+                        writer.append("    jj_lookingAhead = false;").new_line();
                     }
-                    writer.print("    if (");
+                    writer.append("    if (");
                     if (!la.getActionTokens().isEmpty()) {
-                        writer.print("!jj_semLA || ");
+                        writer.append("!jj_semLA || ");
                     }
                     if (i != (e_nrw.getChoices().size() - 1)) {
-                        writer.println(genjj_3Call(nested_seq) + ") {");
-                        writer.println("    jj_scanpos = xsp;");
+                        writer.append(genjj_3Call(nested_seq) + ") {").new_line();
+                        writer.append("    jj_scanpos = xsp;").new_line();
                     }
                     else {
-                        writer.println(genjj_3Call(nested_seq) + ") " + genReturn(jj3_expansion, true, data));
+                        writer.append(genjj_3Call(nested_seq) + ") " + genReturn(jj3_expansion, true, data)).new_line();
                     }
                 }
                 for (int i = 1; i < e_nrw.getChoices().size(); i++) {
-                    writer.println("    }");
+                    writer.append("    }").new_line();
                 }
             }
             case Sequence e_nrw -> {
@@ -756,35 +752,34 @@ class CppParserGenerator extends ParserGenerator {
             case OneOrMore e_nrw -> {
                 if (!xsp_declared) {
                     xsp_declared = true;
-                    writer.println("    Token* xsp;");
+                    writer.append("    Token* xsp;").new_line();
                 }
                 Expansion nested_e = e_nrw.getExpansion();
-                writer.println(
-                        "    if (" + genjj_3Call(nested_e) + ") " + genReturn(jj3_expansion, true, data));
-                writer.println("    while (true) {");
-                writer.println("      xsp = jj_scanpos;");
-                writer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
-                writer.println("    }");
+                writer.append("    if (" + genjj_3Call(nested_e) + ") " + genReturn(jj3_expansion, true, data)).new_line();
+                writer.append("    while (true) {").new_line();
+                writer.append("      xsp = jj_scanpos;").new_line();
+                writer.append("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }").new_line();
+                writer.append("    }").new_line();
             }
             case ZeroOrMore e_nrw -> {
                 if (!xsp_declared) {
                     xsp_declared = true;
-                    writer.println("    Token* xsp;");
+                    writer.append("    Token* xsp;").new_line();
                 }
                 Expansion nested_e = e_nrw.getExpansion();
-                writer.println("    while (true) {");
-                writer.println("      xsp = jj_scanpos;");
-                writer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
-                writer.println("    }");
+                writer.append("    while (true) {").new_line();
+                writer.append("      xsp = jj_scanpos;").new_line();
+                writer.append("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }").new_line();
+                writer.append("    }").new_line();
             }
             case ZeroOrOne e_nrw -> {
                 if (!xsp_declared) {
                     xsp_declared = true;
-                    writer.println("    Token* xsp;");
+                    writer.append("    Token* xsp;").new_line();
                 }
                 Expansion nested_e = e_nrw.getExpansion();
-                writer.println("    xsp = jj_scanpos;");
-                writer.println("    if (" + genjj_3Call(nested_e) + ") jj_scanpos = xsp;");
+                writer.append("    xsp = jj_scanpos;").new_line();
+                writer.append("    if (" + genjj_3Call(nested_e) + ") jj_scanpos = xsp;").new_line();
             }
             default -> {
             }

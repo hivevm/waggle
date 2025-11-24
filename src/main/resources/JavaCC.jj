@@ -215,9 +215,8 @@ void production() :
 {
   LOOKAHEAD(1)
   /*
-   * Since SKIP, TOKEN, etc. are both JavaCC reserved words and Java
-   * identifiers, we need to give preference to "regular_expression_production"
-   * over "bnf_production".
+   * Since SKIP, TOKEN, etc. are both JavaCC reserved words and Java identifiers,
+   * we need to give preference to "regular_expression_production" over "bnf_production".
    */
   regular_expr_production()
 | bnf_production()

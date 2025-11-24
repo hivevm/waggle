@@ -18,12 +18,12 @@ import org.hivevm.cc.jjtree.ASTExpansionNodeScope;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTNode;
 import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.JJTreeParserDefaultVisitor;
 import org.hivevm.cc.jjtree.Node;
+import org.hivevm.cc.jjtree.NodeDefaultVisitor;
 import org.hivevm.cc.jjtree.NodeScope;
 import org.hivevm.cc.jjtree.Token;
 
-public abstract class TreeGenerator extends JJTreeParserDefaultVisitor {
+public abstract class TreeGenerator extends NodeDefaultVisitor {
 
     private final Set<String> nodesToGenerate = new HashSet<>();
 

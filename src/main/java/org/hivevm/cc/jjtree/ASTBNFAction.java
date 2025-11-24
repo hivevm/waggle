@@ -5,7 +5,7 @@ package org.hivevm.cc.jjtree;
 
 public class ASTBNFAction extends ASTNode {
 
-    public ASTBNFAction(JJTreeParser p, int id) {
+    public ASTBNFAction(Parser p, int id) {
         super(p, id);
     }
 
@@ -22,7 +22,7 @@ public class ASTBNFAction extends ASTNode {
     }
 
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 }

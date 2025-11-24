@@ -6,6 +6,7 @@ package org.hivevm.cc.generator;
 /**
  * The {@link FileGenerator} class.
  */
+@FunctionalInterface
 public interface FileGenerator {
 
     void generate(LexerData context);

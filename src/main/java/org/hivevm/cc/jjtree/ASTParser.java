@@ -24,7 +24,6 @@ abstract class ASTParser {
         this.productions = new HashMap<>();
         this.jjtreeOptions = new HashSet<>();
         this.jjtreeOptions.add(HiveCC.JJTREE_MULTI);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_PREFIX);
         this.jjtreeOptions.add(HiveCC.JJTREE_NODE_EXTENDS);
         this.jjtreeOptions.add(HiveCC.JJTREE_NODE_CUSTOM);
         this.jjtreeOptions.add(HiveCC.JJTREE_NODE_CLASS);
@@ -60,12 +59,12 @@ abstract class ASTParser {
     protected final String setInputOption(Token o, Token v) {
         String image = v.image;
         switch (v.kind) {
-            case JJTreeParserConstants.INTEGER_LITERAL:
+            case ParserConstants.INTEGER_LITERAL:
                 getOptions().setOption(o, v, o.image, Integer.valueOf(image));
                 break;
 
-            case JJTreeParserConstants.TRUE:
-            case JJTreeParserConstants.FALSE:
+            case ParserConstants.TRUE:
+            case ParserConstants.FALSE:
                 getOptions().setOption(o, v, o.image, Boolean.valueOf(image));
                 break;
 
@@ -98,17 +97,17 @@ abstract class ASTParser {
     protected boolean notTailOfExpansionUnit() {
         Token t;
         t = getToken(1);
-        return (t.kind != JJTreeParserConstants.BIT_OR) && (t.kind != JJTreeParserConstants.COMMA)
-                && (t.kind != JJTreeParserConstants.RPAREN) && (t.kind != JJTreeParserConstants.RBRACE)
-                && (t.kind != JJTreeParserConstants.RBRACKET);
+        return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
+                && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
+                && (t.kind != ParserConstants.RBRACKET);
     }
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {
-        return !emptyLA && (token.kind != JJTreeParserConstants.RPAREN);
+        return !emptyLA && (token.kind != ParserConstants.RPAREN);
     }
 
     protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd, Token token) {
-        return !emptyLA && !commaAtEnd && (getToken(1).kind != JJTreeParserConstants.RPAREN);
+        return !emptyLA && !commaAtEnd && (getToken(1).kind != ParserConstants.RPAREN);
     }
 
     protected boolean checkEmptyLAOrCommandEnd(boolean emptyLA, boolean commaAtEnd) {
@@ -116,7 +115,7 @@ abstract class ASTParser {
     }
 
     protected boolean checkEmpty(Token token) {
-        return (token.kind != JJTreeParserConstants.RPAREN) && (token.kind
-                != JJTreeParserConstants.LBRACE);
+        return (token.kind != ParserConstants.RPAREN) && (token.kind
+                != ParserConstants.LBRACE);
     }
 }

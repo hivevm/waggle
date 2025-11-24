@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.model;
 
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes one-or-more expansions (e.g., foo+).

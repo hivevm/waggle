@@ -5,6 +5,7 @@ package org.hivevm.cc.doc;
 
 import java.util.Iterator;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.BNFProduction;
 import org.hivevm.cc.model.CharacterRange;
@@ -34,7 +35,6 @@ import org.hivevm.cc.model.ZeroOrOne;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.utils.Encoding;
 
 /**
  * The main entry point for JJDoc.

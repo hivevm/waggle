@@ -7,7 +7,7 @@ public class ASTOptionBinding extends ASTNode {
 
     private boolean suppressed;
 
-    public ASTOptionBinding(JJTreeParser p, int id) {
+    public ASTOptionBinding(Parser p, int id) {
         super(p, id);
         this.suppressed = false;
     }
@@ -25,7 +25,7 @@ public class ASTOptionBinding extends ASTNode {
     }
 
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 }

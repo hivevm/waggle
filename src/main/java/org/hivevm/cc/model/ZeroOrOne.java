@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.model;
 
-import org.hivevm.cc.parser.Token;
-
 /**
  * Describes zero-or-one expansions (e.g., [foo], foo?).
  */

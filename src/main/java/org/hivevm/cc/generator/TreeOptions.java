@@ -58,12 +58,11 @@ public interface TreeOptions extends Options {
      * Find the build node files value.
      */
     default Set<String> getExcudeNodes() {
-        String prefix = getNodePrefix();
         String excludes = stringValue(HiveCC.JJTREE_NODE_CUSTOM);
         List<String> list =
                 (excludes == null) || excludes.isEmpty() ? Collections.emptyList()
                         : Arrays.asList(excludes.split(","));
-        return list.stream().map(n -> prefix + n).collect(Collectors.toSet());
+        return list.stream().map(n -> "AST" + n).collect(Collectors.toSet());
     }
 
     /**
@@ -79,14 +78,6 @@ public interface TreeOptions extends Options {
     default boolean getTrackTokens() {
         return booleanValue(HiveCC.JJTREE_TRACK_TOKENS);
     }
-
-    /**
-     * Find the node prefix value.
-     */
-    default String getNodePrefix() {
-        return stringValue(HiveCC.JJTREE_NODE_PREFIX);
-    }
-
 
     /**
      * Find the node class name.

@@ -7,9 +7,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.CodeBlock;
-import org.hivevm.cc.utils.Encoding;
 
 
 /**
@@ -139,7 +139,7 @@ public class ASTWriter extends PrintWriter {
      * of its children. Overriding this print method in appropriate nodes gives the output the added
      * stuff not in the input.
      */
-    public final Object handleJJTreeNode(ASTNode node, JJTreeParserVisitor visitor) {
+    public final Object handleJJTreeNode(ASTNode node, NodeVisitor visitor) {
         if (node.getLastToken().next == node.getFirstToken())
             return null;
 

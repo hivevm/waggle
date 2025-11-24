@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.hivevm.cc.utils.Version;
+import org.hivevm.core.Version;
 
 /**
  * This package contains data created as a result of parsing and semanticizing a JavaCC input file.

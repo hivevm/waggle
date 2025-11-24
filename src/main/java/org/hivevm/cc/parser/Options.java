@@ -6,12 +6,24 @@ package org.hivevm.cc.parser;
 import java.io.File;
 
 import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.utils.Environment;
+import org.hivevm.core.Environment;
 
 /**
  * A class with static state that stores all option information.
  */
 public interface Options extends Environment {
+
+    default int intValue(final String option) {
+        return ((Integer) get(option));
+    }
+
+    default boolean booleanValue(final String option) {
+        return ((Boolean) get(option));
+    }
+
+    default String stringValue(final String option) {
+        return ((String) get(option));
+    }
 
     /**
      * Find the lookahead setting.

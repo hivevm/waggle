@@ -1,0 +1,148 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#include "Node.h"
+#include <stdio.h>
+
+//@if(VISITOR)
+#include "__PARSER_NAME__Visitor.h"
+//@fi
+
+//@if(CPP_NAMESPACE)
+namespace __CPP_NAMESPACE__ {
+//@fi
+
+Node::Node(int id) 
+    : id(id), parser(nullptr), parent(nullptr), value(nullptr)
+//@if(NODE_EXTENDS)
+    , __NODE_EXTENDS__()
+//@fi
+{
+//@if(TRACK_TOKENS)
+    firstToken = nullptr;
+    lastToken  = nullptr;
+//@fi
+}
+
+Node::Node(__PARSER_NAME__ *parser, int id) :
+    id(id), parser(parser), parent(nullptr), value(nullptr)
+//@if(NODE_EXTENDS)
+    , __NODE_EXTENDS__()
+//@fi
+{
+//@if(TRACK_TOKENS)
+    firstToken = nullptr;
+    lastToken  = nullptr;
+//@fi
+}
+Node::~Node() {
+    for (int i = 0; i < children.size(); ++i) {
+        delete children[i];
+    }
+}
+void Node::jjtOpen() const {
+}
+
+void Node::jjtClose() const {
+}
+
+void Node::jjtSetParent(Node *n) {
+    parent = n;
+}
+Node* Node::jjtGetParent() const {
+    return parent;
+}
+
+void Node::jjtAddChild(Node *n, int i) {
+    if (i >= children.size()) {
+        children.resize(i + 1, nullptr);
+    }
+    children[i] = n;
+}
+
+Node* Node::jjtGetChild(int i) const {
+    return i < children.size() ? children[i] : nullptr;
+}
+
+int Node::jjtGetNumChildren() const {
+    return children.size();
+}
+
+void Node::jjtSetValue(void * value) {
+    this->value = value;
+}
+
+void* Node::jjtGetValue() const {
+    return value;
+}
+
+//@if(TRACK_TOKENS)
+Token* Node::jjtGetFirstToken() const       { return firstToken; }
+void   Node::jjtSetFirstToken(Token* token) { this->firstToken = token; }
+Token* Node::jjtGetLastToken() const        { return lastToken; }
+void   Node::jjtSetLastToken(Token* token)  { this->lastToken = token; }
+
+//@fi
+//@if(VISITOR)
+__VISITOR_RETURN_TYPE__ Node::jjtAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const
+{
+//@if(VISITOR_RETURN_TYPE_VOID)
+    visitor->visit(this, data);
+//@else
+    return visitor->visit(this, data);
+//@fi
+}
+
+void Node::jjtChildrenAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const {
+    for (int i = 0; i < children.size(); ++i) {
+      children[i]->jjtAccept(visitor, data);
+    }
+}
+
+void Node::jjtChildAccept(int childNo, __PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const {
+    if (0 <= childNo && childNo < children.size())
+      children[childNo]->jjtAccept(visitor, data);
+}    	
+
+//@fi
+
+std::vector<Node*>& Node::jjtChildren() {
+    return children;
+}
+
+JJString Node::toString() const                       { return jjtNodeName[id]; }
+JJString Node::toString(const JJString& prefix) const { return prefix + toString(); }
+
+static const JJChar spaces[]   = { ' ', '\0' };
+static const JJChar newlines[] = { '\n', '\0' };
+static const JJString space    = spaces;
+static const JJString newline  = newlines;
+
+void Node::dumpToBuffer(const JJString& prefix, const JJString& separator, JJString* buffer) const {
+    buffer->append(toString(prefix));
+    buffer->append(separator);
+    for (int i = 0; i < children.size(); ++i) {
+        Node *n = (Node*)children[i];
+        if (n != nullptr) {
+            n->dumpToBuffer(prefix + space, separator, buffer);
+        }
+    }
+}
+
+void Node::dump(const JJString& prefix) const {
+    JJString *buffer = new JJString();
+    dumpToBuffer(prefix, newline, buffer);
+    for (int i = 0; i < buffer->size(); i++) {
+        printf("%c", (*buffer)[i]);
+    }
+    delete buffer;
+}
+
+
+//@if(CPP_NAMESPACE)
+}
+//@fi
+
+#pragma GCC diagnostic pop

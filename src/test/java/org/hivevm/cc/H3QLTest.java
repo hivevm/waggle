@@ -14,7 +14,7 @@ class H3QLTest {
     public static final File PARSER_JJT  = new File(H3QLTest.MAIN_DIR, "resources/org/hivevm/criteria/parser");
     public static final File PARSER_CPP  = new File(H3QLTest.MAIN_DIR, "cpp/parser");
     public static final File PARSER_JAVA = new File(H3QLTest.MAIN_DIR, "java");
-    public static final File PARSER_RUST = new File("/data/Workspace/tilepackage/src");
+    public static final File PARSER_RUST = new File("/data/hivevm/hql/src");
 
     @Test
     @Disabled

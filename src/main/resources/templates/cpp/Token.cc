@@ -1,0 +1,59 @@
+// disable warnings on parser header files
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#include "Token.h"
+//@if(CPP_NAMESPACE)
+namespace __CPP_NAMESPACE__ {
+//@fi
+
+Token::Token() :  _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0)
+{
+    this->_kind = 0;
+    this->_next = nullptr;
+    this->_specialToken = nullptr;
+}
+
+Token::Token(int kind) :  _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0) 
+{
+    this->_kind = kind;
+    this->_next = nullptr;
+    this->_specialToken = nullptr;
+}
+
+Token::Token(int kind, const JJString& image) : _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0) 
+{
+    this->_kind = kind;
+    this->_image = image;
+    this->_next = nullptr;
+    this->_specialToken = nullptr;
+}
+
+Token* Token::newToken(int kind, const JJString& image)
+{
+    switch(kind)
+    {
+    default : return new Token(kind, image);
+    }
+}
+
+Token* Token::newToken(int kind)
+{
+    return newToken(kind, JJString());
+}
+
+Token::~Token() 
+{
+    if (_specialToken) delete _specialToken;
+    this->_kind = 0;
+    this->_next = nullptr;
+    this->_specialToken = nullptr;
+}
+
+
+//@if(CPP_NAMESPACE)
+}
+//@fi
+
+#pragma GCC diagnostic pop

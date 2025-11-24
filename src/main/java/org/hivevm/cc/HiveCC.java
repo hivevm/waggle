@@ -14,7 +14,6 @@ public interface HiveCC {
 
     String JJTREE_MULTI             = "NODE_MULTI";
     String JJTREE_NODE_TYPE         = "NODE_TYPE";
-    String JJTREE_NODE_PREFIX       = "NODE_PREFIX";
     String JJTREE_NODE_EXTENDS      = "NODE_EXTENDS";
     String JJTREE_NODE_FACTORY      = "NODE_FACTORY";
     String JJTREE_NODE_CUSTOM       = "NODE_CUSTOM";
@@ -55,6 +54,8 @@ public interface HiveCC {
 
     String JJPARSER_JAVA_PACKAGE = "JAVA_PACKAGE";
     String JJPARSER_JAVA_IMPORTS = "JAVA_IMPORTS";
+
+    String JJPARSER_RUST_MODULE  = "RUST_MODULE";
 
     String JJPARSER_CPP_DEFINE              = "CPP_DEFINE";
     String JJPARSER_CPP_NAMESPACE           = "CPP_NAMESPACE";

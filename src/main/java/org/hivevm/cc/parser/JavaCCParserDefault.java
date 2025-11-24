@@ -8,7 +8,7 @@ import org.hivevm.cc.HiveCCOptions;
 /**
  * The {@link JavaCCParserDefault} class.
  */
-public class JavaCCParserDefault extends JavaCCParser {
+public class JavaCCParserDefault extends Parser {
 
     private final HiveCCOptions options;
 

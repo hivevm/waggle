@@ -8,12 +8,12 @@ public class ASTExpansionNodeScope extends ASTNode {
     public NodeScope node_scope;
     public ASTNode   expansion_unit;
 
-    public ASTExpansionNodeScope(JJTreeParser p, int id) {
+    public ASTExpansionNodeScope(Parser p, int id) {
         super(p, id);
     }
 
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 }

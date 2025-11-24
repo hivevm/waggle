@@ -10,12 +10,12 @@ import org.hivevm.cc.generator.TreeContext;
 /**
  * The {@link JJTreeParserDefault} implements a parser for the .jjt files.
  */
-public class JJTreeParserDefault extends JJTreeParser {
+public class JJTreeParserDefault extends Parser {
 
     private final TreeContext options;
 
     public JJTreeParserDefault(Reader reader, TreeContext options) {
-        super(new JJTreeParserTokenManager(new JavaCharStream(new StreamProvider(reader))));
+        super(new Lexer(new JavaCharStream(new StreamProvider(reader))));
         this.options = options;
     }
 
@@ -24,7 +24,7 @@ public class JJTreeParserDefault extends JJTreeParser {
      */
     public final ASTGrammar parse() throws ParseException {
         javacc_input();
-        return (ASTGrammar) this.jjtree.rootNode();
+        return (ASTGrammar) rootNode();
     }
 
     @Override

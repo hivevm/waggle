@@ -3,9 +3,6 @@
 
 package org.hivevm.cc.lexer;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.generator.NfaStateData;
 import org.hivevm.cc.model.CharacterRange;
 import org.hivevm.cc.model.RCharacterList;

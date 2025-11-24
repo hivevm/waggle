@@ -1,7 +1,4 @@
 .gradle
-.classpath
-.project
-.settings
 .idea
 /bin/
 /build/

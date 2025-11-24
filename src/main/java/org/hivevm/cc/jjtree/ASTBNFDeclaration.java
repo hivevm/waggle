@@ -7,7 +7,7 @@ public class ASTBNFDeclaration extends ASTNode {
 
     public NodeScope node_scope;
 
-    public ASTBNFDeclaration(JJTreeParser p, int id) {
+    public ASTBNFDeclaration(Parser p, int id) {
         super(p, id);
     }
 
@@ -15,7 +15,7 @@ public class ASTBNFDeclaration extends ASTNode {
      * Accept the visitor.
      **/
     @Override
-    public final Object jjtAccept(JJTreeParserVisitor visitor, ASTWriter data) {
+    public final Object jjtAccept(NodeVisitor visitor, ASTWriter data) {
         return visitor.visit(this, data);
     }
 }

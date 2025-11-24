@@ -9,7 +9,7 @@ public class ASTNode extends Node {
 
     private int myOrdinal;
 
-    ASTNode(JJTreeParser p, int i) {
+    ASTNode(Parser p, int i) {
         super(p, i);
     }
 

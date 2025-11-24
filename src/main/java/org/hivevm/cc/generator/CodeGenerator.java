@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
-import org.hivevm.cc.parser.JavaCCParserConstants;
+import org.hivevm.cc.parser.ParserConstants;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.utils.Encoding;
 
 public abstract class CodeGenerator<D> {
 
@@ -78,8 +78,8 @@ public abstract class CodeGenerator<D> {
         for (; this.ccol < t.beginColumn; this.ccol++) {
             retval += " ";
         }
-        if ((t.kind == JavaCCParserConstants.STRING_LITERAL) || (t.kind
-                == JavaCCParserConstants.CHARACTER_LITERAL)) {
+        if ((t.kind == ParserConstants.STRING_LITERAL) || (t.kind
+                == ParserConstants.CHARACTER_LITERAL)) {
             retval += Encoding.escapeUnicode(t.image, getLanguage());
         }
         else if (t.image.startsWith(CodeBlock.CODE.image)) {

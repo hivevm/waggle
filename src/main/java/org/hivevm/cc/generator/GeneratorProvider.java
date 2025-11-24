@@ -34,9 +34,9 @@ public abstract class GeneratorProvider implements Generator {
         LexerData dataLexer = new LexerBuilder().build(request);
         ParserData dataParser = new ParserBuilder().build(request);
 
+        newFileGenerator().generate(dataLexer);
         newLexerGenerator().generate(dataLexer);
         newParserGenerator().generate(dataParser);
-        newFileGenerator().generate(dataLexer);
     }
 
     /**

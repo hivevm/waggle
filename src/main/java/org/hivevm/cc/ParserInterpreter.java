@@ -7,7 +7,6 @@ import org.hivevm.cc.generator.LexerBuilder;
 import org.hivevm.cc.generator.LexerData;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.StringProvider;
@@ -30,7 +29,7 @@ public class ParserInterpreter {
         try {
             JavaCCData request = new JavaCCData(false, this.options);
 
-            JavaCCParser parser = new JavaCCParserDefault(new StringProvider(grammar), this.options);
+            var parser = new JavaCCParserDefault(new StringProvider(grammar), this.options);
             parser.initialize(request);
             parser.javacc_input();
 

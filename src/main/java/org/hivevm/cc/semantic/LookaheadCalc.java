@@ -6,6 +6,7 @@ package org.hivevm.cc.semantic;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.model.Choice;
 import org.hivevm.cc.model.Expansion;
 import org.hivevm.cc.model.Lookahead;
@@ -14,7 +15,6 @@ import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.RStringLiteral;
 import org.hivevm.cc.model.Sequence;
 import org.hivevm.cc.model.ZeroOrMore;
-import org.hivevm.cc.utils.Encoding;
 
 class LookaheadCalc {
 

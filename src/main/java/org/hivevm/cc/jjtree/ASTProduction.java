@@ -17,7 +17,7 @@ public class ASTProduction extends ASTNode {
 
     private final Hashtable<NodeScope, Integer> scopes;
 
-    public ASTProduction(JJTreeParser p, int id) {
+    public ASTProduction(Parser p, int id) {
         super(p, id);
         this.nextNodeScopeNumber = 0;
         this.scopes = new Hashtable<>();

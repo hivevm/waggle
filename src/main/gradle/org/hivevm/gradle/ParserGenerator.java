@@ -3,8 +3,14 @@
 
 package org.hivevm.gradle;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
@@ -14,15 +20,10 @@ import org.gradle.api.tasks.options.OptionValues;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.ParserBuilder;
 
-import javax.inject.Inject;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 /**
  * The {@link ParserGenerator} class.
  */
+@CacheableTask
 public abstract class ParserGenerator extends DefaultTask {
 
     @Inject

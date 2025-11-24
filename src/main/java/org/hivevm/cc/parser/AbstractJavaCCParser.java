@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hivevm.cc.HiveCCOptions;
-import org.hivevm.cc.jjtree.JJTreeParserConstants;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.BNFProduction;
 import org.hivevm.cc.model.Expansion;
@@ -19,7 +18,7 @@ import org.hivevm.cc.model.TokenProduction;
 /**
  * Utilities.
  */
-abstract class AbstractJavaCCParser implements JavaCCParserConstants {
+abstract class AbstractJavaCCParser implements ParserConstants {
 
     private JavaCCData data;
     private int        nextFreeLexState;
@@ -250,9 +249,9 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     protected boolean notTailOfExpansionUnit() {
         Token t;
         t = getToken(1);
-        return (t.kind != JavaCCParserConstants.BIT_OR) && (t.kind != JavaCCParserConstants.COMMA)
-                && (t.kind != JavaCCParserConstants.RPAREN) && (t.kind != JavaCCParserConstants.RBRACE)
-                && (t.kind != JavaCCParserConstants.RBRACKET);
+        return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
+                && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
+                && (t.kind != ParserConstants.RBRACKET);
     }
 
     protected abstract Token getNextToken();
@@ -292,12 +291,12 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     protected abstract void TypeArguments(List<Token> tokens) throws ParseException;
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {
-        return !emptyLA && (token.kind != JavaCCParserConstants.RPAREN);
+        return !emptyLA && (token.kind != ParserConstants.RPAREN);
     }
 
     protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd,
                                                 Token ignoredToken) {
-        return !emptyLA && !commaAtEnd && (getToken(1).kind != JavaCCParserConstants.RPAREN);
+        return !emptyLA && !commaAtEnd && (getToken(1).kind != ParserConstants.RPAREN);
     }
 
     protected boolean checkEmptyLAOrCommandEnd(boolean emptyLA, boolean commaAtEnd) {
@@ -305,18 +304,18 @@ abstract class AbstractJavaCCParser implements JavaCCParserConstants {
     }
 
     protected boolean checkEmpty(Token token) {
-        return (token.kind != JavaCCParserConstants.RPAREN) && (token.kind
-                != JavaCCParserConstants.LBRACE);
+        return (token.kind != ParserConstants.RPAREN) && (token.kind
+                != ParserConstants.LBRACE);
     }
 
     protected final void setInputOption(Token o, Token v) {
         switch (v.kind) {
-            case JJTreeParserConstants.INTEGER_LITERAL:
+            case ParserConstants.INTEGER_LITERAL:
                 getOptions().setOption(o, v, o.image, Integer.valueOf(v.image));
                 break;
 
-            case JJTreeParserConstants.TRUE:
-            case JJTreeParserConstants.FALSE:
+            case ParserConstants.TRUE:
+            case ParserConstants.FALSE:
                 getOptions().setOption(o, v, o.image, Boolean.valueOf(v.image));
                 break;
 

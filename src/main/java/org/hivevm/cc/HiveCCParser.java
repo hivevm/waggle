@@ -11,7 +11,6 @@ import org.hivevm.cc.generator.Generator;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.JavaCCParser;
 import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.StreamProvider;
 import org.hivevm.cc.semantic.Semanticize;
@@ -65,7 +64,7 @@ public abstract class HiveCCParser {
             Reader reader = new InputStreamReader(new FileInputStream(filename),
                     HiveCCOptions.getFileEncoding());
             JavaCCData request = new JavaCCData(HiveCCTree.isGenerated(filename), options);
-            JavaCCParser parser = new JavaCCParserDefault(new StreamProvider(reader), options);
+            var parser = new JavaCCParserDefault(new StreamProvider(reader), options);
             parser.initialize(request);
             parser.javacc_input();
 

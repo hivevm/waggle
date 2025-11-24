@@ -6,8 +6,6 @@ package org.hivevm.cc.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hivevm.cc.parser.Token;
-
 /**
  * Describes expansions that are sequences of expansion units. (c1 c2 ...)
  */

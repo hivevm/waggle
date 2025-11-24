@@ -23,7 +23,16 @@ public class JavaGenerator extends GeneratorProvider {
 
     @Override
     protected final FileGenerator newFileGenerator() {
-        return new JavaFileGenerator();
+        return context -> {
+            JavaSources.PROVIDER.render(context.options());
+            JavaSources.STRING_PROVIDER.render(context.options());
+            JavaSources.STREAM_PROVIDER.render(context.options());
+            JavaSources.CHAR_STREAM.render(context.options());
+
+            JavaSources.TOKEN.render(context.options());
+            JavaSources.TOKEN_EXCEPTION.render(context.options());
+            JavaSources.PARSER_EXCEPTION.render(context.options());
+        };
     }
 
     @Override
