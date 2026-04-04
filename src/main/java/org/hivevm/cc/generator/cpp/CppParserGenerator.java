@@ -80,10 +80,10 @@ class CppParserGenerator extends ParserGenerator {
      */
     private void generatePhase1(BNFProduction p, String code, String parserName, SourceWriter writer,
                                 ParserData data) {
-        var t = p.getReturnTypeTokens().getFirst();
+        var t = p.getReturnTypeToken();
 
-        boolean voidReturn = (t.kind == ParserConstants.VOID);
-        String error_ret = genHeaderMethod(p, t, parserName, writer);
+        boolean voidReturn = (t == null);
+        String error_ret = genHeaderMethod(p, parserName, writer);
 
         writer.append(" {");
 
@@ -525,7 +525,8 @@ class CppParserGenerator extends ParserGenerator {
         return retval;
     }
 
-    private String genHeaderMethod(BNFProduction p, Token t, String parserName, SourceWriter writer) {
+    private String genHeaderMethod(BNFProduction p, String parserName, SourceWriter writer) {
+        Token t = p.getFirstToken();
         StringBuilder sig = new StringBuilder();
         String ret, params;
 
@@ -535,23 +536,14 @@ class CppParserGenerator extends ParserGenerator {
 
         genTokenSetup(t);
         getLeadingComments(t);
-        sig.append(t.image);
-        if (t.kind == ParserConstants.VOID) {
-            void_ret = true;
-        }
-        if (t.kind == ParserConstants.STAR) {
-            ptr_ret = true;
-        }
-
-        for (int i = 1; i < p.getReturnTypeTokens().size(); i++) {
-            t = (p.getReturnTypeTokens().get(i));
-            sig.append(getStringToPrint(t));
-            if (t.kind == ParserConstants.VOID) {
-                void_ret = true;
-            }
+        if (p.getReturnTypeToken() != null) {
+            sig.append(t.image);
             if (t.kind == ParserConstants.STAR) {
                 ptr_ret = true;
             }
+        } else {
+            sig.append("void");
+            void_ret = true;
         }
 
         getTrailingComments(t);

@@ -80,9 +80,9 @@ class JavaParserGenerator extends ParserGenerator {
      * not be followed by an indentation.
      */
     private void generatePhase1(BNFProduction p, String code, SourceWriter writer, ParserData data) {
-        var t = p.getReturnTypeTokens().getFirst();
+        var t = p.getReturnTypeToken();
 
-        genHeaderMethod(p, t, writer);
+        genHeaderMethod(p, writer);
 
         writer.append(" {");
 
@@ -502,14 +502,15 @@ class JavaParserGenerator extends ParserGenerator {
         return retval;
     }
 
-    private void genHeaderMethod(BNFProduction p, Token t, SourceWriter writer) {
+    private void genHeaderMethod(BNFProduction p, SourceWriter writer) {
+        Token t = p.getFirstToken();
         genTokenSetup(t);
         writer.append(getLeadingComments(t));
         writer.append("  public final ");
-        writer.append(getStringForTokenOnly(t));
-        for (int i = 1; i < p.getReturnTypeTokens().size(); i++) {
-            t = (p.getReturnTypeTokens().get(i));
-            writer.append(getStringToPrint(t));
+        if (p.getReturnTypeToken() != null) {
+            writer.append(getStringForTokenOnly(p.getReturnTypeToken()));
+        } else {
+            writer.append("void");
         }
         writer.append(getTrailingComments(t));
         writer.append(" " + p.getLhs() + "(");

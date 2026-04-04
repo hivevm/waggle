@@ -24,8 +24,7 @@ public interface HiveCCVersion {
             Properties properties = new Properties();
             properties.load(stream);
             version = properties.getProperty("release", "0.0");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Could not read version.properties: " + e);
         }
         return Version.parse(version);

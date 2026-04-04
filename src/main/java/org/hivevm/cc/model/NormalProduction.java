@@ -26,8 +26,8 @@ public class NormalProduction extends Expansion {
     private final List<Token> parameter_list_tokens = new ArrayList<>();
 
     /**
-     * Each entry in this list is a list of tokens that represents an exception in the throws list of
-     * this production. This list does not include ParseException which is always thrown.
+     * Each entry in this list is a list of tokens that represents an exception in the throws list
+     * of this production. This list does not include ParseException which is always thrown.
      */
     private List<List<Token>> throws_list = new ArrayList<>();
 
@@ -46,9 +46,9 @@ public class NormalProduction extends Expansion {
 
     /**
      * The following variable is used to maintain state information for the left-recursion
-     * determination algorithm: It is initialized to 0, and set to -1 if this node has been visited in
-     * a pre-order walk, and then it is set to 1 if the pre-order walk of the whole graph from this
-     * node has been traversed. i.e., -1 indicates partially processed, and 1 indicates fully
+     * determination algorithm: It is initialized to 0, and set to -1 if this node has been visited
+     * in a pre-order walk, and then it is set to 1 if the pre-order walk of the whole graph from
+     * this node has been traversed. i.e., -1 indicates partially processed, and 1 indicates fully
      * processed.
      */
     private int walkStatus = 0;
@@ -84,8 +84,15 @@ public class NormalProduction extends Expansion {
     /**
      * @return the return_type_tokens
      */
-    public List<Token> getReturnTypeTokens() {
-        return this.return_type_tokens;
+    public Token getReturnTypeToken() {
+        return this.return_type_tokens.isEmpty() ? null : this.return_type_tokens.getFirst();
+    }
+    /**
+     * @return the return_type_tokens
+     */
+    public void setReturnTypeToken(Token token) {
+        this.return_type_tokens.clear();
+        this.return_type_tokens.add(token);
     }
 
     /**

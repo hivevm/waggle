@@ -46,13 +46,14 @@ public class TokenProduction extends Production {
 
     /**
      * This is true if this corresponds to a production that actually appears in the input grammar.
-     * Otherwise (if this is created to describe a regular expression that is part of the BNF) this is
-     * set to false.
+     * Otherwise (if this is created to describe a regular expression that is part of the BNF) this
+     * is set to false.
      */
     private boolean isExplicit = true;
 
     /**
-     * This is true if case is to be ignored within the regular expressions of this token production.
+     * This is true if case is to be ignored within the regular expressions of this token
+     * production.
      */
     private boolean ignoreCase = false;
 

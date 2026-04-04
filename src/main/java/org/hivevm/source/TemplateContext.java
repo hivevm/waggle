@@ -21,15 +21,16 @@ class TemplateContext implements Context {
     private final Map<String, Object> options = new HashMap<>();
 
     /**
-     * Constructs a new instance of the {@code TemplateOptions} class with the specified environment.
+     * Constructs a new instance of the {@code TemplateOptions} class with the specified
+     * environment.
      */
     public TemplateContext(Environment environment) {
         this.environment = environment;
     }
 
     /**
-     * Checks whether the specified name exists either in the current options map
-     * or in the underlying environment.
+     * Checks whether the specified name exists either in the current options map or in the
+     * underlying environment.
      */
     @Override
     public final boolean has(String name) {
@@ -37,9 +38,9 @@ class TemplateContext implements Context {
     }
 
     /**
-     * Retrieves the value associated with the specified name.
-     * If the name exists in the current options map, its corresponding value is returned.
-     * Otherwise, the value is retrieved from the underlying environment.
+     * Retrieves the value associated with the specified name. If the name exists in the current
+     * options map, its corresponding value is returned. Otherwise, the value is retrieved from the
+     * underlying environment.
      */
     @Override
     public final Object get(String name) {
@@ -47,8 +48,8 @@ class TemplateContext implements Context {
     }
 
     /**
-     * Associates the specified value with the given name in the current options map.
-     * If the name already exists in the map, its value is updated to the given value.
+     * Associates the specified value with the given name in the current options map. If the name
+     * already exists in the map, its value is updated to the given value.
      */
     public final void set(String name, Object value) {
         this.options.put(name, value);

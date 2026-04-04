@@ -156,7 +156,7 @@ class JJDoc extends JJDocGlobals {
             case NonTerminal nonTerminal -> JJDoc.emitExpansionNonTerminal(nonTerminal, gen);
             case OneOrMore oneOrMore -> JJDoc.emitExpansionOneOrMore(oneOrMore, gen);
             case RegularExpression regularExpression ->
-                    JJDoc.emitExpansionRegularExpression((RExpression) regularExpression, gen);
+                JJDoc.emitExpansionRegularExpression((RExpression) regularExpression, gen);
             case Sequence sequence -> JJDoc.emitExpansionSequence(sequence, gen);
             case ZeroOrMore zeroOrMore -> JJDoc.emitExpansionZeroOrMore(zeroOrMore, gen);
             case ZeroOrOne zeroOrOne -> JJDoc.emitExpansionZeroOrOne(zeroOrOne, gen);
@@ -318,7 +318,8 @@ class JJDoc extends JJDocGlobals {
                     }
                 }
             }
-            case RStringLiteral sl -> returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
+            case RStringLiteral sl ->
+                returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
             case RZeroOrMore zm -> {
                 returnString += "(";
                 returnString += JJDoc.emitRE(zm.getRegexpr());

@@ -10,7 +10,7 @@ class Lexer {
 //@fi
 
 //@foreach(LOHI_BYTES)
-    static final long[] jjbitVec__LOHI_BYTES_INDEX__ = { __LOHI_BYTES_VALUE__ };
+    static long[] jjbitVec__LOHI_BYTES_INDEX__ = { __LOHI_BYTES_VALUE__ };
 //@end
 //@foreach(STATES)
 __STATES_NFA_AND_DFA__
@@ -18,7 +18,7 @@ __STATES_NFA_AND_DFA__
     /**
      * Token literal values.
      */
-    public static final String[] jjstrLiteralImages = {
+    public static String[] jjstrLiteralImages = {
     __LITERAL_IMAGES__};
 
     protected Token jjFillToken() {
@@ -73,7 +73,7 @@ __STATES_NFA_AND_DFA__
 
 //@invoke(DUMP_STATE_SETS)
 //@foreach(NON_ASCII_TABLE)
-    private static final boolean jjCanMove___NON_ASCII_TABLE_METHOD__(int hiByte, int i1, int i2, long l1, long l2) {
+    private static boolean jjCanMove___NON_ASCII_TABLE_METHOD__(int hiByte, int i1, int i2, long l1, long l2) {
         switch (hiByte) {
             __NON_ASCII_TABLE_MOVE__
             return false;
@@ -116,8 +116,8 @@ EOFLoop :
     }
 
 //@if(DEBUG_TOKEN_MANAGER)
-    protected static final int[][][] statesForState = __STATES_FOR_STATE__;
-    protected static final int[][] kindForState = __KIND_FOR_STATE__;
+    protected static int[][][] statesForState = __STATES_FOR_STATE__;
+    protected static int[][] kindForState = __KIND_FOR_STATE__;
 //@fi
 //@if(HAS_LOOP)
 	int[] jjemptyLineNo = new int[__MAX_LEX_STATES__];
@@ -133,7 +133,7 @@ EOFLoop :
     }
 
     void MoreLexicalActions() {
-        jjimageLen += (lengthOfMatch = jjmatchedPos + 1);
+        jjimageLen += (jjmatchedPos + 1);
         switch (jjmatchedKind) {
 //@invoke(DUMP_MORE_ACTIONS)
             default:
@@ -240,7 +240,7 @@ EOFLoop :
     /**
      * Lexer state names.
      */
-    public static final String[] lexStateNames = {
+    public static String[] lexStateNames = {
 //@foreach(STATE_NAMES)
         "__STATE_NAMES_VALUE__",
 //@end
@@ -253,6 +253,5 @@ EOFLoop :
     private final StringBuilder  jjimage    = new StringBuilder();
     private       StringBuilder  image      = jjimage;
     private       int            jjimageLen;
-    private       int            lengthOfMatch;
     protected     int            curChar;
 }

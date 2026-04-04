@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.generator.CodeBlock;
 import org.hivevm.cc.generator.TreeGenerator;
 import org.hivevm.cc.generator.TreeOptions;
 import org.hivevm.cc.jjtree.ASTNode;
@@ -73,7 +74,7 @@ class CppASTGenerator extends TreeGenerator {
 
     @Override
     protected final void insertCatchBlocks(NodeScope ns, ASTWriter writer, ASTNode expansion_unit) {
-        writer.openCodeBlock(null);
+        writer.append("\n").append(CodeBlock.begin());
 
         writer.println("} catch (...) {"); // " + ns.exceptionVar + ") {");
 
@@ -95,7 +96,7 @@ class CppASTGenerator extends TreeGenerator {
             writer.println("  }");
         }
         writer.print("}");
-        writer.closeCodeBlock();
+        writer.append(CodeBlock.end());
     }
 
     @Override

@@ -157,12 +157,13 @@ public class ParserBuilder {
 
     /**
      * This method takes two parameters - an array of Lookahead's "conds", and an array of String's
-     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java source
-     * code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the lookahead
-     * required by "conds[i]" is indeed the case. This method returns a string corresponding to the
-     * Java code for:
+     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java
+     * source code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the
+     * lookahead required by "conds[i]" is indeed the case. This method returns a string
+     * corresponding to the Java code for:
      * <p>
-     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else actions[action.length-1]
+     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else
+     * actions[action.length-1]
      * <p>
      * A particular action entry ("actions[i]") can be null, in which case, a noop is generated for
      * that action.
@@ -278,7 +279,7 @@ public class ParserBuilder {
     }
 
     private void setupPhase3Builds(ParserData data, Phase3Data p3d) {
-        Expansion e = p3d.exp;
+        Expansion e = p3d.exp();
         if (e instanceof RegularExpression) {
             // nothing to here
         }
@@ -298,7 +299,7 @@ public class ParserBuilder {
         else if (e instanceof Sequence e_nrw) {
             // We skip the first element in the following iteration since it is the
             // Lookahead object.
-            int cnt = p3d.count;
+            int cnt = p3d.count();
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                 Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
                 setupPhase3Builds(data, new Phase3Data(eseq, cnt));
@@ -338,8 +339,8 @@ public class ParserBuilder {
 
             if (seq instanceof RExpression re) {
                 e.setInternalName("jj_scan_token("
-                        + ((re.getLabel() == null) || re.getLabel().isEmpty() ? "" + re.getOrdinal()
-                        : re.getLabel()) + ")");
+                    + ((re.getLabel() == null) || re.getLabel().isEmpty() ? "" + re.getOrdinal()
+                    : re.getLabel()) + ")");
                 return;
             }
 
@@ -347,9 +348,9 @@ public class ParserBuilder {
         }
 
         Integer count = data.phase3table.get(e);
-        if ((count == null) || (count < inf.count)) {
-            data.phase3list.add(new Phase3Data(e, inf.count));
-            data.phase3table.put(e, inf.count);
+        if ((count == null) || (count < inf.count())) {
+            data.phase3list.add(new Phase3Data(e, inf.count()));
+            data.phase3table.put(e, inf.count());
         }
     }
 
@@ -457,8 +458,7 @@ public class ParserBuilder {
                 case Action action -> 0;
                 default -> 0;
             };
-        }
-        finally {
+        } finally {
             e.setInMinimumSize(false);
         }
     }

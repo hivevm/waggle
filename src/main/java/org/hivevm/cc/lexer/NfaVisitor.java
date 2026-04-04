@@ -57,7 +57,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
 
         if ((expr.getDescriptors().isEmpty()) && !expr.isNegated_list()) {
             JavaCCErrors.semantic_error(this,
-                    "Empty character set is not allowed as it will not match any character.");
+                "Empty character set is not allowed as it will not match any character.");
             return new Nfa(data);
         }
 
@@ -138,14 +138,16 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
         seq.setOrdinal(Integer.MAX_VALUE);
         int i;
 
-        for (i = 0; i < expr.getMin(); i++)
+        for (i = 0; i < expr.getMin(); i++) {
             seq.getUnits().add(expr.getRegexpr());
+        }
 
         if (expr.hasMax() && (expr.getMax() == -1)) // Unlimited
             seq.getUnits().add(new RZeroOrMore(expr.getRegexpr()));
 
-        while (i++ < expr.getMax())
+        while (i++ < expr.getMax()) {
             seq.getUnits().add(new RZeroOrOne(expr.getRegexpr()));
+        }
 
         return seq.accept(this, data);
     }

@@ -131,8 +131,8 @@ public class ParseException extends java.text.ParseException {
         }
 //@if(KEEP_LINE_COLUMN)
         sb.append(ParseException.EOL).append(ParseException.INDENT)
-            .append("at line " + currentToken.next.beginLine + ", column "
-                + currentToken.next.beginColumn);
+            .append("at line ").append(currentToken.next.beginLine)
+            .append(", column ").append(currentToken.next.beginColumn);
 //@fi
         sb.append(".").append(ParseException.EOL);
 

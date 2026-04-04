@@ -78,15 +78,13 @@ public abstract class CodeGenerator<D> {
         for (; this.ccol < t.beginColumn; this.ccol++) {
             retval += " ";
         }
-        if ((t.kind == ParserConstants.STRING_LITERAL) || (t.kind
-                == ParserConstants.CHARACTER_LITERAL)) {
+        if ((t.kind == ParserConstants.STRING_LITERAL)
+            || (t.kind == ParserConstants.CHARACTER_LITERAL))
+        {
             retval += Encoding.escapeUnicode(t.image, getLanguage());
         }
-        else if (t.image.startsWith(CodeBlock.CODE.image)) {
-            retval += CodeBlock.CODE.strip(t.image);
-        }
         else {
-            retval += t.image;
+            retval += CodeBlock.strip(t.image);
         }
         this.crow = t.endLine;
         this.ccol = t.endColumn + 1;

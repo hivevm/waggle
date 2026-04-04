@@ -60,8 +60,8 @@ public interface TreeOptions extends Options {
     default Set<String> getExcudeNodes() {
         String excludes = stringValue(HiveCC.JJTREE_NODE_CUSTOM);
         List<String> list =
-                (excludes == null) || excludes.isEmpty() ? Collections.emptyList()
-                        : Arrays.asList(excludes.split(","));
+            (excludes == null) || excludes.isEmpty() ? Collections.emptyList()
+                : Arrays.asList(excludes.split(","));
         return list.stream().map(n -> "AST" + n).collect(Collectors.toSet());
     }
 

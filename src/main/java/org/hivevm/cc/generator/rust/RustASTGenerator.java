@@ -8,6 +8,7 @@ import java.util.Hashtable;
 import java.util.stream.Collectors;
 
 import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.generator.CodeBlock;
 import org.hivevm.cc.generator.TreeGenerator;
 import org.hivevm.cc.generator.TreeOptions;
 import org.hivevm.cc.jjtree.ASTBNFNonTerminal;
@@ -74,7 +75,7 @@ class RustASTGenerator extends TreeGenerator {
 
     @Override
     protected final void insertCatchBlocks(NodeScope ns, ASTWriter writer, ASTNode expansion_unit) {
-        writer.openCodeBlock(null);
+        writer.append("\n").append(CodeBlock.begin());
 
         var thrown_names = findThrown(ns, expansion_unit);
         var hasErrors = thrown_names.hasMoreElements();
@@ -108,7 +109,7 @@ class RustASTGenerator extends TreeGenerator {
             writer.println("    }");
         }
         writer.print("// END TRY_CATCH");
-        writer.closeCodeBlock();
+        writer.append(CodeBlock.end());
     }
 
     @Override

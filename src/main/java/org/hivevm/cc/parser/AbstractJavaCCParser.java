@@ -50,8 +50,8 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         this.data = data;
     }
 
-    protected void setParserName(int index) {
-        this.data.setParser(getToken(index).image);
+    protected void setParserName() {
+        this.data.setParser(getToken(0).image);
     }
 
     protected void addproduction(NormalProduction p) {
@@ -72,7 +72,8 @@ abstract class AbstractJavaCCParser implements ParserConstants {
             for (int j = 0; j < i; j++) {
                 if (p.getLexStates()[i].equals(p.getLexStates()[j])) {
                     JavaCCErrors.parse_error(p,
-                            "Multiple occurrence of \"" + p.getLexStates()[i] + "\" in lexical state list.");
+                        "Multiple occurrence of \"" + p.getLexStates()[i]
+                            + "\" in lexical state list.");
                 }
             }
             if (this.data.hasLexState(p.getLexStates()[i])) {
@@ -206,12 +207,13 @@ abstract class AbstractJavaCCParser implements ParserConstants {
                     }
                 }
                 JavaCCErrors.parse_error(t,
-                        "Encountered non-hex character '" + ch + "' at position " + index + " of string "
-                                + "- Unicode escape must have 4 hex digits after it.");
+                    "Encountered non-hex character '" + ch + "' at position " + index
+                        + " of string "
+                        + "- Unicode escape must have 4 hex digits after it.");
                 return retval;
             }
             JavaCCErrors.parse_error(t,
-                    "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
+                "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
             return retval;
         }
         return retval;
@@ -234,7 +236,8 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         }
         else if ((left.charAt(0)) > (s.charAt(0))) {
             JavaCCErrors.parse_error(t, "Right end of character range '" + s
-                    + "' has a lower ordinal value than the left end of character range '" + left + "'.");
+                + "' has a lower ordinal value than the left end of character range '" + left
+                + "'.");
             return left.charAt(0);
         }
         else {
@@ -250,8 +253,8 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         Token t;
         t = getToken(1);
         return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
-                && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
-                && (t.kind != ParserConstants.RBRACKET);
+            && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
+            && (t.kind != ParserConstants.RBRACKET);
     }
 
     protected abstract Token getNextToken();
@@ -295,7 +298,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
     }
 
     protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd,
-                                                Token ignoredToken) {
+        Token ignoredToken) {
         return !emptyLA && !commaAtEnd && (getToken(1).kind != ParserConstants.RPAREN);
     }
 
@@ -305,7 +308,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
 
     protected boolean checkEmpty(Token token) {
         return (token.kind != ParserConstants.RPAREN) && (token.kind
-                != ParserConstants.LBRACE);
+            != ParserConstants.LBRACE);
     }
 
     protected final void setInputOption(Token o, Token v) {

@@ -77,17 +77,17 @@ public abstract class ParserGenerator extends DefaultTask {
      * Processes the {@link ParserTask}
      *
      * @param task
-     * @param target
+     * @param config
      */
     protected void process(ParserTask task, ParserProject config) {
         Language target = (config.target == null) ? Language.JAVA : config.target;
         Language language = (task.target == null) ? target : task.target;
 
-        ParserBuilder builder = ParserBuilder.of(language);
+        var builder = ParserBuilder.of(language);
         builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
         builder.setParserFile(getFile(task.jjFile == null ? config.jjFile : task.jjFile));
         builder.setTreeFile(getFile(task.jjtFile == null ? config.jjtFile : task.jjtFile));
         builder.setCustomNodes(task.treeNodes);
-        builder.build();
+        builder.build().parse();
     }
 }

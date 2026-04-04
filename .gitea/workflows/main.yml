@@ -1,5 +1,5 @@
 name: HiveVM CC
-run-name: Gitea Actions on ${{ gitea.actor }}
+run-name: Gitea Actions on ${{ forgejo.actor }}
 on:
   push:
     branches:

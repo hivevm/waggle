@@ -34,9 +34,9 @@ public class RChoice extends RExpression {
             }
 
             if ((curRE instanceof RStringLiteral) && (((RStringLiteral) curRE).getImage().length()
-                    == 1)) {
+                == 1)) {
                 getChoices().set(i,
-                        curRE = new RCharacterList(((RStringLiteral) curRE).getImage().charAt(0)));
+                    curRE = new RCharacterList(((RStringLiteral) curRE).getImage().charAt(0)));
             }
 
             if (curRE instanceof RCharacterList) {
@@ -53,8 +53,9 @@ public class RChoice extends RExpression {
                 else
                     getChoices().remove(i--);
 
-                for (int j = tmp.size(); j-- > 0; )
+                for (int j = tmp.size(); j-- > 0; ) {
                     curCharList.getDescriptors().add(tmp.get(j));
+                }
             }
         }
     }

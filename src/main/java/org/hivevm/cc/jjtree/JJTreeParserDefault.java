@@ -14,8 +14,8 @@ public class JJTreeParserDefault extends Parser {
 
     private final TreeContext options;
 
-    public JJTreeParserDefault(Reader reader, TreeContext options) {
-        super(new Lexer(new JavaCharStream(new StreamProvider(reader))));
+    public JJTreeParserDefault(String text, TreeContext options) {
+        super(new Lexer(new JavaCharStream(new StringProvider(text))));
         this.options = options;
     }
 

@@ -100,8 +100,8 @@ public class HiveCCOptions implements Options {
     }
 
     /**
-     * Determine if a given command line argument might be an option flag. Command line options start
-     * with a dash&nbsp;(-).
+     * Determine if a given command line argument might be an option flag. Command line options
+     * start with a dash&nbsp;(-).
      *
      * @param opt The command line argument to examine.
      * @return True when the argument looks like an option flag.
@@ -114,11 +114,12 @@ public class HiveCCOptions implements Options {
         String nameUpperCase = name.toUpperCase();
         if (!this.optionValues.containsKey(nameUpperCase)) {
             JavaCCErrors.warning(nameloc,
-                    "Bad option name \"" + name + "\".  Option setting will be ignored.");
+                "Bad option name \"" + name + "\".  Option setting will be ignored.");
             return;
         }
 
-        if (name.equalsIgnoreCase(HiveCC.JJTREE_NODE_FACTORY) && (value.getClass() == Boolean.class)) {
+        if (name.equalsIgnoreCase(HiveCC.JJTREE_NODE_FACTORY) && (value.getClass()
+            == Boolean.class)) {
             if (((Boolean) value)) {
                 value = "*";
             }
@@ -139,21 +140,21 @@ public class HiveCCOptions implements Options {
             boolean isValidInteger = ((object instanceof Integer) && ((Integer) value <= 0));
             if (isValidInteger) {
                 JavaCCErrors.warning(valueloc,
-                        "Bad option value \"" + value + "\" for \"" + name
-                                + "\".  Option setting will be ignored.");
+                    "Bad option value \"" + value + "\" for \"" + name
+                        + "\".  Option setting will be ignored.");
                 return;
             }
 
             if (this.inputFileSetting.contains(nameUpperCase)) {
                 JavaCCErrors.warning(nameloc,
-                        "Duplicate option setting for \"" + name + "\" will be ignored.");
+                    "Duplicate option setting for \"" + name + "\" will be ignored.");
                 return;
             }
 
             if (this.cmdLineSetting.contains(nameUpperCase)) {
                 if (!existingValue.equals(value)) {
                     JavaCCErrors.warning(nameloc,
-                            "Command line setting of \"" + name + "\" modifies option value in file.");
+                        "Command line setting of \"" + name + "\" modifies option value in file.");
                 }
                 return;
             }
@@ -165,7 +166,8 @@ public class HiveCCOptions implements Options {
 
 
     /**
-     * Process a single command-line option. The option is parsed and stored in the optionValues map.
+     * Process a single command-line option. The option is parsed and stored in the optionValues
+     * map.
      */
     public final void setCmdLineOption(String arg) {
         final String s;
@@ -221,16 +223,16 @@ public class HiveCCOptions implements Options {
                 try {
                     int i = Integer.parseInt(s.substring(index + 1));
                     if (i <= 0) {
-                        System.out.println("Warning: Bad option value in \"" + arg + "\" will be ignored.");
+                        System.out.println(
+                            "Warning: Bad option value in \"" + arg + "\" will be ignored.");
                         return;
                     }
                     Val = i;
-                }
-                catch (NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     Val = s.substring(index + 1);
                     // i.e., there is space for two '"'s in value
                     if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (
-                            s.charAt(s.length() - 1) == '"'))) {
+                        s.charAt(s.length() - 1) == '"'))) {
                         // remove the two '"'s.
                         Val = s.substring(index + 2, s.length() - 1);
                     }
@@ -248,7 +250,8 @@ public class HiveCCOptions implements Options {
             return;
         }
         if (this.cmdLineSetting.contains(name)) {
-            System.out.println("Warning: Duplicate option setting \"" + arg + "\" will be ignored.");
+            System.out.println(
+                "Warning: Duplicate option setting \"" + arg + "\" will be ignored.");
             return;
         }
 
@@ -270,61 +273,45 @@ public class HiveCCOptions implements Options {
         return Language.JAVA;
     }
 
-    private static class OptionInfo implements Comparable<OptionInfo> {
-
-        private final String _name;
-        private final Object _default;
-
-        private OptionInfo(String name, Object default1) {
-            this._name = name;
-            this._default = default1;
-        }
+    private record OptionInfo(String _name, Object _default) implements Comparable<OptionInfo> {
 
         public String getName() {
-            return this._name;
-        }
+                return this._name;
+            }
 
-        public Object getDefault() {
-            return this._default;
-        }
+            public Object getDefault() {
+                return this._default;
+            }
 
         @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = (prime * result) + ((this._default == null) ? 0 : this._default.hashCode());
-            return (prime * result) + ((this._name == null) ? 0 : this._name.hashCode());
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if ((obj == null) || (getClass() != obj.getClass())) {
-                return false;
-            }
-            OptionInfo other = (OptionInfo) obj;
-            if (this._default == null) {
-                if (other._default != null) {
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if ((obj == null) || (getClass() != obj.getClass())) {
                     return false;
                 }
+                OptionInfo other = (OptionInfo) obj;
+                if (this._default == null) {
+                    if (other._default != null) {
+                        return false;
+                    }
+                }
+                else if (!this._default.equals(other._default)) {
+                    return false;
+                }
+                if (this._name == null) {
+                    return other._name == null;
+                }
+                else
+                    return this._name.equals(other._name);
             }
-            else if (!this._default.equals(other._default)) {
-                return false;
-            }
-            if (this._name == null) {
-                return other._name == null;
-            }
-            else
-                return this._name.equals(other._name);
-        }
 
-        @Override
-        public int compareTo(OptionInfo o) {
-            return this._name.compareTo(o._name);
+            @Override
+            public int compareTo(OptionInfo o) {
+                return this._name.compareTo(o._name);
+            }
         }
-    }
 
     @Override
     public boolean has(String name) {
@@ -345,8 +332,8 @@ public class HiveCCOptions implements Options {
     public void set(String name, Object value) {
         if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
             value = ((value instanceof String) && !value.toString().isEmpty()) ? Arrays.asList(
-                    value.toString().split(","))
-                    : Collections.emptyList();
+                value.toString().split(","))
+                : Collections.emptyList();
         }
         this.optionValues.put(name, value);
     }

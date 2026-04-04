@@ -11,9 +11,13 @@ public interface SourceWriter {
 
     SourceWriter append(@NonNull String text);
 
-    default SourceWriter indent() { return this; }
+    default SourceWriter indent() {
+        return this;
+    }
 
-    default SourceWriter outdent() { return this; }
+    default SourceWriter outdent() {
+        return this;
+    }
 
     default SourceWriter new_line() {
         return append("\n");

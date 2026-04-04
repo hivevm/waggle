@@ -128,7 +128,8 @@ public class Semanticize {
             throw new ParseException();
 
         if ((context.getLookahead() > 1) && !context.isForceLaCheck() && context.isSanityCheck())
-            context.onWarning("Lookahead adequacy checking not being performed since option LOOKAHEAD "
+            context.onWarning(
+                "Lookahead adequacy checking not being performed since option LOOKAHEAD "
                     + "is more than 1.  Set option FORCE_LA_CHECK to true to force checking.");
 
         Semanticize semanticize = new Semanticize(request, context);
@@ -148,7 +149,7 @@ public class Semanticize {
         for (NormalProduction p : request.getNormalProductions()) {
             if (request.setProductionTable(p) != null)
                 context.onSemanticError(p,
-                        p.getLhs() + " occurs on the left hand side of more than one production.");
+                    p.getLhs() + " occurs on the left hand side of more than one production.");
         }
 
         /*
@@ -156,8 +157,9 @@ public class Semanticize {
          * defined on the LHS.
          */
         for (NormalProduction bnfproduction : request.getNormalProductions()) {
-            TreeWalker.walk((bnfproduction).getExpansion(), semanticize.new ProductionDefinedChecker(),
-                    false);
+            TreeWalker.walk((bnfproduction).getExpansion(),
+                semanticize.new ProductionDefinedChecker(),
+                false);
         }
 
         /*
@@ -172,33 +174,37 @@ public class Semanticize {
             for (RegExprSpec res : respecs) {
                 if ((res.nextState != null) && (request.getStateIndex(res.nextState) == null))
                     context.onSemanticError(res.nsTok,
-                            "Lexical state \"" + res.nextState + "\" has not been defined.");
+                        "Lexical state \"" + res.nextState + "\" has not been defined.");
                 if (res.rexp instanceof REndOfFile) {
                     // context.onSemanticError(res.rexp, "Badly placed <EOF>.");
                     if (tp.getLexStates() != null)
                         context.onSemanticError(res.rexp,
-                                "EOF action/state change must be specified for all states, " + "i.e., <*>TOKEN:.");
+                            "EOF action/state change must be specified for all states, "
+                                + "i.e., <*>TOKEN:.");
                     if (tp.getKind() != TokenProduction.Kind.TOKEN)
                         context.onSemanticError(res.rexp,
-                                "EOF action/state change can be specified only in a " + "TOKEN specification.");
-                    if ((request.getNextStateForEof() != null) || (request.getActionForEof() != null))
+                            "EOF action/state change can be specified only in a "
+                                + "TOKEN specification.");
+                    if ((request.getNextStateForEof() != null) || (request.getActionForEof()
+                        != null))
                         context.onSemanticError(res.rexp,
-                                "Duplicate action/state change specification for <EOF>.");
+                            "Duplicate action/state change specification for <EOF>.");
                     request.setActionForEof(res.act);
                     request.setNextStateForEof(res.nextState);
                     semanticize.prepareToRemove(respecs, res);
                 }
                 else if (tp.isExplicit() && (res.rexp instanceof RJustName)) {
                     context.onWarning(res.rexp,
-                            "Ignoring free-standing regular expression reference.  "
-                                    + "If you really want this, you must give it a different label as <NEWLABEL:<"
-                                    + res.rexp.getLabel()
-                                    + ">>.");
+                        "Ignoring free-standing regular expression reference.  "
+                            + "If you really want this, you must give it a different label as <NEWLABEL:<"
+                            + res.rexp.getLabel()
+                            + ">>.");
                     semanticize.prepareToRemove(respecs, res);
                 }
                 else if (!tp.isExplicit() && res.rexp.isPrivateExp())
                     context.onSemanticError(res.rexp,
-                            "Private (#) regular expression cannot be defined within " + "grammar productions.");
+                        "Private (#) regular expression cannot be defined within "
+                            + "grammar productions.");
             }
         }
 
@@ -216,12 +222,13 @@ public class Semanticize {
                     Object obj = semanticize.named_tokens_table.put(s, respec.rexp);
                     if (obj != null)
                         context.onSemanticError(respec.rexp,
-                                "Multiply defined lexical token name \"" + s + "\".");
+                            "Multiply defined lexical token name \"" + s + "\".");
                     else
                         request.addOrderedNamedToken(respec.rexp);
                     if (request.getStateIndex(s) != null)
                         context.onSemanticError(respec.rexp,
-                                "Lexical token name \"" + s + "\" is the same as " + "that of a lexical state.");
+                            "Lexical token name \"" + s + "\" is the same as "
+                                + "that of a lexical state.");
                 }
             }
         }
@@ -254,7 +261,8 @@ public class Semanticize {
                     // This loop performs the checks and actions with respect to each lexical state.
                     for (int i = 0; i < table.length; i++) {
                         // Get table of all case variants of "sl.image" into table2.
-                        Hashtable<String, RExpression> table2 = table[i].get(sl.getImage().toUpperCase());
+                        Hashtable<String, RExpression> table2 = table[i].get(
+                            sl.getImage().toUpperCase());
                         if (table2 == null) {
                             // There are no case variants of "sl.image" earlier than the current one.
                             // So go ahead and insert this item.
@@ -264,7 +272,8 @@ public class Semanticize {
                             table2.put(sl.getImage(), sl);
                             table[i].put(sl.getImage().toUpperCase(), table2);
                         }
-                        else if (semanticize.hasIgnoreCase(table2, sl.getImage())) { // hasIgnoreCase
+                        else if (semanticize.hasIgnoreCase(table2,
+                            sl.getImage())) { // hasIgnoreCase
                             // sets
                             // "other"
                             // if it is found.
@@ -272,24 +281,27 @@ public class Semanticize {
                             if (!sl.getTpContext().isExplicit()) {
                                 // inline BNF string is used earlier with an IGNORE_CASE.
                                 context.onSemanticError(sl,
-                                        "String \"" + sl.getImage() + "\" can never be matched "
-                                                + "due to presence of more general (IGNORE_CASE) regular expression "
-                                                + "at line "
-                                                + semanticize.other.getLine() + ", column " + semanticize.other.getColumn()
-                                                + ".");
+                                    "String \"" + sl.getImage() + "\" can never be matched "
+                                        + "due to presence of more general (IGNORE_CASE) regular expression "
+                                        + "at line "
+                                        + semanticize.other.getLine() + ", column "
+                                        + semanticize.other.getColumn()
+                                        + ".");
                             }
                             else
                                 // give the standard error message.
                                 context.onSemanticError(sl,
-                                        "Duplicate definition of string token \"" + sl.getImage() + "\" "
-                                                + "can never be matched.");
+                                    "Duplicate definition of string token \"" + sl.getImage()
+                                        + "\" "
+                                        + "can never be matched.");
                         }
                         else if (sl.getTpContext().isIgnoreCase()) {
                             // This has to be explicit. A warning needs to be given with respect
                             // to all previous strings.
                             StringBuilder pos = new StringBuilder();
                             int count = 0;
-                            for (Enumeration<RExpression> enum2 = table2.elements(); enum2.hasMoreElements(); ) {
+                            for (Enumeration<RExpression> enum2 = table2.elements();
+                                enum2.hasMoreElements(); ) {
                                 RExpression rexp = (enum2.nextElement());
                                 if (count != 0)
                                     pos.append(",");
@@ -298,10 +310,12 @@ public class Semanticize {
                             }
                             if (count == 1)
                                 context.onWarning(sl,
-                                        "String with IGNORE_CASE is partially superseded by string at" + pos + ".");
+                                    "String with IGNORE_CASE is partially superseded by string at"
+                                        + pos + ".");
                             else
                                 context.onWarning(sl,
-                                        "String with IGNORE_CASE is partially superseded by strings at" + pos + ".");
+                                    "String with IGNORE_CASE is partially superseded by strings at"
+                                        + pos + ".");
                             // This entry is legitimate. So insert it.
                             if (sl.getOrdinal() == 0)
                                 sl.setOrdinal(request.addTokenCount());
@@ -321,23 +335,26 @@ public class Semanticize {
                                 // This is an error even if the first occurrence was implicit.
                                 if ((tokenProduction).getLexStates()[i].equals("DEFAULT")) {
                                     context.onSemanticError(sl,
-                                            "Duplicate definition of string token \"" + sl.getImage() + "\".");
+                                        "Duplicate definition of string token \"" + sl.getImage()
+                                            + "\".");
                                 }
                                 else {
                                     context.onSemanticError(sl,
-                                            "Duplicate definition of string token \"" + sl.getImage()
-                                                    + "\" in lexical state \"" + (tokenProduction).getLexStates()[i] + "\".");
+                                        "Duplicate definition of string token \"" + sl.getImage()
+                                            + "\" in lexical state \""
+                                            + (tokenProduction).getLexStates()[i] + "\".");
                                 }
                             }
                             else if (re.getTpContext().getKind() != TokenProduction.Kind.TOKEN) {
                                 context.onSemanticError(sl,
-                                        "String token \"" + sl.getImage() + "\" has been defined as a \""
-                                                + re.getTpContext().getKind().name() + "\" token.");
+                                    "String token \"" + sl.getImage()
+                                        + "\" has been defined as a \""
+                                        + re.getTpContext().getKind().name() + "\" token.");
                             }
                             else if (re.isPrivateExp()) {
                                 context.onSemanticError(sl,
-                                        "String token \"" + sl.getImage()
-                                                + "\" has been defined as a private regular expression.");
+                                    "String token \"" + sl.getImage()
+                                        + "\" has been defined as a private regular expression.");
                             }
                             else {
                                 // This is now a legitimate reference to an existing RStringLiteral.
@@ -397,7 +414,8 @@ public class Semanticize {
         while (emptyUpdate) {
             emptyUpdate = false;
             for (NormalProduction prod : request.getNormalProductions()) {
-                if (Semanticize.emptyExpansionExists(prod.getExpansion()) && !prod.isEmptyPossible())
+                if (Semanticize.emptyExpansionExists(prod.getExpansion())
+                    && !prod.isEmptyPossible())
                     emptyUpdate = prod.setEmptyPossible(true);
             }
         }
@@ -407,7 +425,8 @@ public class Semanticize {
             // The following code checks that all ZeroOrMore, ZeroOrOne, and OneOrMore nodes
             // do not contain expansions that can expand to the empty token list.
             for (NormalProduction bnfproduction : request.getNormalProductions()) {
-                TreeWalker.walk(bnfproduction.getExpansion(), semanticize.new EmptyChecker(), false);
+                TreeWalker.walk(bnfproduction.getExpansion(), semanticize.new EmptyChecker(),
+                    false);
             }
 
             // The following code goes through the productions and adds pointers to other
@@ -434,9 +453,10 @@ public class Semanticize {
                         rexp.setWalkStatus(-1);
                         if (semanticize.rexpWalk(rexp)) {
                             semanticize.loopString =
-                                    "..." + rexp.getLabel() + "... --> " + semanticize.loopString;
+                                "..." + rexp.getLabel() + "... --> " + semanticize.loopString;
                             context.onSemanticError(rexp,
-                                    "Loop in regular expression detected: \"" + semanticize.loopString + "\"");
+                                "Loop in regular expression detected: \"" + semanticize.loopString
+                                    + "\"");
                         }
                         rexp.setWalkStatus(1);
                     }
@@ -449,7 +469,7 @@ public class Semanticize {
             if (!context.hasErrors()) {
                 for (NormalProduction bnfproduction : request.getNormalProductions()) {
                     TreeWalker.walk(bnfproduction.getExpansion(),
-                            semanticize.new LookaheadChecker(semanticize), false);
+                        semanticize.new LookaheadChecker(semanticize), false);
                 }
             }
 
@@ -498,7 +518,8 @@ public class Semanticize {
         rexp = (table.get(str));
         if ((rexp != null) && !rexp.getTpContext().isIgnoreCase())
             return false;
-        for (Enumeration<RExpression> enumeration = table.elements(); enumeration.hasMoreElements(); ) {
+        for (Enumeration<RExpression> enumeration = table.elements();
+            enumeration.hasMoreElements(); ) {
             rexp = (enumeration.nextElement());
             if (rexp.getTpContext().isIgnoreCase()) {
                 this.other = rexp;
@@ -551,11 +572,12 @@ public class Semanticize {
         for (int i = 0; i < prod.leIndex; i++) {
             if (prod.getLeftExpansions()[i].getWalkStatus() == -1) {
                 prod.getLeftExpansions()[i].setWalkStatus(-2);
-                this.loopString = prod.getLhs() + "... --> " + prod.getLeftExpansions()[i].getLhs() + "...";
+                this.loopString =
+                    prod.getLhs() + "... --> " + prod.getLeftExpansions()[i].getLhs() + "...";
                 if (prod.getWalkStatus() == -2) {
                     prod.setWalkStatus(1);
                     this.context.onSemanticError(prod,
-                            "Left recursion detected: \"" + this.loopString + "\"");
+                        "Left recursion detected: \"" + this.loopString + "\"");
                     return false;
                 }
                 else {
@@ -564,12 +586,12 @@ public class Semanticize {
                 }
             }
             else if ((prod.getLeftExpansions()[i].getWalkStatus() == 0) && prodWalk(
-                    prod.getLeftExpansions()[i])) {
+                prod.getLeftExpansions()[i])) {
                 this.loopString = prod.getLhs() + "... --> " + this.loopString;
                 if (prod.getWalkStatus() == -2) {
                     prod.setWalkStatus(1);
                     this.context.onSemanticError(prod,
-                            "Left recursion detected: \"" + this.loopString + "\"");
+                        "Left recursion detected: \"" + this.loopString + "\"");
                     return false;
                 }
                 else {
@@ -597,11 +619,12 @@ public class Semanticize {
             else if (jn.getRegexpr().getOrdinal() == 0) {
                 jn.getRegexpr().setOrdinal(-1);
                 if (rexpWalk(jn.getRegexpr())) {
-                    this.loopString = "..." + jn.getRegexpr().getLabel() + "... --> " + this.loopString;
+                    this.loopString =
+                        "..." + jn.getRegexpr().getLabel() + "... --> " + this.loopString;
                     if (jn.getRegexpr().getOrdinal() == -2) {
                         jn.getRegexpr().setWalkStatus(1);
                         this.context.onSemanticError(jn.getRegexpr(),
-                                "Loop in regular expression detected: \"" + this.loopString + "\"");
+                            "Loop in regular expression detected: \"" + this.loopString + "\"");
                         return false;
                     }
                     else {
@@ -673,16 +696,17 @@ public class Semanticize {
                 RExpression rexp = Semanticize.this.named_tokens_table.get(jn.getLabel());
                 if (rexp == null)
                     getContext().onSemanticError(e,
-                            "Undefined lexical token name \"" + jn.getLabel() + "\".");
-                else if ((jn == this.root) && !jn.getTpContext().isExplicit() && rexp.isPrivateExp())
-                    getContext().onSemanticError(e,
-                            "Token name \"" + jn.getLabel() + "\" refers to a private "
-                                    + "(with a #) regular expression.");
+                        "Undefined lexical token name \"" + jn.getLabel() + "\".");
                 else if ((jn == this.root) && !jn.getTpContext().isExplicit()
-                        && (rexp.getTpContext().getKind() != TokenProduction.Kind.TOKEN))
+                    && rexp.isPrivateExp())
                     getContext().onSemanticError(e,
-                            "Token name \"" + jn.getLabel() + "\" refers to a non-token "
-                                    + "(SKIP, MORE, IGNORE_IN_BNF) regular expression.");
+                        "Token name \"" + jn.getLabel() + "\" refers to a private "
+                            + "(with a #) regular expression.");
+                else if ((jn == this.root) && !jn.getTpContext().isExplicit()
+                    && (rexp.getTpContext().getKind() != TokenProduction.Kind.TOKEN))
+                    getContext().onSemanticError(e,
+                        "Token name \"" + jn.getLabel() + "\" refers to a non-token "
+                            + "(SKIP, MORE, IGNORE_IN_BNF) regular expression.");
                 else {
                     jn.setOrdinal(rexp.getOrdinal());
                     jn.setRegexpr(rexp);
@@ -703,8 +727,8 @@ public class Semanticize {
         public void action(Expansion e) {
             if (e instanceof Sequence seq) {
                 if ((e.parent() instanceof Choice) || (e.parent() instanceof ZeroOrMore)
-                        || (e.parent() instanceof OneOrMore)
-                        || (e.parent() instanceof ZeroOrOne))
+                    || (e.parent() instanceof OneOrMore)
+                    || (e.parent() instanceof ZeroOrOne))
                     return;
 
                 Lookahead la = (Lookahead) (seq.getUnits().getFirst());
@@ -727,11 +751,11 @@ public class Semanticize {
                 if (la.getAmount() != 0) {
                     if (!la.getActionTokens().isEmpty())
                         Semanticize.this.context.onWarning(la,
-                                "Encountered LOOKAHEAD(...) at a non-choice location.  "
-                                        + "Only semantic lookahead will be considered here.");
+                            "Encountered LOOKAHEAD(...) at a non-choice location.  "
+                                + "Only semantic lookahead will be considered here.");
                     else
                         Semanticize.this.context.onWarning(la,
-                                "Encountered LOOKAHEAD(...) at a non-choice location.  This will be ignored.");
+                            "Encountered LOOKAHEAD(...) at a non-choice location.  This will be ignored.");
                 }
                 // Now we have moved the lookahead into the singleton choice. Now create
                 // a new dummy lookahead node to replace this one at its original location.
@@ -761,7 +785,7 @@ public class Semanticize {
             if (e instanceof NonTerminal nt) {
                 if ((nt.setProd(Semanticize.this.request.getProductionTable(nt.getName()))) == null)
                     getContext().onSemanticError(e,
-                            "Non-terminal " + nt.getName() + " has not been defined.");
+                        "Non-terminal " + nt.getName() + " has not been defined.");
                 else
                     nt.getProd().getParents().add(nt);
             }
@@ -781,17 +805,17 @@ public class Semanticize {
             if (e instanceof OneOrMore oneOrMore) {
                 if (Semanticize.emptyExpansionExists(oneOrMore.getExpansion()))
                     getContext().onSemanticError(e,
-                            "Expansion within \"(...)+\" can be matched by empty string.");
+                        "Expansion within \"(...)+\" can be matched by empty string.");
             }
             else if (e instanceof ZeroOrMore zeroOrMore) {
                 if (Semanticize.emptyExpansionExists(zeroOrMore.getExpansion()))
                     Semanticize.this.context.onSemanticError(e,
-                            "Expansion within \"(...)*\" can be matched by empty string.");
+                        "Expansion within \"(...)*\" can be matched by empty string.");
             }
             else if ((e instanceof ZeroOrOne zeroOrOne) && Semanticize.emptyExpansionExists(
-                    zeroOrOne.getExpansion()))
+                zeroOrOne.getExpansion()))
                 getContext().onSemanticError(e,
-                        "Expansion within \"(...)?\" can be matched by empty string.");
+                    "Expansion within \"(...)?\" can be matched by empty string.");
         }
 
     }
@@ -817,17 +841,17 @@ public class Semanticize {
             }
             else if (e instanceof OneOrMore exp) {
                 if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
+                    getContext().getLookahead() == 1)))
                     LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
             }
             else if (e instanceof ZeroOrMore exp) {
                 if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
+                    getContext().getLookahead() == 1)))
                     LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
             }
             else if (e instanceof ZeroOrOne exp) {
                 if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
+                    getContext().getLookahead() == 1)))
                     LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
             }
         }

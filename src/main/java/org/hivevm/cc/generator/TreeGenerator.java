@@ -51,8 +51,8 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
     /**
      * Assume that this action requires an early node close, and then try to decide whether this
      * assumption is false. Do this by looking outwards through the enclosing expansion units. If we
-     * ever find that we are enclosed in a unit which is not the final unit in a sequence we know that
-     * an early close is not required.
+     * ever find that we are enclosed in a unit which is not the final unit in a sequence we know
+     * that an early close is not required.
      */
     @Override
     public final Object visit(ASTBNFAction node, ASTWriter writer) {
@@ -72,7 +72,7 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
                     }
                 }
                 else if ((p instanceof ASTBNFZeroOrOne) || (p instanceof ASTBNFZeroOrMore)
-                        || (p instanceof ASTBNFOneOrMore)) {
+                    || (p instanceof ASTBNFOneOrMore)) {
                     needClose = false;
                     break;
                 }
@@ -83,11 +83,11 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
                 n = (ASTNode) p;
             }
             if (needClose) {
-                writer.openCodeBlock(null);
+                writer.append("\n").append(CodeBlock.begin());
                 String indent = writer.setIndent(getIndentation(node) + "  ");
                 insertCloseNodeCode(ns, writer, node.jjtOptions(), false);
                 writer.setIndent(indent);
-                writer.closeCodeBlock();
+                writer.append(CodeBlock.end());
             }
         }
 
@@ -120,12 +120,15 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
                 }
             }
 
-            writer.openCodeBlock(node.node_scope.getNodeDescriptorText());
+            writer.append("\n").append(CodeBlock.begin());
+            if (node.node_scope.getNodeDescriptorText() != null) {
+                writer.println(" // " + node.node_scope.getNodeDescriptorText());
+            }
             String previous = writer.setIndent(indent);
             writer.print(indent);
             insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
             writer.setIndent(previous);
-            writer.closeCodeBlock();
+            writer.append(CodeBlock.end());
         }
 
         return writer.handleJJTreeNode(node, this);
@@ -141,7 +144,7 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
         // tryExpansionUnit0(node.node_scope, io, indent, node.expansion_unit);
         node.expansion_unit.jjtAccept(this, writer);
         writer.println();
-        writer.print("}");
+        writer.print("};");
         String previous = writer.setIndent(indent);
         insertCatchBlocks(node.node_scope, writer, node.expansion_unit);
         writer.setIndent(previous);
@@ -151,12 +154,15 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
     @Override
     public final Object visit(ASTExpansionNodeScope node, ASTWriter writer) {
         String indent = getIndentation(node.expansion_unit) + "  ";
-        writer.openCodeBlock(node.node_scope.getNodeDescriptor().getDescriptor());
+        writer.append("\n").append(CodeBlock.begin());
+        if (node.node_scope.getNodeDescriptor().getDescriptor() != null) {
+            writer.println(" // " + node.node_scope.getNodeDescriptor().getDescriptor());
+        }
         String previous = writer.setIndent(indent);
         writer.print(indent);
         insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
         writer.setIndent(previous);
-        writer.closeCodeBlock();
+        writer.append(CodeBlock.end());
 
         node.expansion_unit.jjtAccept(this, writer);
 
@@ -183,7 +189,8 @@ public abstract class TreeGenerator extends NodeDefaultVisitor {
     protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context);
 
     protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context,
-                                                boolean isFinal);
+        boolean isFinal);
 
-    protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer, ASTNode expansion_unit);
+    protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer,
+        ASTNode expansion_unit);
 }

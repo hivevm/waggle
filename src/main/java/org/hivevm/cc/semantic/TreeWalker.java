@@ -34,8 +34,8 @@ interface TreeWalker {
     void action(Expansion e);
 
     /**
-     * Visits the nodes of the tree rooted at "node" in pre/post-order. i.e., it executes opObj.action
-     * first and then visits the children.
+     * Visits the nodes of the tree rooted at "node" in pre/post-order. i.e., it executes
+     * opObj.action first and then visits the children.
      */
     static void walk(Expansion node, TreeWalker opObj, boolean post) {
         if (!post)
@@ -59,7 +59,8 @@ interface TreeWalker {
             }
             else if (node instanceof Lookahead lookahead) {
                 Expansion nested_e = lookahead.getLaExpansion();
-                if (!((nested_e instanceof Sequence sequence) && (sequence.getUnits().getFirst()) == node))
+                if (!((nested_e instanceof Sequence sequence)
+                    && (sequence.getUnits().getFirst()) == node))
                     TreeWalker.walk(nested_e, opObj, post);
             }
             else if (node instanceof RChoice rChoice) {

@@ -168,6 +168,7 @@ public class LexerData {
     public final Iterable<Integer> getLohiByte() {
         return this.lohiByte.keySet();
     }
+
     public final int getLohiByteSize() {
         return this.lohiByte.size();
     }

@@ -40,8 +40,8 @@ abstract class ASTParser {
         // constructor stub
     }
 
-    protected final void setParserName(int index) {
-        getOptions().setParser(getToken(index).image);
+    protected final void setParserName() {
+        getOptions().setParser(getToken(0).image);
     }
 
     protected final void addProduction(ASTProduction prod) {
@@ -98,8 +98,8 @@ abstract class ASTParser {
         Token t;
         t = getToken(1);
         return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
-                && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
-                && (t.kind != ParserConstants.RBRACKET);
+            && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
+            && (t.kind != ParserConstants.RBRACKET);
     }
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {
@@ -116,6 +116,6 @@ abstract class ASTParser {
 
     protected boolean checkEmpty(Token token) {
         return (token.kind != ParserConstants.RPAREN) && (token.kind
-                != ParserConstants.LBRACE);
+            != ParserConstants.LBRACE);
     }
 }

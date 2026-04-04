@@ -27,7 +27,7 @@ abstract class LookaheadWalk {
     }
 
     static List<MatchInfo> genFirstSet(Semanticize data, List<MatchInfo> partialMatches,
-                                       Expansion exp) {
+        Expansion exp) {
         if (exp instanceof RExpression re) {
             List<MatchInfo> retval = new ArrayList<>();
             for (MatchInfo m : partialMatches) {
@@ -91,11 +91,11 @@ abstract class LookaheadWalk {
             List<MatchInfo> retval = new ArrayList<>();
             LookaheadWalk.listAppend(retval, partialMatches);
             LookaheadWalk.listAppend(retval,
-                    LookaheadWalk.genFirstSet(data, partialMatches, ((ZeroOrOne) exp).getExpansion()));
+                LookaheadWalk.genFirstSet(data, partialMatches, ((ZeroOrOne) exp).getExpansion()));
             return retval;
         }
         else if (data.considerSemanticLA() && (exp instanceof Lookahead lookahead)
-                && (!lookahead.getActionTokens().isEmpty())) {
+            && (!lookahead.getActionTokens().isEmpty())) {
             return new ArrayList<>();
         }
         else {
@@ -106,9 +106,9 @@ abstract class LookaheadWalk {
     }
 
     private static void listSplit(List<MatchInfo> toSplit, List<MatchInfo> mask,
-                                  List<MatchInfo> partInMask,
-                                  List<MatchInfo> rest) {
-        OuterLoop:
+        List<MatchInfo> partInMask,
+        List<MatchInfo> rest) {
+OuterLoop:
         for (MatchInfo info : toSplit) {
             for (MatchInfo matchInfo : mask) {
                 if (info == matchInfo) {
@@ -121,8 +121,8 @@ abstract class LookaheadWalk {
     }
 
     static List<MatchInfo> genFollowSet(List<MatchInfo> partialMatches, Expansion exp,
-                                        long generation,
-                                        Semanticize data) {
+        long generation,
+        Semanticize data) {
         if (exp.generation() == generation)
             return new ArrayList<>();
 
@@ -139,7 +139,7 @@ abstract class LookaheadWalk {
             // System.out.println("1; gen: " + generation + "; exp: " + exp);
             for (Object parent : parents) {
                 List<MatchInfo> v = LookaheadWalk.genFollowSet(partialMatches, (Expansion) parent,
-                        generation, data);
+                    generation, data);
                 LookaheadWalk.listAppend(retval, v);
             }
             return retval;
@@ -181,13 +181,15 @@ abstract class LookaheadWalk {
                 v1 = LookaheadWalk.genFollowSet(v1, (Expansion) exp.parent(), generation, data);
             if (!v2.isEmpty())
                 // System.out.println("5; gen: " + generation + "; exp: " + exp);
-                v2 = LookaheadWalk.genFollowSet(v2, (Expansion) exp.parent(), data.nextGenerationIndex(),
-                        data);
+                v2 = LookaheadWalk.genFollowSet(v2, (Expansion) exp.parent(),
+                    data.nextGenerationIndex(),
+                    data);
             LookaheadWalk.listAppend(v2, v1);
             return v2;
         }
         else
             // System.out.println("6; gen: " + generation + "; exp: " + exp);
-            return LookaheadWalk.genFollowSet(partialMatches, (Expansion) exp.parent(), generation, data);
+            return LookaheadWalk.genFollowSet(partialMatches, (Expansion) exp.parent(), generation,
+                data);
     }
 }

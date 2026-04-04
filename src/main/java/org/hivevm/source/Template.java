@@ -117,8 +117,9 @@ public class Template {
     }
 
     /**
-     * Creates a new instance of {@link Context} using the provided {@link Environment}.
-     * The returned context is designed to manage key-value pairs and interact with the given environment.
+     * Creates a new instance of {@link Context} using the provided {@link Environment}. The
+     * returned context is designed to manage key-value pairs and interact with the given
+     * environment.
      */
     public static Context newContext(Environment environment) {
         return new TemplateContext(environment);

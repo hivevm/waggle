@@ -25,16 +25,19 @@ public interface Context extends Options {
 
     @FunctionalInterface
     interface SourceSupplier {
+
         String get();
     }
 
     @FunctionalInterface
     interface SourceConsumer {
+
         void apply(SourceWriter writer);
     }
 
     @FunctionalInterface
     interface SourceProvider<V> {
+
         void apply(V value, SourceWriter writer);
     }
 }

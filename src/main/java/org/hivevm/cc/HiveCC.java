@@ -55,7 +55,7 @@ public interface HiveCC {
     String JJPARSER_JAVA_PACKAGE = "JAVA_PACKAGE";
     String JJPARSER_JAVA_IMPORTS = "JAVA_IMPORTS";
 
-    String JJPARSER_RUST_MODULE  = "RUST_MODULE";
+    String JJPARSER_RUST_MODULE = "RUST_MODULE";
 
     String JJPARSER_CPP_DEFINE              = "CPP_DEFINE";
     String JJPARSER_CPP_NAMESPACE           = "CPP_NAMESPACE";

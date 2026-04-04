@@ -12,7 +12,8 @@ import java.util.List;
 public class Choice extends Expansion {
 
     /**
-     * The list of choices of this expansion unit. Each List component will narrow to ExpansionUnit.
+     * The list of choices of this expansion unit. Each List component will narrow to
+     * ExpansionUnit.
      */
     private final List<Expansion> choices;
 

@@ -72,7 +72,7 @@ public class LexerBuilder {
     }
 
     private void buildLexer(LexerData data, Hashtable<String, List<TokenProduction>> allTpsForState,
-                            List<RExpression> choices) {
+        List<RExpression> choices) {
 
         // IMPORTANT: Init after buildLexStatesTable
         RExpression curRE;
@@ -113,7 +113,7 @@ public class LexerBuilder {
                     }
 
                     if (!data.options().withoutNoDfa() && (curRE instanceof RStringLiteral)
-                            && !((RStringLiteral) curRE).getImage().isEmpty()) {
+                        && !((RStringLiteral) curRE).getImage().isEmpty()) {
                         GenerateDfa(stateData, ((RStringLiteral) curRE));
                         if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
                             stateData.hasMixed = true;
@@ -121,7 +121,8 @@ public class LexerBuilder {
                     }
                     else if (curRE.CanMatchAnyChar()) {
                         if ((data.canMatchAnyChar[stateData.getStateIndex()] == -1)
-                                || (data.canMatchAnyChar[stateData.getStateIndex()] > curRE.getOrdinal())) {
+                            || (data.canMatchAnyChar[stateData.getStateIndex()]
+                            > curRE.getOrdinal())) {
                             data.canMatchAnyChar[stateData.getStateIndex()] = curRE.getOrdinal();
                         }
                     }
@@ -146,7 +147,7 @@ public class LexerBuilder {
                     kinds[curRE.getOrdinal()] = kind;
 
                     if ((respec.nextState != null) && !respec.nextState.equals(
-                            data.getStateName(stateData.getStateIndex()))) {
+                        data.getStateName(stateData.getStateIndex()))) {
                         data.newLexState[curRE.getOrdinal()] = respec.nextState;
                     }
 
@@ -157,10 +158,11 @@ public class LexerBuilder {
                     switch (kind) {
                         case SPECIAL:
                             data.hasSkipActions |=
-                                    (data.actions[curRE.getOrdinal()] != null) || (
-                                            data.newLexState[curRE.getOrdinal()] != null);
+                                (data.actions[curRE.getOrdinal()] != null) || (
+                                    data.newLexState[curRE.getOrdinal()] != null);
                             data.hasSpecial = true;
-                            data.toSpecial[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
+                            data.toSpecial[curRE.getOrdinal() / 64] |=
+                                1L << (curRE.getOrdinal() % 64);
                             data.toSkip[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
                             break;
                         case SKIP:
@@ -175,7 +177,7 @@ public class LexerBuilder {
 
                             if (data.newLexState[curRE.getOrdinal()] != null) {
                                 data.canReachOnMore[data.getStateIndex(
-                                        data.newLexState[curRE.getOrdinal()])] = true;
+                                    data.newLexState[curRE.getOrdinal()])] = true;
                             }
                             else {
                                 data.canReachOnMore[stateData.getStateIndex()] = true;
@@ -184,7 +186,8 @@ public class LexerBuilder {
                             break;
                         case TOKEN:
                             data.hasTokenActions |= (data.actions[curRE.getOrdinal()] != null);
-                            data.toToken[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
+                            data.toToken[curRE.getOrdinal() / 64] |=
+                                1L << (curRE.getOrdinal() % 64);
                             break;
                     }
                 }
@@ -208,15 +211,15 @@ public class LexerBuilder {
             }
 
             if ((stateData.getInitialState().kind != Integer.MAX_VALUE) && (
-                    stateData.getInitialState().kind != 0)) {
+                stateData.getInitialState().kind != 0)) {
                 if (((data.toSkip[stateData.getInitialState().kind / 64] & (1L
-                        << stateData.getInitialState().kind)) != 0L)
-                        || ((data.toSpecial[stateData.getInitialState().kind / 64]
-                        & (1L << stateData.getInitialState().kind)) != 0L)) {
+                    << stateData.getInitialState().kind)) != 0L)
+                    || ((data.toSpecial[stateData.getInitialState().kind / 64]
+                    & (1L << stateData.getInitialState().kind)) != 0L)) {
                     data.hasSkipActions = true;
                 }
                 else if ((data.toMore[stateData.getInitialState().kind / 64]
-                        & (1L << stateData.getInitialState().kind)) != 0L) {
+                    & (1L << stateData.getInitialState().kind)) != 0L) {
                     data.hasMoreActions = true;
                 }
                 else {
@@ -224,7 +227,8 @@ public class LexerBuilder {
                 }
 
                 if ((data.initMatch[stateData.getStateIndex()] == 0)
-                        || (data.initMatch[stateData.getStateIndex()] > stateData.getInitialState().kind)) {
+                    || (data.initMatch[stateData.getStateIndex()]
+                    > stateData.getInitialState().kind)) {
                     data.initMatch[stateData.getStateIndex()] = stateData.getInitialState().kind;
                     data.hasEmptyMatch = true;
                 }
@@ -248,7 +252,7 @@ public class LexerBuilder {
 
 
     private LexerData buildLexStatesTable(ParserRequest request,
-                                          Hashtable<String, List<TokenProduction>> allTpsForState) {
+        Hashtable<String, List<TokenProduction>> allTpsForState) {
         String[] tmpLexStateName = new String[request.getStateCount()];
         int maxOrdinal = 1;
         int maxLexStates = 0;
@@ -312,8 +316,7 @@ public class LexerBuilder {
                 if ((oldStates == null) || oldStates.isEmpty()) {
                     return;
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 JavaCCErrors.semantic_error("Error cloning state vector");
             }
 
@@ -326,15 +329,16 @@ public class LexerBuilder {
                 if ((oldStates == null) || oldStates.isEmpty()) {
                     // Here, j > 0
                     kind = data.intermediateKinds[i][j] = data.intermediateKinds[i][j - 1];
-                    jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][j - 1];
+                    jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][
+                        j - 1];
                 }
                 else {
                     kind = NfaState.MoveFromSet(image.charAt(j), oldStates, newStates);
                     oldStates.clear();
 
                     if ((j == 0) && (kind != Integer.MAX_VALUE) && (
-                            data.global.canMatchAnyChar[data.getStateIndex()] != -1)
-                            && (kind > data.global.canMatchAnyChar[data.getStateIndex()])) {
+                        data.global.canMatchAnyChar[data.getStateIndex()] != -1)
+                        && (kind > data.global.canMatchAnyChar[data.getStateIndex()])) {
                         kind = data.global.canMatchAnyChar[data.getStateIndex()];
                     }
 
@@ -351,7 +355,8 @@ public class LexerBuilder {
                     }
                     else {
                         kind = data.intermediateKinds[i][j] = data.intermediateKinds[i][j - 1];
-                        jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][j
+                        jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][
+                            j
                                 - 1];
                     }
 
@@ -389,9 +394,10 @@ public class LexerBuilder {
                 }
 
                 if ((actives = (data.statesForPos[j].get(
-                        kind + ", " + jjmatchedPos + ", " + stateSetString))) == null) {
+                    kind + ", " + jjmatchedPos + ", " + stateSetString))) == null) {
                     actives = new long[maxKindsReqd];
-                    data.statesForPos[j].put(kind + ", " + jjmatchedPos + ", " + stateSetString, actives);
+                    data.statesForPos[j].put(kind + ", " + jjmatchedPos + ", " + stateSetString,
+                        actives);
                 }
 
                 actives[i / 64] |= 1L << (i % 64);
@@ -537,7 +543,7 @@ public class LexerBuilder {
             }
 
             if (!data.ignoreCase() && data.global.ignoreCase[rstring.getOrdinal()] && (c
-                    != Character.toLowerCase(c))) {
+                != Character.toLowerCase(c))) {
                 s = ("" + rstring.getImage().charAt(i)).toLowerCase(Locale.ENGLISH);
 
                 if (i >= data.charPosKind.size()) { // Kludge, but OK
@@ -560,7 +566,7 @@ public class LexerBuilder {
             }
 
             if (!data.ignoreCase() && data.global.ignoreCase[rstring.getOrdinal()] && (c
-                    != Character.toUpperCase(c))) {
+                != Character.toUpperCase(c))) {
                 s = ("" + rstring.getImage().charAt(i)).toUpperCase();
 
                 if (i >= data.charPosKind.size()) { // Kludge, but OK
@@ -584,7 +590,7 @@ public class LexerBuilder {
         }
 
         data.maxLenForActive[rstring.getOrdinal() / 64] =
-                Math.max(data.maxLenForActive[rstring.getOrdinal() / 64], len - 1);
+            Math.max(data.maxLenForActive[rstring.getOrdinal() / 64], len - 1);
         data.global.allImages[rstring.getOrdinal()] = rstring.getImage();
     }
 
@@ -649,7 +655,7 @@ public class LexerBuilder {
     }
 
     private Vector<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states,
-                                                              int byteNum) {
+        int byteNum) {
         int[] cardinalities = new int[states.length];
         Vector<NfaState> original = new Vector<>();
         Vector<List<NfaState>> partition = new Vector<>();
@@ -720,8 +726,8 @@ public class LexerBuilder {
         for (int i = 0; i < data.nonAsciiTableForMethod.size(); i++) {
             NfaState tmp = data.nonAsciiTableForMethod.get(i);
             if (NfaState.EqualLoByteVectors(state.loByteVec, tmp.loByteVec)
-                    && NfaState.EqualNonAsciiMoveIndices(state.nonAsciiMoveIndices,
-                    tmp.nonAsciiMoveIndices)) {
+                && NfaState.EqualNonAsciiMoveIndices(state.nonAsciiMoveIndices,
+                tmp.nonAsciiMoveIndices)) {
                 state.nonAsciiMethod = i;
                 return;
             }
@@ -743,7 +749,8 @@ public class LexerBuilder {
         for (int i = 0; i < s2.length(); i++) {
             char c1 = s1.charAt(i), c2 = s2.charAt(i);
 
-            if ((c1 != c2) && (Character.toLowerCase(c2) != c1) && (Character.toUpperCase(c2) != c1)) {
+            if ((c1 != c2) && (Character.toLowerCase(c2) != c1) && (Character.toUpperCase(c2)
+                != c1)) {
                 return false;
             }
         }
@@ -760,7 +767,7 @@ public class LexerBuilder {
             data.subString[i] = false;
 
             if (((image = data.global.getImage(i)) == null) || (data.global.getState(i)
-                    != data.getStateIndex())) {
+                != data.getStateIndex())) {
                 continue;
             }
 
@@ -773,14 +780,15 @@ public class LexerBuilder {
 
             for (int j = 0; j < data.maxStrKind; j++) {
                 if ((j != i) && (data.global.getState(j) == data.getStateIndex()) && (
-                        (data.global.getImage(j)) != null)) {
+                    (data.global.getImage(j)) != null)) {
                     if (data.global.getImage(j).indexOf(image) == 0) {
                         data.subString[i] = true;
                         data.subStringAtPos[image.length() - 1] = true;
                         break;
                     }
-                    else if (data.ignoreCase() && LexerBuilder.StartsWithIgnoreCase(data.global.getImage(j),
-                            image)) {
+                    else if (data.ignoreCase() && LexerBuilder.StartsWithIgnoreCase(
+                        data.global.getImage(j),
+                        image)) {
                         data.subString[i] = true;
                         data.subStringAtPos[image.length() - 1] = true;
                         break;
@@ -805,7 +813,8 @@ public class LexerBuilder {
         }
 
         if (nameSet == null) {
-            throw new Error("JavaCC Bug: Please file a bug at: https://github.com/javacc/javacc/issues");
+            throw new Error(
+                "JavaCC Bug: Please file a bug at: https://github.com/javacc/javacc/issues");
         }
 
         if (nameSet.length == 1) {
@@ -835,7 +844,8 @@ public class LexerBuilder {
             if (!s.equals(stateSetString) && NfaState.Intersect(data, stateSetString, s)) {
                 int[] other = data.compositeStateTable.get(s);
 
-                while ((toRet < nameSet.length) && (((data.getIndexedState(nameSet[toRet]).inNextOf > 1))
+                while ((toRet < nameSet.length) && (
+                    ((data.getIndexedState(nameSet[toRet]).inNextOf > 1))
                         || (NfaState.ElemOccurs(nameSet[toRet], other) >= 0))) {
                     toRet++;
                 }
@@ -869,10 +879,10 @@ public class LexerBuilder {
         String cycle;
         String reList;
 
-        Outer:
+Outer:
         for (i = 0; i < data.maxLexStates; i++) {
             if (done[i] || (data.initMatch[i] == 0) || (data.initMatch[i] == Integer.MAX_VALUE)
-                    || (data.canMatchAnyChar[i] != -1)) {
+                || (data.canMatchAnyChar[i] != -1)) {
                 continue;
             }
 
@@ -898,14 +908,14 @@ public class LexerBuilder {
                 done[j] = true;
                 seen[j] = true;
                 if ((data.initMatch[j] == 0) || (data.initMatch[j] == Integer.MAX_VALUE) || (
-                        data.canMatchAnyChar[j] != -1)) {
+                    data.canMatchAnyChar[j] != -1)) {
                     continue Outer;
                 }
                 if (len != 0) {
                     reList += "; ";
                 }
                 reList += "line " + data.rexprs[data.initMatch[j]].getLine() + ", column "
-                        + data.rexprs[data.initMatch[j]].getColumn();
+                    + data.rexprs[data.initMatch[j]].getColumn();
                 len++;
             }
 
@@ -920,29 +930,31 @@ public class LexerBuilder {
             data.hasLoop = true;
             if (len == 0) {
                 JavaCCErrors.warning(data.rexprs[data.initMatch[i]],
-                        "Regular expression"
-                                + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
-                                : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
-                                + " can be matched by the empty string (\"\") in lexical state "
-                                + data.getStateName(i)
-                                + ". This can result in an endless loop of " + "empty string matches.");
+                    "Regular expression"
+                        + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
+                        : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
+                        + " can be matched by the empty string (\"\") in lexical state "
+                        + data.getStateName(i)
+                        + ". This can result in an endless loop of " + "empty string matches.");
             }
             else {
                 JavaCCErrors.warning(data.rexprs[data.initMatch[i]],
-                        "Regular expression"
-                                + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
-                                : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
-                                + " can be matched by the empty string (\"\") in lexical state "
-                                + data.getStateName(i)
-                                + ". This regular expression along with the " + "regular expressions at " + reList
-                                + " forms the cycle \n   " + cycle
-                                + "\ncontaining regular expressions with empty matches."
-                                + " This can result in an endless loop of empty string matches.");
+                    "Regular expression"
+                        + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
+                        : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
+                        + " can be matched by the empty string (\"\") in lexical state "
+                        + data.getStateName(i)
+                        + ". This regular expression along with the " + "regular expressions at "
+                        + reList
+                        + " forms the cycle \n   " + cycle
+                        + "\ncontaining regular expressions with empty matches."
+                        + " This can result in an endless loop of empty string matches.");
             }
         }
     }
 
-    private void CalcNfaStartStatesCode(NfaStateData data, Hashtable<String, long[]>[] statesForPos) {
+    private void CalcNfaStartStatesCode(NfaStateData data,
+        Hashtable<String, long[]>[] statesForPos) {
         if (data.maxStrKind == 0) { // No need to generate this function
             return;
         }
@@ -1067,8 +1079,8 @@ public class LexerBuilder {
         for (NfaState element : data.getAllStates()) {
 
             if ((state == element) || (element.stateName == -1) || element.dummy || (state.stateName
-                    == element.stateName)
-                    || (element.asciiMoves[byteNum] == 0L)) {
+                == element.stateName)
+                || (element.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
 
@@ -1077,23 +1089,24 @@ public class LexerBuilder {
             }
 
             if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
+                state.next.epsilonMovesString)) {
                 nextIntersects = true;
             }
 
             if (!dumped[element.stateName] && !element.isComposite && (state.asciiMoves[byteNum]
-                    == element.asciiMoves[byteNum])
-                    && (state.kindToPrint == element.kindToPrint)
-                    && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
-                    || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString != null)
-                    && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
+                == element.asciiMoves[byteNum])
+                && (state.kindToPrint == element.kindToPrint)
+                && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
+                || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString
+                != null)
+                && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
                 dumped[element.stateName] = true;
             }
         }
 
         if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
-                && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
-                && (state.kindToPrint != Integer.MAX_VALUE))) {
+            && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
+            && (state.kindToPrint != Integer.MAX_VALUE))) {
             return;
         }
 
@@ -1101,10 +1114,11 @@ public class LexerBuilder {
             if (state.next.usefulEpsilonMoves == 1) {
             }
             else if ((state.next.usefulEpsilonMoves == 2)
-                    && nextIntersects) {
+                && nextIntersects) {
             }
             else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+                int[] indices = NfaState.GetStateSetIndicesForUse(data,
+                    state.next.epsilonMovesString);
                 boolean notTwo = ((indices[0] + 1) != indices[1]);
 
                 if (nextIntersects) {
@@ -1125,13 +1139,13 @@ public class LexerBuilder {
 
         for (NfaState temp1 : data.getAllStates()) {
             if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
-                    == temp1.stateName)
-                    || (temp1.asciiMoves[byteNum] == 0L)) {
+                == temp1.stateName)
+                || (temp1.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
 
             if (!nextIntersects && NfaState.Intersect(data, temp1.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
+                state.next.epsilonMovesString)) {
                 nextIntersects = true;
                 break;
             }
@@ -1141,10 +1155,11 @@ public class LexerBuilder {
             if (state.next.usefulEpsilonMoves == 1) {
             }
             else if ((state.next.usefulEpsilonMoves == 2)
-                    && nextIntersects) {
+                && nextIntersects) {
             }
             else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+                int[] indices = NfaState.GetStateSetIndicesForUse(data,
+                    state.next.epsilonMovesString);
                 boolean notTwo = ((indices[0] + 1) != indices[1]);
                 if (nextIntersects) {
                     if (notTwo) {
@@ -1162,13 +1177,13 @@ public class LexerBuilder {
         boolean nextIntersects = state.selfLoop();
         for (NfaState temp1 : data.getAllStates()) {
             if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
-                    == temp1.stateName)
-                    || (temp1.nonAsciiMethod == -1)) {
+                == temp1.stateName)
+                || (temp1.nonAsciiMethod == -1)) {
                 continue;
             }
 
             if (!nextIntersects && NfaState.Intersect(data, temp1.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
+                state.next.epsilonMovesString)) {
                 nextIntersects = true;
                 break;
             }
@@ -1178,10 +1193,11 @@ public class LexerBuilder {
             if (state.next.usefulEpsilonMoves == 1) {
             }
             else if ((state.next.usefulEpsilonMoves == 2)
-                    && nextIntersects) {
+                && nextIntersects) {
             }
             else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+                int[] indices = NfaState.GetStateSetIndicesForUse(data,
+                    state.next.epsilonMovesString);
                 boolean notTwo = ((indices[0] + 1) != indices[1]);
                 if (nextIntersects) {
                     if (notTwo) {
@@ -1201,22 +1217,23 @@ public class LexerBuilder {
         for (NfaState element : data.getAllStates()) {
 
             if ((state == element) || (element.stateName == -1) || element.dummy || (state.stateName
-                    == element.stateName)
-                    || (element.nonAsciiMethod == -1)) {
+                == element.stateName)
+                || (element.nonAsciiMethod == -1)) {
                 continue;
             }
 
             if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
+                state.next.epsilonMovesString)) {
                 nextIntersects = true;
             }
 
             if (!dumped[element.stateName] && !element.isComposite && (state.nonAsciiMethod
-                    == element.nonAsciiMethod)
-                    && (state.kindToPrint == element.kindToPrint)
-                    && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
-                    || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString != null)
-                    && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
+                == element.nonAsciiMethod)
+                && (state.kindToPrint == element.kindToPrint)
+                && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
+                || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString
+                != null)
+                && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
                 dumped[element.stateName] = true;
             }
         }
@@ -1229,10 +1246,11 @@ public class LexerBuilder {
             if (state.next.usefulEpsilonMoves == 1) {
             }
             else if ((state.next.usefulEpsilonMoves == 2)
-                    && nextIntersects) {
+                && nextIntersects) {
             }
             else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+                int[] indices = NfaState.GetStateSetIndicesForUse(data,
+                    state.next.epsilonMovesString);
                 boolean notTwo = ((indices[0] + 1) != indices[1]);
 
                 if (nextIntersects) {
@@ -1249,7 +1267,7 @@ public class LexerBuilder {
 
 
     private void GetCompositeStatesAsciiMoves(NfaStateData data, String key, int byteNum,
-                                              boolean[] dumped) {
+        boolean[] dumped) {
         int i;
         int[] nameSet = data.getNextStates(key);
 
@@ -1332,8 +1350,8 @@ public class LexerBuilder {
         for (NfaState element : data.getAllStates()) {
 
             if (dumped[element.stateName] || (element.lexState != data.getStateIndex())
-                    || !element.HasTransitions() || element.dummy
-                    || (element.stateName == -1)) {
+                || !element.HasTransitions() || element.dummy
+                || (element.stateName == -1)) {
                 continue;
             }
 
@@ -1371,8 +1389,8 @@ public class LexerBuilder {
         for (i = 0; i < data.getAllStateCount(); i++) {
             NfaState temp = data.getAllState(i);
             if ((temp.stateName == -1) || dumped[temp.stateName] || (temp.lexState
-                    != data.getStateIndex())
-                    || !temp.HasTransitions() || temp.dummy) {
+                != data.getStateIndex())
+                || !temp.HasTransitions() || temp.dummy) {
                 continue;
             }
 
@@ -1412,14 +1430,14 @@ public class LexerBuilder {
             NfaState temp = data.getAllState(i);
 
             if ((temp.lexState != data.getStateIndex()) || !temp.HasTransitions() || temp.dummy || (
-                    temp.stateName == -1)) {
+                temp.stateName == -1)) {
                 continue;
             }
 
             if (kindsForStates == null) {
                 kindsForStates = new int[data.generatedStates()];
                 data.global.statesForState[data.getStateIndex()] =
-                        new int[Math.max(data.generatedStates(), data.dummyStateIndex + 1)][];
+                    new int[Math.max(data.generatedStates(), data.dummyStateIndex + 1)][];
             }
 
             kindsForStates[temp.stateName] = temp.lookingFor;
@@ -1461,7 +1479,7 @@ public class LexerBuilder {
         long[][] loBytes = new long[256][4];
 
         if (((state.charMoves == null) || (state.charMoves[0] == 0))
-                && ((state.rangeMoves == null) || (state.rangeMoves[0] == 0))) {
+            && ((state.rangeMoves == null) || (state.rangeMoves[0] == 0))) {
             return;
         }
 
@@ -1472,7 +1490,8 @@ public class LexerBuilder {
                 }
 
                 hiByte = (char) (state.charMoves[i] >> 8);
-                loBytes[hiByte][(state.charMoves[i] & 0xff) / 64] |= (1L << ((state.charMoves[i] & 0xff)
+                loBytes[hiByte][(state.charMoves[i] & 0xff) / 64] |= (1L << (
+                    (state.charMoves[i] & 0xff)
                         % 64));
             }
         }
@@ -1519,9 +1538,10 @@ public class LexerBuilder {
 
         for (i = 0; i <= 255; i++) {
             if (done[i]
-                    || (done[i] =
-                    (loBytes[i][0] == 0) && (loBytes[i][1] == 0) && (loBytes[i][2] == 0) && (loBytes[i][3]
-                            == 0))) {
+                || (done[i] =
+                (loBytes[i][0] == 0) && (loBytes[i][1] == 0) && (loBytes[i][2] == 0) && (
+                    loBytes[i][3]
+                        == 0))) {
                 continue;
             }
 
@@ -1530,9 +1550,10 @@ public class LexerBuilder {
                     continue;
                 }
 
-                if ((loBytes[i][0] == loBytes[j][0]) && (loBytes[i][1] == loBytes[j][1]) && (loBytes[i][2]
+                if ((loBytes[i][0] == loBytes[j][0]) && (loBytes[i][1] == loBytes[j][1]) && (
+                    loBytes[i][2]
                         == loBytes[j][2])
-                        && (loBytes[i][3] == loBytes[j][3])) {
+                    && (loBytes[i][3] == loBytes[j][3])) {
                     done[j] = true;
                     if (common == null) {
                         done[i] = true;
@@ -1548,9 +1569,11 @@ public class LexerBuilder {
                 Integer ind;
                 String tmp;
                 long[] lohiByte = {common[0], common[1], common[2], common[3]};
-                tmp = "{\n   0x" + Long.toHexString(common[0]) + "L, " + "0x" + Long.toHexString(common[1])
-                        + "L, " + "0x"
-                        + Long.toHexString(common[2]) + "L, " + "0x" + Long.toHexString(common[3]) + "L\n};";
+                tmp = "{\n   0x" + Long.toHexString(common[0]) + "L, " + "0x" + Long.toHexString(
+                    common[1])
+                    + "L, " + "0x"
+                    + Long.toHexString(common[2]) + "L, " + "0x" + Long.toHexString(common[3])
+                    + "L\n};";
                 if ((ind = data.lohiByteTab.get(tmp)) == null) {
                     data.allBitVectors.add(tmp);
 
@@ -1565,7 +1588,8 @@ public class LexerBuilder {
                 tmpIndices[cnt++] = ind;
                 lohiByte = new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]};
 
-                tmp = "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(
+                tmp =
+                    "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(
                         loBytes[i][1]) + "L, "
                         + "0x" + Long.toHexString(loBytes[i][2]) + "L, " + "0x" + Long.toHexString(
                         loBytes[i][3]) + "L\n};";
@@ -1597,7 +1621,8 @@ public class LexerBuilder {
                 Integer ind;
 
                 long[] lohiByte = {loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]};
-                tmp = "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(
+                tmp =
+                    "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(
                         loBytes[i][1]) + "L, "
                         + "0x" + Long.toHexString(loBytes[i][2]) + "L, " + "0x" + Long.toHexString(
                         loBytes[i][3]) + "L\n};";
@@ -1633,14 +1658,14 @@ public class LexerBuilder {
         data.createStartNfa = false;
         for (i = 0; i < data.maxLen; i++) {
             tab = data.charPosKind.get(i);
-            CaseLoop:
+CaseLoop:
             for (String key2 : LexerBuilder.ReArrange(tab)) {
                 key = key2;
                 info = (KindInfo) tab.get(key);
                 char c = key.charAt(0);
 
                 if ((i == 0) && (c < 128) && info.hasFinalKindCnt()
-                        && ((data.generatedStates() == 0) || !CanStartNfaUsingAscii(data, c))) {
+                    && ((data.generatedStates() == 0) || !CanStartNfaUsingAscii(data, c))) {
                     int kind;
                     for (j = 0; j < maxLongsReqd; j++) {
                         if (info.finalKinds[j] != 0L) {
@@ -1649,30 +1674,36 @@ public class LexerBuilder {
                     }
 
                     for (k = 0; k < 64; k++) {
-                        if (((info.finalKinds[j] & (1L << k)) != 0L) && !data.subString[kind = ((j * 64)
+                        if (((info.finalKinds[j] & (1L << k)) != 0L) && !data.subString[kind = (
+                            (j * 64)
                                 + k)]) {
-                            if (((data.intermediateKinds != null) && (data.intermediateKinds[((j * 64) + k)]
+                            if (((data.intermediateKinds != null) && (
+                                data.intermediateKinds[((j * 64) + k)]
                                     != null)
-                                    && (data.intermediateKinds[((j * 64) + k)][i] < ((j * 64) + k))
-                                    && (data.intermediateMatchedPos != null) && (
-                                    data.intermediateMatchedPos[((j * 64) + k)][i] == i))
-                                    || ((data.global.canMatchAnyChar[data.getStateIndex()] >= 0)
-                                    && (data.global.canMatchAnyChar[data.getStateIndex()] < ((j * 64) + k)))) {
+                                && (data.intermediateKinds[((j * 64) + k)][i] < ((j * 64) + k))
+                                && (data.intermediateMatchedPos != null) && (
+                                data.intermediateMatchedPos[((j * 64) + k)][i] == i))
+                                || ((data.global.canMatchAnyChar[data.getStateIndex()] >= 0)
+                                && (data.global.canMatchAnyChar[data.getStateIndex()] < ((j * 64)
+                                + k)))) {
                                 break;
                             }
                             else if (((data.global.toSkip[kind / 64] & (1L << (kind % 64))) != 0L)
-                                    && ((data.global.toSpecial[kind / 64] & (1L << (kind % 64))) == 0L)
-                                    && (data.global.actions[kind] == null) && (data.global.newLexState[kind]
+                                && ((data.global.toSpecial[kind / 64] & (1L << (kind % 64))) == 0L)
+                                && (data.global.actions[kind] == null) && (
+                                data.global.newLexState[kind]
                                     == null)) {
                                 AddCharToSkip(data, data.global.singlesToSkip, c, kind);
 
                                 if (data.ignoreCase()) {
                                     if (c != Character.toUpperCase(c)) {
-                                        AddCharToSkip(data, data.global.singlesToSkip, Character.toUpperCase(c), kind);
+                                        AddCharToSkip(data, data.global.singlesToSkip,
+                                            Character.toUpperCase(c), kind);
                                     }
 
                                     if (c != Character.toLowerCase(c)) {
-                                        AddCharToSkip(data, data.global.singlesToSkip, Character.toLowerCase(c), kind);
+                                        AddCharToSkip(data, data.global.singlesToSkip,
+                                            Character.toLowerCase(c), kind);
                                     }
                                 }
                                 continue CaseLoop;
@@ -1709,16 +1740,17 @@ public class LexerBuilder {
     private static void CheckUnmatchability(RChoice choice, LexerData data) {
         for (RExpression regexp : choice.getChoices()) {
             if (!regexp.isPrivateExp() && (// curRE instanceof RJustName &&
-                    regexp.getOrdinal() > 0) && (regexp.getOrdinal() < choice.getOrdinal())
-                    && (data.getState(regexp.getOrdinal()) == data.getState(choice.getOrdinal()))) {
+                regexp.getOrdinal() > 0) && (regexp.getOrdinal() < choice.getOrdinal())
+                && (data.getState(regexp.getOrdinal()) == data.getState(choice.getOrdinal()))) {
                 if (choice.getLabel() != null) {
                     JavaCCErrors.warning(choice,
-                            "Regular Expression choice : " + regexp.getLabel() + " can never be matched as : "
-                                    + choice.getLabel());
+                        "Regular Expression choice : " + regexp.getLabel()
+                            + " can never be matched as : "
+                            + choice.getLabel());
                 }
                 else {
                     JavaCCErrors.warning(choice, "Regular Expression choice : " + regexp.getLabel()
-                            + " can never be matched as token of kind : " + choice.getOrdinal());
+                        + " can never be matched as token of kind : " + choice.getOrdinal());
                 }
             }
         }

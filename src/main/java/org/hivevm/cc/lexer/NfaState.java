@@ -17,7 +17,7 @@ import org.hivevm.cc.parser.JavaCCErrors;
 public class NfaState {
 
     private final static String ALL_BITS =
-            "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
+        "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
 
 
     public static boolean AllBitsSet(String bitVec) {
@@ -172,7 +172,7 @@ public class NfaState {
 
         for (i = 0; i < len; i += 2) {
             if ((this.rangeMoves[i] == 0) || (this.rangeMoves[i] > left)
-                    || ((this.rangeMoves[i] == left) && (this.rangeMoves[i + 1] > right)))
+                || ((this.rangeMoves[i] == left) && (this.rangeMoves[i + 1] > right)))
                 break;
         }
 
@@ -214,8 +214,8 @@ public class NfaState {
 
     /**
      * This function computes the closure and also updates the kind so that any time there is a move
-     * to this state, it can go on epsilon to a new state in the epsilon moves that might have a lower
-     * kind of token number for the same length.
+     * to this state, it can go on epsilon to a new state in the epsilon moves that might have a
+     * lower kind of token number for the same length.
      */
 
     private void EpsilonClosure(NfaStateData data) {
@@ -258,16 +258,16 @@ public class NfaState {
 
     public boolean HasTransitions() {
         return ((this.asciiMoves[0] != 0L) || (this.asciiMoves[1] != 0L)
-                || ((this.charMoves != null) && (this.charMoves[0] != 0))
-                || ((this.rangeMoves != null) && (this.rangeMoves[0] != 0)));
+            || ((this.charMoves != null) && (this.charMoves[0] != 0))
+            || ((this.rangeMoves != null) && (this.rangeMoves[0] != 0)));
     }
 
     private void MergeMoves(NfaState other) {
         // Warning : This function does not merge epsilon moves
         if (this.asciiMoves == other.asciiMoves) {
             JavaCCErrors.semantic_error(
-                    "Bug in JavaCC : Please send "
-                            + "a report along with the input that caused this. Thank you.");
+                "Bug in JavaCC : Please send "
+                    + "a report along with the input that caused this. Thank you.");
             throw new Error();
         }
 
@@ -330,19 +330,20 @@ public class NfaState {
     }
 
     private NfaState GetEquivalentRunTimeState(NfaStateData data) {
-        Outer:
+Outer:
         for (int i = data.getAllStateCount(); i-- > 0; ) {
             NfaState other = data.getAllState(i);
 
-            if ((this != other) && (other.stateName != -1) && (this.kindToPrint == other.kindToPrint)
-                    && (this.asciiMoves[0] == other.asciiMoves[0]) && (this.asciiMoves[1]
-                    == other.asciiMoves[1])
-                    && NfaState.EqualCharArr(this.charMoves, other.charMoves)
-                    && NfaState.EqualCharArr(this.rangeMoves, other.rangeMoves)) {
+            if ((this != other) && (other.stateName != -1) && (this.kindToPrint
+                == other.kindToPrint)
+                && (this.asciiMoves[0] == other.asciiMoves[0]) && (this.asciiMoves[1]
+                == other.asciiMoves[1])
+                && NfaState.EqualCharArr(this.charMoves, other.charMoves)
+                && NfaState.EqualCharArr(this.rangeMoves, other.rangeMoves)) {
                 if (this.next == other.next)
                     return other;
                 else if (((this.next != null) && (other.next != null))
-                        && (this.next.epsilonMoves.size() == other.next.epsilonMoves.size())) {
+                    && (this.next.epsilonMoves.size() == other.next.epsilonMoves.size())) {
                     for (int j = 0; j < this.next.epsilonMoves.size(); j++) {
                         if (this.next.epsilonMoves.get(j) != other.next.epsilonMoves.get(j)) {
                             continue Outer;
@@ -440,10 +441,11 @@ public class NfaState {
                 if ((tmp1 = this.epsilonMoves.get(i)).HasTransitions()) {
                     for (j = i + 1; j < this.epsilonMoves.size(); j++) {
                         if ((tmp2 = this.epsilonMoves.get(j)).HasTransitions() && (
-                                (tmp1.asciiMoves[0] == tmp2.asciiMoves[0])
-                                        && (tmp1.asciiMoves[1] == tmp2.asciiMoves[1]) && NfaState.EqualCharArr(
-                                        tmp1.charMoves, tmp2.charMoves)
-                                        && NfaState.EqualCharArr(tmp1.rangeMoves, tmp2.rangeMoves))) {
+                            (tmp1.asciiMoves[0] == tmp2.asciiMoves[0])
+                                && (tmp1.asciiMoves[1] == tmp2.asciiMoves[1])
+                                && NfaState.EqualCharArr(
+                                tmp1.charMoves, tmp2.charMoves)
+                                && NfaState.EqualCharArr(tmp1.rangeMoves, tmp2.rangeMoves))) {
                             if (equivStates == null) {
                                 equivStates = new ArrayList<>();
                                 equivStates.add(tmp1);
@@ -549,7 +551,7 @@ public class NfaState {
 
         this.usefulEpsilonMoves = cnt;
         if ((this.epsilonMovesString != null) && (this.data.getNextStates(this.epsilonMovesString)
-                == null)) {
+            == null)) {
             int[] statesToPut = new int[this.usefulEpsilonMoves];
 
             System.arraycopy(stateNames, 0, statesToPut, 0, cnt);

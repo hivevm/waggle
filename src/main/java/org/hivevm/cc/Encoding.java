@@ -61,8 +61,9 @@ public interface Encoding {
                 char ch;
                 for (int i = 0; i < text.length(); i++) {
                     ch = text.charAt(i);
-                    if (((ch < 0x20) || (ch > 0x7e)) && (ch != '\t') && (ch != '\n') && (ch != '\r') && (ch
-                            != '\f')) {
+                    if (((ch < 0x20) || (ch > 0x7e)) && (ch != '\t') && (ch != '\n') && (ch != '\r')
+                        && (ch
+                        != '\f')) {
                         String s = "0000" + Integer.toString(ch, 16);
                         builder.append("\\u").append(s.substring(s.length() - 4));
                     }

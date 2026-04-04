@@ -6,10 +6,10 @@ package org.hivevm.cc.jjtree;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.io.Writer;
 
 import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
-import org.hivevm.cc.generator.CodeBlock;
 
 
 /**
@@ -32,8 +32,8 @@ public class ASTWriter extends PrintWriter {
     /**
      * Constructs an instance of {@link ASTWriter}.
      */
-    public ASTWriter(File file, Language language) throws FileNotFoundException {
-        super(file);
+    public ASTWriter(Writer writer, Language language) throws FileNotFoundException {
+        super(writer, true);
         this.language = language;
         this.indent = null;
     }
@@ -61,24 +61,6 @@ public class ASTWriter extends PrintWriter {
         if (this.indent != null) {
             print(this.indent);
         }
-    }
-
-    /**
-     * Opens a JJTree code block.
-     */
-    public final void openCodeBlock(String arg) {
-        append("\n");
-        append(CodeBlock.CODE.image);
-        if (arg != null) {
-            println(" // " + arg);
-        }
-    }
-
-    /**
-     * Closes a JJTree code block.
-     */
-    public final void closeCodeBlock() {
-        append(CodeBlock.END.image);
     }
 
     /**
@@ -135,9 +117,9 @@ public class ASTWriter extends PrintWriter {
     }
 
     /**
-     * This method prints the tokens corresponding to this node recursively calling the print methods
-     * of its children. Overriding this print method in appropriate nodes gives the output the added
-     * stuff not in the input.
+     * This method prints the tokens corresponding to this node recursively calling the print
+     * methods of its children. Overriding this print method in appropriate nodes gives the output
+     * the added stuff not in the input.
      */
     public final Object handleJJTreeNode(ASTNode node, NodeVisitor visitor) {
         if (node.getLastToken().next == node.getFirstToken())

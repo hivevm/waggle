@@ -14,9 +14,9 @@ public class Expansion extends Production {
     private String internal_name = "";
 
     /**
-     * The parent of this expansion node. In case this is the top level expansion of the production it
-     * is a reference to the production node otherwise it is a reference to another Expansion node. In
-     * case this is the top level of a lookahead expansion,then the parent is null.
+     * The parent of this expansion node. In case this is the top level expansion of the production
+     * it is a reference to the production node otherwise it is a reference to another Expansion
+     * node. In case this is the top level of a lookahead expansion,then the parent is null.
      */
     private Object parent;
 
@@ -76,9 +76,9 @@ public class Expansion extends Production {
     }
 
     /**
-     * A reimplementing of Object.hashCode() to be deterministic. This uses the line and column fields
-     * to generate an arbitrary number - we assume that this method is called only after line and
-     * column are set to their actual values.
+     * A reimplementing of Object.hashCode() to be deterministic. This uses the line and column
+     * fields to generate an arbitrary number - we assume that this method is called only after line
+     * and column are set to their actual values.
      */
     @Override
     public final int hashCode() {
@@ -89,7 +89,8 @@ public class Expansion extends Production {
     public String toString() {
         var name = getClass().getName();
         name = name.substring(name.lastIndexOf(".") + 1); // strip the package name
-        return "[" + getLine() + "," + getColumn() + " " + System.identityHashCode(this) + " " + name
-                + "]";
+        return "[" + getLine() + "," + getColumn() + " " + System.identityHashCode(this) + " "
+            + name
+            + "]";
     }
 }

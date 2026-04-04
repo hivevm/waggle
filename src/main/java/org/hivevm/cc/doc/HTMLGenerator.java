@@ -62,7 +62,8 @@ class HTMLGenerator extends TextGenerator {
         println("<HTML>");
         println("<HEAD>");
         if (!"".equals(this.opts.getCSS())) {
-            println("<LINK REL=\"stylesheet\" type=\"text/css\" href=\"" + this.opts.getCSS() + "\"/>");
+            println(
+                "<LINK REL=\"stylesheet\" type=\"text/css\" href=\"" + this.opts.getCSS() + "\"/>");
         }
         if (JJDocGlobals.input_file != null) {
             println("<TITLE>BNF for " + JJDocGlobals.input_file + "</TITLE>");
@@ -148,7 +149,8 @@ class HTMLGenerator extends TextGenerator {
             println("<CAPTION><STRONG>" + np.getLhs() + "</STRONG></CAPTION>");
         }
         println("<TR>");
-        println("<TD ALIGN=RIGHT VALIGN=BASELINE><A NAME=\"" + get_id(np.getLhs()) + "\">" + np.getLhs()
+        println(
+            "<TD ALIGN=RIGHT VALIGN=BASELINE><A NAME=\"" + get_id(np.getLhs()) + "\">" + np.getLhs()
                 + "</A></TD>");
         println("<TD ALIGN=CENTER VALIGN=BASELINE>::=</TD>");
         print("<TD ALIGN=LEFT VALIGN=BASELINE>");

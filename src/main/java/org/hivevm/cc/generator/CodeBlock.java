@@ -5,16 +5,26 @@ package org.hivevm.cc.generator;
 
 public enum CodeBlock {
 
-    CODE,
-    END;
+    BEGIN("<?"),
+    END("?>");
 
-    public final String image;
+    private final String image;
 
-    CodeBlock() {
-        this.image = "@" + name().toLowerCase();
+    CodeBlock(String image) {
+        this.image = image;
     }
 
-    public final String strip(String text) {
-        return text.substring(name().length() + 1);
+    public static String begin() {
+        return CodeBlock.BEGIN.image;
+    }
+
+    public static String end() {
+        return CodeBlock.END.image;
+    }
+
+    public static String strip(String text) {
+        if (text.startsWith(CodeBlock.BEGIN.image))
+            return text.substring(CodeBlock.BEGIN.image.length());
+        return text;
     }
 }

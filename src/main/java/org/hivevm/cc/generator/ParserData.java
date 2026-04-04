@@ -189,13 +189,13 @@ public class ParserData {
     }
 
     protected final void setLookAheadNeeded(
-            @SuppressWarnings("SameParameterValue") boolean lookaheadNeeded) {
+        @SuppressWarnings("SameParameterValue") boolean lookaheadNeeded) {
         this.lookaheadNeeded = lookaheadNeeded;
     }
 
     /**
-     * Sets up the array "firstSet" above based on the Expansion argument passed to it. Since this is
-     * a recursive function, it assumes that "firstSet" has been reset before the first call.
+     * Sets up the array "firstSet" above based on the Expansion argument passed to it. Since this
+     * is a recursive function, it assumes that "firstSet" has been reset before the first call.
      */
     public final boolean genFirstSet(Expansion exp, boolean[] firstSet, boolean jj2la) {
         if (exp instanceof RExpression re) {
@@ -298,27 +298,19 @@ public class ParserData {
                 case Action action -> 0;
                 default -> 0;
             };
-        }
-        finally {
+        } finally {
             e.setInMinimumSize(false);
         }
     }
 
     /**
      * This class stores information to pass from phase 2 to phase 3.
+     *
+     * @param exp   This is the expansion to generate the jj3 method for.
+     * @param count This is the number of tokens that can still be consumed. This number is used to
+     *              limit the number of jj3 methods generated.
      */
-    static class Phase3Data {
+        record Phase3Data(Expansion exp, int count) {
 
-        // This is the expansion to generate the jj3 method for.
-        final Expansion exp;
-
-        // This is the number of tokens that can still be consumed. This number is used to limit the
-        // number of jj3 methods generated.
-        final int count;
-
-        Phase3Data(Expansion e, int c) {
-            this.exp = e;
-            this.count = c;
-        }
     }
 }

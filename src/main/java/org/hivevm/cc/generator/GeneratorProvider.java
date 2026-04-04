@@ -56,7 +56,8 @@ public abstract class GeneratorProvider implements Generator {
         ServiceLoader<Generator> loader = ServiceLoader.load(Generator.class);
         Stream<Provider<Generator>> provider = loader.stream();
         provider = provider.filter(p -> p.type().isAnnotationPresent(GeneratorName.class)
-                && p.type().getAnnotation(GeneratorName.class).value().equalsIgnoreCase(language.name()));
+            && p.type().getAnnotation(GeneratorName.class).value()
+            .equalsIgnoreCase(language.name()));
         return provider.findFirst().orElseThrow().get();
     }
 }

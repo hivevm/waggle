@@ -48,11 +48,14 @@ public class TreeContext extends HiveCCOptions implements TreeOptions {
     public void validate() {
         if (!getVisitor()) {
             if (!getVisitorDataType().isEmpty())
-                JavaCCErrors.warning("VISITOR_DATA_TYPE option will be ignored since VISITOR is false");
+                JavaCCErrors.warning(
+                    "VISITOR_DATA_TYPE option will be ignored since VISITOR is false");
             if ((!getVisitorReturnType().isEmpty()) && !getVisitorReturnType().equals("Object"))
-                JavaCCErrors.warning("VISITOR_RETURN_TYPE option will be ignored since VISITOR is false");
+                JavaCCErrors.warning(
+                    "VISITOR_RETURN_TYPE option will be ignored since VISITOR is false");
             if (!getVisitorException().isEmpty())
-                JavaCCErrors.warning("VISITOR_EXCEPTION option will be ignored since VISITOR is false");
+                JavaCCErrors.warning(
+                    "VISITOR_EXCEPTION option will be ignored since VISITOR is false");
         }
     }
 }

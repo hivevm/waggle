@@ -6,7 +6,6 @@ package org.hivevm.cc;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -67,56 +66,31 @@ public class ParserBuilder {
         return builder;
     }
 
+
     /**
      * Run the parser generator.
      */
-    public final void build() {
-        try {
-            List<String> arguments = new ArrayList<>();
-            arguments.add("-CODE_GENERATOR=" + this.language.name());
-            arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
-            if (this.parserFile == null) {
-                if ((this.customNodes != null) && !this.customNodes.isEmpty()) {
-                    arguments.add("-NODE_CUSTOM=" + String.join(",", this.customNodes));
-                }
-                arguments.add(this.treeFile.getAbsolutePath());
-
-                HiveCCTree.main(arguments.toArray(new String[0]));
-
-                String path = this.treeFile.getAbsolutePath();
-                int offset = path.lastIndexOf("/");
-                int length = path.lastIndexOf(".");
-                arguments.set(arguments.size() - 1,
-                        this.targetDir + path.substring(offset, length) + ".jj");
-            }
-            else {
-                arguments.add(this.parserFile.getAbsolutePath());
-            }
-
-            HiveCCParser.main(arguments.toArray(new String[0]));
-        }
-        catch (Throwable e) {
-            e.printStackTrace();
-        }
+    public final Parser build() {
+        var file = parserFile == null ? treeFile : parserFile;
+        return new Parser(file, language, targetDir, customNodes);
     }
 
     /**
      * Run the parser generator.
      */
     public final void interpret(String text) {
-        HiveCCOptions options = new HiveCCOptions();
+        var options = new HiveCCOptions();
         try {
-            ParserInterpreter interpreter = new ParserInterpreter(options);
-            File file = this.parserFile;
+            var interpreter = new ParserInterpreter(options);
+            var file = this.parserFile;
             if (file == null) {
                 String name = this.treeFile.getName();
                 String jjName = name.substring(0, name.length() - 1);
                 file = new File(this.targetDir, jjName);
             }
-            String grammar = new String(Files.readAllBytes(file.toPath()));
+            var grammar = new String(Files.readAllBytes(file.toPath()));
             interpreter.runTokenizer(grammar, text);
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }

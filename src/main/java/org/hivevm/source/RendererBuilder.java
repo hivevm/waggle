@@ -13,12 +13,12 @@ import org.hivevm.source.Renderer.TextRenderer;
 import org.hivevm.source.Renderer.VarRenderer;
 
 /**
- * A builder class for constructing a tree of renderers that can dynamically generate output
- * based on various directives such as text blocks, variables, conditions, and iteration.
- *
- * This class provides a fluent API that supports chaining calls to add different types of
- * renderers and control structures. Renderers are organized in a hierarchical structure,
- * allowing for the creation of complex rendering logic.
+ * A builder class for constructing a tree of renderers that can dynamically generate output based
+ * on various directives such as text blocks, variables, conditions, and iteration.
+ * <p>
+ * This class provides a fluent API that supports chaining calls to add different types of renderers
+ * and control structures. Renderers are organized in a hierarchical structure, allowing for the
+ * creation of complex rendering logic.
  */
 class RendererBuilder {
 
@@ -39,8 +39,8 @@ class RendererBuilder {
      */
     protected final <R extends Renderer> R addRenderer(R renderer) {
         var peek = stack.peek();
-        if (peek instanceof ListRenderer list) {
-            list.nodes().add(renderer);
+        if (peek instanceof ListRenderer(java.util.List<Renderer> nodes)) {
+            nodes.add(renderer);
         }
         else if (peek instanceof ForEachRenderer forech) {
             forech.renderer().nodes().add(renderer);

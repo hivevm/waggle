@@ -72,8 +72,8 @@ public class ASTNodeDescriptor extends ASTNode {
 
     public String getDescriptor() {
         return this.text == null
-                ? this.name
-                : "#" + this.name + "(" + (this.isGT ? ">" : "") + this.text + ")";
+            ? this.name
+            : "#" + this.name + "(" + (this.isGT ? ">" : "") + this.text + ")";
     }
 
     public String getNodeType() {

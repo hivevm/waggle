@@ -7,4 +7,5 @@ package org.hivevm.cc.model;
  * Describes regular expressions.
  */
 public abstract class RegularExpression extends Expansion {
+
 }

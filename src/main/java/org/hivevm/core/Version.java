@@ -44,12 +44,12 @@ import java.util.regex.Pattern;
 public class Version implements Comparable<Version> {
 
     private static final String PATTERN =
-            "(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?";
+        "(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?";
 
     private static final Pattern PARSE  = Pattern.compile(Version.PATTERN);
     private static final Pattern MATCH  = Pattern.compile("^" + Version.PATTERN + "$");
     private static final Pattern FORMAT = Pattern.compile(
-            "([0]+)\\.([0]+)(?:\\.([0]+))?(?:-([0]+))?(?:\\+([0]+))?");
+        "([0]+)\\.([0]+)(?:\\.([0]+))?(?:-([0]+))?(?:\\+([0]+))?");
 
 
     private final int major;
@@ -232,7 +232,8 @@ public class Version implements Comparable<Version> {
 
         int major = Integer.parseInt(matcher.group("major"));
         int minor = Integer.parseInt(matcher.group("minor"));
-        int patch = (matcher.group("patch") == null) ? -1 : Integer.parseInt(matcher.group("patch"));
+        int patch =
+            (matcher.group("patch") == null) ? -1 : Integer.parseInt(matcher.group("patch"));
         return Version.of(major, minor, patch, matcher.group("name"), matcher.group("build"));
     }
 }

@@ -41,16 +41,16 @@ public abstract class RExpression extends RegularExpression {
     private boolean private_rexp = false;
 
     /**
-     * If this is a top-level regular expression (nested directly within a TokenProduction), then this
-     * field point to that TokenProduction object.
+     * If this is a top-level regular expression (nested directly within a TokenProduction), then
+     * this field point to that TokenProduction object.
      */
     private TokenProduction tpContext = null;
 
     /**
      * The following variable is used to maintain state information for the loop determination
      * algorithm: It is initialized to 0, and set to -1 if this node has been visited in a pre-order
-     * walk, and then it is set to 1 if the pre-order walk of the whole graph from this node has been
-     * traversed. i.e., -1 indicates partially processed, and 1 indicates fully processed.
+     * walk, and then it is set to 1 if the pre-order walk of the whole graph from this node has
+     * been traversed. i.e., -1 indicates partially processed, and 1 indicates fully processed.
      */
     private int walkStatus = 0;
 

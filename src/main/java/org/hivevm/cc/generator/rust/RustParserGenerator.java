@@ -77,9 +77,9 @@ class RustParserGenerator extends ParserGenerator {
      * not be followed by an indentation.
      */
     private void generatePhase1(BNFProduction p, String code, SourceWriter writer, ParserData data) {
-        var t = p.getReturnTypeTokens().getFirst();
+        var t = p.getReturnTypeToken();
 
-        genHeaderMethod(p, t, writer);
+        genHeaderMethod(p, writer);
 
         writer.append(" {").new_line();
         writer.append("    let mut try_catch: Result<(), std::io::Error> = Ok(());");
@@ -513,7 +513,8 @@ class RustParserGenerator extends ParserGenerator {
         return retval;
     }
 
-    private void genHeaderMethod(BNFProduction p, Token t, SourceWriter writer) {
+    private void genHeaderMethod(BNFProduction p, SourceWriter writer) {
+        Token t = p.getFirstToken();
         genTokenSetup(t);
         var comments = getLeadingComments(t);
 //        writer.append(comments);
@@ -521,11 +522,6 @@ class RustParserGenerator extends ParserGenerator {
         writer.append("pub fn ");
         var text = getStringForTokenOnly(t);
 //        writer.append(text + " ");
-        for (int i = 1; i < p.getReturnTypeTokens().size(); i++) {
-            t = p.getReturnTypeTokens().get(i);
-            text = getStringToPrint(t);
-            writer.append(text);
-        }
         comments = getTrailingComments(t);
         writer.append(comments);
         writer.append(normal_production_as_snake_case(p) + "(");
