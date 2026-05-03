@@ -5,22 +5,24 @@ package org.hivevm.cc.generator;
 
 import java.text.ParseException;
 import java.util.ServiceLoader;
-import java.util.ServiceLoader.Provider;
-import java.util.stream.Stream;
 
 import org.hivevm.cc.Language;
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.jjtree.JJTreeVisitor;
+import org.hivevm.cc.parser.Options;
 
 /**
  * The {@link GeneratorProvider} class.
  */
 public abstract class GeneratorProvider implements Generator {
 
-    protected abstract TreeGenerator newASTGenerator();
+    protected abstract TreeGenerator newTreeGenerator();
 
     protected abstract FileGenerator newFileGenerator();
+
+    protected abstract NodeGenerator newNodeGenerator();
 
     protected abstract LexerGenerator newLexerGenerator();
 
@@ -31,8 +33,14 @@ public abstract class GeneratorProvider implements Generator {
      */
     @Override
     public final void generate(ParserRequest request) throws ParseException {
-        LexerData dataLexer = new LexerBuilder().build(request);
-        ParserData dataParser = new ParserBuilder().build(request);
+        var dataLexer = new LexerBuilder().build(request);
+        var dataParser = new ParserBuilder().build(request);
+        var dataNode = dataParser.getNodeData();
+
+        dataParser.getProductions().forEach(e -> dataNode.parseExpansion(e, request.options()));
+        if (!dataNode.getNodesToGenerate().isEmpty()) {
+            newNodeGenerator().generate(request.options(), dataNode);
+        }
 
         newFileGenerator().generate(dataLexer);
         newLexerGenerator().generate(dataLexer);
@@ -43,21 +51,21 @@ public abstract class GeneratorProvider implements Generator {
      * Generates the Abstract Syntax Tree.
      */
     @Override
-    public final void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context) {
-        TreeGenerator generator = newASTGenerator();
-        node.jjtAccept(generator, writer);
-        generator.generate(context);
+    public final void generateAST(ASTGrammar node, ASTWriter writer, Options options) {
+        var generator = newTreeGenerator();
+        node.jjtAccept(new JJTreeVisitor(generator), writer);
+        newNodeGenerator().generate(options, generator.getData());
     }
 
     /**
      * Lookups for a {@link Generator} for the provided language.
      */
     public static Generator generatorFor(Language language) {
-        ServiceLoader<Generator> loader = ServiceLoader.load(Generator.class);
-        Stream<Provider<Generator>> provider = loader.stream();
+        var loader = ServiceLoader.load(Generator.class);
+        var provider = loader.stream();
         provider = provider.filter(p -> p.type().isAnnotationPresent(GeneratorName.class)
-            && p.type().getAnnotation(GeneratorName.class).value()
-            .equalsIgnoreCase(language.name()));
+                && p.type().getAnnotation(GeneratorName.class).value()
+                .equalsIgnoreCase(language.name()));
         return provider.findFirst().orElseThrow().get();
     }
 }

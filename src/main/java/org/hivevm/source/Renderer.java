@@ -109,9 +109,9 @@ interface Renderer {
         @Override
         public void render(SourceWriter writer, Environment environment) {
             var result = nodes.keySet().stream()
-                .filter(environment::has)
-                .filter(n -> validate(n, environment))
-                .findFirst();
+                    .filter(environment::has)
+                    .filter(n -> validate(n, environment))
+                    .findFirst();
             if (result.isPresent()) {
                 nodes.get(result.get()).render(writer, environment);
             }

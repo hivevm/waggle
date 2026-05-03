@@ -106,12 +106,12 @@ final class TokenUtils {
                     }
                 }
                 JavaCCErrors.parse_error(t,
-                    "Encountered non-hex character '" + ch + "' at position " + index
-                        + " of string - Unicode escape must have 4 hex digits after it.");
+                        "Encountered non-hex character '" + ch + "' at position " + index
+                                + " of string - Unicode escape must have 4 hex digits after it.");
                 return retval;
             }
             JavaCCErrors.parse_error(t,
-                "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
+                    "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
             return retval;
         }
         return retval;

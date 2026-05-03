@@ -69,7 +69,7 @@ class JJDocOptions extends HiveCCOptions {
      *
      * @return The requested output value.
      */
-    String getOutputFile() {
+    public String getOutputFile() {
         return stringValue("OUTPUT_FILE");
     }
 }

@@ -1,5 +1,3 @@
-LEXER
-
 /**********************************************
  * THE JAVACC TOKEN SPECIFICATION STARTS HERE *
  **********************************************/
@@ -10,8 +8,6 @@ TOKEN ::=
   < _LOOKAHEAD: "LOOKAHEAD" >
 | < _IGNORE_CASE: "IGNORE_CASE" >
 | < _PARSER: "PARSER" >
-| < _LEXER: "LEXER" >
-| < _GRAMMAR: "GRAMMAR" >
 | < _TOKEN: "TOKEN" >
 | < _SPECIAL_TOKEN: "SPECIAL_TOKEN" >
 | < _MORE: "MORE" >

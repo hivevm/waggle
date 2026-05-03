@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test;
 class H3QLTest {
 
     public static final File WORKING_DIR = new File("../h3vm").getAbsoluteFile();
-    public static final File MAIN_DIR    = new File(H3QLTest.WORKING_DIR, "criteria/src/main");
+    public static final File MAIN_DIR = new File(H3QLTest.WORKING_DIR, "criteria/src/main");
 
-    public static final File PARSER_JJT  = new File(H3QLTest.MAIN_DIR,
-        "resources/org/hivevm/criteria/parser");
-    public static final File PARSER_CPP  = new File(H3QLTest.MAIN_DIR, "cpp/parser");
+    public static final File PARSER_JJT = new File(H3QLTest.MAIN_DIR,
+            "resources/org/hivevm/criteria/parser");
+    public static final File PARSER_CPP = new File(H3QLTest.MAIN_DIR, "cpp/parser");
     public static final File PARSER_JAVA = new File(H3QLTest.MAIN_DIR, "java");
     public static final File PARSER_RUST = new File("/data/hivevm/hql/src");
 
@@ -22,7 +22,7 @@ class H3QLTest {
     void testCpp() {
         var builder = ParserBuilder.of(Language.CPP);
         builder.setTargetDir(H3QLTest.PARSER_CPP);
-        builder.setTreeFile(H3QLTest.PARSER_JJT, "OQL.jjt");
+        builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
     }
 
@@ -31,7 +31,7 @@ class H3QLTest {
     void testJava() {
         var builder = ParserBuilder.of(Language.JAVA);
         builder.setTargetDir(H3QLTest.PARSER_JAVA);
-        builder.setTreeFile(H3QLTest.PARSER_JJT, "OQL.jjt");
+        builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
     }
 
@@ -40,7 +40,7 @@ class H3QLTest {
     void testRust() {
         var builder = ParserBuilder.of(Language.RUST);
         builder.setTargetDir(H3QLTest.PARSER_RUST);
-        builder.setTreeFile(H3QLTest.PARSER_JJT, "OQL.jjt");
+        builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
     }
 

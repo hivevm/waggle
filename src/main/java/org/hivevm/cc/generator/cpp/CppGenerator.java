@@ -7,6 +7,7 @@ import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.GeneratorName;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
+import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
 import org.hivevm.cc.generator.TreeGenerator;
 
@@ -27,8 +28,13 @@ public class CppGenerator extends GeneratorProvider {
     }
 
     @Override
-    protected final TreeGenerator newASTGenerator() {
-        return new CppASTGenerator();
+    protected final TreeGenerator newTreeGenerator() {
+        return new CppTreeGenerator();
+    }
+
+    @Override
+    protected final NodeGenerator newNodeGenerator() {
+        return new CppNodeGenerator();
     }
 
     @Override

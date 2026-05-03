@@ -339,8 +339,8 @@ public class ParserBuilder {
 
             if (seq instanceof RExpression re) {
                 e.setInternalName("jj_scan_token("
-                    + ((re.getLabel() == null) || re.getLabel().isEmpty() ? "" + re.getOrdinal()
-                    : re.getLabel()) + ")");
+                        + ((re.getLabel() == null) || re.getLabel().isEmpty() ? "" + re.getOrdinal()
+                        : re.getLabel()) + ")");
                 return;
             }
 
@@ -458,7 +458,8 @@ public class ParserBuilder {
                 case Action action -> 0;
                 default -> 0;
             };
-        } finally {
+        }
+        finally {
             e.setInMinimumSize(false);
         }
     }

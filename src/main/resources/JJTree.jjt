@@ -1,25 +1,22 @@
-PARSER(JJTreeParser)
-  NODE_MULTI: true;
-  NODE_DEFAULT_VOID: true;
-  NODE_SCOPE_HOOK: true;
-  NODE_CLASS: "ASTNode";
-  VISITOR: true;
-  VISITOR_DATA_TYPE: "ASTWriter";
-  JAVA_PACKAGE: "org.hivevm.cc.jjtree";
-  BASE_PARSER: "ASTParser";
-
-GRAMMAR
+PARSER(
+  PARSER_NAME: "JJTreeParser",
+  NODE_MULTI: true,
+  NODE_DEFAULT_VOID: true,
+  NODE_SCOPE_HOOK: true,
+  NODE_CLASS: "ASTNode",
+  VISITOR: true,
+  VISITOR_DATA_TYPE: "ASTWriter",
+  JAVA_PACKAGE: "org.hivevm.cc.jjtree",
+  JAVA_IMPORTS: "org.hivevm.cc.model.NodeScope",
+  BASE_PARSER: "ASTParser"
+)
 
 
 /************************************************
  * THE JAVACC GRAMMAR SPECIFICATION STARTS HERE *
  ************************************************/
 RULE javacc_input() #Grammar ::=
-(
-  < _PARSER > < LPAREN > identifier() <? setParserName(); ?> < RPAREN >
-  ( ( option_binding() )* ) #Options
-  < _GRAMMAR >
-) #CompilationUnit(true)
+  ( < _PARSER > < LPAREN > option_binding() (< COMMA > option_binding())* < RPAREN > ) #CompilationUnit(true)
   (bnf_production()) +
   <EOF>
 };
@@ -27,39 +24,39 @@ RULE javacc_input() #Grammar ::=
 RULE option_binding() #OptionBinding ::=
   <? Token t; ?>
   t=<IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
-  <? SELF.initialize(t.image, setInputOption(t, this.token)); ?>
-  < SEMICOLON >
+  <? setInputOption(t, this.token); ?>
 };
 
 RULE bnf_production() #BNF ::=
 <?
     Token t1;
-    ASTBNF prod = SELF;
+    ASTBNF prod = $NODE;
     ASTNodeDescriptor nd = null;
-    NodeScope ns;
+    JJTNodeScope ns;
     ASTNode eu;
 ?>
-  < _RULE > t1=identifier() < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() )* ] < RPAREN >
+  < _RULE >
+  t1=identifier() < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() )* ] < RPAREN >
+  [ < COLON > Type() ]
   [ nd=node_descriptor() ]
-  ( < COLON > Type() ) ?
 <?
-	prod.name = t1.image;
-	ns = new NodeScope(prod, nd);
+	prod.setName(t1.image);
+	ns = new JJTNodeScope(prod, nd);
 ?>
-  ( <? SELF.node_scope = ns; ?> ) #BNFDeclaration
+  ( <? $NODE.node_scope = ns;?> ) #BNFDeclaration
   < ASSIGN_OP >
   (
     eu=expansion_choices(prod)
 <?
-	  SELF.node_scope = ns;
-	  SELF.expansion_unit = eu;
+	  $NODE.node_scope = ns;
+	  $NODE.expansion_unit = eu;
 ?>
   ) #BNFNodeScope
   < RBRACE > < SEMICOLON >
   <? addProduction(prod); ?>
 };
 
-RULE expansion_choices(ASTProduction p) #BNFChoice(>1) : ASTNode ::=
+RULE expansion_choices(ASTProduction p) : ASTNode #BNFChoice(>1) ::=
   expansion(p) ( < BIT_OR > expansion(p) )*
   <? return (ASTNode)jjtree.peekNode(); ?>
 };
@@ -76,11 +73,11 @@ RULE expansion(ASTProduction p) #BNFSequence(>1) ::=
       [ nd=node_descriptor() ]
 <?
 	    if (jjtree.nodeCreated()) {
-	      SELF.node_scope = new NodeScope(p, nd);
-	      SELF.expansion_unit = eu;
+	      $NODE.node_scope = new JJTNodeScope(p, nd);
+	      $NODE.expansion_unit = eu;
 	    }
 ?>
-    ) #ExpansionNodeScope(>1)
+    ) #BNFExpansionScope(>1)
   )+
 };
 
@@ -211,23 +208,22 @@ RULE value() : Token ::=
  * THE JJTREE PRODUCTIONS START HERE       *
  **********************************************/
 
-RULE node_descriptor() #NodeDescriptor : ASTNodeDescriptor ::=
+RULE node_descriptor() : ASTNodeDescriptor #NodeDescriptor ::=
 <?
     Token t = null;
     String s = null;
 ?>
   < HASH >
-  ( s=TypeParameter() <? SELF.name = s; ?> )
+  s=TypeParameter() <? $NODE.setName(s); ?>
   [
    LOOKAHEAD(1)
    < LPAREN >
-      [ < GT > <? SELF.isGT = true; ?> ]
-      t=value() <? SELF.setExpressionText(t.image); ?>
+      [ < GT > <? $NODE.setGreaterThan(); ?> ]
+      t=value() <? $NODE.setExpressionText(t.image); ?>
    < RPAREN >
   ]
 <?
-  SELF.setNodeIdValue();
-  return SELF;
+  return $NODE;
 ?>
 };
 
@@ -246,8 +242,6 @@ RULE TypeParameter() : String ::=
 | < _LOOKAHEAD >
 | < _IGNORE_CASE >
 | < _PARSER >
-| < _GRAMMAR >
-| < _LEXER >
 | < _TOKEN >
 | < _SPECIAL_TOKEN >
 | < _MORE >
@@ -311,17 +305,11 @@ RULE Literal() ::=
 | BooleanLiteral()
 };
 
-RULE IntegerLiteral() ::=
-  <INTEGER_LITERAL>
-};
+RULE IntegerLiteral() ::= <INTEGER_LITERAL> };
 
-RULE BooleanLiteral() ::=
-  < TRUE > | < FALSE >
-};
+RULE BooleanLiteral() ::= < TRUE > | < FALSE > };
 
-RULE StringLiteral() ::=
-  <STRING_LITERAL>
-};
+RULE StringLiteral() ::= <STRING_LITERAL> };
 
 /*
  * Parsing this fills "tokens" with all tokens of the arguments

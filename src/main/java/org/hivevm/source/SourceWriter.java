@@ -5,6 +5,7 @@ package org.hivevm.source;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+
 import org.jspecify.annotations.NonNull;
 
 public interface SourceWriter {

@@ -3,11 +3,12 @@
 
 package org.hivevm.gradle;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javax.inject.Inject;
+
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.CacheableTask;
@@ -85,8 +86,7 @@ public abstract class ParserGenerator extends DefaultTask {
 
         var builder = ParserBuilder.of(language);
         builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
-        builder.setParserFile(getFile(task.jjFile == null ? config.jjFile : task.jjFile));
-        builder.setTreeFile(getFile(task.jjtFile == null ? config.jjtFile : task.jjtFile));
+        builder.setParserFile(getFile(task.file == null ? config.file : task.file));
         builder.setCustomNodes(task.treeNodes);
         builder.build().parse();
     }

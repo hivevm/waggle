@@ -39,10 +39,11 @@ public class ParserInterpreter {
                 LexerData data = new LexerBuilder().build(request);
                 ParserInterpreter.tokenize(data, input, this.options);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.out.println(e);
             System.out.println("Detected " + (JavaCCErrors.get_error_count() + 1) + " errors and "
-                + JavaCCErrors.get_warning_count() + " warnings.");
+                    + JavaCCErrors.get_warning_count() + " warnings.");
             System.exit(1);
         }
     }

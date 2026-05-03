@@ -5,58 +5,30 @@ package org.hivevm.cc.jjtree;
 
 import java.text.ParseException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.hivevm.cc.HiveCC;
-import org.hivevm.cc.generator.TreeContext;
+import org.hivevm.cc.HiveCCOptions;
 
 /**
  * The {@link ASTParser} class.
  */
 abstract class ASTParser {
 
-    private final Set<String>                jjtreeOptions;
     private final Map<String, ASTProduction> productions;
 
     protected ASTParser() {
         this.productions = new HashMap<>();
-        this.jjtreeOptions = new HashSet<>();
-        this.jjtreeOptions.add(HiveCC.JJTREE_MULTI);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_EXTENDS);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_CUSTOM);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_CLASS);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_DEFAULT_VOID);
-        this.jjtreeOptions.add(HiveCC.JJTREE_OUTPUT_FILE);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_SCOPE_HOOK);
-        this.jjtreeOptions.add(HiveCC.JJTREE_TRACK_TOKENS);
-        this.jjtreeOptions.add(HiveCC.JJTREE_NODE_FACTORY);
-        this.jjtreeOptions.add(HiveCC.JJTREE_BUILD_NODE_FILES);
-        this.jjtreeOptions.add(HiveCC.JJTREE_VISITOR);
-        this.jjtreeOptions.add(HiveCC.JJTREE_VISITOR_EXCEPTION);
-        this.jjtreeOptions.add(HiveCC.JJTREE_VISITOR_DATA_TYPE);
-        this.jjtreeOptions.add(HiveCC.JJTREE_VISITOR_RETURN_TYPE); // TODO Auto-generated
-        // constructor stub
-    }
-
-    protected final void setParserName() {
-        getOptions().setParser(getToken(0).image);
     }
 
     protected final void addProduction(ASTProduction prod) {
-        this.productions.put(prod.name, prod);
+        this.productions.put(prod.name(), prod);
     }
 
     public final ASTProduction getProduction(String name) {
         return this.productions.get(name);
     }
 
-    public boolean isOptionJJTreeOnly(String optionName) {
-        return this.jjtreeOptions.contains(optionName.toUpperCase());
-    }
-
-    protected final String setInputOption(Token o, Token v) {
+    protected final void setInputOption(Token o, Token v) {
         String image = v.image;
         switch (v.kind) {
             case ParserConstants.INTEGER_LITERAL:
@@ -73,10 +45,7 @@ abstract class ASTParser {
                 getOptions().setOption(o, v, o.image, image);
                 break;
         }
-        return image;
     }
-
-    protected abstract Token getNextToken();
 
     protected abstract Token getToken(int index);
 
@@ -86,7 +55,7 @@ abstract class ASTParser {
     protected void jjtreeCloseNodeScope(Node n) throws ParseException {
     }
 
-    protected TreeContext getOptions() {
+    protected HiveCCOptions getOptions() {
         throw new UnsupportedOperationException();
     }
 
@@ -95,11 +64,10 @@ abstract class ASTParser {
      * when the end of an "expansion" has been reached.
      */
     protected boolean notTailOfExpansionUnit() {
-        Token t;
-        t = getToken(1);
+        Token t = getToken(1);
         return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
-            && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
-            && (t.kind != ParserConstants.RBRACKET);
+                && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
+                && (t.kind != ParserConstants.RBRACKET);
     }
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {
@@ -115,7 +83,6 @@ abstract class ASTParser {
     }
 
     protected boolean checkEmpty(Token token) {
-        return (token.kind != ParserConstants.RPAREN) && (token.kind
-            != ParserConstants.LBRACE);
+        return (token.kind != ParserConstants.RPAREN) && (token.kind != ParserConstants.LBRACE);
     }
 }

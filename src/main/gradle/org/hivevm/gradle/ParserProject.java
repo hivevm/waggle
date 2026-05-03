@@ -3,8 +3,9 @@
 
 package org.hivevm.gradle;
 
-import java.util.List;
 import javax.inject.Inject;
+import java.util.List;
+
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
@@ -18,8 +19,7 @@ public abstract class ParserProject {
 
     public Language target;
 
-    public String jjFile;
-    public String jjtFile;
+    public String file;
 
     public String output;
 

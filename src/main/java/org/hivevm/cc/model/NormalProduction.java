@@ -87,6 +87,7 @@ public class NormalProduction extends Expansion {
     public Token getReturnTypeToken() {
         return this.return_type_tokens.isEmpty() ? null : this.return_type_tokens.getFirst();
     }
+
     /**
      * @return the return_type_tokens
      */

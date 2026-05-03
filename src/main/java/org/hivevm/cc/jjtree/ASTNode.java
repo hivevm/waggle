@@ -3,17 +3,20 @@
 
 package org.hivevm.cc.jjtree;
 
-import org.hivevm.cc.generator.TreeOptions;
+import org.hivevm.cc.model.NodeScope;
+import org.hivevm.cc.parser.Options;
 
 public class ASTNode extends Node {
 
-    private int myOrdinal;
+    private int       myOrdinal;
+    public  NodeScope node_scope;
+    public  ASTNode   expansion_unit;
 
     ASTNode(Parser p, int i) {
         super(p, i);
     }
 
-    public final TreeOptions jjtOptions() {
+    public final Options jjtOptions() {
         return jjtParser().getOptions();
     }
 

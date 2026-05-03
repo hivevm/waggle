@@ -37,22 +37,23 @@ class HTMLGenerator extends TextGenerator {
 
     @Override
     public void text(String s) {
-        String ss = "";
+        var sb = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); ++i) {
-            if (s.charAt(i) == '<') {
-                ss += "&lt;";
+            char c = s.charAt(i);
+            if (c == '<') {
+                sb.append("&lt;");
             }
-            else if (s.charAt(i) == '>') {
-                ss += "&gt;";
+            else if (c == '>') {
+                sb.append("&gt;");
             }
-            else if (s.charAt(i) == '&') {
-                ss += "&amp;";
+            else if (c == '&') {
+                sb.append("&amp;");
             }
             else {
-                ss += s.charAt(i);
+                sb.append(c);
             }
         }
-        print(ss);
+        print(sb.toString());
     }
 
     @Override
@@ -63,7 +64,7 @@ class HTMLGenerator extends TextGenerator {
         println("<HEAD>");
         if (!"".equals(this.opts.getCSS())) {
             println(
-                "<LINK REL=\"stylesheet\" type=\"text/css\" href=\"" + this.opts.getCSS() + "\"/>");
+                    "<LINK REL=\"stylesheet\" type=\"text/css\" href=\"" + this.opts.getCSS() + "\"/>");
         }
         if (JJDocGlobals.input_file != null) {
             println("<TITLE>BNF for " + JJDocGlobals.input_file + "</TITLE>");
@@ -150,8 +151,8 @@ class HTMLGenerator extends TextGenerator {
         }
         println("<TR>");
         println(
-            "<TD ALIGN=RIGHT VALIGN=BASELINE><A NAME=\"" + get_id(np.getLhs()) + "\">" + np.getLhs()
-                + "</A></TD>");
+                "<TD ALIGN=RIGHT VALIGN=BASELINE><A NAME=\"" + get_id(np.getLhs()) + "\">" + np.getLhs()
+                        + "</A></TD>");
         println("<TD ALIGN=CENTER VALIGN=BASELINE>::=</TD>");
         print("<TD ALIGN=LEFT VALIGN=BASELINE>");
     }

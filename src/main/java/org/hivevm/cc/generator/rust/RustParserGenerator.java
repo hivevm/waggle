@@ -3,7 +3,10 @@
 
 package org.hivevm.cc.generator.rust;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -12,18 +15,9 @@ import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
-import org.hivevm.cc.model.Action;
-import org.hivevm.cc.model.BNFProduction;
-import org.hivevm.cc.model.Choice;
-import org.hivevm.cc.model.Expansion;
-import org.hivevm.cc.model.Lookahead;
-import org.hivevm.cc.model.NonTerminal;
-import org.hivevm.cc.model.NormalProduction;
-import org.hivevm.cc.model.OneOrMore;
-import org.hivevm.cc.model.RExpression;
-import org.hivevm.cc.model.Sequence;
-import org.hivevm.cc.model.ZeroOrMore;
-import org.hivevm.cc.model.ZeroOrOne;
+import org.hivevm.cc.generator.TreeGenerator;
+import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.model.*;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.cc.semantic.Semanticize;
 import org.hivevm.source.SourceWriter;
@@ -33,6 +27,8 @@ import org.hivevm.source.Template;
  * Implements the {@link ParserGenerator} for the JAVA language.
  */
 class RustParserGenerator extends ParserGenerator {
+
+    private final TreeGenerator generator = new RustTreeGenerator();
 
     @Override
     public void generate(ParserData data) {
@@ -44,22 +40,24 @@ class RustParserGenerator extends ParserGenerator {
         options.set(ParserGenerator.TOKEN_COUNT, data.getTokenCount());
 
         options.add(ParserGenerator.JJ2_OFFSET, data.jj2Index())
-            .set("JJ2_OFFSET_INDEX", i -> i)
-            .set("JJ2_OFFSET_VALUE", i -> "_" + (i + 1));
+                .set("JJ2_OFFSET_INDEX", i -> i)
+                .set("JJ2_OFFSET_VALUE", i -> "_" + (i + 1));
         options.add(ParserGenerator.TOKEN_MASKS, ((data.getTokenCount() - 1) / 32) + 1)
-            .set("TOKEN_MASKS_INDEX", i -> "_" + i)
-            .set("TOKEN_MASKS_VALUE", i -> data.maskVals().stream().map(v -> "0x" + Integer.toHexString(v[i]))
-                        .collect(Collectors.joining(", ")));
+                .set("TOKEN_MASKS_INDEX", i -> "_" + i)
+                .set("TOKEN_MASKS_VALUE",
+                        i -> data.maskVals().stream().map(v -> "0x" + Integer.toHexString(v[i]))
+                                .collect(Collectors.joining(", ")));
         options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
-            .set("LA1_SUFFIX",i -> "_" + i)
-            .set("LA1_MASK",i -> (i == 0) ? "" : (32 * i) + " + ");
+                .set("LA1_SUFFIX", i -> "_" + i)
+                .set("LA1_MASK", i -> (i == 0) ? "" : (32 * i) + " + ");
 
         options.add("NORMALPRODUCTIONS", data.getProductions())
-            .set("NORMALPRODUCTION", (n, p) -> generatePhase1((BNFProduction) n, generatePhase1Expansion(data, n.getExpansion()), p, data));
+                .set("NORMALPRODUCTION", (n, p) -> generatePhase1(n,
+                        generatePhase1Expansion(data, n.getExpansion()), p, data));
         options.add("LOOKAHEADS", data.getLoakaheads())
-            .set("LOOKAHEAD", (e, p) -> generatePhase2(e.getLaExpansion(), p, data));
+                .set("LOOKAHEAD", (e, p) -> generatePhase2(e.getLaExpansion(), p, data));
         options.add("EXPANSIONS", data.getExpansions())
-            .set("EXPANSION", (e, p) -> generatePhase3Routine(data, e, data.getCount(e), p));
+                .set("EXPANSION", (e, p) -> generatePhase3Routine(data, e, data.getCount(e), p));
 
         RustSources.PARSER.render(options);
     }
@@ -72,17 +70,30 @@ class RustParserGenerator extends ParserGenerator {
     /**
      * The phase 1 routines generates their output into String's and dumps these String's once for
      * each method. These String's contain the special characters '\u0001' to indicate a positive
-     * indent, and '\u0002' to indicate a negative indent. '\n' is used to indicate a line terminator.
-     * The characters '\u0003' and '\u0004' are used to delineate portions of text where '\n's should
-     * not be followed by an indentation.
+     * indent, and '\u0002' to indicate a negative indent. '\n' is used to indicate a line
+     * terminator. The characters '\u0003' and '\u0004' are used to delineate portions of text where
+     * '\n's should not be followed by an indentation.
      */
-    private void generatePhase1(BNFProduction p, String code, SourceWriter writer, ParserData data) {
+    private void generatePhase1(NormalProduction p, String code, SourceWriter writer, ParserData data) {
         var t = p.getReturnTypeToken();
 
         genHeaderMethod(p, writer);
 
         writer.append(" {").new_line();
         writer.append("    let mut try_catch: Result<(), std::io::Error> = Ok(());");
+
+        // TreeNodes:
+        var node_scope = p.getNodeScope();
+        if (node_scope != null) {
+            var printer = new ASTWriter((PrintWriter) writer, Language.JAVA);
+            var intend = printer.setIndent("  ");
+            var nd = node_scope.getNodeDescriptor();
+            var nodeClass = NodeDescriptor.getNodeClass(nd.getName(), data.options());
+            printer.println("  // " + node_scope.getNodeDescriptorText());
+            this.generator.insertOpenNodeCode(node_scope, nodeClass, printer, data.options());
+            printer.setIndent(intend);
+            writer.new_line();
+        }
 
         if (data.getDepthLimit() > 0) {
             writer.append("if(++jj_depth > " + data.getDepthLimit() + ") {").new_line();
@@ -100,13 +111,18 @@ class RustParserGenerator extends ParserGenerator {
             indentamt = 6;
         }
 
-        if (!p.getDeclarationTokens().isEmpty()) {
-            genTokenSetup((p.getDeclarationTokens().getFirst()));
-            for (Token token : p.getDeclarationTokens()) {
+        if (p instanceof BNFProduction bnf && !bnf.getDeclarationTokens().isEmpty()) {
+            genTokenSetup(bnf.getDeclarationTokens().getFirst());
+            for (Token token : bnf.getDeclarationTokens()) {
                 t = token;
                 writer.append(getStringToPrint(t));
             }
             writer.append(getTrailingComments(t));
+        }
+
+        // TreeNodes:
+        if (node_scope != null) {
+            code = ASTWriter.replace(code, node_scope);
         }
 
         char ch = ' ';
@@ -148,9 +164,9 @@ class RustParserGenerator extends ParserGenerator {
         }
         writer.new_line();
 
-        if (!p.getDeclarationEndTokens().isEmpty()) {
-            genTokenSetup((p.getDeclarationEndTokens().getFirst()));
-            for (Token token : p.getDeclarationEndTokens()) {
+        if (p instanceof BNFProduction bnf && !bnf.getDeclarationEndTokens().isEmpty()) {
+            genTokenSetup(bnf.getDeclarationEndTokens().getFirst());
+            for (Token token : bnf.getDeclarationEndTokens()) {
                 t = token;
                 writer.append(getStringToPrint(t));
             }
@@ -159,8 +175,9 @@ class RustParserGenerator extends ParserGenerator {
 
         if (data.getDebugParser()) {
             writer.append("    } finally {").new_line();
-            writer.append("        trace_return(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(p), Language.JAVA) + "\");")
-                .new_line();
+            writer.append("        trace_return(\"" + Encoding.escapeUnicode(
+                            normal_production_as_snake_case(p), Language.JAVA) + "\");")
+                    .new_line();
             writer.append("    }").new_line();
         }
         if (data.getDepthLimit() > 0) {
@@ -168,146 +185,193 @@ class RustParserGenerator extends ParserGenerator {
             writer.append("        --jj_depth;").new_line();
             writer.append("    }").new_line();
         }
+
+        // TreeNodes:
+        if (node_scope != null) {
+            var printer = new ASTWriter((PrintWriter) writer, Language.JAVA);
+            var intend = printer.setIndent("  ");
+
+            this.generator.insertCatchBlocks(node_scope, printer, data.options(), Collections.emptyList());
+            printer.setIndent(intend);
+            writer.new_line();
+        }
+
         writer.append("    try_catch").new_line();
         writer.append("}").new_line();
         writer.new_line();
     }
 
     private String generatePhase1Expansion(ParserData data, Expansion e) {
-        String retval = "";
+        var retval = new StringBuilder();
+
+        // TreeNodes:
+        var node_scope = e.getNodeScope();
+        if (node_scope != null) {
+            var writer = new StringWriter();
+            var nd = node_scope.getNodeDescriptor();
+            var nodeClass = NodeDescriptor.getNodeClass(nd.getName(), data.options());
+
+            var printer = new PrintWriter(writer);
+            printer.println();
+            printer.println("// " + node_scope.getNodeDescriptor().getDescriptor());
+            this.generator.insertOpenNodeCode(node_scope, nodeClass, printer, data.options());
+            printer.println();
+            retval.append(writer);
+        }
+
         Token t = null;
-        if (e instanceof RExpression re) {
-            retval += "\n";
-            if (!re.getLhsTokens().isEmpty()) {
-                genTokenSetup(re.getLhsTokens().getFirst());
-                for (Token token : re.getLhsTokens()) {
-                    t = token;
-                    retval += getStringToPrint(t);
+        switch (e) {
+            case RExpression re -> {
+                retval.append("\n");
+                if (!re.getLhsTokens().isEmpty()) {
+                    genTokenSetup(re.getLhsTokens().getFirst());
+                    for (Token token : re.getLhsTokens()) {
+                        t = token;
+                        retval.append(getStringToPrint(t));
+                    }
+                    retval.append(getTrailingComments(t));
+                    retval.append(" = ");
                 }
-                retval += getTrailingComments(t);
-                retval += " = ";
-            }
-            String tail = re.getRhsToken() == null ? ");" : ")." + re.getRhsToken().image + ";";
+                String tail = re.getRhsToken() == null ? ");" : ")." + re.getRhsToken().image + ";";
 
-            retval += "try_catch = self.jj_consume_token(";
-            if (re.getLabel().isEmpty()) {
-                String label = data.getNameOfToken(re.getOrdinal());
-                retval += Objects.requireNonNullElseGet(label, re::getOrdinal);
-            }
-            else
-                retval += re.getLabel();
-            retval += tail;
-        }
-        else if (e instanceof NonTerminal e_nrw) {
-            retval += "\n";
-            if (!e_nrw.getLhsTokens().isEmpty()) {
-                genTokenSetup((e_nrw.getLhsTokens().getFirst()));
-                for (Token token : e_nrw.getLhsTokens()) {
-                    t = token;
-                    retval += getStringToPrint(t);
+                retval.append("try_catch = self.jj_consume_token(");
+                if (re.getLabel().isEmpty()) {
+                    String label = data.getNameOfToken(re.getOrdinal());
+                    retval.append(Objects.requireNonNullElseGet(label, re::getOrdinal));
+                } else {
+                    retval.append(re.getLabel());
                 }
-                retval += getTrailingComments(t);
-                retval += " = ";
+                retval.append(tail);
             }
-            retval += "if try_catch.is_ok() {\n";
-            retval += "    try_catch = self." + to_snake_case(e_nrw.getName()) + "(";
-            if (!e_nrw.getArgumentTokens().isEmpty()) {
-                genTokenSetup((e_nrw.getArgumentTokens().getFirst()));
-                for (Token token : e_nrw.getArgumentTokens()) {
-                    t = token;
-                    retval += getStringToPrint(t);
+            case NonTerminal e_nrw -> {
+                retval.append("\n");
+                if (!e_nrw.getLhsTokens().isEmpty()) {
+                    genTokenSetup((e_nrw.getLhsTokens().getFirst()));
+                    for (Token token : e_nrw.getLhsTokens()) {
+                        t = token;
+                        retval.append(getStringToPrint(t));
+                    }
+                    retval.append(getTrailingComments(t));
+                    retval.append(" = ");
                 }
-                retval += getTrailingComments(t);
-            }
-            retval += ");\n";
-            retval += "}";
-        }
-        else if (e instanceof Action e_nrw) {
-            retval += "\u0003\n";
-            if (!e_nrw.getActionTokens().isEmpty()) {
-                genTokenSetup((e_nrw.getActionTokens().getFirst()));
-                for (Token token : e_nrw.getActionTokens()) {
-                    t = token;
-                    retval += getStringToPrint(t);
+                retval.append("if try_catch.is_ok() {\n");
+                retval.append("    try_catch = self.").append(to_snake_case(e_nrw.getName())).append("(");
+                if (!e_nrw.getArgumentTokens().isEmpty()) {
+                    genTokenSetup((e_nrw.getArgumentTokens().getFirst()));
+                    for (Token token : e_nrw.getArgumentTokens()) {
+                        t = token;
+                        retval.append(getStringToPrint(t));
+                    }
+                    retval.append(getTrailingComments(t));
                 }
-                retval += getTrailingComments(t);
+                retval.append(");\n");
+                retval.append("}");
             }
-            retval += "\u0004";
-        }
-        else if (e instanceof Choice e_nrw) {
-            Lookahead[] conds = data.getLoakaheads(e);
-            String[] actions = new String[e_nrw.getChoices().size() + 1];
-            actions[e_nrw.getChoices().size()] = """
+            case Action e_nrw -> {
+                retval.append("\u0003\n");
+                if (!e_nrw.getActionTokens().isEmpty()) {
+                    genTokenSetup((e_nrw.getActionTokens().getFirst()));
+                    for (Token token : e_nrw.getActionTokens()) {
+                        t = token;
+                        retval.append(getStringToPrint(t));
+                    }
+                    retval.append(getTrailingComments(t));
+                }
+                retval.append("\u0004");
+            }
+            case Choice e_nrw -> {
+                Lookahead[] conds = data.getLoakaheads(e);
+                String[] actions = new String[e_nrw.getChoices().size() + 1];
+                actions[e_nrw.getChoices().size()] = """
+                        
+                            let _ = self.jj_consume_token(u32::MAX);
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "ParseException",
+                            ));
+                        """;
 
-                let _ = self.jj_consume_token(u32::MAX);
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "ParseException",
-                ));
-            """;
-
-            // In previous line, the "throw" never throws an exception since the
-            // evaluation of jj_consume_token(-1) causes ParseException to be
-            // thrown first.
-            Sequence nestedSeq;
-            for (int i = 0; i < e_nrw.getChoices().size(); i++) {
-                nestedSeq = (Sequence) (e_nrw.getChoices().get(i));
-                actions[i] = generatePhase1Expansion(data, nestedSeq);
+                // In previous line, the "throw" never throws an exception since the
+                // evaluation of jj_consume_token(-1) causes ParseException to be
+                // thrown first.
+                Sequence nestedSeq;
+                for (int i = 0; i < e_nrw.getChoices().size(); i++) {
+                    nestedSeq = (Sequence) (e_nrw.getChoices().get(i));
+                    actions[i] = generatePhase1Expansion(data, nestedSeq);
+                }
+                retval = new StringBuilder(genLookaheadChecker(data, conds, actions));
             }
-            retval = genLookaheadChecker(data, conds, actions);
-        }
-        else if (e instanceof Sequence e_nrw) {
-            // We skip the first element in the following iteration since it is the
-            // Lookahead object.
-            for (var exp : e_nrw.getUnits()) {
-                // For C++, since we are not using exceptions, we will protect all the
-                // expansion choices with if (!error)
-                boolean wrap_in_block = false;
-                retval += generatePhase1Expansion(data, (Expansion)exp);
-                if (wrap_in_block) {
-                    retval += "\n}";
+            case Sequence e_nrw -> {
+                // We skip the first element in the following iteration since it is the
+                // Lookahead object.
+                for (var exp : e_nrw.getUnits()) {
+                    // For C++, since we are not using exceptions, we will protect all the
+                    // expansion choices with if (!error)
+                    boolean wrap_in_block = false;
+                    retval.append(generatePhase1Expansion(data, (Expansion) exp));
+                    if (wrap_in_block) {
+                        retval.append("\n}");
+                    }
                 }
             }
+            case OneOrMore e_nrw -> {
+                Expansion nested_e = e_nrw.getExpansion();
+                retval.append("\n");
+                int labelIndex = nextLabelIndex();
+                retval.append("'label_").append(labelIndex).append(": loop {\u0001");
+                retval.append(generatePhase1Expansion(data, nested_e));
+                Lookahead[] conds = data.getLoakaheads(e);
+                String[] actions = {"\n;", "\nbreak 'label_" + labelIndex + ";"};
+                retval.append(genLookaheadChecker(data, conds, actions));
+                retval.append("\u0002\n" + "}");
+            }
+            case ZeroOrMore e_nrw -> {
+                Expansion nested_e = e_nrw.getExpansion();
+                retval.append("\n");
+                int labelIndex = nextLabelIndex();
+                retval.append("'label_").append(labelIndex).append(": loop {\u0001");
+                Lookahead[] conds = data.getLoakaheads(e);
+                String[] actions = {"\n;", "\nbreak 'label_" + labelIndex + ";"};
+                retval.append(genLookaheadChecker(data, conds, actions));
+                retval.append(generatePhase1Expansion(data, nested_e));
+                retval.append("\u0002\n" + "}");
+            }
+            case ZeroOrOne e_nrw -> {
+                Expansion nested_e = e_nrw.getExpansion();
+                Lookahead[] conds = data.getLoakaheads(e);
+                String[] actions = {generatePhase1Expansion(data, nested_e), "\n;"};
+                retval.append(genLookaheadChecker(data, conds, actions));
+            }
+            default -> {
+            }
         }
-        else if (e instanceof OneOrMore e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-            retval += "\n";
-            int labelIndex = nextLabelIndex();
-            retval += "'label_" + labelIndex + ": loop {\u0001";
-            retval += generatePhase1Expansion(data, nested_e);
-            Lookahead[] conds = data.getLoakaheads(e);
-            String[] actions = {"\n;", "\nbreak 'label_" + labelIndex + ";"};
-            retval += genLookaheadChecker(data, conds, actions);
-            retval += "\u0002\n" + "}";
+
+        // TreeNodes:
+        if (node_scope != null) {
+            var writer = new StringWriter();
+            var printer = new PrintWriter(writer);
+
+            printer.println();
+            this.generator.insertCatchBlocks(node_scope, printer, data.options(), Collections.emptyList());
+            retval.append(writer);
         }
-        else if (e instanceof ZeroOrMore e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-            retval += "\n";
-            int labelIndex = nextLabelIndex();
-            retval += "'label_" + labelIndex + ": loop {\u0001";
-            Lookahead[] conds = data.getLoakaheads(e);
-            String[] actions = {"\n;", "\nbreak 'label_" + labelIndex + ";"};
-            retval += genLookaheadChecker(data, conds, actions);
-            retval += generatePhase1Expansion(data, nested_e);
-            retval += "\u0002\n" + "}";
+
+        // TreeNodes:
+        if (node_scope != null) {
+            retval = new StringBuilder(ASTWriter.replace(retval.toString(), node_scope));
         }
-        else if (e instanceof ZeroOrOne e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-            Lookahead[] conds = data.getLoakaheads(e);
-            String[] actions = {generatePhase1Expansion(data, nested_e), "\n;"};
-            retval += genLookaheadChecker(data, conds, actions);
-        }
-        return retval;
+        return retval.toString();
     }
 
     /**
      * This method takes two parameters - an array of Lookahead's "conds", and an array of String's
-     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java source
-     * code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the lookahead
-     * required by "conds[i]" is indeed the case. This method returns a string corresponding to the
-     * Java code for:
+     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java
+     * source code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the
+     * lookahead required by "conds[i]" is indeed the case. This method returns a string
+     * corresponding to the Java code for:
      * <p>
-     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else actions[action.length-1]
+     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else
+     * actions[action.length-1]
      * <p>
      * A particular action entry ("actions[i]") can be null, in which case, a noop is generated for
      * that action.
@@ -317,7 +381,7 @@ class RustParserGenerator extends ParserGenerator {
         LookaheadState state = LookaheadState.NOOPENSTM;
         int indentAmt = 0;
         boolean[] casedValues = new boolean[data.getTokenCount()];
-        String retval = "";
+        StringBuilder retval = new StringBuilder();
         Lookahead la = null;
         Token t = null;
 
@@ -349,28 +413,28 @@ class RustParserGenerator extends ParserGenerator {
                     // case, an "if" statement is generated.
                     switch (state) {
                         case NOOPENSTM:
-                            retval += "\nif (";
+                            retval.append("\nif (");
                             indentAmt++;
                             break;
                         case OPENIF:
-                            retval += "\u0002\n} else if (";
+                            retval.append("\u0002\n} else if (");
                             break;
                         case OPENSWITCH:
-                            retval += "\u0002\n_ => {\u0001";
+                            retval.append("\u0002\n_ => {\u0001");
                             indentAmt++;
                             if (data.getErrorReporting()) {
-                                retval += "\nself.jj_la1[" + data.getIndex(la) + "] = self.jj_gen;//test1";
+                                retval.append("\nself.jj_la1[").append(data.getIndex(la)).append("] = self.jj_gen;//test1");
                             }
-                            retval += "\nif (";
+                            retval.append("\nif (");
                             indentAmt++;
                     }
                     genTokenSetup((la.getActionTokens().getFirst()));
                     for (Token token : la.getActionTokens()) {
                         t = token;
-                        retval += getStringToPrint(t);
+                        retval.append(getStringToPrint(t));
                     }
-                    retval += getTrailingComments(t);
-                    retval += ") {\u0001" + actions[index];
+                    retval.append(getTrailingComments(t));
+                    retval.append(") {\u0001").append(actions[index]);
                     state = LookaheadState.OPENIF;
                 }
 
@@ -394,21 +458,21 @@ class RustParserGenerator extends ParserGenerator {
                     // is one (excluding the earlier cases such as JAVACODE, etc.).
                     switch (state) {
                         case OPENIF:
-                            retval += "\u0002\n" + "} else {\u0001";
+                            retval.append("\u0002\n" + "} else {\u0001");
                             //$FALL-THROUGH$ Control flows through to next case.
                         case NOOPENSTM:
-                            retval += "\nlet kind = if self.jj_nt.is_none() {";
-                            retval += "\n    u32::MAX";
-                            retval += "\n} else {";
-                            retval += "\n    self.jj_nt.clone().unwrap().borrow().kind";
-                            retval += "\n};";
-                            retval += "\nmatch ";
+                            retval.append("\nlet kind = if self.jj_nt.is_none() {");
+                            retval.append("\n    u32::MAX");
+                            retval.append("\n} else {");
+                            retval.append("\n    self.jj_nt.clone().unwrap().borrow().kind");
+                            retval.append("\n};");
+                            retval.append("\nmatch ");
                             if (data.getCacheTokens()) {
-                                retval += "kind";
-                                retval += " {\u0001";
+                                retval.append("kind");
+                                retval.append(" {\u0001");
                             }
                             else {
-                                retval += "(jj_ntk==-1)?jj_ntk_f():jj_ntk) {\u0001";
+                                retval.append("(jj_ntk==-1)?jj_ntk_f():jj_ntk) {\u0001");
                             }
                             for (int i = 0; i < data.getTokenCount(); i++) {
                                 casedValues[i] = false;
@@ -428,11 +492,11 @@ class RustParserGenerator extends ParserGenerator {
                                 list.add(s);
                         }
                     }
-                    retval += "\u0002\n";
-                    retval += String.join(" | ", list);
-                    retval += " =>\u0001 {";
-                    retval += actions[index];
-                    retval += "\n}";
+                    retval.append("\u0002\n");
+                    retval.append(String.join(" | ", list));
+                    retval.append(" =>\u0001 {");
+                    retval.append(actions[index]);
+                    retval.append("\n}");
                     state = LookaheadState.OPENSWITCH;
 
                 }
@@ -451,37 +515,37 @@ class RustParserGenerator extends ParserGenerator {
 
                 switch (state) {
                     case NOOPENSTM:
-                        retval += "\n" + "if ";
+                        retval.append("\n" + "if ");
                         indentAmt++;
                         break;
                     case OPENIF:
-                        retval += "\u0002\n} else if ";
+                        retval.append("\u0002\n} else if ");
                         break;
                     case OPENSWITCH:
-                        retval += "\u0002\n_ => {\u0001";
+                        retval.append("\u0002\n_ => {\u0001");
                         indentAmt++;
                         if (data.getErrorReporting()) {
-                            retval += "\nself.jj_la1[" + data.getIndex(la) + "] = self.jj_gen;//test";
+                            retval.append("\nself.jj_la1[").append(data.getIndex(la)).append("] = self.jj_gen;//test");
                         }
-                        retval += "\nif ";
+                        retval.append("\nif ");
                         indentAmt++;
                 }
 
                 String amount = Integer.toString(la.getAmount());
-                retval += "self.jj_2" + internal_name_as_snake_case(la.getLaExpansion()) + "(" + amount + ")";
+                retval.append("self.jj_2").append(internal_name_as_snake_case(la.getLaExpansion())).append("(").append(amount).append(")");
                 if (!la.getActionTokens().isEmpty()) {
                     // In addition, there is also a semantic lookahead. So concatenate
                     // the semantic check with the syntactic one.
-                    retval += " && (";
+                    retval.append(" && (");
                     genTokenSetup((la.getActionTokens().getFirst()));
                     for (Token token : la.getActionTokens()) {
                         t = token;
-                        retval += getStringToPrint(t);
+                        retval.append(getStringToPrint(t));
                     }
-                    retval += getTrailingComments(t);
-                    retval += ")";
+                    retval.append(getTrailingComments(t));
+                    retval.append(")");
                 }
-                retval += " {\u0001" + actions[index];
+                retval.append(" {\u0001").append(actions[index]);
                 state = LookaheadState.OPENIF;
             }
 
@@ -494,34 +558,32 @@ class RustParserGenerator extends ParserGenerator {
 
         switch (state) {
             case NOOPENSTM:
-                retval += actions[index];
+                retval.append(actions[index]);
                 break;
             case OPENIF:
-                retval += "\u0002\n} else {\u0001" + actions[index];
+                retval.append("\u0002\n} else {\u0001").append(actions[index]);
                 break;
             case OPENSWITCH:
-                retval += "\u0002\n_ => {\u0001";
+                retval.append("\u0002\n_ => {\u0001");
                 indentAmt++;
                 if (data.getErrorReporting()) {
-                    retval += "\nself.jj_la1[" + data.getIndex(la) + "] = self.jj_gen;";
+                    retval.append("\nself.jj_la1[").append(data.getIndex(la)).append("] = self.jj_gen;");
                 }
-                retval += actions[index];
+                retval.append(actions[index]);
         }
         for (int i = 0; i < indentAmt; i++) {
-            retval += "\u0002\n}";
+            retval.append("\u0002\n}");
         }
-        return retval;
+        return retval.toString();
     }
 
-    private void genHeaderMethod(BNFProduction p, SourceWriter writer) {
+    private void genHeaderMethod(NormalProduction p, SourceWriter writer) {
         Token t = p.getFirstToken();
         genTokenSetup(t);
         var comments = getLeadingComments(t);
 //        writer.append(comments);
         writer.new_line();
         writer.append("pub fn ");
-        var text = getStringForTokenOnly(t);
-//        writer.append(text + " ");
         comments = getTrailingComments(t);
         writer.append(comments);
         writer.append(normal_production_as_snake_case(p) + "(");
@@ -546,19 +608,25 @@ class RustParserGenerator extends ParserGenerator {
     }
 
     private void generatePhase2(Expansion e, SourceWriter writer, ParserData data) {
-        writer.append("  fn jj_2" + internal_name_as_snake_case(e) + "(&mut self, xla: u32) -> bool {").new_line();
+        writer.append(
+                        "  fn jj_2" + internal_name_as_snake_case(e) + "(&mut self, xla: u32) -> bool {")
+                .new_line();
         writer.append("    self.jj_la = xla;").new_line();
         writer.append("    self.jj_lastpos = Some(self.token.clone());").new_line();
         writer.append("    self.jj_scanpos = Some(self.token.clone());").new_line();
 
         String ret_suffix = (data.getDepthLimit() > 0) ? " && !self.jj_depth_error" : "";
         writer.append("//    try {").new_line();
-        writer.append("      let result = !self.jj_3" + internal_name_as_snake_case(e) + "()" + ret_suffix + ";").new_line();
+        writer.append(
+                "      let result = !self.jj_3" + internal_name_as_snake_case(e) + "()" + ret_suffix
+                        + ";").new_line();
         writer.append("//    } catch (LookaheadSuccess ls) {").new_line();
         writer.append("//      true").new_line();
         if (data.getErrorReporting()) {
             writer.append("//    } finally {").new_line();
-            writer.append("      self.jj_save(" + (Integer.parseInt(internal_name_as_snake_case(e).substring(1)) - 1) + ", xla);").new_line();
+            writer.append("      self.jj_save(" + (
+                            Integer.parseInt(internal_name_as_snake_case(e).substring(1)) - 1) + ", xla);")
+                    .new_line();
         }
         writer.append("//    }").new_line();
         writer.append("  result").new_line();
@@ -566,11 +634,13 @@ class RustParserGenerator extends ParserGenerator {
         writer.new_line();
     }
 
-    private void generatePhase3Routine(ParserData data, Expansion e, int count, SourceWriter writer) {
+    private void generatePhase3Routine(ParserData data, Expansion e, int count,
+                                       SourceWriter writer) {
         if (e.internalName().startsWith("jj_scan_token"))
             return;
 
-        writer.append("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {").new_line();
+        writer.append("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {")
+                .new_line();
 
         if (data.getDepthLimit() > 0) {
             writer.append("if ++jj_depth > " + data.getDepthLimit() + " {").new_line();
@@ -587,9 +657,11 @@ class RustParserGenerator extends ParserGenerator {
             if (data.getErrorReporting()) {
                 writer.append("if (!jj_rescan) ");
             }
-            writer.append("trace_call(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(np), Language.JAVA)
-                    + "(LOOKING AHEAD...)\");")
-                .new_line();
+            writer.append(
+                            "trace_call(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(np),
+                                    Language.JAVA)
+                                    + "(LOOKING AHEAD...)\");")
+                    .new_line();
             jj3_expansion = e;
         }
 
@@ -625,7 +697,8 @@ class RustParserGenerator extends ParserGenerator {
                 else
                     writer.append(e_nrw.getLabel());
                 writer.append(") {").new_line();
-                writer.append("        return " + genReturn(jj3_expansion, true, data) + ";").new_line();
+                writer.append("        return " + genReturn(jj3_expansion, true, data) + ";")
+                        .new_line();
                 writer.append("    }").new_line();
             }
             case NonTerminal e_nrw -> {
@@ -636,7 +709,8 @@ class RustParserGenerator extends ParserGenerator {
                 NormalProduction ntprod = data.getProduction(e_nrw.getName());
                 Expansion ntexp = ntprod.getExpansion();
                 writer.append("    if self." + genjj_3Call(ntexp) + " {").new_line();
-                writer.append("        return " + genReturn(jj3_expansion, true, data) + ";").new_line();
+                writer.append("        return " + genReturn(jj3_expansion, true, data) + ";")
+                        .new_line();
                 writer.append("    }").new_line();
             }
             case Choice e_nrw -> {
@@ -646,7 +720,8 @@ class RustParserGenerator extends ParserGenerator {
                         xsp_declared = true;
                         writer.append("    let mut xsp: Rc<RefCell<Token>>;").new_line();
                     }
-                    writer.append("    xsp = self.jj_scanpos.as_mut().unwrap().clone();").new_line();
+                    writer.append("    xsp = self.jj_scanpos.as_mut().unwrap().clone();")
+                            .new_line();
                 }
 
                 Token t = null;
@@ -675,7 +750,8 @@ class RustParserGenerator extends ParserGenerator {
                     if (i != (e_nrw.getChoices().size() - 1))
                         writer.append("    self.jj_scanpos = Some(xsp.clone());").new_line();
                     else {
-                        writer.append("    return " + genReturn(jj3_expansion, true, data) +";").new_line();
+                        writer.append("    return " + genReturn(jj3_expansion, true, data) + ";")
+                                .new_line();
                         writer.append("}").new_line();
                     }
                 }
@@ -690,7 +766,8 @@ class RustParserGenerator extends ParserGenerator {
                 int cnt = count;
                 for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                     Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
-                    xsp_declared = buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, eseq, cnt,
+                    xsp_declared = buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared,
+                            eseq, cnt,
                             writer);
                     cnt -= data.minimumSize(eseq);
                     if (cnt <= 0) {
@@ -705,17 +782,18 @@ class RustParserGenerator extends ParserGenerator {
                 }
                 Expansion nested_e = e_nrw.getExpansion();
                 writer.append(String.format("""
-                        if self.%s {
-                            return %s;
-                        }
-                        loop {
-                            xsp = self.jj_scanpos.as_mut().unwrap().clone();
-                            if self.%s {
-                                self.jj_scanpos = Some(xsp.clone());
-                                break;
-                            }
-                        }
-                    """, genjj_3Call(nested_e), genReturn(jj3_expansion, true, data), genjj_3Call(nested_e)));
+                                    if self.%s {
+                                        return %s;
+                                    }
+                                    loop {
+                                        xsp = self.jj_scanpos.as_mut().unwrap().clone();
+                                        if self.%s {
+                                            self.jj_scanpos = Some(xsp.clone());
+                                            break;
+                                        }
+                                    }
+                                """, genjj_3Call(nested_e), genReturn(jj3_expansion, true, data),
+                        genjj_3Call(nested_e)));
             }
             case ZeroOrMore e_nrw -> {
                 if (!xsp_declared) {
@@ -724,7 +802,8 @@ class RustParserGenerator extends ParserGenerator {
                 }
                 Expansion nested_e = e_nrw.getExpansion();
                 writer.append("    loop {").new_line();
-                writer.append("        xsp = self.jj_scanpos.as_mut().unwrap().clone();").new_line();
+                writer.append("        xsp = self.jj_scanpos.as_mut().unwrap().clone();")
+                        .new_line();
                 writer.append("        if self." + genjj_3Call(nested_e) + " {").new_line();
                 writer.append("            self.jj_scanpos = Some(xsp.clone());").new_line();
                 writer.append("            break;").new_line();
@@ -750,11 +829,12 @@ class RustParserGenerator extends ParserGenerator {
 
 
     private String genReturn(Expansion expansion, boolean value, ParserData data) {
-        String retval = value ? "true" : "false";
+        String retval = Boolean.toString(value);
         if (data.getDebugLookahead() && (expansion != null)) {
             String tracecode =
                     "trace_return(\"" + Encoding.escapeUnicode(
-                            normal_production_as_snake_case((NormalProduction) expansion.parent()), Language.JAVA)
+                            normal_production_as_snake_case((NormalProduction) expansion.parent()),
+                            Language.JAVA)
                             + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
             if (data.getErrorReporting()) {
                 tracecode = "if (!jj_rescan) " + tracecode;

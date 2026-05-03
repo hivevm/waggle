@@ -28,11 +28,6 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     private       String  nextStateForEof;
 
     /**
-     * The name of the parser class (what appears in PARSER_BEGIN and PARSER_END).
-     */
-    private String cu_name;
-
-    /**
      * The total number of distinct tokens. This is therefore one more than the largest assigned
      * token ordinal.
      */
@@ -56,14 +51,14 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
      * input file. Each entry here will be a subclass of "NormalProduction".
      */
     private final List<NormalProduction> bnfproductions =
-        new ArrayList<>();
+            new ArrayList<>();
 
     /**
      * Contains the same entries as "named_tokens_table", but this is an ordered list which is
      * ordered by the order of appearance in the input file.
      */
     private final List<RExpression> ordered_named_tokens =
-        new ArrayList<>();
+            new ArrayList<>();
 
     /**
      * This is a three-level symbol table that contains all simple tokens (those that are defined
@@ -74,21 +69,21 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
      * it to its RegularExpression.
      */
     private final Hashtable<String, Hashtable<String, Hashtable<String, RExpression>>> simple_tokens_table =
-        new Hashtable<>();
+            new Hashtable<>();
 
     /**
      * A symbol table of all grammar productions - normal and JAVACODE. The symbol table is indexed
      * by the name of the left hand side non-terminal. Its contents are of type "NormalProduction".
      */
     private final Map<String, NormalProduction> production_table =
-        new HashMap<>();
+            new HashMap<>();
 
     /**
      * The list of all TokenProductions from the input file. This list includes implicit
      * TokenProductions that are created for uses of regular expressions within BNF productions.
      */
     private final List<TokenProduction> rexprlist =
-        new ArrayList<>();
+            new ArrayList<>();
 
     /**
      * A mapping of ordinal values (represented as objects of type "Integer") to the corresponding
@@ -97,7 +92,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
      * value, then only one label is stored.
      */
     private final Map<Integer, String> names_of_tokens =
-        new HashMap<>();
+            new HashMap<>();
 
     /**
      * Constructs an instance of {@link JavaCCData}.
@@ -114,10 +109,6 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     @Override
     public final Options options() {
         return this.options;
-    }
-
-    final void setParser(String name) {
-        this.cu_name = name;
     }
 
     final void setLexState(String name, int index) {
@@ -140,7 +131,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
 
     @Override
     public final String getParserName() {
-        return this.cu_name;
+        return this.options.getParserName();
     }
 
     @Override
@@ -235,7 +226,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
 
     @Override
     public final Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(
-        String stateName) {
+            String stateName) {
         return this.simple_tokens_table.get(stateName);
     }
 

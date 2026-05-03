@@ -8,6 +8,7 @@ import java.text.ParseException;
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.jjtree.ASTGrammar;
 import org.hivevm.cc.jjtree.ASTWriter;
+import org.hivevm.cc.parser.Options;
 
 /**
  * The {@link Generator} class.
@@ -22,5 +23,5 @@ public interface Generator {
     /**
      * Generates the Abstract Syntax Tree.
      */
-    void generateAST(ASTGrammar node, ASTWriter writer, TreeOptions context);
+    void generateAST(ASTGrammar node, ASTWriter writer, Options context);
 }

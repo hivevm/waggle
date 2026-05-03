@@ -66,7 +66,7 @@ class LookaheadCalc {
                 RExpression re = semanticize.getRegularExpression(m.match[i]);
                 if (re instanceof RStringLiteral)
                     ret.append(" \"").append(Encoding.escape(((RStringLiteral) re).getImage()))
-                        .append("\"");
+                            .append("\"");
                 else if ((re.getLabel() != null) && !re.getLabel().isEmpty())
                     ret.append(" <").append(re.getLabel()).append(">");
                 else
@@ -114,13 +114,13 @@ class LookaheadCalc {
                     Expansion exp = ch.getChoices().get(i);
                     if (Semanticize.emptyExpansionExists(exp)) {
                         context.onWarning(exp, "This choice can expand to the empty token sequence "
-                            + "and will therefore always be taken in favor of the choices appearing later.");
+                                + "and will therefore always be taken in favor of the choices appearing later.");
                         break;
                     }
                     else if (LookaheadCalc.javaCodeCheck(dbl[i])) {
                         context.onWarning(exp,
-                            "JAVACODE non-terminal will force this choice to be taken "
-                                + "in favor of the choices appearing later.");
+                                "JAVACODE non-terminal will force this choice to be taken "
+                                        + "in favor of the choices appearing later.");
                         break;
                     }
                 }
@@ -151,9 +151,9 @@ class LookaheadCalc {
                 System.err.print(", column " + ch.getChoices().get(other[i]).getColumn());
                 System.err.println(" respectively.");
                 System.err.println(
-                    "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
+                        "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
                 System.err.println("         Consider using a lookahead of " + minLA[i]
-                    + " or more for earlier expansion.");
+                        + " or more for earlier expansion.");
             }
             else if (minLA[i] > 1) {
                 context.onWarning("Choice conflict involving two expansions at");
@@ -163,10 +163,10 @@ class LookaheadCalc {
                 System.err.print(", column " + ch.getChoices().get(other[i]).getColumn());
                 System.err.println(" respectively.");
                 System.err.println(
-                    "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
+                        "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
                 System.err.println(
-                    "         Consider using a lookahead of " + minLA[i]
-                        + " for earlier expansion.");
+                        "         Consider using a lookahead of " + minLA[i]
+                                + " for earlier expansion.");
             }
         }
     }
@@ -200,7 +200,7 @@ class LookaheadCalc {
     }
 
     static void ebnfCalc(Expansion exp, Expansion nested, Semanticize data,
-        SemanticContext context) {
+                         SemanticContext context) {
         // exp is one of OneOrMore, ZeroOrMore, ZeroOrOne
         MatchInfo m, m1 = null;
         List<MatchInfo> v;
@@ -221,9 +221,9 @@ class LookaheadCalc {
             follow = data.getSizeLimitedMatches();
             if ((la == 1) && LookaheadCalc.javaCodeCheck(first)) {
                 context.onWarning(nested,
-                    "JAVACODE non-terminal within " + LookaheadCalc.image(exp)
-                        + " construct will force this construct to be entered in favor of "
-                        + "expansions occurring after construct.");
+                        "JAVACODE non-terminal within " + LookaheadCalc.image(exp)
+                                + " construct will force this construct to be entered in favor of "
+                                + "expansions occurring after construct.");
             }
             if ((m = LookaheadCalc.overlap(first, follow)) == null)
                 break;
@@ -231,27 +231,27 @@ class LookaheadCalc {
         }
         if (la > context.getOtherAmbiguityCheck()) {
             context.onWarning(
-                "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
-                    + exp.getLine()
-                    + ", column " + exp.getColumn() + ".");
+                    "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
+                            + exp.getLine()
+                            + ", column " + exp.getColumn() + ".");
             System.err.println(
-                "         Expansion nested within construct and expansion following construct");
+                    "         Expansion nested within construct and expansion following construct");
             System.err.println(
-                "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
+                    "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
             System.err.println(
-                "         Consider using a lookahead of " + la + " or more for nested expansion.");
+                    "         Consider using a lookahead of " + la + " or more for nested expansion.");
         }
         else if (la > 1) {
             context.onWarning(
-                "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
-                    + exp.getLine()
-                    + ", column " + exp.getColumn() + ".");
+                    "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
+                            + exp.getLine()
+                            + ", column " + exp.getColumn() + ".");
             System.err.println(
-                "         Expansion nested within construct and expansion following construct");
+                    "         Expansion nested within construct and expansion following construct");
             System.err.println(
-                "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
+                    "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
             System.err.println(
-                "         Consider using a lookahead of " + la + " for nested expansion.");
+                    "         Consider using a lookahead of " + la + " for nested expansion.");
         }
     }
 }

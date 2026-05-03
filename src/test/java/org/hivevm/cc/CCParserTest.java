@@ -9,10 +9,10 @@ import java.util.List;
 
 class CCParserTest {
 
-    private static final File         WORKING_DIR   = new File(".").getAbsoluteFile();
-    private static final File         PARSER_SOURCE = new File(CCParserTest.WORKING_DIR, "src/main/resources");
-    private static final File         PARSER_TARGET = new File(CCParserTest.WORKING_DIR, "src/main/generated2");
-    private static final List<String> NODES         = Arrays.asList("BNF", "BNFAction", "BNFDeclaration", "BNFNodeScope",
+    private static final File WORKING_DIR = new File(".").getAbsoluteFile();
+    private static final File PARSER_SOURCE = new File(CCParserTest.WORKING_DIR, "src/main/resources");
+    private static final File PARSER_TARGET = new File(CCParserTest.WORKING_DIR, "src/main/generated2");
+    private static final List<String> NODES = Arrays.asList("BNF", "BNFAction", "BNFDeclaration", "BNFNodeScope",
             "ExpansionNodeScope", "NodeDescriptor", "OptionBinding");
 
     @Test
@@ -20,14 +20,14 @@ class CCParserTest {
         var builder = ParserBuilder.of(Language.JAVA);
         builder.setTargetDir(CCParserTest.PARSER_TARGET);
         builder.setParserFile(CCParserTest.PARSER_SOURCE, "JavaCC.jj");
-        builder.build().parse();;
+        builder.build().parse();
     }
 
     @Test
     void testJJTree() {
         var builder = ParserBuilder.of(Language.JAVA);
         builder.setTargetDir(CCParserTest.PARSER_TARGET);
-        builder.setTreeFile(CCParserTest.PARSER_SOURCE, "JJTree.jjt");
+        builder.setParserFile(CCParserTest.PARSER_SOURCE, "JJTree.jjt");
         builder.setCustomNodes(CCParserTest.NODES);
         builder.build().parse();
     }

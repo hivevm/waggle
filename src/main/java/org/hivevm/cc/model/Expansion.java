@@ -3,6 +3,9 @@
 
 package org.hivevm.cc.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Describes expansions - entities that may occur on the right hand sides of productions. This is
  * the base class of a bunch of other more specific classes.
@@ -19,6 +22,7 @@ public class Expansion extends Production {
      * node. In case this is the top level of a lookahead expansion,then the parent is null.
      */
     private Object parent;
+    private List<Expansion> children = new ArrayList<>();
 
     // The ordinal of this node with respect to its parent.
     private int ordinal;
@@ -34,6 +38,8 @@ public class Expansion extends Production {
     // This flag is used for bookkeeping by the minimumSize method in class ParseEngine.
     private boolean inMinimumSize = false;
 
+    private NodeScope node_scope;
+
     public final Object parent() {
         return this.parent;
     }
@@ -44,11 +50,18 @@ public class Expansion extends Production {
 
     public final void setParent(Object parent) {
         this.parent = parent;
+        if (parent instanceof Expansion e) {
+            e.children.add(this);
+        }
     }
 
     public final void setParent(Object parent, int ordinal) {
-        this.parent = parent;
+        setParent(parent);
         this.ordinal = ordinal;
+    }
+
+    public final boolean isLast(Object child) {
+        return !this.children.isEmpty() && this.children.getLast() == child;
     }
 
     public final long generation() {
@@ -75,6 +88,14 @@ public class Expansion extends Production {
         this.internal_name = internal_name;
     }
 
+    public void setNodeScope(NodeScope node_scope) {
+        this.node_scope = node_scope;
+    }
+
+    public NodeScope getNodeScope() {
+        return this.node_scope;
+    }
+
     /**
      * A reimplementing of Object.hashCode() to be deterministic. This uses the line and column
      * fields to generate an arbitrary number - we assume that this method is called only after line
@@ -90,7 +111,7 @@ public class Expansion extends Production {
         var name = getClass().getName();
         name = name.substring(name.lastIndexOf(".") + 1); // strip the package name
         return "[" + getLine() + "," + getColumn() + " " + System.identityHashCode(this) + " "
-            + name
-            + "]";
+                + name
+                + "]";
     }
 }

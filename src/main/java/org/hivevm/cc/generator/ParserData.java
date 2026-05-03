@@ -60,6 +60,8 @@ public class ParserData {
     final         List<Phase3Data>              phase3list  = new ArrayList<>();
     final         Hashtable<Expansion, Integer> phase3table = new Hashtable<>();
 
+    private final NodeData nodeData;
+
     /**
      * Constructs an instance of {@link ParserData}.
      */
@@ -72,6 +74,7 @@ public class ParserData {
         this.phase2list = new ArrayList<>();
         this.lookaheads = new HashMap<>();
         this.lookaheadIndex = new HashMap<>();
+        this.nodeData = new NodeData();
     }
 
     public final Options options() {
@@ -83,7 +86,7 @@ public class ParserData {
     }
 
     public final boolean isGenerated() {
-        return this.request.isGenerated();
+        return this.request.isGenerated() || !this.nodeData.getNodesToGenerate().isEmpty();
     }
 
     public final int getDepthLimit() {
@@ -166,6 +169,10 @@ public class ParserData {
         return options().getErrorReporting();
     }
 
+    public final NodeData getNodeData() {
+        return this.nodeData;
+    }
+
     protected final void addMask(int[] maskVal, Lookahead lookahead) {
         this.lookaheadIndex.put(lookahead, maskIndex());
         this.maskVals.add(maskVal);
@@ -189,7 +196,7 @@ public class ParserData {
     }
 
     protected final void setLookAheadNeeded(
-        @SuppressWarnings("SameParameterValue") boolean lookaheadNeeded) {
+            @SuppressWarnings("SameParameterValue") boolean lookaheadNeeded) {
         this.lookaheadNeeded = lookaheadNeeded;
     }
 
@@ -298,7 +305,8 @@ public class ParserData {
                 case Action action -> 0;
                 default -> 0;
             };
-        } finally {
+        }
+        finally {
             e.setInMinimumSize(false);
         }
     }
@@ -310,7 +318,7 @@ public class ParserData {
      * @param count This is the number of tokens that can still be consumed. This number is used to
      *              limit the number of jj3 methods generated.
      */
-        record Phase3Data(Expansion exp, int count) {
+    record Phase3Data(Expansion exp, int count) {
 
     }
 }

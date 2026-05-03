@@ -82,43 +82,43 @@ class JJDoc extends JJDocGlobals {
     }
 
     static String getStandardTokenProductionText(TokenProduction tp) {
-        String token = "";
+        var token = new StringBuilder();
         if (tp.isExplicit()) {
             if (tp.getLexStates() == null) {
-                token += "<*> ";
+                token.append("<*> ");
             }
             else {
-                token += "<";
+                token.append("<");
                 for (int i = 0; i < tp.getLexStates().length; ++i) {
-                    token += tp.getLexStates()[i];
+                    token.append(tp.getLexStates()[i]);
                     if (i < (tp.getLexStates().length - 1)) {
-                        token += ",";
+                        token.append(",");
                     }
                 }
-                token += "> ";
+                token.append("> ");
             }
-            token += tp.getKind().name();
+            token.append(tp.getKind().name());
             if (tp.isIgnoreCase()) {
-                token += " [IGNORE_CASE]";
+                token.append(" [IGNORE_CASE]");
             }
-            token += " : {\n";
+            token.append(" : {\n");
             for (Iterator<RegExprSpec> it2 = tp.getRespecs().iterator(); it2.hasNext(); ) {
                 RegExprSpec res = it2.next();
 
-                token += JJDoc.emitRE(res.rexp);
+                token.append(JJDoc.emitRE(res.rexp));
 
                 if (res.nsTok != null) {
-                    token += " : " + res.nsTok.image;
+                    token.append(" : ").append(res.nsTok.image);
                 }
 
-                token += "\n";
+                token.append("\n");
                 if (it2.hasNext()) {
-                    token += "| ";
+                    token.append("| ");
                 }
             }
-            token += "}\n\n";
+            token.append("}\n\n");
         }
-        return token;
+        return token.toString();
     }
 
     private static void emitNormalProductions(Generator gen, Iterable<NormalProduction> prods) {
@@ -156,7 +156,7 @@ class JJDoc extends JJDocGlobals {
             case NonTerminal nonTerminal -> JJDoc.emitExpansionNonTerminal(nonTerminal, gen);
             case OneOrMore oneOrMore -> JJDoc.emitExpansionOneOrMore(oneOrMore, gen);
             case RegularExpression regularExpression ->
-                JJDoc.emitExpansionRegularExpression((RExpression) regularExpression, gen);
+                    JJDoc.emitExpansionRegularExpression((RExpression) regularExpression, gen);
             case Sequence sequence -> JJDoc.emitExpansionSequence(sequence, gen);
             case ZeroOrMore zeroOrMore -> JJDoc.emitExpansionZeroOrMore(zeroOrMore, gen);
             case ZeroOrOne zeroOrOne -> JJDoc.emitExpansionZeroOrOne(zeroOrOne, gen);
@@ -318,8 +318,7 @@ class JJDoc extends JJDocGlobals {
                     }
                 }
             }
-            case RStringLiteral sl ->
-                returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
+            case RStringLiteral sl -> returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
             case RZeroOrMore zm -> {
                 returnString += "(";
                 returnString += JJDoc.emitRE(zm.getRegexpr());

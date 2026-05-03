@@ -97,6 +97,48 @@ public class HiveCCOptions implements Options {
         for (OptionInfo info : HiveCCOptions.userOptions) {
             set(info.getName(), info.getDefault());
         }
+
+        // Got from TreeOptions
+        set(HiveCC.PARSER_NAME, "");
+        set(HiveCC.JJTREE_MULTI, Boolean.FALSE);
+        set(HiveCC.JJTREE_NODE_DEFAULT_VOID, Boolean.FALSE);
+        set(HiveCC.JJTREE_NODE_SCOPE_HOOK, Boolean.FALSE);
+        set(HiveCC.JJTREE_BUILD_NODE_FILES, Boolean.TRUE);
+        set(HiveCC.JJTREE_VISITOR, Boolean.FALSE);
+        set(HiveCC.JJTREE_TRACK_TOKENS, Boolean.FALSE);
+        set(HiveCC.JJTREE_NODE_EXTENDS, "");
+        set(HiveCC.JJTREE_NODE_CLASS, "");
+        set(HiveCC.JJTREE_NODE_FACTORY, "");
+        set(HiveCC.JJTREE_NODE_CUSTOM, "");
+        set(HiveCC.JJTREE_OUTPUT_FILE, "");
+        set(HiveCC.JJTREE_VISITOR_DATA_TYPE, "");
+        set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, "Object");
+        set(HiveCC.JJTREE_VISITOR_EXCEPTION, "");
+
+        // Also appears to be a duplicate
+        set(HiveCC.JJPARSER_JAVA_PACKAGE, "");
+        set(HiveCC.JJPARSER_JAVA_IMPORTS, "");
+        set(HiveCC.JJPARSER_BASE_PARSER, "");
+        set(HiveCC.JJPARSER_BASE_LEXER, "");
+        set(HiveCC.JJPARSER_RUST_MODULE, "");
+        set(HiveCC.JJPARSER_CPP_NAMESPACE, "");
+    }
+
+    /**
+     * Check options for consistency
+     */
+    public void validate() {
+        if (!getVisitor()) {
+            if (!getVisitorDataType().isEmpty())
+                JavaCCErrors.warning(
+                        "VISITOR_DATA_TYPE option will be ignored since VISITOR is false");
+            if ((!getVisitorReturnType().isEmpty()) && !getVisitorReturnType().equals("Object"))
+                JavaCCErrors.warning(
+                        "VISITOR_RETURN_TYPE option will be ignored since VISITOR is false");
+            if (!getVisitorException().isEmpty())
+                JavaCCErrors.warning(
+                        "VISITOR_EXCEPTION option will be ignored since VISITOR is false");
+        }
     }
 
     /**
@@ -114,18 +156,13 @@ public class HiveCCOptions implements Options {
         String nameUpperCase = name.toUpperCase();
         if (!this.optionValues.containsKey(nameUpperCase)) {
             JavaCCErrors.warning(nameloc,
-                "Bad option name \"" + name + "\".  Option setting will be ignored.");
+                    "Bad option name \"" + name + "\".  Option setting will be ignored.");
             return;
         }
 
         if (name.equalsIgnoreCase(HiveCC.JJTREE_NODE_FACTORY) && (value.getClass()
-            == Boolean.class)) {
-            if (((Boolean) value)) {
-                value = "*";
-            }
-            else {
-                value = "";
-            }
+                == Boolean.class)) {
+            value = ((Boolean) value) ? "*" : "";
         }
 
         final Object existingValue = this.optionValues.get(nameUpperCase);
@@ -140,21 +177,21 @@ public class HiveCCOptions implements Options {
             boolean isValidInteger = ((object instanceof Integer) && ((Integer) value <= 0));
             if (isValidInteger) {
                 JavaCCErrors.warning(valueloc,
-                    "Bad option value \"" + value + "\" for \"" + name
-                        + "\".  Option setting will be ignored.");
+                        "Bad option value \"" + value + "\" for \"" + name
+                                + "\".  Option setting will be ignored.");
                 return;
             }
 
             if (this.inputFileSetting.contains(nameUpperCase)) {
                 JavaCCErrors.warning(nameloc,
-                    "Duplicate option setting for \"" + name + "\" will be ignored.");
+                        "Duplicate option setting for \"" + name + "\" will be ignored.");
                 return;
             }
 
             if (this.cmdLineSetting.contains(nameUpperCase)) {
                 if (!existingValue.equals(value)) {
                     JavaCCErrors.warning(nameloc,
-                        "Command line setting of \"" + name + "\" modifies option value in file.");
+                            "Command line setting of \"" + name + "\" modifies option value in file.");
                 }
                 return;
             }
@@ -224,15 +261,16 @@ public class HiveCCOptions implements Options {
                     int i = Integer.parseInt(s.substring(index + 1));
                     if (i <= 0) {
                         System.out.println(
-                            "Warning: Bad option value in \"" + arg + "\" will be ignored.");
+                                "Warning: Bad option value in \"" + arg + "\" will be ignored.");
                         return;
                     }
                     Val = i;
-                } catch (NumberFormatException e) {
+                }
+                catch (NumberFormatException e) {
                     Val = s.substring(index + 1);
                     // i.e., there is space for two '"'s in value
                     if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (
-                        s.charAt(s.length() - 1) == '"'))) {
+                            s.charAt(s.length() - 1) == '"'))) {
                         // remove the two '"'s.
                         Val = s.substring(index + 2, s.length() - 1);
                     }
@@ -251,7 +289,7 @@ public class HiveCCOptions implements Options {
         }
         if (this.cmdLineSetting.contains(name)) {
             System.out.println(
-                "Warning: Duplicate option setting \"" + arg + "\" will be ignored.");
+                    "Warning: Duplicate option setting \"" + arg + "\" will be ignored.");
             return;
         }
 
@@ -276,42 +314,42 @@ public class HiveCCOptions implements Options {
     private record OptionInfo(String _name, Object _default) implements Comparable<OptionInfo> {
 
         public String getName() {
-                return this._name;
-            }
+            return this._name;
+        }
 
-            public Object getDefault() {
-                return this._default;
-            }
+        public Object getDefault() {
+            return this._default;
+        }
 
         @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if ((obj == null) || (getClass() != obj.getClass())) {
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if ((obj == null) || (getClass() != obj.getClass())) {
+                return false;
+            }
+            OptionInfo other = (OptionInfo) obj;
+            if (this._default == null) {
+                if (other._default != null) {
                     return false;
                 }
-                OptionInfo other = (OptionInfo) obj;
-                if (this._default == null) {
-                    if (other._default != null) {
-                        return false;
-                    }
-                }
-                else if (!this._default.equals(other._default)) {
-                    return false;
-                }
-                if (this._name == null) {
-                    return other._name == null;
-                }
-                else
-                    return this._name.equals(other._name);
             }
-
-            @Override
-            public int compareTo(OptionInfo o) {
-                return this._name.compareTo(o._name);
+            else if (!this._default.equals(other._default)) {
+                return false;
             }
+            if (this._name == null) {
+                return other._name == null;
+            }
+            else
+                return this._name.equals(other._name);
         }
+
+        @Override
+        public int compareTo(OptionInfo o) {
+            return this._name.compareTo(o._name);
+        }
+    }
 
     @Override
     public boolean has(String name) {
@@ -325,15 +363,16 @@ public class HiveCCOptions implements Options {
 
     public void setParser(String value) {
         set(HiveCC.PARSER_NAME, value);
-        set(HiveCC.JJPARSER_CPP_DEFINE, value.toUpperCase());
-
     }
 
     public void set(String name, Object value) {
-        if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
-            value = ((value instanceof String) && !value.toString().isEmpty()) ? Arrays.asList(
-                value.toString().split(","))
-                : Collections.emptyList();
+        if (HiveCC.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
+            set(HiveCC.JJPARSER_CPP_DEFINE, text.toUpperCase());
+        }
+        else if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
+            value = ((value instanceof String text) && !text.isEmpty())
+                    ? Arrays.asList(text.split(","))
+                    : Collections.emptyList();
         }
         this.optionValues.put(name, value);
     }

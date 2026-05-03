@@ -33,58 +33,57 @@ public abstract class CodeGenerator<D> {
     }
 
     protected final String getLeadingComments(Token t) {
-        String retval = "";
+        StringBuilder retval = new StringBuilder();
         if (t.specialToken == null) {
-            return retval;
+            return retval.toString();
         }
         Token tt = t.specialToken;
         while (tt.specialToken != null) {
             tt = tt.specialToken;
         }
         while (tt != null) {
-            retval += getStringForTokenOnly(tt);
+            retval.append(getStringForTokenOnly(tt));
             tt = tt.next;
         }
         if ((this.ccol != 1) && (this.crow != t.beginLine)) {
-            retval += "\n";
+            retval.append("\n");
             this.crow++;
             this.ccol = 1;
         }
-        return retval;
+        return retval.toString();
     }
 
     protected final String getStringToPrint(Token t) {
-        String retval = "";
+        var sb = new StringBuilder();
         Token tt = t.specialToken;
         if (tt != null) {
             while (tt.specialToken != null) {
                 tt = tt.specialToken;
             }
             while (tt != null) {
-                retval += getStringForTokenOnly(tt);
+                sb.append(getStringForTokenOnly(tt));
                 tt = tt.next;
             }
         }
 
-        return retval + getStringForTokenOnly(t);
+        return sb.append(getStringForTokenOnly(t)).toString();
     }
 
     protected final String getStringForTokenOnly(Token t) {
-        String retval = "";
+        StringBuilder retval = new StringBuilder();
         for (; this.crow < t.beginLine; this.crow++) {
-            retval += "\n";
+            retval.append("\n");
             this.ccol = 1;
         }
         for (; this.ccol < t.beginColumn; this.ccol++) {
-            retval += " ";
+            retval.append(" ");
         }
         if ((t.kind == ParserConstants.STRING_LITERAL)
-            || (t.kind == ParserConstants.CHARACTER_LITERAL))
-        {
-            retval += Encoding.escapeUnicode(t.image, getLanguage());
+                || (t.kind == ParserConstants.CHARACTER_LITERAL)) {
+            retval.append(Encoding.escapeUnicode(t.image, getLanguage()));
         }
         else {
-            retval += CodeBlock.strip(t.image);
+            retval.append(CodeBlock.strip(t.image));
         }
         this.crow = t.endLine;
         this.ccol = t.endColumn + 1;
@@ -95,6 +94,6 @@ public abstract class CodeGenerator<D> {
                 this.ccol = 1;
             }
         }
-        return retval;
+        return retval.toString();
     }
 }

@@ -211,6 +211,71 @@ public class NfaStateData {
     }
 
 
+    int addCompositeStateSet(String stateSetString) {
+        Integer stateNameToReturn;
+
+        if ((stateNameToReturn = this.stateNameForComposite.get(stateSetString)) != null) {
+            return stateNameToReturn;
+        }
+
+        int toRet = 0;
+        int[] nameSet = getNextStates(stateSetString);
+
+        if (false) {
+            this.stateBlockTable.put(stateSetString, stateSetString);
+        }
+
+        if (nameSet == null) {
+            throw new Error(
+                    "JavaCC Bug: Please file a bug at: https://github.com/javacc/javacc/issues");
+        }
+
+        if (nameSet.length == 1) {
+            stateNameToReturn = nameSet[0];
+            this.stateNameForComposite.put(stateSetString, stateNameToReturn);
+            return nameSet[0];
+        }
+
+        for (int element : nameSet) {
+            if (element == -1) {
+                continue;
+            }
+            NfaState st = getIndexedState(element);
+            st.isComposite = true;
+            st.compositeStates = nameSet;
+        }
+
+        while ((toRet < nameSet.length) && (getIndexedState(nameSet[toRet]).inNextOf > 1)) {
+            toRet++;
+        }
+
+        for (var entry : this.compositeStateTable.entrySet()) {
+            String s = entry.getKey();
+            if (!s.equals(stateSetString) && NfaState.Intersect(this, stateSetString, s)) {
+                int[] other = entry.getValue();
+                while ((toRet < nameSet.length) && (
+                        (getIndexedState(nameSet[toRet]).inNextOf > 1)
+                        || (NfaState.ElemOccurs(nameSet[toRet], other) >= 0))) {
+                    toRet++;
+                }
+            }
+        }
+
+        int tmp;
+        if (toRet >= nameSet.length) {
+            tmp = (this.dummyStateIndex == -1) ? (this.dummyStateIndex = generatedStates())
+                    : ++this.dummyStateIndex;
+        }
+        else {
+            tmp = nameSet[toRet];
+        }
+
+        stateNameToReturn = tmp;
+        this.stateNameForComposite.put(stateSetString, stateNameToReturn);
+        this.compositeStateTable.put(stateSetString, nameSet);
+        return tmp;
+    }
+
     public static final class KindInfo {
 
         public final long[] validKinds;

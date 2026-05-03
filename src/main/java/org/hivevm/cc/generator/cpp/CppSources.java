@@ -9,13 +9,13 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.source.SourceProvider;
 
 /**
- * Represents a collection of predefined templates for generating Rust code.
- * Each enum constant corresponds to a specific type of template file with an
- * associated name and optional path format for filename generation.
- *
- * Implements the {@link SourceProvider} interface to provide mechanisms
- * for retrieving template resource paths, generating filenames, and creating
- * corresponding {@link File} objects based on user-defined options.
+ * Represents a collection of predefined templates for generating Rust code. Each enum constant
+ * corresponds to a specific type of template file with an associated name and optional path format
+ * for filename generation.
+ * <p>
+ * Implements the {@link SourceProvider} interface to provide mechanisms for retrieving template
+ * resource paths, generating filenames, and creating corresponding {@link File} objects based on
+ * user-defined options.
  */
 enum CppSources implements SourceProvider {
 
@@ -92,7 +92,8 @@ enum CppSources implements SourceProvider {
 
     @Override
     public final File getTargetFile(String name, Options options) {
-        var targetName = (name == null ? this.name : String.format(this.name, name)) + "." + filetype;
+        var targetName =
+                (name == null ? this.name : String.format(this.name, name)) + "." + filetype;
         return new File(options.getOutputDirectory(), targetName);
     }
 }

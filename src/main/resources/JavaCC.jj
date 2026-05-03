@@ -1,18 +1,17 @@
-PARSER(JavaCCParser)
-  JAVA_PACKAGE: "org.hivevm.cc.parser";
-  JAVA_IMPORTS: "java.util.List,java.util.ArrayList,org.hivevm.cc.model.*";
-  BASE_PARSER: "AbstractJavaCCParser";
-
-GRAMMAR
+PARSER(
+  JAVA_PACKAGE: "org.hivevm.cc.parser",
+  JAVA_IMPORTS: "java.util.List,java.util.ArrayList,org.hivevm.cc.model.*",
+  BASE_PARSER: "AbstractJavaCCParser"
+)
 
 
 /************************************************
  * THE JAVACC GRAMMAR SPECIFICATION STARTS HERE *
  ************************************************/
 RULE javacc_input() ::=
-  < _PARSER > < LPAREN > identifier() <? setParserName(); ?> < RPAREN > ( option_binding() )*
-  < _GRAMMAR > (bnf_production()) +
-  < _LEXER > (regular_expr_production()) +
+  ( < _PARSER > < LPAREN > option_binding() (< COMMA > option_binding())* < RPAREN > )
+  (bnf_production()) +
+  (regular_expr_production()) +
   <EOF>
 };
 
@@ -20,7 +19,6 @@ RULE option_binding() ::=
   <? Token t; ?>
   t=<IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
   <? setInputOption(t, getToken(0)); ?>
-  < SEMICOLON >
 };
 
 RULE bnf_production() ::=
@@ -37,10 +35,11 @@ RULE bnf_production() ::=
     p.setLhs(identifier());
 ?>
   FormalParameters(p.getParameterListTokens())
-  ( < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ) ?
+  [ < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ]
+  [ node_descriptor(p, p) ]
   ( < ECODE_DATA > <? p.addDeclaration(getToken(0)); ?> < ECODE_END > ) ?
   < ASSIGN_OP >
-  expansion_choices(c)
+  expansion_choices(c, p)
   < RBRACE > t=< SEMICOLON >
   ( < ECODE_DATA > <? p.addDeclarationEnd(getToken(0)); ?> < ECODE_END > ) ?
 <?
@@ -115,14 +114,14 @@ RULE regexpr_spec(TokenProduction p) ::=
 ?>
 };
 
-RULE expansion_choices(Container c1) ::=
+RULE expansion_choices(Container c1, BNFProduction p) ::=
 <?
     var morethanone = false;
     var c2 = new Container();
     Choice ch = null; // unnecessary initialization to make Java compiler happy!
 ?>
-  expansion(c1)
-  ( < BIT_OR > expansion(c2)
+  expansion(c1, p)
+  ( < BIT_OR > expansion(c2, p)
 <?
 	  if (morethanone) {
 	    Expansion exp = c2.get();
@@ -148,7 +147,7 @@ RULE expansion_choices(Container c1) ::=
 ?>
 };
 
-RULE expansion(Container c1) ::=
+RULE expansion(Container c1, BNFProduction p) ::=
 <?
     Expansion exp = null;
     var t = getToken(1);
@@ -162,7 +161,7 @@ RULE expansion(Container c1) ::=
     la.setExplicit(false);
 ?>
   ( LOOKAHEAD(1)
-    t=< _LOOKAHEAD > < LPAREN > la=local_lookahead() < RPAREN >
+    t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
 <?
 	  if (inLocalLA != 0 && la.getAmount() != 0)
 	    JavaCCErrors.warning(t, "Only semantic lookahead specifications within other lookahead specifications is considered.  Syntactic lookahead is ignored.");
@@ -172,12 +171,13 @@ RULE expansion(Container c1) ::=
     seq.getUnits().add(la);
 ?>
   ( LOOKAHEAD(0, { notTailOfExpansionUnit() } )
-    expansion_unit(c2)
+    expansion_unit(c2, p)
 <?
     exp = c2.get();
 	  seq.getUnits().add(exp);
 	  exp.setParent(seq, seq.getUnits().size() - 1);
-	?>
+?>
+    [ node_descriptor(exp, p) ]
   )+
 <?
     if (la.getLaExpansion() == null)
@@ -186,15 +186,15 @@ RULE expansion(Container c1) ::=
 ?>
 };
 
-RULE local_lookahead() : Lookahead ::=
+RULE local_lookahead(BNFProduction p) : Lookahead ::=
 <?
     var la = new Lookahead();
     la.setExplicit(true);
-    var t = getToken(1);
-    la.setLocation(t);
     la.setLaExpansion(null);
+    la.setLocation(getToken(1));
     var c = new Container();
-    boolean commaAtEnd = false, emptyLA = true;
+    boolean commaAtEnd = false;
+    boolean emptyLA = true;
     int laAmount;
     inLocalLA++;
 ?>
@@ -209,14 +209,14 @@ RULE local_lookahead() : Lookahead ::=
     laAmount = IntegerLiteral()
 <?
     emptyLA = false;
-	  la.setAmount(laAmount);
+    la.setAmount(laAmount);
 ?>
   ]
   [ LOOKAHEAD(0, { checkEmptyLA(emptyLA, getToken(1)) } )
     < COMMA > <? commaAtEnd = true; ?>
   ]
   [ LOOKAHEAD(0, { checkEmpty(getToken(1)) } )
-    expansion_choices(c)
+    expansion_choices(c, p)
 <?
 	  emptyLA = false; commaAtEnd = false;
 	  la.setLaExpansion(c.get());
@@ -238,7 +238,7 @@ RULE local_lookahead() : Lookahead ::=
 ?>
 };
 
-RULE expansion_unit(Container c) ::=
+RULE expansion_unit(Container c, BNFProduction p) ::=
 <?
     String name;
     List<Token> lhsTokens = new ArrayList<>();
@@ -253,7 +253,7 @@ RULE expansion_unit(Container c) ::=
    * We give this priority over primary expressions which use LOOKAHEAD as the
    * name of its identifier.
    */
-  t=< _LOOKAHEAD > < LPAREN > la=local_lookahead() < RPAREN >
+  t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
 <?
 	// Now set the la_expansion field of la with a dummy
 	// expansion (we use EOF).
@@ -290,7 +290,7 @@ RULE expansion_unit(Container c) ::=
 	  JavaCCErrors.warning(t, "Action within lookahead specification will be ignored.");
 	c.set(act);
   ?>
-| t=< LBRACKET > expansion_choices(c) < RBRACKET >
+| t=< LBRACKET > expansion_choices(c, p) < RBRACKET >
 <?
 	c.set(new ZeroOrOne(c.get()));
 	c.get().setLocation(t);
@@ -339,10 +339,12 @@ RULE expansion_unit(Container c) ::=
 	  c.<RExpression>get().setLhsTokens(lhsTokens);
 	  add_inline_regexpr(c.get());
 ?>
-	[ < DOT > t=<IDENTIFIER> <? c.<RExpression>get().setRhsToken(t);?> ]
+	[ < DOT > t=<IDENTIFIER> <? c.<RExpression>get().setRhsToken(t); ?> ]
   )
-| t=< LPAREN > expansion_choices(c) < RPAREN >
-  (  < PLUS > <? c.set(new OneOrMore(c.get())).setLocation(t); ?>
+|
+  t=< LPAREN > expansion_choices(c, p) < RPAREN >
+  (
+     < PLUS > <? c.set(new OneOrMore(c.get())).setLocation(t); ?>
    | < STAR > <? c.set(new ZeroOrMore(c.get())).setLocation(t); ?>
    | < HOOK > <? c.set(new ZeroOrOne(c.get())).setLocation(t); ?>
   )?
@@ -561,6 +563,30 @@ RULE identifier() : String ::=
 };
 
 /**********************************************
+ * THE JJTREE PRODUCTIONS START HERE       *
+ **********************************************/
+
+RULE node_descriptor(Expansion exp, BNFProduction p) ::=
+<?
+    ParserDescriptor nd = new ParserDescriptor();
+?>
+  < HASH >
+  TypeParameter() <? nd.setName(getToken(0).image); ?>
+  [
+   LOOKAHEAD(1)
+   < LPAREN >
+      [ < GT > <? nd.setGreaterThan(); ?> ]
+      value() <? nd.setExpressionText(getToken(0).image); ?>
+   < RPAREN >
+  ]
+<?
+  exp.setNodeScope(NodeScope.create(p, nd));
+?>
+};
+
+RULE value() ::= <INTEGER_LITERAL> | <FALSE> | <TRUE> };
+
+/**********************************************
  * THE JAVA GRAMMAR SPECIFICATION STARTS HERE *
  **********************************************/
 
@@ -575,8 +601,6 @@ RULE TypeParameter() : Token ::=
 | < _LOOKAHEAD >
 | < _IGNORE_CASE >
 | < _PARSER >
-| < _GRAMMAR >
-| < _LEXER >
 | < _TOKEN >
 | < _SPECIAL_TOKEN >
 | < _MORE >
@@ -741,17 +765,11 @@ RULE Literal() ::=
 | BooleanLiteral()
 };
 
-RULE IntegerLiteral() : int ::=
-  <INTEGER_LITERAL> <? return Integer.parseInt(token.image); ?>
-};
+RULE IntegerLiteral() : int ::= <INTEGER_LITERAL> <? return Integer.parseInt(token.image); ?> };
 
-RULE BooleanLiteral() ::=
-  < TRUE > | < FALSE >
-};
+RULE BooleanLiteral() ::= < TRUE > | < FALSE > };
 
-RULE StringLiteral() : String ::=
-  <STRING_LITERAL> <? return remove_escapes_and_quotes(this.token, this.token.image); ?>
-};
+RULE StringLiteral() : String ::= <STRING_LITERAL> <? return remove_escapes_and_quotes(this.token, this.token.image); ?> };
 
 /*
  * Parsing this fills "tokens" with all tokens of the arguments
@@ -797,14 +815,14 @@ RULE Statement(List<Token> tokens) ::=
   ( Statement() )* <? last = getToken(0); ?>
   < RBRACE > <?
     if (last.next != first) { // i.e., this is not an empty sequence
-      Token t = first;
+      var t = first;
       while (true) {
         tokens.add(t);
         if (t == last)
           break;
-	      t = t.next;
-    	}
-	  }
+	    t = t.next;
+      }
+	}
 ?>
 )
 };

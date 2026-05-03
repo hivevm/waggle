@@ -33,7 +33,7 @@ public class Template {
     }
 
     private static final Pattern STATEMENT = Pattern.compile(
-        "(\\h*)//@(\\w+)(?:\\(([^)]+)\\))?\\v?|__([^_()][\\w+]+[^_()])__", Pattern.MULTILINE);
+            "(\\h*)//@(\\w+)(?:\\(([^)]+)\\))?\\v?|__([^_()][\\w+]+[^_()])__", Pattern.MULTILINE);
 
 
     private final String text;

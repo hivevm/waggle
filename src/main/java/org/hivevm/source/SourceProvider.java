@@ -49,7 +49,8 @@ public interface SourceProvider {
             try (var ostream = new FileOutputStream(file)) {
                 template.render(title, ostream, options);
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             System.err.println("Failed to create file: " + file.getName() + " " + e);
             JavaCCErrors.semantic_error("Could not open file: " + file.getName() + " for writing.");
             throw new Error();

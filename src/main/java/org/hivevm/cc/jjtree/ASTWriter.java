@@ -3,13 +3,12 @@
 
 package org.hivevm.cc.jjtree;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.Writer;
 
 import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
+import org.hivevm.cc.model.NodeScope;
 
 
 /**
@@ -17,8 +16,9 @@ import org.hivevm.cc.Language;
  */
 public class ASTWriter extends PrintWriter {
 
-    private static final String SELF   = "SELF";
-    private static final String JJTREE = "jjtree";
+    private static final String JJTREE_BOOL = "$BOOL";
+    private static final String JJTREE_NODE = "$NODE";
+    private static final String JJTREE      = "jjtree";
 
 
     private final Language language;
@@ -32,7 +32,7 @@ public class ASTWriter extends PrintWriter {
     /**
      * Constructs an instance of {@link ASTWriter}.
      */
-    public ASTWriter(Writer writer, Language language) throws FileNotFoundException {
+    public ASTWriter(Writer writer, Language language) {
         super(writer, true);
         this.language = language;
         this.indent = null;
@@ -67,7 +67,7 @@ public class ASTWriter extends PrintWriter {
      * Prints the token for the node
      */
     public final void printToken(ASTNode node, Token token) {
-        Token tt = token.specialToken;
+        var tt = token.specialToken;
         if (tt != null) {
             while (tt.specialToken != null) {
                 tt = tt.specialToken;
@@ -81,25 +81,24 @@ public class ASTWriter extends PrintWriter {
         /*
          * If we're within a node scope we modify the source in the following ways:
          *
-         * 1) we rename all references to `SELF' to be references to the actual node variable. 2) we
+         * 1) we rename all references to `NODE' to be references to the actual node variable. 2) we
          * replace all calls to `jjtree.currentNode()' with references to the node variable.
          */
-
-        NodeScope s = NodeScope.getEnclosingNodeScope(node);
-        if (s == null) {
+        var scope = JJTreeVisitor.getEnclosingNodeScope(node);
+        if (scope == null) {
             // Not within a node scope so we don't need to modify the source.
             print(Encoding.escapeUnicode(node.translateImage(token), getLanguage()));
             return;
         }
 
-        if (token.image.contains(ASTWriter.SELF)) {
-            String text = Encoding.escapeUnicode(node.translateImage(token), getLanguage());
-            print(text.replace(ASTWriter.SELF, s.getNodeVariable()));
+        if (token.image.contains(ASTWriter.JJTREE_NODE)) {
+            var text = Encoding.escapeUnicode(node.translateImage(token), getLanguage());
+            print(ASTWriter.replace(text, scope));
             return;
         }
         if (this.whitingOut) {
             if (token.image.equals(ASTWriter.JJTREE)) {
-                print(s.getNodeVariable());
+                print(scope.getNodeVariable());
                 print(" ");
             }
             else if (token.image.equals(")")) {
@@ -121,34 +120,36 @@ public class ASTWriter extends PrintWriter {
      * methods of its children. Overriding this print method in appropriate nodes gives the output
      * the added stuff not in the input.
      */
-    public final Object handleJJTreeNode(ASTNode node, NodeVisitor visitor) {
-        if (node.getLastToken().next == node.getFirstToken())
-            return null;
+    public final void handleJJTreeNode(ASTNode node, NodeVisitor visitor) {
+        if (node.getLastToken().next != node.getFirstToken()) {
+            Token tokenFirst = node.getFirstToken();
+            Token token = new Token();
+            token.next = tokenFirst;
 
-        Token tokenFirst = node.getFirstToken();
-        Token token = new Token();
-        token.next = tokenFirst;
-
-        ASTNode n;
-        Object end = null;
-        for (int ord = 0; ord < node.jjtGetNumChildren(); ord++) {
-            n = (ASTNode) node.jjtGetChild(ord);
-            while (true) {
-                token = token.next;
-                if (token == n.getFirstToken()) {
-                    break;
+            ASTNode n;
+            Object end = null;
+            for (int ord = 0; ord < node.jjtGetNumChildren(); ord++) {
+                n = (ASTNode) node.jjtGetChild(ord);
+                while (true) {
+                    token = token.next;
+                    if (token == n.getFirstToken()) {
+                        break;
+                    }
+                    printToken(node, token);
                 }
-                printToken(node, token);
+                end = n.jjtAccept(visitor, this);
+                token = n.getLastToken();
             }
-            end = n.jjtAccept(visitor, this);
-            token = n.getLastToken();
-        }
-        if (end == null) {
-            while (token != node.getLastToken()) {
-                token = token.next;
-                printToken(node, token);
+            if (end == null) {
+                while (token != node.getLastToken()) {
+                    token = token.next;
+                    printToken(node, token);
+                }
             }
         }
-        return null;
+    }
+
+    public static String replace(String text, NodeScope scope) {
+        return text.replace(ASTWriter.JJTREE_BOOL, scope.getClosedVariable()).replace(ASTWriter.JJTREE_NODE, scope.getNodeVariable());
     }
 }

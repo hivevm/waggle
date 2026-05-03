@@ -18,6 +18,6 @@ public class ASTBNF extends ASTProduction {
 
     @Override
     public final String toString() {
-        return super.toString() + ": " + this.name;
+        return super.toString() + ": " + name();
     }
 }

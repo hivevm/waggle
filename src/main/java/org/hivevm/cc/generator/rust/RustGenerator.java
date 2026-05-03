@@ -7,30 +7,35 @@ import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.GeneratorName;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
+import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
 import org.hivevm.cc.generator.TreeGenerator;
 
 /**
- * RustGenerator is a concrete implementation of the abstract GeneratorProvider
- * for generating components specific to the Rust programming language.
- * It overrides the necessary methods to return Rust-specific implementations
- * for generating abstract syntax trees, lexer, parser, and files.
- *
- * Annotated with {@link GeneratorName} having the value "Rust" to indicate
- * that this generator is tailored for Rust.
- *
- * Responsibilities include:
- * - Generating Rust Abstract Syntax Trees using {@link RustASTGenerator}.
- * - Generating lexer files using {@link RustLexerGenerator}.
- * - Generating parser files using {@link RustParserGenerator}.
- * - Generating additional Rust-specific file templates through embedded render logic.
+ * RustGenerator is a concrete implementation of the abstract GeneratorProvider for generating
+ * components specific to the Rust programming language. It overrides the necessary methods to
+ * return Rust-specific implementations for generating abstract syntax trees, lexer, parser, and
+ * files.
+ * <p>
+ * Annotated with {@link GeneratorName} having the value "Rust" to indicate that this generator is
+ * tailored for Rust.
+ * <p>
+ * Responsibilities include: - Generating Rust Abstract Syntax Trees using {@link RustASTGenerator}.
+ * - Generating lexer files using {@link RustLexerGenerator}. - Generating parser files using
+ * {@link RustParserGenerator}. - Generating additional Rust-specific file templates through
+ * embedded render logic.
  */
 @GeneratorName("Rust")
 public class RustGenerator extends GeneratorProvider {
 
     @Override
-    protected final TreeGenerator newASTGenerator() {
-        return new RustASTGenerator();
+    protected final TreeGenerator newTreeGenerator() {
+        return new RustTreeGenerator();
+    }
+
+    @Override
+    protected final NodeGenerator newNodeGenerator() {
+        return new RustNodeGenerator();
     }
 
     @Override

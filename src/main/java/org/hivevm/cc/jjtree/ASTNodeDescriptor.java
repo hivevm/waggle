@@ -3,19 +3,13 @@
 
 package org.hivevm.cc.jjtree;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
+import org.hivevm.cc.model.NodeDescriptor;
 
-public class ASTNodeDescriptor extends ASTNode {
-
-    private static final List<String>              nodeIds   = new ArrayList<>();
-    private static final List<String>              nodeNames = new ArrayList<>();
-    private static final Hashtable<String, String> nodeSeen  = new Hashtable<>();
+public class ASTNodeDescriptor extends ASTNode implements NodeDescriptor {
 
 
-    String  name;
-    boolean isGT;
+    private String  name;
+    private boolean isGT;
     private String  text;
     private boolean faked;
 
@@ -24,37 +18,19 @@ public class ASTNodeDescriptor extends ASTNode {
         this.faked = false;
     }
 
-    static ASTNodeDescriptor indefinite(Parser p, String s) {
-        ASTNodeDescriptor nd = new ASTNodeDescriptor(p, NodeType.JJTNODEDESCRIPTOR);
-        nd.name = s;
-        nd.setNodeIdValue();
-        nd.faked = true;
-        return nd;
+    public String getName() {
+        return this.name;
     }
 
-    public static List<String> getNodeIds() {
-        return ASTNodeDescriptor.nodeIds;
+    public String getText() {
+        return this.text;
     }
 
-    public static List<String> getNodeNames() {
-        return ASTNodeDescriptor.nodeNames;
+    public boolean isGt() {
+        return this.isGT;
     }
 
-    void setNodeIdValue() {
-        String k = getNodeId();
-        if (!ASTNodeDescriptor.nodeSeen.containsKey(k)) {
-            ASTNodeDescriptor.nodeSeen.put(k, k);
-            ASTNodeDescriptor.nodeNames.add(this.name);
-            ASTNodeDescriptor.nodeIds.add(k);
-        }
-    }
-
-    public String getNodeId() {
-        return "JJT" + this.name.toUpperCase().replace('.', '_');
-    }
-
-
-    boolean isVoid() {
+    public boolean isVoid() {
         return this.name.equals("void");
     }
 
@@ -66,36 +42,20 @@ public class ASTNodeDescriptor extends ASTNode {
             return super.toString() + ": " + this.name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setGreaterThan() {
+        this.isGT = true;
+    }
+
+    public void setFaked() {
+        this.faked = true;
+    }
+
     public void setExpressionText(String text) {
         this.text = text;
-    }
-
-    public String getDescriptor() {
-        return this.text == null
-            ? this.name
-            : "#" + this.name + "(" + (this.isGT ? ">" : "") + this.text + ")";
-    }
-
-    public String getNodeType() {
-        return jjtOptions().getMulti() ? "AST" + this.name : "Node";
-    }
-
-
-    public String openNode(String nodeVar) {
-        return "jjtree.openNodeScope(" + nodeVar + ");";
-    }
-
-
-    public String closeNode(String nodeVar) {
-        if (this.text == null) {
-            return "jjtree.closeNodeScope(" + nodeVar + ", true);";
-        }
-        else if (this.isGT) {
-            return "jjtree.closeNodeScope(" + nodeVar + ", jjtree.nodeArity() >" + this.text + ");";
-        }
-        else {
-            return "jjtree.closeNodeScope(" + nodeVar + ", " + this.text + ");";
-        }
     }
 
     @Override

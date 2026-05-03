@@ -11,11 +11,16 @@ class MatchInfo {
     final int[] match;
     int firstFreeLoc;
 
-    /**
-     * Constructs an instance of {@link MatchInfo}.
-     */
     MatchInfo(int limit) {
         this.match = new int[limit];
         this.firstFreeLoc = 0;
+    }
+
+    MatchInfo copyWith(int token) {
+        var copy = new MatchInfo(this.match.length);
+        System.arraycopy(this.match, 0, copy.match, 0, this.firstFreeLoc);
+        copy.firstFreeLoc = this.firstFreeLoc;
+        copy.match[copy.firstFreeLoc++] = token;
+        return copy;
     }
 }

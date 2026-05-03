@@ -60,7 +60,7 @@ interface TreeWalker {
             else if (node instanceof Lookahead lookahead) {
                 Expansion nested_e = lookahead.getLaExpansion();
                 if (!((nested_e instanceof Sequence sequence)
-                    && (sequence.getUnits().getFirst()) == node))
+                        && (sequence.getUnits().getFirst()) == node))
                     TreeWalker.walk(nested_e, opObj, post);
             }
             else if (node instanceof RChoice rChoice) {

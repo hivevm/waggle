@@ -5,16 +5,16 @@ package org.hivevm.cc.jjtree;
 
 import java.io.Reader;
 
-import org.hivevm.cc.generator.TreeContext;
+import org.hivevm.cc.HiveCCOptions;
 
 /**
  * The {@link JJTreeParserDefault} implements a parser for the .jjt files.
  */
 public class JJTreeParserDefault extends Parser {
 
-    private final TreeContext options;
+    private final HiveCCOptions options;
 
-    public JJTreeParserDefault(String text, TreeContext options) {
+    public JJTreeParserDefault(String text, HiveCCOptions options) {
         super(new Lexer(new JavaCharStream(new StringProvider(text))));
         this.options = options;
     }
@@ -28,6 +28,11 @@ public class JJTreeParserDefault extends Parser {
     }
 
     @Override
+    protected final HiveCCOptions getOptions() {
+        return this.options;
+    }
+
+    @Override
     protected final void jjtreeOpenNodeScope(Node n) {
         ((ASTNode) n).setFirstToken(getToken(1));
     }
@@ -35,10 +40,5 @@ public class JJTreeParserDefault extends Parser {
     @Override
     protected final void jjtreeCloseNodeScope(Node n) {
         ((ASTNode) n).setLastToken(getToken(0));
-    }
-
-    @Override
-    protected final TreeContext getOptions() {
-        return this.options;
     }
 }

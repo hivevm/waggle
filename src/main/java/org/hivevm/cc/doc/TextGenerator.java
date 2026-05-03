@@ -239,10 +239,11 @@ class TextGenerator implements Generator {
 
         try {
             this.ostr = new java.io.PrintWriter(new java.io.FileWriter(JJDocGlobals.output_file));
-        } catch (java.io.IOException e) {
+        }
+        catch (java.io.IOException e) {
             JJDocGlobals
-                .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file
-                    + ".  Using standard output.");
+                    .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file
+                            + ".  Using standard output.");
             this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
         }
 

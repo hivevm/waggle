@@ -3,194 +3,65 @@
 
 package org.hivevm.cc.generator;
 
+import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
-import org.hivevm.cc.jjtree.ASTBNFAction;
-import org.hivevm.cc.jjtree.ASTBNFDeclaration;
-import org.hivevm.cc.jjtree.ASTBNFNodeScope;
-import org.hivevm.cc.jjtree.ASTBNFOneOrMore;
-import org.hivevm.cc.jjtree.ASTBNFSequence;
-import org.hivevm.cc.jjtree.ASTBNFZeroOrMore;
-import org.hivevm.cc.jjtree.ASTBNFZeroOrOne;
-import org.hivevm.cc.jjtree.ASTCompilationUnit;
-import org.hivevm.cc.jjtree.ASTExpansionNodeScope;
-import org.hivevm.cc.jjtree.ASTGrammar;
+import org.hivevm.cc.jjtree.ASTBNFNonTerminal;
 import org.hivevm.cc.jjtree.ASTNode;
-import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.Node;
-import org.hivevm.cc.jjtree.NodeDefaultVisitor;
-import org.hivevm.cc.jjtree.NodeScope;
-import org.hivevm.cc.jjtree.Token;
+import org.hivevm.cc.model.BNFProduction;
+import org.hivevm.cc.model.Expansion;
+import org.hivevm.cc.model.NodeDescriptor;
+import org.hivevm.cc.model.NodeScope;
+import org.hivevm.cc.parser.Options;
 
-public abstract class TreeGenerator extends NodeDefaultVisitor {
+public abstract class TreeGenerator {
 
-    private final Set<String> nodesToGenerate = new HashSet<>();
+    private final NodeData data;
 
-    protected final void addType(String nodeType) {
-        if (!nodeType.equals("Node")) {
-            this.nodesToGenerate.add(nodeType);
-        }
+    protected TreeGenerator() {
+        this.data = new NodeData();
     }
 
-    protected final Iterable<String> nodesToGenerate() {
-        return this.nodesToGenerate;
+    public NodeData getData() {
+        return data;
     }
 
-    @Override
-    public final Object defaultVisit(Node node, ASTWriter data) {
-        data.handleJJTreeNode((ASTNode) node, this);
-        return null;
+    public final void insertOpenNodeCode(ASTNode node, PrintWriter writer) {
+        var options = node.jjtOptions();
+        var descriptor = node.node_scope.getNodeDescriptor();
+
+        this.data.addNodeDescriptor(descriptor, options);
+
+        var nodeClass = NodeDescriptor.getNodeClass(descriptor.getName(), options);
+        insertOpenNodeCode(node.node_scope, nodeClass, writer, options);
     }
 
-    @Override
-    public final Object visit(ASTGrammar node, ASTWriter data) {
-        return node.childrenAccept(this, data);
+    public final void insertCatchBlocks(NodeScope ns, PrintWriter writer, Options options,
+        ASTNode expansion_unit) {
+        var thrown_names = new HashSet<String>();
+        TreeGenerator.findThrown(expansion_unit, thrown_names);
+        insertCatchBlocks(ns, writer, options, thrown_names);
     }
 
-    /**
-     * Assume that this action requires an early node close, and then try to decide whether this
-     * assumption is false. Do this by looking outwards through the enclosing expansion units. If we
-     * ever find that we are enclosed in a unit which is not the final unit in a sequence we know
-     * that an early close is not required.
-     */
-    @Override
-    public final Object visit(ASTBNFAction node, ASTWriter writer) {
-        NodeScope ns = NodeScope.getEnclosingNodeScope(node);
-        if ((ns != null) && !ns.isVoid()) {
-            boolean needClose = true;
-            Node sp = node.getScopingParent(ns);
+    public abstract void insertOpenNodeCode(NodeScope ns, String nodeClass, PrintWriter writer, Options options);
 
-            ASTNode n = node;
-            while (true) {
-                Node p = n.jjtGetParent();
-                if (p instanceof ASTBNFSequence) {
-                    if (n.getOrdinal() != (p.jjtGetNumChildren() - 1)) {
-                        /* We're not the final unit in the sequence. */
-                        needClose = false;
-                        break;
-                    }
-                }
-                else if ((p instanceof ASTBNFZeroOrOne) || (p instanceof ASTBNFZeroOrMore)
-                    || (p instanceof ASTBNFOneOrMore)) {
-                    needClose = false;
-                    break;
-                }
-                if (p == sp) {
-                    /* No more parents to look at. */
-                    break;
-                }
-                n = (ASTNode) p;
-            }
-            if (needClose) {
-                writer.append("\n").append(CodeBlock.begin());
-                String indent = writer.setIndent(getIndentation(node) + "  ");
-                insertCloseNodeCode(ns, writer, node.jjtOptions(), false);
-                writer.setIndent(indent);
-                writer.append(CodeBlock.end());
+    public abstract void insertCloseNodeCode(NodeScope ns, PrintWriter writer, Options options, boolean isFinal);
+
+    public abstract void insertCatchBlocks(NodeScope ns, PrintWriter writer, Options options,
+        Collection<String> thrown_set);
+
+    private static void findThrown(ASTNode expansion_unit, Collection<String> thrown_set) {
+        if (expansion_unit instanceof ASTBNFNonTerminal) {
+            // Should really make the nonterminal explicitly maintain its name.
+            var nt = expansion_unit.getFirstToken().image;
+            var prod = expansion_unit.jjtParser().getProduction(nt);
+            if (prod != null) {
+                prod.throwElements().forEach(thrown_set::add);
             }
         }
-
-        return writer.handleJJTreeNode(node, this);
-    }
-
-    @Override
-    public final Object visit(ASTCompilationUnit node, ASTWriter writer) {
-        Token token = node.getFirstToken();
-
-        while (true) {
-            writer.printToken(node, token);
-            if (token == node.getLastToken()) {
-                return null;
-            }
-            token = token.next;
+        for (int i = 0; i < expansion_unit.jjtGetNumChildren(); ++i) {
+            TreeGenerator.findThrown((ASTNode) expansion_unit.jjtGetChild(i), thrown_set);
         }
     }
-
-    @Override
-    public final Object visit(ASTBNFDeclaration node, ASTWriter writer) {
-        if (!node.node_scope.isVoid()) {
-            String indent = "";
-            if (node.getLastToken().next == node.getFirstToken()) {
-                indent = "  ";
-            }
-            else {
-                for (int i = 1; i < node.getFirstToken().beginColumn; ++i) {
-                    indent += " ";
-                }
-            }
-
-            writer.append("\n").append(CodeBlock.begin());
-            if (node.node_scope.getNodeDescriptorText() != null) {
-                writer.println(" // " + node.node_scope.getNodeDescriptorText());
-            }
-            String previous = writer.setIndent(indent);
-            writer.print(indent);
-            insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
-            writer.setIndent(previous);
-            writer.append(CodeBlock.end());
-        }
-
-        return writer.handleJJTreeNode(node, this);
-    }
-
-    @Override
-    public final Object visit(ASTBNFNodeScope node, ASTWriter writer) {
-        if (node.node_scope.isVoid()) {
-            return writer.handleJJTreeNode(node, this);
-        }
-
-        String indent = getIndentation(node.expansion_unit);
-        // tryExpansionUnit0(node.node_scope, io, indent, node.expansion_unit);
-        node.expansion_unit.jjtAccept(this, writer);
-        writer.println();
-        writer.print("};");
-        String previous = writer.setIndent(indent);
-        insertCatchBlocks(node.node_scope, writer, node.expansion_unit);
-        writer.setIndent(previous);
-        return true;
-    }
-
-    @Override
-    public final Object visit(ASTExpansionNodeScope node, ASTWriter writer) {
-        String indent = getIndentation(node.expansion_unit) + "  ";
-        writer.append("\n").append(CodeBlock.begin());
-        if (node.node_scope.getNodeDescriptor().getDescriptor() != null) {
-            writer.println(" // " + node.node_scope.getNodeDescriptor().getDescriptor());
-        }
-        String previous = writer.setIndent(indent);
-        writer.print(indent);
-        insertOpenNodeCode(node.node_scope, writer, node.jjtOptions());
-        writer.setIndent(previous);
-        writer.append(CodeBlock.end());
-
-        node.expansion_unit.jjtAccept(this, writer);
-
-        previous = writer.setIndent(indent);
-        insertCatchBlocks(node.node_scope, writer, node.expansion_unit);
-        writer.setIndent(previous);
-
-        // Print the "whiteOut" equivalent of the Node descriptor to preserve
-        // line numbers in the generated file.
-        node.jjtGetChild(1).jjtAccept(this, writer);
-        return null;
-    }
-
-    private String getIndentation(ASTNode n) {
-        String s = "";
-        for (int i = 1; i < n.getFirstToken().beginColumn; ++i) {
-            s += " ";
-        }
-        return s;
-    }
-
-    public abstract void generate(TreeOptions context);
-
-    protected abstract void insertOpenNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context);
-
-    protected abstract void insertCloseNodeCode(NodeScope ns, ASTWriter writer, TreeOptions context,
-        boolean isFinal);
-
-    protected abstract void insertCatchBlocks(NodeScope ns, ASTWriter writer,
-        ASTNode expansion_unit);
 }
