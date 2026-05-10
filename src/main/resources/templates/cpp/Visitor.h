@@ -15,37 +15,39 @@ namespace __CPP_NAMESPACE__ {
 
 class __PARSER_NAME__Visitor
 {
-  public:
+public:
 
-  virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
 //@if(NODE_MULTI)
 //@foreach(NODES)
-  virtual __RETURN_TYPE__ visit(const {{NODES_TYPE} *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __RETURN_TYPE__ visit(const {{NODES_TYPE} *node, __ARGUMENT_TYPE__ data) = 0;
 //@end
 //@endif
 
-  virtual ~__PARSER_NAME__Visitor() { }
+	virtual ~__PARSER_NAME__Visitor() { }
 };
-    
+		
 
-class __PARSER_NAME__DefaultVisitor() : public __PARSER_NAME__Visitor {
+class __PARSER_NAME__DefaultVisitor()
+    : public __PARSER_NAME__Visitor
+{
 
 public:
-  virtual __RETURN_TYPE__ defaultVisit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __RETURN_TYPE__ defaultVisit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
 
-  virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) {
-     __RETURN__defaultVisit(node, data);
-  }
+	virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) {
+		__RETURN__defaultVisit(node, data);
+	}
 
 //@if(NODE_MULTI)
 //@foreach(NODES)
-  virtual __RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __ARGUMENT_TYPE__ data) {
-     __RETURN__defaultVisit(node, data);
-  }
+	virtual __RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __ARGUMENT_TYPE__ data) {
+		__RETURN__defaultVisit(node, data);
+	}
 //@end
 //@endif
 
-  ~__PARSER_NAME__DefaultVisitor() { }
+	~__PARSER_NAME__DefaultVisitor() { }
 };
 
 //@if(CPP_NAMESPACE)

@@ -22,10 +22,10 @@ import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.ParseException;
 import org.hivevm.cc.semantic.Semanticize;
 
-public class ParserBuilder {
+class ParserBuilder {
 
     // Constants used in the following method "buildLookaheadChecker".
-    protected enum LookaheadState {
+    private enum LookaheadState {
         NOOPENSTM,
         OPENIF,
         OPENSWITCH
@@ -44,7 +44,7 @@ public class ParserBuilder {
         return ++this.rIndex;
     }
 
-    public final ParserData build(ParserRequest request) throws ParseException {
+    final ParserData build(ParserRequest request) throws ParseException {
         if (JavaCCErrors.hasError()) {
             throw new ParseException();
         }
@@ -81,30 +81,27 @@ public class ParserBuilder {
             // evaluation of jj_consume_token(-1) causes ParseException to be
             // thrown first.
             for (int i = 0; i < e_nrw.getChoices().size(); i++) {
-                Sequence nestedSeq = (Sequence) (e_nrw.getChoices().get(i));
+                Sequence nestedSeq = (Sequence) e_nrw.getChoices().get(i);
                 buildPhase1(data, nestedSeq);
-                conds[i] = (Lookahead) (nestedSeq.getUnits().getFirst());
+                conds[i] = (Lookahead) nestedSeq.getUnits().getFirst();
             }
             data.setLookupAhead(e, conds);
 
             buildLookahead(data, conds);
-        }
-        else if (e instanceof Sequence e_nrw) {
+        } else if (e instanceof Sequence e_nrw) {
             // We skip the first element in the following iteration since it is the
             // Lookahead object.
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                 // For C++, since we are not using exceptions, we will protect all the
                 // expansion choices with if (!error)
-                buildPhase1(data, (Expansion) (e_nrw.getUnits().get(i)));
+                buildPhase1(data, e_nrw.getUnits().get(i));
             }
-        }
-        else if (e instanceof OneOrMore e_nrw) {
+        } else if (e instanceof OneOrMore e_nrw) {
             Expansion nested_e = e_nrw.getExpansion();
             Lookahead la;
-            if (nested_e instanceof Sequence) {
-                la = (Lookahead) (((Sequence) nested_e).getUnits().getFirst());
-            }
-            else {
+            if (nested_e instanceof Sequence seq) {
+                la = (Lookahead) seq.getUnits().getFirst();
+            } else {
                 la = new Lookahead();
                 la.setAmount(data.getLookahead());
                 la.setLaExpansion(nested_e);
@@ -115,14 +112,12 @@ public class ParserBuilder {
 
             buildPhase1(data, nested_e);
             buildLookahead(data, conds);
-        }
-        else if (e instanceof ZeroOrMore e_nrw) {
+        } else if (e instanceof ZeroOrMore e_nrw) {
             Expansion nested_e = e_nrw.getExpansion();
             Lookahead la;
-            if (nested_e instanceof Sequence) {
-                la = (Lookahead) (((Sequence) nested_e).getUnits().getFirst());
-            }
-            else {
+            if (nested_e instanceof Sequence seq) {
+                la = (Lookahead) seq.getUnits().getFirst();
+            } else {
                 la = new Lookahead();
                 la.setAmount(data.getLookahead());
                 la.setLaExpansion(nested_e);
@@ -133,15 +128,13 @@ public class ParserBuilder {
 
             buildLookahead(data, conds);
             buildPhase1(data, nested_e);
-        }
-        else if (e instanceof ZeroOrOne e_nrw) {
+        } else if (e instanceof ZeroOrOne e_nrw) {
             Expansion nested_e = e_nrw.getExpansion();
 
             Lookahead la;
-            if (nested_e instanceof Sequence) {
-                la = (Lookahead) (((Sequence) nested_e).getUnits().getFirst());
-            }
-            else {
+            if (nested_e instanceof Sequence seq) {
+                la = (Lookahead) seq.getUnits().getFirst();
+            } else {
                 la = new Lookahead();
                 la.setAmount(data.getLookahead());
                 la.setLaExpansion(nested_e);
@@ -192,8 +185,7 @@ public class ParserBuilder {
                     // lookahead trivially succeeds. So break the main loop and
                     // treat this case as the default last action.
                     break;
-                }
-                else {
+                } else {
                     // This case is when there is only semantic lookahead
                     // (without any preceding syntactic lookahead). In this
                     // case, an "if" statement is generated.
@@ -206,8 +198,7 @@ public class ParserBuilder {
                     state = LookaheadState.OPENIF;
                 }
 
-            }
-            else if ((la.getAmount() == 1) && (la.getActionTokens().isEmpty())) {
+            } else if ((la.getAmount() == 1) && (la.getActionTokens().isEmpty())) {
                 // Special optimal processing when the lookahead is exactly 1, and there
                 // is no semantic lookahead.
                 boolean[] firstSet = new boolean[data.getTokenCount()];
@@ -247,8 +238,7 @@ public class ParserBuilder {
                     }
                     state = LookaheadState.OPENSWITCH;
                 }
-            }
-            else {
+            } else {
                 // This is the case when lookahead is determined through calls to
                 // jj2 methods. The other case is when lookahead is 1, but semantic
                 // attributes need to be evaluated. Hence this crazy control structure.
@@ -282,40 +272,34 @@ public class ParserBuilder {
         Expansion e = p3d.exp();
         if (e instanceof RegularExpression) {
             // nothing to here
-        }
-        else if (e instanceof NonTerminal e_nrw) {
+        } else if (e instanceof NonTerminal e_nrw) {
             // All expansions of non-terminals have the "name" fields set. So
             // there's no need to check it below for "e_nrw" and "ntexp". In
             // fact, we rely here on the fact that the "name" fields of both these
             // variables are the same.
             NormalProduction ntprod = data.getProduction(e_nrw.getName());
             generate3R(data, ntprod.getExpansion(), p3d);
-        }
-        else if (e instanceof Choice e_nrw) {
+        } else if (e instanceof Choice e_nrw) {
             for (Expansion element : e_nrw.getChoices()) {
                 generate3R(data, element, p3d);
             }
-        }
-        else if (e instanceof Sequence e_nrw) {
+        } else if (e instanceof Sequence e_nrw) {
             // We skip the first element in the following iteration since it is the
             // Lookahead object.
             int cnt = p3d.count();
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
+                Expansion eseq = e_nrw.getUnits().get(i);
                 setupPhase3Builds(data, new Phase3Data(eseq, cnt));
                 cnt -= ParserBuilder.minimumSize(data, eseq);
                 if (cnt <= 0) {
                     break;
                 }
             }
-        }
-        else if (e instanceof OneOrMore e_nrw) {
+        } else if (e instanceof OneOrMore e_nrw) {
             generate3R(data, e_nrw.getExpansion(), p3d);
-        }
-        else if (e instanceof ZeroOrMore e_nrw) {
+        } else if (e instanceof ZeroOrMore e_nrw) {
             generate3R(data, e_nrw.getExpansion(), p3d);
-        }
-        else if (e instanceof ZeroOrOne e_nrw) {
+        } else if (e instanceof ZeroOrOne e_nrw) {
             generate3R(data, e_nrw.getExpansion(), p3d);
         }
     }
@@ -325,14 +309,12 @@ public class ParserBuilder {
         Expansion seq = e;
         if (e.internalName().isEmpty()) {
             while (true) {
-                if ((seq instanceof Sequence) && (((Sequence) seq).getUnits().size() == 2)) {
-                    seq = (Expansion) ((Sequence) seq).getUnits().get(1);
-                }
-                else if (seq instanceof NonTerminal e_nrw) {
+                if ((seq instanceof Sequence s) && s.getUnits().size() == 2) {
+                    seq = s.getUnits().get(1);
+                } else if (seq instanceof NonTerminal e_nrw) {
                     NormalProduction ntprod = data.getProduction(e_nrw.getName());
                     seq = ntprod.getExpansion();
-                }
-                else {
+                } else {
                     break;
                 }
             }
@@ -377,19 +359,18 @@ public class ParserBuilder {
             Sequence nested_seq;
             for (Expansion element : e_nrw.getChoices()) {
                 nested_seq = (Sequence) (element);
-                Lookahead la = (Lookahead) (nested_seq.getUnits().getFirst());
+                Lookahead la = (Lookahead) nested_seq.getUnits().getFirst();
                 if (!la.getActionTokens().isEmpty()) {
                     // We have semantic lookahead that must be evaluated.
                     data.setLookAheadNeeded(true);
                 }
             }
-        }
-        else if (e instanceof Sequence e_nrw) {
+        } else if (e instanceof Sequence e_nrw) {
             // We skip the first element in the following iteration since it is the
             // Lookahead object.
             int cnt = count;
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
+                var eseq = e_nrw.getUnits().get(i);
                 buildPhase3Routine(data, eseq, cnt);
                 cnt -= ParserBuilder.minimumSize(data, eseq);
                 if (cnt <= 0) {
@@ -399,7 +380,7 @@ public class ParserBuilder {
         }
     }
 
-    protected static int minimumSize(ParserData data, Expansion e) {
+    private static int minimumSize(ParserData data, Expansion e) {
         return ParserBuilder.minimumSize(data, e, Integer.MAX_VALUE);
     }
 
@@ -410,21 +391,19 @@ public class ParserBuilder {
         if (e.inMinimumSize())
             // recursive search for minimum size unnecessary.
             return Integer.MAX_VALUE;
-
         e.setInMinimumSize(true);
         try {
             return switch (e) {
                 case RegularExpression regularExpression -> 1;
                 case NonTerminal e_nrw -> {
-                    NormalProduction ntprod = data.getProduction(e_nrw.getName());
-                    Expansion ntexp = ntprod.getExpansion();
-                    yield ParserBuilder.minimumSize(data, ntexp);
+                    var ntprod = data.getProduction(e_nrw.getName());
+                    yield ParserBuilder.minimumSize(data, ntprod.getExpansion());
                 }
                 case Choice e_nrw -> {
                     int min = oldMin;
                     Expansion nested_e;
                     for (int i = 0; (min > 1) && (i < e_nrw.getChoices().size()); i++) {
-                        nested_e = (e_nrw.getChoices().get(i));
+                        nested_e = e_nrw.getChoices().get(i);
                         int min1 = ParserBuilder.minimumSize(data, nested_e, min);
                         if (min > min1) {
                             min = min1;
@@ -437,12 +416,11 @@ public class ParserBuilder {
                     // We skip the first element in the following iteration since it is the
                     // Lookahead object.
                     for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                        Expansion eseq = (Expansion) (e_nrw.getUnits().get(i));
+                        var eseq = e_nrw.getUnits().get(i);
                         int mineseq = ParserBuilder.minimumSize(data, eseq);
                         if ((min == Integer.MAX_VALUE) || (mineseq == Integer.MAX_VALUE)) {
                             min = Integer.MAX_VALUE; // Adding infinity to something results in infinity.
-                        }
-                        else {
+                        } else {
                             min += mineseq;
                             if (min > oldMin) {
                                 break;
@@ -458,8 +436,7 @@ public class ParserBuilder {
                 case Action action -> 0;
                 default -> 0;
             };
-        }
-        finally {
+        } finally {
             e.setInMinimumSize(false);
         }
     }

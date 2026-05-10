@@ -22,39 +22,39 @@ static std::wstring_convert<convert_t, wchar_t> strconverter;
 
 static std::string to_string(const std::wstring& wstr)
 {
-    return strconverter.to_bytes(wstr);
+	return strconverter.to_bytes(wstr);
 }
 
 static std::wstring to_wstring(const std::string& str)
 {
-    return strconverter.from_bytes(str);
+	return strconverter.from_bytes(str);
 }
 #endif
 
 void ParserErrorHandler::unexpectedToken(const JJString& expectedImage, const JJString& expectedLabel, const JJString& actualImage, const JJString& actualLabel, const Token* actualToken) {
-    error_count++;
-    JJOUT
-            << JJWIDE(Expecting) << JJSPACE << addUnicodeEscapes(expectedLabel) << JJWIDE(:) << JJQUOTE << addUnicodeEscapes(expectedImage) << JJQUOTE
-            << JJSPACE << JJWIDE(at) << JJSPACE << actualToken->beginLine() << JJWIDE(:) << actualToken->beginColumn() << JJSPACE
-            << JJWIDE(but got) << JJSPACE << JJQUOTE << addUnicodeEscapes(actualImage) << JJQUOTE << std::endl;
+	error_count++;
+	JJOUT
+        << JJWIDE(Expecting) << JJSPACE << addUnicodeEscapes(expectedLabel) << JJWIDE(:) << JJQUOTE << addUnicodeEscapes(expectedImage) << JJQUOTE
+        << JJSPACE << JJWIDE(at) << JJSPACE << actualToken->beginLine() << JJWIDE(:) << actualToken->beginColumn() << JJSPACE
+        << JJWIDE(but got) << JJSPACE << JJQUOTE << addUnicodeEscapes(actualImage) << JJQUOTE << std::endl;
 }
 
 
 void ParserErrorHandler::parseError(const Token* last, const Token* unexpected, const Latin1 & production) {
-    error_count++;
+	error_count++;
 #if (JAVACC_CHAR_TYPE_SIZEOF == 1)
-    const JJString& work = production;
+	const JJString& work = production;
 #else
-    const JJString& work = to_wstring(production);
+	const JJString& work = to_wstring(production);
 #endif
-    JJOUT
-            << JJWIDE(Encountered:) << JJSPACE << JJQUOTE << addUnicodeEscapes(unexpected->image()) << JJQUOTE << JJSPACE
-            << JJWIDE(at) << JJSPACE << unexpected->beginLine() << JJWIDE(:) << unexpected->beginColumn()  << JJSPACE
-            << JJWIDE(while parsing:) << JJSPACE << work << std::endl;
+	JJOUT
+        << JJWIDE(Encountered:) << JJSPACE << JJQUOTE << addUnicodeEscapes(unexpected->image()) << JJQUOTE << JJSPACE
+        << JJWIDE(at) << JJSPACE << unexpected->beginLine() << JJWIDE(:) << unexpected->beginColumn()  << JJSPACE
+        << JJWIDE(while parsing:) << JJSPACE << work << std::endl;
 }
 
 void ParserErrorHandler::otherError(const JJString& message) {
-    JJOUT << JJWIDE(Error:) << JJSPACE  << message << std::endl;
+	JJOUT << JJWIDE(Error:) << JJSPACE  << message << std::endl;
 }
 
 //@if(CPP_NAMESPACE)

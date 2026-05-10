@@ -3,15 +3,15 @@
 
 package org.hivevm.cc.parser;
 
+import org.hivevm.cc.HiveCC;
+import org.hivevm.core.Environment;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.hivevm.cc.HiveCC;
-import org.hivevm.core.Environment;
 
 /**
  * A class with static state that stores all option information.
@@ -140,13 +140,6 @@ public interface Options extends Environment {
      */
     default String getJavaPackageName() {
         return stringValue(HiveCC.JJPARSER_JAVA_PACKAGE);
-    }
-
-    /**
-     * Get defined the value for CPP to stop on first error.
-     */
-    default boolean stopOnFirstError() {
-        return booleanValue(HiveCC.JJPARSER_CPP_STOP_ON_FIRST_ERROR);
     }
 
     /**

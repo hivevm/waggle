@@ -21,6 +21,24 @@ public class RChoice extends RExpression {
         return this.choices;
     }
 
+    /**
+     * Collapses a list of alternative regular expressions into a single node: the sole child is
+     * returned unchanged for a single alternative, otherwise an {@link RChoice} located at the first
+     * child and owning every child (parent wired) is created.
+     */
+    public static RExpression of(List<RExpression> choices) {
+        if (choices.size() == 1) {
+            return choices.get(0);
+        }
+        RChoice choice = new RChoice();
+        choice.setLocation(choices.get(0));
+        for (RExpression c : choices) {
+            choice.getChoices().add(c);
+            c.setParent(choice);
+        }
+        return choice;
+    }
+
     public final void CompressCharLists() {
         CompressChoices(); // Unroll nested choices
         RExpression curRE;
@@ -49,8 +67,7 @@ public class RChoice extends RExpression {
                 if (curCharList == null) {
                     curCharList = new RCharacterList();
                     getChoices().set(i, curCharList);
-                }
-                else
+                } else
                     getChoices().remove(i--);
 
                 for (int j = tmp.size(); j-- > 0; ) {

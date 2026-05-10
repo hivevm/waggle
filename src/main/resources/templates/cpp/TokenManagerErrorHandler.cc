@@ -17,13 +17,13 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 
 void TokenManagerErrorHandler::lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, JJString errorAfter, JJChar curChar) {
-    JJOUT
-            << JJWIDE(Lexical error at)  << JJSPACE << errorLine << JJWIDE(:) << errorColumn << JJWIDE(.)
-            << JJWIDE( Encountered:)  << JJSPACE << curChar <<JJWIDE( after:)  << JJSPACE << errorAfter << JJWIDE(.) << std::endl;
+	JJOUT
+        << JJWIDE(Lexical error at)  << JJSPACE << errorLine << JJWIDE(:) << errorColumn << JJWIDE(.)
+        << JJWIDE( Encountered:)  << JJSPACE << curChar <<JJWIDE( after:)  << JJSPACE << errorAfter << JJWIDE(.) << std::endl;
 }
 
 void TokenManagerErrorHandler::lexicalError(const JJString& errorMessage) {
-    JJOUT << errorMessage << std::endl;
+	JJOUT << errorMessage << std::endl;
 }
 
 //@if(CPP_NAMESPACE)

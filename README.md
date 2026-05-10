@@ -3,42 +3,79 @@
 
 # HiveVM - Parser Generator
 
-HiveVM Compiler-Compiler (HiveVM CC) is a fork of JavaCC 7.0.13.
-The overall goal is to maintain *mostly* compatibility to JavaCC, but:
+A parser generator is a tool that reads a grammar specification and converts it into a program that
+recognizes matches to that grammar.
 
-* The code itself should be better maintainable
-* Organize 
+HiveVM Compiler-Compiler (HiveVM CC) started as a fork of JavaCC 7.0.13, but **it is no longer
+grammar-compatible with JavaCC**. It keeps JavaCC's proven conceptual model — `LL(k)`
+recursive-descent parsing, a token manager with lexical states, syntactic and semantic lookahead,
+tree building — while replacing the surface syntax and the tooling around it:
 
-A parser generator is a tool that reads a grammar specification and converts it to a Java program that can recognize matches to the grammar.
+* **A simplified, EBNF-like syntax.** Productions read `name = expansion ;` instead of
+  `ReturnType name() : {} { … }`. There is no `PARSER_BEGIN`/`PARSER_END` wrapper embedding a Java
+  class in the grammar; a `grammar Name;` line plus an `options { … }` block opens the file, and
+  semantic actions are explicitly marked host-language islands, `<? … ?>`.
+* **One grammar, one step.** Tree building is expressed *in the same grammar* with `#Node`
+  annotations. The separate JJTree pre-processing pass is gone — there is no longer a two-step
+  `.jjt` → `.jj` → parser pipeline, just a single grammar compiled in one step.
+* **Multiple targets.** The same grammar can be emitted as Java, C++, or Rust.
+* **A more maintainable codebase**, driven by a Gradle plugin rather than a CLI.
 
-In addition to the parser generator itself, HiveVM CC provides other standard capabilities related to parser generation such as tree building (via a tool called JJTree included with HiveVM CC), actions and debugging.
+Because the syntax was redesigned, **JavaCC grammars must be migrated, not dropped in**;
+compatibility is at the *concept and feature* level, not the source level.
 
-All you need to run a HiveVM CC parser, once generated, is a Java Runtime Environment (JRE).
+All you need to run a generated Java parser is a Java Runtime Environment (JRE) — generated parsers
+carry no HiveVM CC runtime dependency.
+
+This repository is set up for **agentic coding** inside a ready-to-use Dev Container: coding agents
+work against explicit written rules so intent and reasoning stay reviewable.
+
+> For agent instructions, see [`AGENTS.md`](AGENTS.md) — the single source of truth for all coding agents.
+
+## Getting Started
+
+1. Open the repository in VS Code and choose **Reopen in Container** — the Dev Container and
+   preconfigured agent extensions build automatically.
+2. Authenticate your coding agent inside the container (for Claude Code: `claude login`).
+3. Start working with the agent — the rules it follows live in [`AGENTS.md`](AGENTS.md).
+
+## Build, Test & Run
+
+This is the single source for build/test/run commands — both humans and agents rely on it
+([`AGENTS.md`](AGENTS.md) links here).
+
+- **Build:** `./gradlew build`
+- **Test:** `./gradlew test`
+- **Run:** apply the `org.hivevm.cc` Gradle plugin and configure a `parserProject` (see **Configure Settings** below).
 
 ## Configure Settings
 
-The plugin implements the HiveVM CC generated.
+Apply the `org.hivevm.cc` Gradle plugin and describe the generation units in a `parserProject` block.
+Each `task` produces one parser from one grammar; `target` selects the output language (`java`, `cpp`,
+or `rust`) and may be set project-wide or per task. The `generateParser` task then runs them.
+
+Because tree building is part of the grammar, a grammar that builds a tree is *not* a separate kind of
+generation unit — it is an ordinary `task` whose grammar happens to use `#Node` annotations. Use
+`treeNodes` only to name node classes you supply yourself instead of having them generated.
 
 ~~~
 plugins {
-  id "org.hivevm.cc" version "1.0.0"
+  id "org.hivevm.cc" version "1.0.10"
 }
 
 parserProject {
-  target       = 'java'
+  target = 'java'                 // default output language: java | cpp | rust
+  output = 'src/main/generated'   // default output directory
 
   task {
-    name       = 'tree'
-    output     = 'src/main/generated'
-    jjtFile    = 'src/main/resources/JJTree.jjt'
-    excludes   = [ 'BNF', 'BNFAction', 'BNFDeclaration', 'BNFNodeScope',
-      'ExpansionNodeScope', 'NodeDescriptor', 'OptionBinding' ]
+    name = 'parser'
+    file = 'src/main/resources/JavaCC.jj'
   }
 
   task {
-    name       = 'parser'
-    output     = 'src/main/generated'
-    jjFile     = 'src/main/resources/JavaCC.jj'
+    name      = 'tree'
+    file      = 'src/main/resources/JJTree.jj'
+    treeNodes = [ 'BNF', 'NodeDescriptor' ]   // hand-written node classes
   }
 }
 ~~~
@@ -61,9 +98,9 @@ parserProject {
 
 * Tokens that are defined as *special tokens* in the lexical specification are ignored during parsing, but these tokens are available for processing by the tools. A useful application of this is in the processing of comments.
 
-* Lexical specifications can define tokens not to be case-sensitive either at the global level for the entire lexical specification, or on an individual lexical specification basis.
+* Lexical specifications can define tokens to be case-insensitive per token block, with the `[IGNORE_CASE]` modifier (`TOKEN [IGNORE_CASE] = …`). Note that `IGNORE_CASE` is a reserved word and so cannot be used as a key inside `options { … }`.
 
-* HiveVM CC comes with JJTree, an extremely powerful tree building pre-processor.
+* Tree building is **part of the grammar itself**: a production or an expansion is annotated with `#Node`, and the tree-node classes and visitor are generated alongside the parser. Unlike JavaCC — where JJTree is a separate pre-processor that rewrites a `.jjt` into a `.jj` before the parser generator runs — HiveVM CC needs no second step and no intermediate grammar.
 
 * HiveVM CC also includes JJDoc, a tool that converts grammar files to documentation files, optionally in HTML.
 
@@ -90,36 +127,43 @@ Examples of illegal strings are:
 
 ### Grammar
 
-```java
-PARSER_BEGIN(Example)
+The productions and the token definitions live in the same file. Note that no Java class is embedded
+in the grammar: `grammar Example;` declares the grammar's name and `options { … }` configures
+generation. For the Java target the generated classes are always `Parser`, `Lexer` and
+`ParserConstants`, in the package given by `JAVA_PACKAGE`.
 
-/** Simple brace matcher. */
-public class Example {
+```ebnf
+grammar Example;
 
-  /** Main entry point. */
-  public static void main(String args[]) throws ParseException {
-    Example parser = new Example(System.in);
-    parser.Input();
-  }
-
+options {
+  JAVA_PACKAGE: "org.example"
 }
-
-PARSER_END(Example)
 
 /** Root production. */
-void Input() :
-{}
-{
-  MatchedBraces() ("\n"|"\r")* <EOF>
-}
+Input =
+  MatchedBraces() ( <EOL> )* <EOF>
+;
 
 /** Brace matching production. */
-void MatchedBraces() :
-{}
-{
-  "{" [ MatchedBraces() ] "}"
-}
+MatchedBraces =
+  < LBRACE > [ MatchedBraces() ] < RBRACE >
+;
+
+SKIP =
+  " "
+| "\t"
+;
+
+TOKEN =
+  < LBRACE: "{" >
+| < RBRACE: "}" >
+| < EOL: "\n" | "\r" | "\r\n" >
+;
 ```
+
+The same grammar written for JavaCC would need a `PARSER_BEGIN(Example) … PARSER_END(Example)`
+wrapper around a full Java class, `void Input() : {} { … }` productions, and `{ … }` action blocks.
+None of that is accepted here — see [ADR-0008](docs/adr/0008-grammar-syntax-and-lexical-file.md).
 
 ### Output
 
@@ -153,6 +197,35 @@ Was expecting one of:
         at Example.Input(Example.java:32)
         at Example.main(Example.java:6)
 ```
+
+## Documentation
+
+- **Tutorials** — [`docs/tutorials/`](docs/tutorials/README.md): writing grammars for HiveVM CC —
+  the token manager, lookahead, character input, error handling, lexer tips, and worked examples.
+- **Specification** — [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md): problem, goals, and vocabulary.
+- **Architecture Decision Records** — [`docs/adr/`](docs/adr/README.md): the binding design decisions.
+
+## Dev Container
+
+The environment is defined entirely in [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json):
+it starts from a prebuilt base image and layers Dev Container Features and VS Code extensions on top —
+no Dockerfile or Compose file required. Customise the environment by adding Features, switching the
+base image, or adding extensions.
+
+## Coding Agents
+
+This Dev Container preinstalls the **Claude Code** and **Mistral Vibe** VS Code extensions (see
+[`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)); other agents (OpenAI Codex,
+Cursor, OpenCode, GitHub Copilot) work too once you add them. Authenticate your agent inside the
+container (for Claude Code: `claude login`).
+
+The rules every agent follows live in [`AGENTS.md`](AGENTS.md) — the single source of truth.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+for the community standards we expect of everyone taking part. Security issues: please follow
+[`SECURITY.md`](SECURITY.md) instead of opening a public issue.
 
 ## License
 

@@ -17,7 +17,8 @@ class CCParserTest {
 
     @Test
     void testJJParser() {
-        var builder = ParserBuilder.of(Language.JAVA);
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.JAVA);
         builder.setTargetDir(CCParserTest.PARSER_TARGET);
         builder.setParserFile(CCParserTest.PARSER_SOURCE, "JavaCC.jj");
         builder.build().parse();
@@ -25,7 +26,8 @@ class CCParserTest {
 
     @Test
     void testJJTree() {
-        var builder = ParserBuilder.of(Language.JAVA);
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.JAVA);
         builder.setTargetDir(CCParserTest.PARSER_TARGET);
         builder.setParserFile(CCParserTest.PARSER_SOURCE, "JJTree.jjt");
         builder.setCustomNodes(CCParserTest.NODES);

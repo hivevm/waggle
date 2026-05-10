@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.Token;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes regular expressions.
@@ -44,7 +44,7 @@ public abstract class RExpression extends RegularExpression {
      * If this is a top-level regular expression (nested directly within a TokenProduction), then
      * this field point to that TokenProduction object.
      */
-    private TokenProduction tpContext = null;
+    private TokenProduction tokenProduction = null;
 
     /**
      * The following variable is used to maintain state information for the loop determination
@@ -106,12 +106,20 @@ public abstract class RExpression extends RegularExpression {
         this.walkStatus = walkStatus;
     }
 
-    public final TokenProduction getTpContext() {
-        return this.tpContext;
+    public final TokenKind getTokenKind() {
+        return this.tokenProduction != null ? this.tokenProduction.getKind() : null;
     }
 
-    public final void setTpContext(TokenProduction tpContext) {
-        this.tpContext = tpContext;
+    public final boolean isExplicit() {
+        return this.tokenProduction != null && this.tokenProduction.isExplicit();
+    }
+
+    public final boolean isIgnoreCase() {
+        return this.tokenProduction != null && this.tokenProduction.isIgnoreCase();
+    }
+
+    public final void setTokenProduction(TokenProduction tokenProduction) {
+        this.tokenProduction = tokenProduction;
     }
 
     public abstract <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data);

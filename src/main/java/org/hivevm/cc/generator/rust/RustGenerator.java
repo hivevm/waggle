@@ -9,50 +9,33 @@ import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
-import org.hivevm.cc.generator.TreeGenerator;
 
 /**
- * RustGenerator is a concrete implementation of the abstract GeneratorProvider for generating
- * components specific to the Rust programming language. It overrides the necessary methods to
- * return Rust-specific implementations for generating abstract syntax trees, lexer, parser, and
- * files.
- * <p>
- * Annotated with {@link GeneratorName} having the value "Rust" to indicate that this generator is
- * tailored for Rust.
- * <p>
- * Responsibilities include: - Generating Rust Abstract Syntax Trees using {@link RustASTGenerator}.
- * - Generating lexer files using {@link RustLexerGenerator}. - Generating parser files using
- * {@link RustParserGenerator}. - Generating additional Rust-specific file templates through
- * embedded render logic.
+ * The {@link RustGenerator} class.
  */
 @GeneratorName("Rust")
 public class RustGenerator extends GeneratorProvider {
 
     @Override
-    protected final TreeGenerator newTreeGenerator() {
-        return new RustTreeGenerator();
+    public final NodeGenerator newNodeGenerator() {
+        return new RustNodeGenerator();
     }
 
     @Override
-    protected final NodeGenerator newNodeGenerator() {
-        return new RustNodeGenerator();
+    public final LexerGenerator newLexerGenerator() {
+        return new RustLexerGenerator();
+    }
+
+    @Override
+    public final ParserGenerator newParserGenerator() {
+        return new RustParserGenerator();
     }
 
     @Override
     protected final FileGenerator newFileGenerator() {
         return context -> {
-            RustSources.TOKEN.render(context.options());
-            RustSources.CHAR_STREAM.render(context.options());
+            RustTemplate.TOKEN.render(context.options());
+            RustTemplate.CHAR_STREAM.render(context.options());
         };
-    }
-
-    @Override
-    protected final LexerGenerator newLexerGenerator() {
-        return new RustLexerGenerator();
-    }
-
-    @Override
-    protected final ParserGenerator newParserGenerator() {
-        return new RustParserGenerator();
     }
 }

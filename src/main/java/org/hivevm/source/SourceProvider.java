@@ -3,13 +3,13 @@
 
 package org.hivevm.source;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import org.hivevm.cc.HiveCCVersion;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * Represents a provider for retrieving and rendering templates.
@@ -49,8 +49,7 @@ public interface SourceProvider {
             try (var ostream = new FileOutputStream(file)) {
                 template.render(title, ostream, options);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Failed to create file: " + file.getName() + " " + e);
             JavaCCErrors.semantic_error("Could not open file: " + file.getName() + " for writing.");
             throw new Error();

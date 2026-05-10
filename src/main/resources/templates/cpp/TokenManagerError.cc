@@ -10,46 +10,46 @@ namespace __CPP_NAMESPACE__ {
 
 
 JJString TokenManagerError::lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, const JJString& errorAfter, JJChar curChar) {
-    JJString s;
+	JJString s;
 #if (JAVACC_CHAR_TYPE_SIZEOF == 1)
-    s += "Lexical error at line ";
-    s += std::to_string(errorLine);
-    s += ":";
-    s += std::to_string(errorColumn);
-    s += ".  Encountered: ";
-    s += curChar;
-    s += "(";
-    s += std::to_string((int)curChar);
-    s += ") after: ";
-    s += errorAfter;
+	s += "Lexical error at line ";
+	s += std::to_string(errorLine);
+	s += ":";
+	s += std::to_string(errorColumn);
+	s += ".  Encountered: ";
+	s += curChar;
+	s += "(";
+	s += std::to_string((int)curChar);
+	s += ") after: ";
+	s += errorAfter;
 #else
-    s += L"Lexical error at line ";
-    s += std::to_wstring(errorLine);
-    s += L":";
-    s += std::to_wstring(errorColumn);
-    s += L".  Encountered: ";
-    s += curChar;
-    s += L"(";
-    s += std::to_wstring((int)curChar);
-    s += L") after: ";
-    s += errorAfter;
+	s += L"Lexical error at line ";
+	s += std::to_wstring(errorLine);
+	s += L":";
+	s += std::to_wstring(errorColumn);
+	s += L".  Encountered: ";
+	s += curChar;
+	s += L"(";
+	s += std::to_wstring((int)curChar);
+	s += L") after: ";
+	s += errorAfter;
 #endif
-    return s;
+	return s;
 }
 
 JJString TokenManagerError::getMessage() {
-    return message;
+	return message;
 }
 
 TokenManagerError::TokenManagerError() {
-    errorCode = -1;
+	errorCode = -1;
 }
 TokenManagerError::TokenManagerError(const JJString & message, int reason) {
-    errorCode = reason;
+	errorCode = reason;
 }
 TokenManagerError::TokenManagerError(bool EOFSeen, int lexState, int errorLine, int errorColumn, const JJString& errorAfter, JJChar curChar, int reason) {
-    message = lexicalError(EOFSeen, lexState, errorLine, errorColumn, errorAfter, curChar);
-    errorCode = reason;
+	message = lexicalError(EOFSeen, lexState, errorLine, errorColumn, errorAfter, curChar);
+	errorCode = reason;
 }
 TokenManagerError::~TokenManagerError() { 
 }
@@ -59,16 +59,16 @@ TokenManagerError::~TokenManagerError() {
 
 // i < 16 - guaranteed
 static char hexChar(int i) {
-    if (i < 10) {
-        return i + '0';
-    }
-    return 'a' + (i - 10);
+	if (i < 10) {
+		return i + '0';
+	}
+	return 'a' + (i - 10);
 }
 
-/**
- * Replaces unprintable characters by their escaped (or unicode escaped)
- * equivalents in the given string
- */
+	/**
+	 * Replaces unprintable characters by their escaped (or unicode escaped)
+	 * equivalents in the given string
+	 */
 #if (JAVACC_CHAR_TYPE_SIZEOF == 1)
 #define JJB "\\b"
 #define JJT "\\t"
@@ -89,43 +89,43 @@ static char hexChar(int i) {
 #define JJM 0xffff
 #endif
 JJString addUnicodeEscapes(const JJString& str) {
-    JJString retval;
-    for (size_t i = 0; i < str.size(); i++) {
-        JJChar ch = str[i];
-        switch (ch)
-        {
-        case '\b':
-            retval.append(JJB);
-            continue;
-        case '\t':
-            retval.append(JJT);
-            continue;
-        case '\n':
-            retval.append(JJN);
-            continue;
-        case '\f':
-            retval.append(JJF);
-            continue;
-        case '\r':
-            retval.append(JJR);
-            continue;
-        case '\\':
-            retval.append(JJS);
-            continue;
-        default:
-            if (ch < JJM) {
-                retval += ch;
-                continue;
-            }
-            retval.append(JJU);
-            retval += (hexChar(ch >> 12));
-            retval += (hexChar((ch & 0x0f00) >> 8));
-            retval += (hexChar((ch & 0x00f0) >> 4));
-            retval += (hexChar(ch & 0x000f));
-            continue;
-        }
-    }
-    return retval;
+	JJString retval;
+	for (size_t i = 0; i < str.size(); i++) {
+		JJChar ch = str[i];
+		switch (ch)
+		{
+		case '\b':
+			retval.append(JJB);
+			continue;
+		case '\t':
+			retval.append(JJT);
+			continue;
+		case '\n':
+			retval.append(JJN);
+			continue;
+		case '\f':
+			retval.append(JJF);
+			continue;
+		case '\r':
+			retval.append(JJR);
+			continue;
+		case '\\':
+			retval.append(JJS);
+			continue;
+		default:
+			if (ch < JJM) {
+				retval += ch;
+				continue;
+			}
+			retval.append(JJU);
+			retval += (hexChar(ch >> 12));
+			retval += (hexChar((ch & 0x0f00) >> 8));
+			retval += (hexChar((ch & 0x00f0) >> 4));
+			retval += (hexChar(ch & 0x000f));
+			continue;
+		}
+	}
+	return retval;
 }
 #undef JJB
 #undef JJT

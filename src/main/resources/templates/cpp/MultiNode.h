@@ -14,12 +14,12 @@ namespace __CPP_NAMESPACE__ {
 
 class __NODE_TYPE__ : public __NODE_CLASS__ {
 public: 
-  __NODE_TYPE__(int id);
-  virtual ~__NODE_TYPE__();
+	__NODE_TYPE__(int id);
+	virtual ~__NODE_TYPE__();
 
 //@if(VISITOR)
-  /** Accept the visitor. **/
-  virtual __VISITOR_RETURN_TYPE__ jjtAccept(__PARSER_NAME__Visitor* visitor, __VISITOR_DATA_TYPE__ data) const ;
+	/** Accept the visitor. **/
+	virtual __VISITOR_RETURN_TYPE__ jjtAccept(__PARSER_NAME__Visitor* visitor, __VISITOR_DATA_TYPE__ data) const ;
 //@fi
 };
 

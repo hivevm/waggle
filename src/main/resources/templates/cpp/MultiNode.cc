@@ -11,20 +11,20 @@
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {
 //@fi
-  
-  __NODE_TYPE__::__NODE_TYPE__(int id) : __NODE_CLASS__(id) {
-  }
-  __NODE_TYPE__::~__NODE_TYPE__() {
-  }
+	
+__NODE_TYPE__::__NODE_TYPE__(int id) : __NODE_CLASS__(id) {
+}
+__NODE_TYPE__::~__NODE_TYPE__() {
+}
 
 //@if(VISITOR)
-  /** Accept the visitor. **/
-  __VISITOR_RETURN_TYPE__ __NODE_TYPE__::jjtAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const {
+/** Accept the visitor. **/
+__VISITOR_RETURN_TYPE__ __NODE_TYPE__::jjtAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const {
 //@if(!VISITOR_RETURN_TYPE_VOID)
-    return 
+	return
 //@fi
-    visitor->visit(this, data);
-  }
+	visitor->visit(this, data);
+}
 //@fi
 
 //@if(CPP_NAMESPACE)

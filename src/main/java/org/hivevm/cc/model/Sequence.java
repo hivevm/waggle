@@ -12,13 +12,13 @@ import java.util.List;
 public class Sequence extends Expansion {
 
     // The list of units in this expansion sequence. Each List component will narrow to Expansion.
-    private final List<? super Expansion> units;
+    private final List<Expansion> units;
 
     public Sequence() {
         this.units = new ArrayList<>();
     }
 
-    public final List<? super Expansion> getUnits() {
+    public final List<Expansion> getUnits() {
         return this.units;
     }
 }

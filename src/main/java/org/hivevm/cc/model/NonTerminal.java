@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.Token;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes non terminals. The LHS to which the return value of the non-terminal is assigned. In
@@ -15,10 +15,10 @@ import org.hivevm.cc.parser.Token;
 
 public class NonTerminal extends Expansion {
 
-    private String           name;
+    private String name;
     private NormalProduction prod;
 
-    private       List<Token> lhsTokens;
+    private List<Token> lhsTokens;
     private final List<Token> argument_tokens;
 
     public NonTerminal() {

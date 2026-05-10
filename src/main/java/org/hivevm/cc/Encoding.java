@@ -18,33 +18,24 @@ public interface Encoding {
             ch = text.charAt(i);
             if (ch == '\b') {
                 retval.append("\\b");
-            }
-            else if (ch == '\t') {
+            } else if (ch == '\t') {
                 retval.append("\\t");
-            }
-            else if (ch == '\n') {
+            } else if (ch == '\n') {
                 retval.append("\\n");
-            }
-            else if (ch == '\f') {
+            } else if (ch == '\f') {
                 retval.append("\\f");
-            }
-            else if (ch == '\r') {
+            } else if (ch == '\r') {
                 retval.append("\\r");
-            }
-            else if (ch == '\"') {
+            } else if (ch == '\"') {
                 retval.append("\\\"");
-            }
-            else if (ch == '\'') {
+            } else if (ch == '\'') {
                 retval.append("\\'");
-            }
-            else if (ch == '\\') {
+            } else if (ch == '\\') {
                 retval.append("\\\\");
-            }
-            else if ((ch < 0x20) || (ch > 0x7e)) {
+            } else if ((ch < 0x20) || (ch > 0x7e)) {
                 String s = "0000" + Integer.toString(ch, 16);
                 retval.append("\\u").append(s.substring(s.length() - 4));
-            }
-            else {
+            } else {
                 retval.append(ch);
             }
         }
@@ -66,8 +57,7 @@ public interface Encoding {
                             != '\f')) {
                         String s = "0000" + Integer.toString(ch, 16);
                         builder.append("\\u").append(s.substring(s.length() - 4));
-                    }
-                    else {
+                    } else {
                         builder.append(ch);
                     }
                 }

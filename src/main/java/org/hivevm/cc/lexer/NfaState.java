@@ -3,57 +3,55 @@
 
 package org.hivevm.cc.lexer;
 
+import org.hivevm.cc.parser.JavaCCErrors;
+
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
-
-import org.hivevm.cc.generator.NfaStateData;
-import org.hivevm.cc.parser.JavaCCErrors;
 
 /**
  * The state of a Non-deterministic Finite Automaton.
  */
 public class NfaState {
 
-    private final static String ALL_BITS =
-            "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
+    private final static String ALL_BITS = "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
 
 
     public static boolean AllBitsSet(String bitVec) {
         return bitVec.equals(NfaState.ALL_BITS);
     }
 
-    public final long[]           asciiMoves   = new long[2];
-    public       char[]           charMoves    = null;
-    public       char[]           rangeMoves   = null;
-    public       NfaState         next         = null;
-    public       NfaState         stateForCase;
-    public final Vector<NfaState> epsilonMoves = new Vector<>();
-    public       String           epsilonMovesString;
-    private      NfaState[]       epsilonMoveArray;
+    public final long[] asciiMoves = new long[2];
+    char[] charMoves = null;
+    char[] rangeMoves = null;
+    public NfaState next = null;
+    public NfaState stateForCase;
+    final Vector<NfaState> epsilonMoves = new Vector<>();
+    public String epsilonMovesString;
+    private NfaState[] epsilonMoveArray;
 
-    private final int             id;
-    public        int             stateName          = -1;
-    public        int             kind               = Integer.MAX_VALUE;
-    public        int             lookingFor;
-    public        int             usefulEpsilonMoves = 0;
-    public        int             inNextOf;
-    public        int             lexState;
-    public        int             nonAsciiMethod     = -1;
-    public        int             kindToPrint        = Integer.MAX_VALUE;
-    public        boolean         dummy              = false;
-    public        boolean         isComposite        = false;
-    public        int[]           compositeStates    = null;
-    public        boolean         isFinal            = false;
-    public final  Vector<Integer> loByteVec;
-    public        int[]           nonAsciiMoveIndices;
-    private       int             onlyChar           = 0;
-    private       char            matchSingleChar;
+    private final int id;
+    public int stateName = -1;
+    int kind = Integer.MAX_VALUE;
+    public int lookingFor;
+    public int usefulEpsilonMoves = 0;
+    public int inNextOf;
+    public int lexState;
+    public int nonAsciiMethod = -1;
+    public int kindToPrint = Integer.MAX_VALUE;
+    public boolean dummy = false;
+    public boolean isComposite = false;
+    public int[] compositeStates = null;
+    boolean isFinal = false;
+    public final Vector<Integer> loByteVec;
+    public int[] nonAsciiMoveIndices;
+    private int onlyChar = 0;
+    private char matchSingleChar;
 
     private final NfaStateData data;
 
-    public NfaState(NfaStateData data) {
+    NfaState(NfaStateData data) {
         this.data = data;
         this.id = data.addAllState(this);
         this.lexState = data.getStateIndex();
@@ -92,7 +90,7 @@ public class NfaState {
         return ret;
     }
 
-    public void AddMove(NfaState newState) {
+    void AddMove(NfaState newState) {
         if (!this.epsilonMoves.contains(newState))
             NfaState.InsertInOrder(this.epsilonMoves, newState);
     }
@@ -101,7 +99,7 @@ public class NfaState {
         this.asciiMoves[c / 64] |= (1L << (c % 64));
     }
 
-    public void AddChar(char c) {
+    void AddChar(char c) {
         this.onlyChar++;
         this.matchSingleChar = c;
         int i;
@@ -357,7 +355,7 @@ public class NfaState {
     }
 
     // generates code (without outputting it) and returns the name used.
-    public void GenerateCode() {
+    void GenerateCode() {
         if (this.stateName != -1)
             return;
 
@@ -384,7 +382,7 @@ public class NfaState {
         }
     }
 
-    public static void ComputeClosures(NfaStateData data) {
+    static void ComputeClosures(NfaStateData data) {
         for (int i = data.getAllStateCount(); i-- > 0; ) {
             NfaState tmp = data.getAllState(i);
 
@@ -511,8 +509,7 @@ public class NfaState {
                 // Since we are doing a closure, just epsilon moves are unnecessary
                 if (this.epsilonMoves.get(i).HasTransitions()) {
                     this.usefulEpsilonMoves++;
-                }
-                else {
+                } else {
                     this.epsilonMoves.removeElementAt(i--);
                 }
             }
@@ -608,7 +605,7 @@ public class NfaState {
         return Integer.MAX_VALUE;
     }
 
-    public static int MoveFromSet(char c, List<NfaState> states, List<NfaState> newStates) {
+    static int MoveFromSet(char c, List<NfaState> states, List<NfaState> newStates) {
         int tmp;
         int retVal = Integer.MAX_VALUE;
 
@@ -620,7 +617,7 @@ public class NfaState {
     }
 
 
-    public static boolean EqualLoByteVectors(List<Integer> vec1, List<Integer> vec2) {
+    static boolean EqualLoByteVectors(List<Integer> vec1, List<Integer> vec2) {
         if ((vec1 == null) || (vec2 == null))
             return false;
 
@@ -637,7 +634,7 @@ public class NfaState {
         return true;
     }
 
-    public static boolean EqualNonAsciiMoveIndices(int[] moves1, int[] moves2) {
+    static boolean EqualNonAsciiMoveIndices(int[] moves1, int[] moves2) {
         if (moves1 == moves2)
             return true;
 

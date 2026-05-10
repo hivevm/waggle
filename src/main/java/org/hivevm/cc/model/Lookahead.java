@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.Token;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes lookahead rule for a particular expansion or expansion sequence (See Sequence.java). In

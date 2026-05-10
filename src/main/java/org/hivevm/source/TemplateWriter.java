@@ -3,6 +3,9 @@
 
 package org.hivevm.source;
 
+import org.hivevm.core.Environment;
+import org.jspecify.annotations.NonNull;
+
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.security.DigestOutputStream;
@@ -16,10 +19,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.jspecify.annotations.NonNull;
-
-import org.hivevm.core.Environment;
-
 /**
  * The DigestWriter class extends {@link PrintWriter} and implements the {@link Environment}
  * interface. It is designed to wrap an output stream and compute a cryptographic digest (MD5) of
@@ -27,21 +26,24 @@ import org.hivevm.core.Environment;
  * its operations, allowing for formatted output with metadata such as a checksum and consumed
  * options.
  */
-class TemplateWriter extends PrintWriter implements SourceWriter, Environment {
+class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
 
+    private static final String INDENT = "    ";
+
+    private final PrintWriter writer;
     private final DigestOutputStream stream;
-    private final Set<String>        consumed;
-    private final Environment        environment;
+    private final Set<String> consumed;
+    private final Environment environment;
 
 
-    private int     indent;
+    private int indent;
     private boolean newLine;
 
     /**
      * Constructs an instance of {@link TemplateWriter}.
      */
     private TemplateWriter(DigestOutputStream stream, Environment environment) {
-        super(stream);
+        this.writer = new PrintWriter(stream);
         this.stream = stream;
         this.consumed = new HashSet<>();
         this.environment = environment;
@@ -68,24 +70,6 @@ class TemplateWriter extends PrintWriter implements SourceWriter, Environment {
     }
 
     /**
-     * Closes the stream and releases any system resources associated with it. Closing a previously
-     * closed stream has no effect.
-     */
-    @Override
-    public void close() {
-        super.flush();
-        printf("\n// Checksum=%s (Do not edit this line!)\n", HexFormat.of()
-                .formatHex(this.stream.getMessageDigest().digest()).toUpperCase());
-        if (!this.consumed.isEmpty()) {
-            printf("// Options: %s\n", this.consumed.stream()
-                    .filter(n -> !n.contains(".")).sorted()
-                    .map(n -> TemplateWriter.toPrintable(n, get(n)))
-                    .collect(Collectors.joining(", ")));
-        }
-        super.close();
-    }
-
-    /**
      * Formats a given name and value into a printable string representation. If the value is an
      * instance of {@code Number} or {@code Boolean}, the result is formatted as `name=value`. For
      * all other types of values, the result is formatted as `name='value'`.
@@ -108,10 +92,69 @@ class TemplateWriter extends PrintWriter implements SourceWriter, Environment {
     private static MessageDigest create() {
         try {
             return MessageDigest.getInstance("MD5");
-        }
-        catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public final void println() {
+        this.newLine = true;
+        writer.write('\n');
+    }
+
+    @Override
+    public final void print(@NonNull String text) {
+        for (var line : text.splitWithDelimiters("\n", -1)) {
+            if (line.equals("\n")) {
+                newLine = true;
+                writer.write('\n');
+            } else if (!line.isEmpty()) {
+                if (newLine) {
+                    IntStream.range(0, indent).forEach(i -> writer.write(TemplateWriter.INDENT));
+                }
+                newLine = false;
+                write(line);
+            }
+        }
+    }
+
+    /**
+     * Writes a string.  This method cannot be inherited from the Writer class
+     * because it must suppress I/O exceptions.
+     *
+     * @param s String to be written
+     */
+    public final void write(@NonNull String s) {
+        writer.write(s.replace("\t", TemplateWriter.INDENT));
+    }
+
+    public final TemplateWriter indent() {
+        this.indent++;
+        return this;
+    }
+
+    public final TemplateWriter outdent() {
+        this.indent--;
+        return this;
+    }
+
+    /**
+     * Closes the stream and releases any system resources associated with it. Closing a previously
+     * closed stream has no effect.
+     */
+    @Override
+    public void close() {
+        writer.flush();
+        writer.printf("\n// Checksum=%s (Do not edit this line!)\n", HexFormat.of()
+                .formatHex(this.stream.getMessageDigest().digest()).toUpperCase());
+        if (!this.consumed.isEmpty()) {
+            writer.printf("// Options: %s\n", this.consumed.stream()
+                    .filter(n -> !n.contains(".")).sorted()
+                    .map(n -> TemplateWriter.toPrintable(n, get(n)))
+                    .collect(Collectors.joining(", ")));
+        }
+        writer.close();
     }
 
     /**
@@ -119,50 +162,10 @@ class TemplateWriter extends PrintWriter implements SourceWriter, Environment {
      * and environment. This method initializes the necessary internal structures, including the
      * message digest and byte buffer, to write output while computing its digest.
      */
-    public static TemplateWriter create(String title, OutputStream stream,
-                                        Environment environment) {
+    public static TemplateWriter create(String title, OutputStream stream, Environment environment) {
         var digest = new DigestOutputStream(stream, TemplateWriter.create());
         var writer = new TemplateWriter(digest, environment);
-        writer.printf("// Generated by %s - Do not edit this line!\n\n", title);
+        writer.writer.printf("// Generated by %s - Do not edit this line!\n\n", title);
         return writer;
-    }
-
-    @Override
-    public SourceWriter append(@NonNull String text) {
-        for (var line : text.splitWithDelimiters("\n", -1)) {
-            if (line.equals("\n")) {
-                super.append('\n');
-                newLine = true;
-            }
-            else {
-                if (newLine) {
-                    IntStream.range(0, indent).forEach(i -> super.write("    "));
-                    newLine = false;
-                }
-                super.write(line);
-            }
-        }
-        return this;
-    }
-
-    @Override
-    public SourceWriter indent() {
-        this.indent++;
-        this.newLine = true;
-        return this;
-    }
-
-    @Override
-    public SourceWriter outdent() {
-        this.indent--;
-        this.newLine = true;
-        return this;
-    }
-
-    @Override
-    public SourceWriter new_line() {
-        this.newLine = true;
-        super.write('\n');
-        return this;
     }
 }

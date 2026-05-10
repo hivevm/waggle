@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.NfaStateData;
 import org.hivevm.cc.model.CharacterRange;
 import org.hivevm.cc.model.RCharacterList;
 import org.hivevm.cc.model.RChoice;
@@ -23,7 +22,7 @@ import org.hivevm.cc.parser.JavaCCErrors;
 /**
  * The {@link NfaVisitor} class.
  */
-public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
+final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
 
     private final boolean ignoreCase;
 
@@ -70,8 +69,7 @@ public final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateD
         for (i = 0; i < expr.getDescriptors().size(); i++) {
             if (expr.getDescriptors().get(i) instanceof SingleCharacter) {
                 startState.AddChar(((SingleCharacter) expr.getDescriptors().get(i)).getChar());
-            }
-            else // if (descriptors.get(i) instanceof CharacterRange)
+            } else // if (descriptors.get(i) instanceof CharacterRange)
             {
                 CharacterRange cr = (CharacterRange) expr.getDescriptors().get(i);
 

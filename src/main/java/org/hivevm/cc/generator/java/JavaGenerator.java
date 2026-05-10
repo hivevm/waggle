@@ -9,7 +9,6 @@ import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
-import org.hivevm.cc.generator.TreeGenerator;
 
 /**
  * The {@link JavaGenerator} class.
@@ -18,37 +17,31 @@ import org.hivevm.cc.generator.TreeGenerator;
 public class JavaGenerator extends GeneratorProvider {
 
     @Override
-    protected final TreeGenerator newTreeGenerator() {
-        return new JavaTreeGenerator();
-    }
-
-    @Override
-    protected final NodeGenerator newNodeGenerator() {
+    public final NodeGenerator newNodeGenerator() {
         return new JavaNodeGenerator();
     }
 
-
     @Override
-    protected final FileGenerator newFileGenerator() {
-        return context -> {
-            JavaSources.PROVIDER.render(context.options());
-            JavaSources.STRING_PROVIDER.render(context.options());
-            JavaSources.STREAM_PROVIDER.render(context.options());
-            JavaSources.CHAR_STREAM.render(context.options());
-
-            JavaSources.TOKEN.render(context.options());
-            JavaSources.TOKEN_EXCEPTION.render(context.options());
-            JavaSources.PARSER_EXCEPTION.render(context.options());
-        };
-    }
-
-    @Override
-    protected final LexerGenerator newLexerGenerator() {
+    public final LexerGenerator newLexerGenerator() {
         return new JavaLexerGenerator();
     }
 
     @Override
-    protected final ParserGenerator newParserGenerator() {
+    public final ParserGenerator newParserGenerator() {
         return new JavaParserGenerator();
+    }
+
+    @Override
+    protected final FileGenerator newFileGenerator() {
+        return context -> {
+            JavaTemplate.PROVIDER.render(context.options());
+            JavaTemplate.STRING_PROVIDER.render(context.options());
+            JavaTemplate.STREAM_PROVIDER.render(context.options());
+            JavaTemplate.CHAR_STREAM.render(context.options());
+
+            JavaTemplate.TOKEN.render(context.options());
+            JavaTemplate.TOKEN_EXCEPTION.render(context.options());
+            JavaTemplate.PARSER_EXCEPTION.render(context.options());
+        };
     }
 }

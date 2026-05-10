@@ -3,11 +3,7 @@
 
 package org.hivevm.cc.model;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes BNF productions.
@@ -15,38 +11,15 @@ import org.hivevm.cc.parser.Token;
 
 public class BNFProduction extends NormalProduction {
 
-    private final List<Token> declaration_tokens;
-    private final List<Token> end_tokens;
-
-    private       int                           nextScope;
+    private int nextScope;
     private final Hashtable<NodeScope, Integer> scopes;
 
     public BNFProduction() {
-        this.declaration_tokens = new ArrayList<>();
-        this.end_tokens = new ArrayList<>();
         this.nextScope = 0;
         this.scopes = new Hashtable<>();
     }
 
-    public BNFProduction addDeclaration(Token token) {
-        this.declaration_tokens.add(token);
-        return this;
-    }
-
-    public BNFProduction addDeclarationEnd(Token token) {
-        this.end_tokens.add(token);
-        return this;
-    }
-
-    public List<Token> getDeclarationTokens() {
-        return this.declaration_tokens;
-    }
-
-    public List<Token> getDeclarationEndTokens() {
-        return this.end_tokens;
-    }
-
-    public int getNodeScopeNumber(NodeScope s) {
+    int getNodeScopeNumber(NodeScope s) {
         Integer i = this.scopes.get(s);
         if (i == null) {
             i = this.nextScope++;

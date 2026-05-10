@@ -44,12 +44,11 @@ import java.util.regex.Pattern;
 public class Version implements Comparable<Version> {
 
     private static final String PATTERN =
-        "(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?";
+            "(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?";
 
-    private static final Pattern PARSE  = Pattern.compile(Version.PATTERN);
-    private static final Pattern MATCH  = Pattern.compile("^" + Version.PATTERN + "$");
-    private static final Pattern FORMAT = Pattern.compile(
-        "([0]+)\\.([0]+)(?:\\.([0]+))?(?:-([0]+))?(?:\\+([0]+))?");
+    private static final Pattern PARSE = Pattern.compile(Version.PATTERN);
+    private static final Pattern MATCH = Pattern.compile("^" + Version.PATTERN + "$");
+    private static final Pattern FORMAT = Pattern.compile("(0+)\\.(0+)(?:\\.(0+))?(?:-(0+))?(?:\\+(0+))?");
 
 
     private final int major;
@@ -112,11 +111,9 @@ public class Version implements Comparable<Version> {
     public int compareTo(Version other) {
         if (getMajor() != other.getMajor()) { // Major version
             return getMajor() > other.getMajor() ? -1 : 1;
-        }
-        else if (getMinor() != other.getMinor()) { // Minor version
+        } else if (getMinor() != other.getMinor()) { // Minor version
             return getMinor() > other.getMinor() ? -1 : 1;
-        }
-        else if (getPatch() != other.getPatch()) { // Patch version
+        } else if (getPatch() != other.getPatch()) { // Patch version
             return getPatch() > other.getPatch() ? -1 : 1;
         }
         return 0;
@@ -225,15 +222,14 @@ public class Version implements Comparable<Version> {
             return null;
         }
 
-        Matcher matcher = pattern.matcher(text);
+        var matcher = pattern.matcher(text);
         if (!matcher.find()) {
             throw new IllegalArgumentException("'" + text + "' is not a valid version");
         }
 
         int major = Integer.parseInt(matcher.group("major"));
         int minor = Integer.parseInt(matcher.group("minor"));
-        int patch =
-            (matcher.group("patch") == null) ? -1 : Integer.parseInt(matcher.group("patch"));
+        int patch = (matcher.group("patch") == null) ? -1 : Integer.parseInt(matcher.group("patch"));
         return Version.of(major, minor, patch, matcher.group("name"), matcher.group("build"));
     }
 }

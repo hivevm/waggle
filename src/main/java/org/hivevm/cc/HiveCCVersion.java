@@ -3,11 +3,11 @@
 
 package org.hivevm.cc;
 
+import org.hivevm.core.Version;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
-import org.hivevm.core.Version;
 
 /**
  * This package contains data created as a result of parsing and semanticizing a JavaCC input file.
@@ -24,8 +24,7 @@ public interface HiveCCVersion {
             Properties properties = new Properties();
             properties.load(stream);
             version = properties.getProperty("release", "0.0");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Could not read version.properties: " + e);
         }
         return Version.parse(version);

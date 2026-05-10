@@ -19,23 +19,20 @@ namespace __CPP_NAMESPACE__ {
 
 class __PARSER_NAME__TokenManager : public TokenManager {
 public:
-
-  FILE *debugStream;
-  void setDebugStream(FILE *ds);
-//@foreach(STATES)
-__STATES_HEAD__
-//@end
-Token * jjFillToken();
+	FILE *debugStream;
+	void setDebugStream(FILE *ds);
+	//@invoke(DUMP_NFA_AND_DFA_HEADER)
+	Token * jjFillToken();
 //@foreach(NON_ASCII_TABLE)
-bool jjCanMove___NON_ASCII_TABLE_OFFSET__(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2);
+bool jjCanMove___NON_ASCII_TABLE_NAME__(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2);
 //@end
 public:
-  int defaultLexState;
-  int curLexState = 0;
-  int jjnewStateCnt = 0;
-  int jjround = 0;
-  int jjmatchedPos = 0;
-  int jjmatchedKind = 0;
+	int defaultLexState;
+	int curLexState = 0;
+	int jjnewStateCnt = 0;
+	int jjround = 0;
+	int jjmatchedPos = 0;
+	int jjmatchedKind = 0;
 
 Token * getNextToken();
 //@if(HAS_SKIP_ACTIONS)
@@ -49,70 +46,70 @@ void TokenLexicalActions(Token *matchedToken);
 //@fi
 #define jjCheckNAdd(state)\
 {\
-   if (jjrounds[state] != jjround)\
-   {\
-      jjstateSet[jjnewStateCnt++] = state;\
-      jjrounds[state] = jjround;\
-   }\
+	if (jjrounds[state] != jjround)\
+	{\
+		jjstateSet[jjnewStateCnt++] = state;\
+		jjrounds[state] = jjround;\
+	}\
 }
 #define jjAddStates(start, end)\
 {\
-   for (int x = start; x <= end; x++) {\
-      jjstateSet[jjnewStateCnt++] = jjnextStates[x];\
-   } /*while (start++ != end);*/\
+	for (int x = start; x <= end; x++) {\
+		jjstateSet[jjnewStateCnt++] = jjnextStates[x];\
+	} /*while (start++ != end);*/\
 }
 #define jjCheckNAddTwoStates(state1, state2)\
 {\
-   jjCheckNAdd(state1);\
-   jjCheckNAdd(state2);\
+	jjCheckNAdd(state1);\
+	jjCheckNAdd(state2);\
 }
 
 //@if(CHECK_NADD_STATES_DUAL_NEEDED)
 #define jjCheckNAddStates(start, end)\
 {\
-   for (int x = start; x <= end; x++) {\
-      jjCheckNAdd(jjnextStates[x]);\
-   } /*while (start++ != end);*/\
+	for (int x = start; x <= end; x++) {\
+		jjCheckNAdd(jjnextStates[x]);\
+	} /*while (start++ != end);*/\
 }
 
 //@fi
 //@if(CHECK_NADD_STATES_UNARY_NEEDED)
 #define jjCheckNAddStates(start)\
 {\
-   jjCheckNAdd(jjnextStates[start]);\
-   jjCheckNAdd(jjnextStates[start + 1]);\
+	jjCheckNAdd(jjnextStates[start]);\
+	jjCheckNAdd(jjnextStates[start + 1]);\
 }
 //@fi
-  Reader*        reader;
+	Reader*        reader;
 
 private:
-  void ReInitRounds();
+	void ReInitRounds();
 
 public:
-  __PARSER_NAME__TokenManager(Reader * stream, int lexState = __DEFAULT_LEX_STATE__);
-  virtual ~__PARSER_NAME__TokenManager();
+	__PARSER_NAME__TokenManager(Reader * stream, int lexState = __DEFAULT_LEX_STATE__);
+	virtual ~__PARSER_NAME__TokenManager();
 
 protected:
-  void ReInit(Reader * stream, int lexState = __DEFAULT_LEX_STATE__);
-  void SwitchTo(int lexState);
-  void clear();
+	void ReInit(Reader * stream, int lexState = __DEFAULT_LEX_STATE__);
+	void SwitchTo(int lexState);
+	void clear();
 //@if(DEBUG_TOKEN_MANAGER)
-  const Latin1 jjKindsForBitVector(int i, unsigned long long vec);
-  const Latin1 jjKindsForStateVector(int lexState, int vec[], int start, int end);
+	const Latin1 jjKindsForBitVector(int i, unsigned long long vec);
+	const Latin1 jjKindsForStateVector(int lexState, int vec[], int start, int end);
 //@fi
 
-  int                       jjrounds[__STATE_SET_SIZE__];
-  int                       jjstateSet[2 * __STATE_SET_SIZE__];
-  JJString                  jjimage;
-  JJString                  image;
-  int                       jjimageLen;
-  int                       lengthOfMatch;
-  uint32_t                  curChar; // UTF8: Support Unicode
-  TokenManagerErrorHandler* errorHandler = nullptr;
+	int                       jjrounds[__STATE_SET_SIZE__];
+	int                       jjstateSet[__STATE_SET_SIZE_2__];
+	JJString                  jjimage;
+	JJString                  image;
+	int                       jjimageLen;
+	int                       lengthOfMatch;
+	uint32_t                  curChar; // UTF8: Support Unicode
+	TokenManagerErrorHandler* errorHandler = nullptr;
 
 public:
-  void	 lexicalError();
-  const  TokenManagerErrorHandler*	 getErrorHandler() const;
+	void	 lexicalError();
+	const  TokenManagerErrorHandler*	 getErrorHandler() const;
 };
 //@if(CPP_NAMESPACE)
 }

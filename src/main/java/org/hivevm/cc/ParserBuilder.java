@@ -4,19 +4,19 @@
 package org.hivevm.cc;
 
 
+import org.hivevm.cc.parser.jjtree.JJTreeParser;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
-
-import org.hivevm.cc.jjtree.JJTreeParser;
 
 /**
  * The {@link ParserBuilder} class.
  */
 public class ParserBuilder {
 
-    private Language     language;
-    private File         targetDir;
+    private Language language;
+    private File targetDir;
     private List<String> customNodes;
 
     private File parserFile;
@@ -24,8 +24,16 @@ public class ParserBuilder {
     /**
      * Set the code generator.
      */
-    public final ParserBuilder setCodeGenerator(Language language) {
+    public final ParserBuilder setLanguage(Language language) {
         this.language = language;
+        return this;
+    }
+
+    /**
+     * Set the jj file.
+     */
+    public final ParserBuilder setParserFile(File file, String... pathes) {
+        this.parserFile = ParserBuilder.toFile(file, pathes);
         return this;
     }
 
@@ -46,25 +54,13 @@ public class ParserBuilder {
     }
 
     /**
-     * Set the jj file.
-     */
-    public final ParserBuilder setParserFile(File file, String... pathes) {
-        this.parserFile = ParserBuilder.toFile(file, pathes);
-        return this;
-    }
-
-    public static ParserBuilder of(Language language) {
-        ParserBuilder builder = new ParserBuilder();
-        builder.setCodeGenerator(language);
-        return builder;
-    }
-
-
-    /**
      * Run the parser generator.
      */
     public final Parser build() {
-        return new JJTreeParser(parserFile, language, targetDir, customNodes);
+        boolean isTree = parserFile.toPath().endsWith(".jjt");
+        return isTree
+                ? new JJTreeParser(parserFile, language, targetDir, customNodes)
+                : new Parser(parserFile, language, targetDir, customNodes);
     }
 
     /**
@@ -76,8 +72,7 @@ public class ParserBuilder {
             var interpreter = new ParserInterpreter(options);
             var grammar = new String(Files.readAllBytes(this.parserFile.toPath()));
             interpreter.runTokenizer(grammar, text);
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }

@@ -3,15 +3,15 @@
 
 package org.hivevm.cc.doc;
 
-import java.io.FileInputStream;
-import java.text.ParseException;
-
 import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.JavaCCParserDefault;
 import org.hivevm.cc.parser.Parser;
 import org.hivevm.cc.parser.StreamProvider;
+
+import java.io.FileInputStream;
+import java.text.ParseException;
 
 /**
  * Main class.
@@ -73,7 +73,7 @@ public final class JJDocMain extends JJDocGlobals {
      */
     public static void main(String[] args) throws Exception {
         JavaCCErrors.reInit();
-        JJDocOptions options = new JJDocOptions();
+        HiveCCOptions options = new HiveCCOptions();
 
         org.hivevm.cc.Parser.bannerLine("Documentation Generator");
 
@@ -81,8 +81,7 @@ public final class JJDocMain extends JJDocGlobals {
         if (args.length == 0) {
             JJDocMain.help_message();
             System.exit(1);
-        }
-        else {
+        } else {
             JJDocGlobals.info("(type \"jjdoc\" with no arguments for help)");
         }
 
@@ -106,8 +105,7 @@ public final class JJDocMain extends JJDocGlobals {
                     options);
             JJDocGlobals.input_file = "standard input";
             JJDocGlobals.output_file = "standard output";
-        }
-        else {
+        } else {
             JJDocGlobals.info("Reading from file " + args[args.length - 1] + " . . .");
             try {
                 java.io.File fp = new java.io.File(args[args.length - 1]);
@@ -122,12 +120,10 @@ public final class JJDocMain extends JJDocGlobals {
                 parser = new JavaCCParserDefault(
                         new StreamProvider(new FileInputStream(args[args.length - 1]),
                                 HiveCCOptions.getFileEncoding()), options);
-            }
-            catch (SecurityException se) {
+            } catch (SecurityException se) {
                 JJDocGlobals.error(
                         "Security violation while trying to open " + args[args.length - 1]);
-            }
-            catch (java.io.FileNotFoundException e) {
+            } catch (java.io.FileNotFoundException e) {
                 JJDocGlobals.error("File " + args[args.length - 1] + " not found.");
             }
         }
@@ -144,21 +140,18 @@ public final class JJDocMain extends JJDocGlobals {
                     JJDocGlobals.info(
                             "Grammar documentation generated successfully in "
                                     + JJDocGlobals.output_file);
-                }
-                else {
+                } else {
                     JJDocGlobals.info(
                             "Grammar documentation generated with 0 errors and "
                                     + JavaCCErrors.get_warning_count() + " warnings.");
                 }
                 System.exit(0);
-            }
-            else {
+            } else {
                 JJDocGlobals.error("Detected " + JavaCCErrors.get_error_count() + " errors and "
                         + JavaCCErrors.get_warning_count() + " warnings.");
                 System.exit((JavaCCErrors.get_error_count() == 0) ? 0 : 1);
             }
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             JJDocGlobals.error(e.toString());
             JJDocGlobals.error("Detected " + JavaCCErrors.get_error_count() + " errors and "
                     + JavaCCErrors.get_warning_count() + " warnings.");

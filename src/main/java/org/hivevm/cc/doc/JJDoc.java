@@ -3,38 +3,14 @@
 
 package org.hivevm.cc.doc;
 
-import java.util.Iterator;
-
 import org.hivevm.cc.Encoding;
-import org.hivevm.cc.model.Action;
-import org.hivevm.cc.model.BNFProduction;
-import org.hivevm.cc.model.CharacterRange;
-import org.hivevm.cc.model.Choice;
-import org.hivevm.cc.model.Expansion;
-import org.hivevm.cc.model.Lookahead;
-import org.hivevm.cc.model.NonTerminal;
-import org.hivevm.cc.model.NormalProduction;
-import org.hivevm.cc.model.OneOrMore;
-import org.hivevm.cc.model.RCharacterList;
-import org.hivevm.cc.model.RChoice;
-import org.hivevm.cc.model.REndOfFile;
-import org.hivevm.cc.model.RExpression;
-import org.hivevm.cc.model.RJustName;
-import org.hivevm.cc.model.ROneOrMore;
-import org.hivevm.cc.model.RRepetitionRange;
-import org.hivevm.cc.model.RSequence;
-import org.hivevm.cc.model.RStringLiteral;
-import org.hivevm.cc.model.RZeroOrMore;
-import org.hivevm.cc.model.RZeroOrOne;
-import org.hivevm.cc.model.RegularExpression;
-import org.hivevm.cc.model.Sequence;
-import org.hivevm.cc.model.SingleCharacter;
-import org.hivevm.cc.model.TokenProduction;
-import org.hivevm.cc.model.ZeroOrMore;
-import org.hivevm.cc.model.ZeroOrOne;
+import org.hivevm.cc.HiveCCOptions;
+import org.hivevm.cc.model.*;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.Token;
+
+import java.util.Iterator;
 
 /**
  * The main entry point for JJDoc.
@@ -42,7 +18,7 @@ import org.hivevm.cc.parser.Token;
 class JJDoc extends JJDocGlobals {
 
     static void start(JavaCCData javacc) {
-        JJDocGlobals.generator = JJDocGlobals.getGenerator((JJDocOptions) javacc.options());
+        JJDocGlobals.generator = JJDocGlobals.getGenerator((HiveCCOptions) javacc.options());
         JJDocGlobals.generator.documentStart();
         JJDoc.emitTokenProductions(JJDocGlobals.generator, javacc.getTokenProductions());
         JJDoc.emitNormalProductions(JJDocGlobals.generator, javacc.getNormalProductions());
@@ -86,8 +62,7 @@ class JJDoc extends JJDocGlobals {
         if (tp.isExplicit()) {
             if (tp.getLexStates() == null) {
                 token.append("<*> ");
-            }
-            else {
+            } else {
                 token.append("<");
                 for (int i = 0; i < tp.getLexStates().length; ++i) {
                     token.append(tp.getLexStates()[i]);
@@ -135,8 +110,7 @@ class JJDoc extends JJDocGlobals {
                         gen.expansionEnd(element, first);
                         first = false;
                     }
-                }
-                else {
+                } else {
                     gen.expansionStart(np.getExpansion(), true);
                     JJDoc.emitExpansionTree(np.getExpansion(), gen);
                     gen.expansionEnd(np.getExpansion(), true);
@@ -204,8 +178,7 @@ class JJDoc extends JJDocGlobals {
 
     private static void emitExpansionSequence(Sequence s, Generator gen) {
         boolean firstUnit = true;
-        for (Object unit : s.getUnits()) {
-            Expansion e = (Expansion) unit;
+        for (Expansion e : s.getUnits()) {
             if ((e instanceof Lookahead) || (e instanceof Action)) {
                 continue;
             }
@@ -236,13 +209,13 @@ class JJDoc extends JJDocGlobals {
         gen.text(" )?");
     }
 
-    static String emitRE(RExpression re) {
+    private static String emitRE(RExpression re) {
         String returnString = "";
         boolean hasLabel = !re.getLabel().isEmpty();
         boolean justName = re instanceof RJustName;
         boolean eof = re instanceof REndOfFile;
         boolean isString = re instanceof RStringLiteral;
-        boolean toplevelRE = (re.getTpContext() != null);
+        boolean toplevelRE = (re.getTokenKind() != null);
         boolean needBrackets = justName || eof || hasLabel || (!isString && toplevelRE);
         if (needBrackets) {
             returnString += "<";
@@ -269,8 +242,7 @@ class JJDoc extends JJDocGlobals {
                         char[] s = {c.getChar()};
                         returnString += Encoding.escape(new String(s));
                         returnString += "\"";
-                    }
-                    else if (o instanceof CharacterRange range) {
+                    } else if (o instanceof CharacterRange range) {
                         returnString += "\"";
                         char[] s = {range.getLeft()};
                         returnString += Encoding.escape(new String(s));
@@ -278,8 +250,7 @@ class JJDoc extends JJDocGlobals {
                         s[0] = range.getRight();
                         returnString += Encoding.escape(new String(s));
                         returnString += "\"";
-                    }
-                    else {
+                    } else {
                         JJDocGlobals.error("Oops: unknown character list element type.");
                     }
                     if (it.hasNext())
@@ -338,8 +309,7 @@ class JJDoc extends JJDocGlobals {
                     returnString += zo.getMin();
                     returnString += ",";
                     returnString += zo.getMax();
-                }
-                else {
+                } else {
                     returnString += zo.getMin();
                 }
                 returnString += "}";

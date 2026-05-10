@@ -3,11 +3,11 @@
 
 package org.hivevm.source;
 
+import org.hivevm.core.Environment;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
-import org.hivevm.core.Environment;
 
 
 /**
@@ -17,7 +17,7 @@ import org.hivevm.core.Environment;
  */
 class TemplateContext implements Context {
 
-    private final Environment         environment;
+    private final Environment environment;
     private final Map<String, Object> options = new HashMap<>();
 
     /**

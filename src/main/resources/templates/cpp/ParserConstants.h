@@ -23,26 +23,26 @@ const int __TOKENS_LABEL__ = __TOKENS_ORDINAL__;
 
 // Lexical states
 //@foreach(STATES)
-const int __STATES_NAME__ = __STATES_ORDINAL__;
+const int __STATES_NAME__ = __STATES_INDEX__;
 //@end
 
 // Literal token images
-//@foreach(REGEXPS)
-static const JJChar tokenImage___REGEXPS_ORDINAL__[] = {__REGEXPS_IMAGE__0};
+//@foreach(REXPRESSION_COUNT)
+static const JJChar tokenImage___REXPRESSION_INDEX__[] = {__REXPRESSION_IMAGE__0};
 //@end
 static const JJChar* const tokenImages[] = {
-//@foreach(REGEXPS)
-    tokenImage___REGEXPS_ORDINAL__,
+//@foreach(REXPRESSION_COUNT)
+	tokenImage___REXPRESSION_INDEX__,
 //@end
 };
 
 // Literal token labels
-//@foreach(REGEXPS)
-static const JJChar tokenLabel___REGEXPS_ORDINAL__[] = {__REGEXPS_LABEL__0};
+//@foreach(REXPRESSION_COUNT)
+static const JJChar tokenLabel___REXPRESSION_INDEX__[] = {__REXPRESSION_LABEL__0};
 //@end
 static const JJChar* const tokenLabels[] = {
-//@foreach(REGEXPS)
-    tokenLabel___REGEXPS_ORDINAL__,
+//@foreach(REXPRESSION_COUNT)
+	tokenLabel___REXPRESSION_INDEX__,
 //@end
 };
 

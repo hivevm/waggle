@@ -3,18 +3,21 @@
 
 package org.hivevm.cc.semantic;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.Encoding;
 import org.hivevm.cc.model.Choice;
 import org.hivevm.cc.model.Expansion;
 import org.hivevm.cc.model.Lookahead;
+import org.hivevm.cc.model.NonTerminal;
+import org.hivevm.cc.model.NormalProduction;
 import org.hivevm.cc.model.OneOrMore;
 import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.RStringLiteral;
 import org.hivevm.cc.model.Sequence;
 import org.hivevm.cc.model.ZeroOrMore;
+import org.hivevm.cc.model.ZeroOrOne;
+
+import java.util.ArrayList;
+import java.util.List;
 
 class LookaheadCalc {
 
@@ -26,10 +29,10 @@ class LookaheadCalc {
             m1 = element;
             for (MatchInfo element2 : v2) {
                 m2 = element2;
-                size = m1.firstFreeLoc;
+                size = m1.firstFreeLoc();
                 m3 = m1;
-                if (size > m2.firstFreeLoc) {
-                    size = m2.firstFreeLoc;
+                if (size > m2.firstFreeLoc()) {
+                    size = m2.firstFreeLoc();
                     m3 = m2;
                 }
                 if (size == 0)
@@ -37,7 +40,7 @@ class LookaheadCalc {
                 // we wish to ignore empty expansions and the JAVACODE stuff here.
                 diff = false;
                 for (int k = 0; k < size; k++) {
-                    if (m1.match[k] != m2.match[k]) {
+                    if (m1.match()[k] != m2.match()[k]) {
                         diff = true;
                         break;
                     }
@@ -51,7 +54,7 @@ class LookaheadCalc {
 
     private static boolean javaCodeCheck(List<MatchInfo> v) {
         for (MatchInfo element : v) {
-            if ((element).firstFreeLoc == 0)
+            if ((element).firstFreeLoc() == 0)
                 return true;
         }
         return false;
@@ -59,11 +62,11 @@ class LookaheadCalc {
 
     private static String image(MatchInfo m, Semanticize semanticize) {
         StringBuilder ret = new StringBuilder();
-        for (int i = 0; i < m.firstFreeLoc; i++) {
-            if (m.match[i] == 0)
+        for (int i = 0; i < m.firstFreeLoc(); i++) {
+            if (m.match()[i] == 0)
                 ret.append(" <EOF>");
             else {
-                RExpression re = semanticize.getRegularExpression(m.match[i]);
+                RExpression re = semanticize.getRegularExpression(m.match()[i]);
                 if (re instanceof RStringLiteral)
                     ret.append(" \"").append(Encoding.escape(((RStringLiteral) re).getImage()))
                             .append("\"");
@@ -73,7 +76,7 @@ class LookaheadCalc {
                     ret.append(" <token of kind ").append(i).append(">");
             }
         }
-        return (m.firstFreeLoc == 0) ? "" : ret.substring(1);
+        return (m.firstFreeLoc() == 0) ? "" : ret.substring(1);
     }
 
     static void choiceCalc(Choice ch, Semanticize data, SemanticContext context) {
@@ -97,7 +100,7 @@ class LookaheadCalc {
                 m = new MatchInfo(data.laLimit());
                 v = new ArrayList<>();
                 v.add(m);
-                LookaheadWalk.genFirstSet(data, v, ch.getChoices().get(i));
+                LookaheadCalc.genFirstSet(data, v, ch.getChoices().get(i));
                 dbl[i] = data.getSizeLimitedMatches();
             }
             data.setConsiderSemanticLA(false);
@@ -106,7 +109,7 @@ class LookaheadCalc {
                 m = new MatchInfo(data.laLimit());
                 v = new ArrayList<>();
                 v.add(m);
-                LookaheadWalk.genFirstSet(data, v, ch.getChoices().get(i));
+                LookaheadCalc.genFirstSet(data, v, ch.getChoices().get(i));
                 dbr[i] = data.getSizeLimitedMatches();
             }
             if (la == 1) {
@@ -116,8 +119,7 @@ class LookaheadCalc {
                         context.onWarning(exp, "This choice can expand to the empty token sequence "
                                 + "and will therefore always be taken in favor of the choices appearing later.");
                         break;
-                    }
-                    else if (LookaheadCalc.javaCodeCheck(dbl[i])) {
+                    } else if (LookaheadCalc.javaCodeCheck(dbl[i])) {
                         context.onWarning(exp,
                                 "JAVACODE non-terminal will force this choice to be taken "
                                         + "in favor of the choices appearing later.");
@@ -154,8 +156,7 @@ class LookaheadCalc {
                         "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
                 System.err.println("         Consider using a lookahead of " + minLA[i]
                         + " or more for earlier expansion.");
-            }
-            else if (minLA[i] > 1) {
+            } else if (minLA[i] > 1) {
                 context.onWarning("Choice conflict involving two expansions at");
                 System.err.print("         line " + ch.getChoices().get(i).getLine());
                 System.err.print(", column " + ch.getChoices().get(i).getColumn());
@@ -174,7 +175,7 @@ class LookaheadCalc {
     private static boolean explicitLA(Expansion exp) {
         if (!(exp instanceof Sequence seq))
             return false;
-        Object obj = seq.getUnits().getFirst();
+        var obj = seq.getUnits().getFirst();
         if (!(obj instanceof Lookahead la))
             return false;
         return la.isExplicit();
@@ -213,11 +214,11 @@ class LookaheadCalc {
             v = new ArrayList<>();
             v.add(m);
             data.setConsiderSemanticLA(!context.isForceLaCheck());
-            LookaheadWalk.genFirstSet(data, v, nested);
+            LookaheadCalc.genFirstSet(data, v, nested);
             first = data.getSizeLimitedMatches();
             data.initSizeLimitedMatches();
             data.setConsiderSemanticLA(false);
-            LookaheadWalk.genFollowSet(v, exp, data.nextGenerationIndex(), data);
+            LookaheadCalc.genFollowSet(v, exp, data.nextGenerationIndex(), data);
             follow = data.getSizeLimitedMatches();
             if ((la == 1) && LookaheadCalc.javaCodeCheck(first)) {
                 context.onWarning(nested,
@@ -240,8 +241,7 @@ class LookaheadCalc {
                     "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
             System.err.println(
                     "         Consider using a lookahead of " + la + " or more for nested expansion.");
-        }
-        else if (la > 1) {
+        } else if (la > 1) {
             context.onWarning(
                     "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
                             + exp.getLine()
@@ -253,5 +253,160 @@ class LookaheadCalc {
             System.err.println(
                     "         Consider using a lookahead of " + la + " for nested expansion.");
         }
+    }
+
+    private static void listAppend(List<MatchInfo> vToAppendTo, List<MatchInfo> vToAppend) {
+        vToAppendTo.addAll(vToAppend);
+    }
+
+    static List<MatchInfo> genFirstSet(Semanticize data, List<MatchInfo> partialMatches,
+                                       Expansion exp) {
+        if (exp instanceof RExpression re) {
+            List<MatchInfo> retval = new ArrayList<>();
+            for (MatchInfo m : partialMatches) {
+                MatchInfo mnew = m.copyWith(re.getOrdinal());
+                if (mnew.firstFreeLoc() == data.laLimit())
+                    data.getSizeLimitedMatches().add(mnew);
+                else
+                    retval.add(mnew);
+            }
+            return retval;
+        } else if (exp instanceof NonTerminal) {
+            NormalProduction prod = ((NonTerminal) exp).getProd();
+            return LookaheadCalc.genFirstSet(data, partialMatches, prod.getExpansion());
+        } else if (exp instanceof Choice ch) {
+            List<MatchInfo> retval = new ArrayList<>();
+            for (var element : ch.getChoices()) {
+                List<MatchInfo> v = LookaheadCalc.genFirstSet(data, partialMatches, element);
+                LookaheadCalc.listAppend(retval, v);
+            }
+            return retval;
+        } else if (exp instanceof Sequence seq) {
+            List<MatchInfo> v = partialMatches;
+            for (var element : seq.getUnits()) {
+                v = LookaheadCalc.genFirstSet(data, v, element);
+                if (v.isEmpty())
+                    break;
+            }
+            return v;
+        } else if (exp instanceof OneOrMore om) {
+            List<MatchInfo> retval = new ArrayList<>();
+            List<MatchInfo> v = partialMatches;
+            while (true) {
+                v = LookaheadCalc.genFirstSet(data, v, om.getExpansion());
+                if (v.isEmpty())
+                    break;
+                LookaheadCalc.listAppend(retval, v);
+            }
+            return retval;
+        } else if (exp instanceof ZeroOrMore zm) {
+            List<MatchInfo> retval = new ArrayList<>();
+            LookaheadCalc.listAppend(retval, partialMatches);
+            List<MatchInfo> v = partialMatches;
+            while (true) {
+                v = LookaheadCalc.genFirstSet(data, v, zm.getExpansion());
+                if (v.isEmpty())
+                    break;
+                LookaheadCalc.listAppend(retval, v);
+            }
+            return retval;
+        } else if (exp instanceof ZeroOrOne) {
+            List<MatchInfo> retval = new ArrayList<>();
+            LookaheadCalc.listAppend(retval, partialMatches);
+            LookaheadCalc.listAppend(retval,
+                    LookaheadCalc.genFirstSet(data, partialMatches, ((ZeroOrOne) exp).getExpansion()));
+            return retval;
+        } else if (data.considerSemanticLA() && (exp instanceof Lookahead lookahead)
+                && (!lookahead.getActionTokens().isEmpty())) {
+            return new ArrayList<>();
+        } else {
+            List<MatchInfo> retval = new ArrayList<>();
+            LookaheadCalc.listAppend(retval, partialMatches);
+            return retval;
+        }
+    }
+
+    private static void listSplit(List<MatchInfo> toSplit, List<MatchInfo> mask,
+                                  List<MatchInfo> partInMask,
+                                  List<MatchInfo> rest) {
+        OuterLoop:
+        for (MatchInfo info : toSplit) {
+            for (MatchInfo matchInfo : mask) {
+                if (info == matchInfo) {
+                    partInMask.add(info);
+                    continue OuterLoop;
+                }
+            }
+            rest.add(info);
+        }
+    }
+
+    static List<MatchInfo> genFollowSet(List<MatchInfo> partialMatches, Expansion exp,
+                                        long generation,
+                                        Semanticize data) {
+        if (exp.generation() == generation)
+            return new ArrayList<>();
+
+        // System.out.println("*** Parent: " + exp.parent);
+        exp.setGeneration(generation);
+        if (exp.parent() == null) {
+            List<MatchInfo> retval = new ArrayList<>();
+            LookaheadCalc.listAppend(retval, partialMatches);
+            return retval;
+        } else if (exp.parent() instanceof NormalProduction np) {
+            List<Object> parents = np.getParents();
+            List<MatchInfo> retval = new ArrayList<>();
+            // System.out.println("1; gen: " + generation + "; exp: " + exp);
+            for (Object parent : parents) {
+                List<MatchInfo> v = LookaheadCalc.genFollowSet(partialMatches, (Expansion) parent,
+                        generation, data);
+                LookaheadCalc.listAppend(retval, v);
+            }
+            return retval;
+        } else if (exp.parent() instanceof Sequence seq) {
+            List<MatchInfo> v = partialMatches;
+            for (int i = exp.parentOrdinal() + 1; i < seq.getUnits().size(); i++) {
+                v = LookaheadCalc.genFirstSet(data, v, seq.getUnits().get(i));
+                if (v.isEmpty())
+                    return v;
+            }
+            List<MatchInfo> v1 = new ArrayList<>();
+            List<MatchInfo> v2 = new ArrayList<>();
+            LookaheadCalc.listSplit(v, partialMatches, v1, v2);
+            if (!v1.isEmpty())
+                // System.out.println("2; gen: " + generation + "; exp: " + exp);
+                v1 = LookaheadCalc.genFollowSet(v1, seq, generation, data);
+            if (!v2.isEmpty())
+                // System.out.println("3; gen: " + generation + "; exp: " + exp);
+                v2 = LookaheadCalc.genFollowSet(v2, seq, data.nextGenerationIndex(), data);
+            LookaheadCalc.listAppend(v2, v1);
+            return v2;
+        } else if ((exp.parent() instanceof OneOrMore) || (exp.parent() instanceof ZeroOrMore)) {
+            List<MatchInfo> moreMatches = new ArrayList<>();
+            LookaheadCalc.listAppend(moreMatches, partialMatches);
+            List<MatchInfo> v = partialMatches;
+            while (true) {
+                v = LookaheadCalc.genFirstSet(data, v, exp);
+                if (v.isEmpty())
+                    break;
+                LookaheadCalc.listAppend(moreMatches, v);
+            }
+            List<MatchInfo> v1 = new ArrayList<>();
+            List<MatchInfo> v2 = new ArrayList<>();
+            LookaheadCalc.listSplit(moreMatches, partialMatches, v1, v2);
+            if (!v1.isEmpty())
+                // System.out.println("4; gen: " + generation + "; exp: " + exp);
+                v1 = LookaheadCalc.genFollowSet(v1, (Expansion) exp.parent(), generation, data);
+            if (!v2.isEmpty())
+                // System.out.println("5; gen: " + generation + "; exp: " + exp);
+                v2 = LookaheadCalc.genFollowSet(v2, (Expansion) exp.parent(),
+                        data.nextGenerationIndex(),
+                        data);
+            LookaheadCalc.listAppend(v2, v1);
+            return v2;
+        } else
+            // System.out.println("6; gen: " + generation + "; exp: " + exp);
+            return LookaheadCalc.genFollowSet(partialMatches, (Expansion) exp.parent(), generation,
+                    data);
     }
 }

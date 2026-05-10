@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.Token;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes JavaCC productions.
@@ -42,7 +42,7 @@ public class NormalProduction extends Expansion {
      * Also an index that shows how many pointers exist.
      */
     private NormalProduction[] leftExpansions = new NormalProduction[10];
-    public  int                leIndex        = 0;
+    public int leIndex = 0;
 
     /**
      * The following variable is used to maintain state information for the left-recursion

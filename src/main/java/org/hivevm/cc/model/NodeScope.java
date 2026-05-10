@@ -3,46 +3,32 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.ParserDescriptor;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.hivevm.cc.jjtree.ASTNodeDescriptor;
-import org.hivevm.cc.jjtree.ASTProduction;
-import org.hivevm.cc.jjtree.NodeType;
-import org.hivevm.cc.parser.ParserDescriptor;
+import java.util.function.Function;
 
 public class NodeScope {
 
-    private static final List<String> nodeIds   = new ArrayList<>();
+    private static final List<String> nodeIds = new ArrayList<>();
     private static final List<String> nodeNames = new ArrayList<>();
-    private static final Set<String>  nodeSeen  = new LinkedHashSet<>();
+    private static final Set<String> nodeSeen = new LinkedHashSet<>();
 
     private final NodeDescriptor node_descriptor;
-    private final int    scopeNumber;
+    private final int scopeNumber;
 
-    private final  String closedVar;
-    private final  String exceptionVar;
-    private final  String nodeVar;
+    private final String closedVar;
+    private final String exceptionVar;
+    private final String nodeVar;
 
-    protected NodeScope(ASTProduction p, ASTNodeDescriptor n) {
-        if (n == null) {
-            String nm = p.name();
-            if (p.jjtOptions().getNodeDefaultVoid())
-                nm = "void";
-            var nd = new ASTNodeDescriptor(p.jjtParser(), NodeType.JJTNODEDESCRIPTOR);
-            nd.setName(nm);
-            nd.setFaked();
-            setId(nm);//NodeScope.setNodeId(nm);
-            this.node_descriptor = nd;
-        }
-        else {
-            this.node_descriptor = n;
-            setId(n.getName());
-        }
+    protected NodeScope(NodeConfig config, Function<NodeScope, Integer> scope_number) {
+        this.node_descriptor = config.node_descriptor();
+        setId(config.id());
 
-        this.scopeNumber = p.getNodeScopeNumber(this);
+        this.scopeNumber = scope_number.apply(this);
         this.nodeVar = constructVariable("n");
         this.closedVar = constructVariable("c");
         this.exceptionVar = constructVariable("e");
@@ -58,8 +44,7 @@ public class NodeScope {
 //                nd.setFaked();
             setId(nm); //NodeScope.setNodeId(nm);
             this.node_descriptor = nd;
-        }
-        else {
+        } else {
             this.node_descriptor = n;
             setId(n.getName());
         }
@@ -70,16 +55,12 @@ public class NodeScope {
         this.exceptionVar = constructVariable("e");
     }
 
-    public final int getScopeNumber() {
-        return this.scopeNumber;
-    }
-
     public final NodeDescriptor getNodeDescriptor() {
         return this.node_descriptor;
     }
 
     public final boolean isVoid() {
-        return this.node_descriptor.isVoid();
+        return this.node_descriptor.getName().equals("void");
     }
 
     public final String getNodeDescriptorText() {
@@ -98,7 +79,7 @@ public class NodeScope {
         return this.nodeVar;
     }
 
-    protected final String constructVariable(String id) {
+    private String constructVariable(String id) {
         String s = "000" + this.scopeNumber;
         return "jjt" + id + s.substring(s.length() - 3);
     }
@@ -115,11 +96,25 @@ public class NodeScope {
         }
     }
 
+    /**
+     * Discards the nodes collected for the previous grammar. Must run before each generation, since
+     * the collected nodes are static and several grammars are generated in one process (the Gradle
+     * plugin runs every task in a single JVM).
+     */
+    public static void reInit() {
+        NodeScope.nodeIds.clear();
+        NodeScope.nodeNames.clear();
+        NodeScope.nodeSeen.clear();
+    }
+
     public static List<String> getNodeIds() {
         return NodeScope.nodeIds;
     }
 
     public static List<String> getNodeNames() {
         return NodeScope.nodeNames;
+    }
+
+    public record NodeConfig(String id, NodeDescriptor node_descriptor) {
     }
 }

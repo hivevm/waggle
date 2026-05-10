@@ -3,30 +3,20 @@
 
 package org.hivevm.cc.generator;
 
-import java.text.ParseException;
-import java.util.ServiceLoader;
-
 import org.hivevm.cc.Language;
 import org.hivevm.cc.ParserRequest;
-import org.hivevm.cc.jjtree.ASTGrammar;
-import org.hivevm.cc.jjtree.ASTWriter;
-import org.hivevm.cc.jjtree.JJTreeVisitor;
-import org.hivevm.cc.parser.Options;
+import org.hivevm.cc.lexer.LexerBuilder;
+import org.hivevm.cc.parser.JavaCCErrors;
+
+import java.text.ParseException;
+import java.util.ServiceLoader;
 
 /**
  * The {@link GeneratorProvider} class.
  */
 public abstract class GeneratorProvider implements Generator {
 
-    protected abstract TreeGenerator newTreeGenerator();
-
     protected abstract FileGenerator newFileGenerator();
-
-    protected abstract NodeGenerator newNodeGenerator();
-
-    protected abstract LexerGenerator newLexerGenerator();
-
-    protected abstract ParserGenerator newParserGenerator();
 
     /**
      * Generates the parser files.
@@ -38,23 +28,15 @@ public abstract class GeneratorProvider implements Generator {
         var dataNode = dataParser.getNodeData();
 
         dataParser.getProductions().forEach(e -> dataNode.parseExpansion(e, request.options()));
-        if (!dataNode.getNodesToGenerate().isEmpty()) {
+        if (!dataNode.getNodesToGenerate().isEmpty() || dataParser.options().getNodeScopeHook()) {
             newNodeGenerator().generate(request.options(), dataNode);
         }
 
         newFileGenerator().generate(dataLexer);
-        newLexerGenerator().generate(dataLexer);
-        newParserGenerator().generate(dataParser);
-    }
-
-    /**
-     * Generates the Abstract Syntax Tree.
-     */
-    @Override
-    public final void generateAST(ASTGrammar node, ASTWriter writer, Options options) {
-        var generator = newTreeGenerator();
-        node.jjtAccept(new JJTreeVisitor(generator), writer);
-        newNodeGenerator().generate(options, generator.getData());
+        if (!JavaCCErrors.hasError()) {
+            newLexerGenerator().generate(dataLexer);
+            newParserGenerator().generate(dataParser);
+        }
     }
 
     /**

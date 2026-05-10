@@ -5,8 +5,8 @@ import java.io.IOException;
 
 public interface Provider extends Closeable {
 
-    /**
-     * Reads characters into an array
-     */
-    int read(char[] buffer, int offset, int length) throws IOException;
+	/**
+	 * Reads characters into an array
+	 */
+	int read(char[] buffer, int offset, int length) throws IOException;
 }

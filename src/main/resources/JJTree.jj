@@ -1,95 +1,77 @@
-PARSER(
-  PARSER_NAME: "JJTreeParser",
+grammar JJTreeParser;
+
+options {
   NODE_MULTI: true,
   NODE_DEFAULT_VOID: true,
   NODE_SCOPE_HOOK: true,
   NODE_CLASS: "ASTNode",
   VISITOR: true,
   VISITOR_DATA_TYPE: "ASTWriter",
-  JAVA_PACKAGE: "org.hivevm.cc.jjtree",
-  JAVA_IMPORTS: "org.hivevm.cc.model.NodeScope",
+  JAVA_PACKAGE: "org.hivevm.cc.parser.jjtree",
   BASE_PARSER: "ASTParser"
-)
-
+}
 
 /************************************************
  * THE JAVACC GRAMMAR SPECIFICATION STARTS HERE *
  ************************************************/
-RULE javacc_input() #Grammar ::=
-  ( < _PARSER > < LPAREN > option_binding() (< COMMA > option_binding())* < RPAREN > ) #CompilationUnit(true)
+javacc_input() #Grammar =
+  (
+    < _GRAMMAR > <IDENTIFIER> < SEMICOLON >
+    [ < _OPTIONS > < LBRACE > option_binding() (< COMMA > option_binding())* < RBRACE > ]
+  ) #CompilationUnit(true)
   (bnf_production()) +
   <EOF>
-};
+;
 
-RULE option_binding() #OptionBinding ::=
-  <? Token t; ?>
-  t=<IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
-  <? jjtree.closeNodeScope($NODE, true);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?>
+option_binding() #OptionBinding =
+  <? var t = getToken(1); ?>
+  <IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
+  <? $BOOL = closeNodeScope(jjtree, $NODE, true); ?>
   <? setInputOption(t, this.token); ?>
-};
+;
 
-RULE bnf_production() #BNF ::=
+bnf_production() #BNF =
 <?
-    Token t1;
-    ASTBNF prod = $NODE;
-    ASTNodeDescriptor nd = null;
-    JJTNodeScope ns;
-    ASTNode eu;
+	Token t1;
+	ASTBNF prod = $NODE;
+	ASTNodeDescriptor nd = null;
+	JJTNodeScope ns;
+	ASTNode eu;
 ?>
-  < _RULE >
-  t1=identifier() < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() )* ] < RPAREN >
+  t1=identifier() [ < LPAREN > FormalParameter() ( < COMMA > FormalParameter() ) * < RPAREN > ]
   [ < COLON > Type() ]
   [ nd=node_descriptor() ]
 <?
-    prod.setName(t1.image);
-    ns = new JJTNodeScope(prod, nd);
+	prod.setName(t1.image);
+	ns = new JJTNodeScope(prod, nd);
 ?>
-  ( <? jjtree.closeNodeScope($NODE, true);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?>
-    <? $NODE.node_scope = ns;?> ) #BNFDeclaration
-  < ASSIGN_OP >
+  (
+    <? $BOOL = closeNodeScope(jjtree, $NODE, true); ?>
+    <? $NODE.node_scope = ns; ?> ) #BNFDeclaration
+  < ASSIGN >
   (
     eu=expansion_choices(prod)
-<? jjtree.closeNodeScope($NODE, true);
-      $BOOL = false;
-      if (jjtree.nodeCreated()) {
-       jjtreeCloseNodeScope($NODE);
-      }?>
+<?	$BOOL = closeNodeScope(jjtree, $NODE, true); ?>
 <?
-      $NODE.node_scope = ns;
-      $NODE.expansion_unit = eu;
+	$NODE.node_scope = ns;
+	$NODE.expansion_unit = eu;
 ?>
   ) #BNFNodeScope
   < RBRACE > < SEMICOLON >
-  <? jjtree.closeNodeScope($NODE, true);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?>
+<?	$BOOL = closeNodeScope(jjtree, $NODE, true); ?>
   <? addProduction(prod); ?>
-};
+;
 
-RULE expansion_choices(ASTProduction p) : ASTNode #BNFChoice(>1) ::=
+expansion_choices(ASTProduction p) : ASTNode #BNFChoice(> 1) =
   expansion(p) ( < BIT_OR > expansion(p) )*
-  <? jjtree.closeNodeScope($NODE, jjtree.nodeArity() >1);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?>
-  <? return (ASTNode)jjtree.peekNode(); ?>
-};
+  <? $BOOL = closeNodeScope(jjtree, $NODE, jjtree.nodeArity() > 1); ?>
+  <? return (ASTNode) jjtree.peekNode(); ?>
+;
 
-RULE expansion(ASTProduction p) #BNFSequence(>1) ::=
+expansion(ASTProduction p) #BNFSequence(> 1) =
 <?
-    ASTNode eu;
-    ASTNodeDescriptor nd = null;
+	ASTNode eu;
+	ASTNodeDescriptor nd = null;
 ?>
   ( LOOKAHEAD(1) ( < _LOOKAHEAD > < LPAREN > local_lookahead(p) < RPAREN > ) #BNFLookahead )?
   ( LOOKAHEAD(0, { notTailOfExpansionUnit() } )
@@ -97,24 +79,20 @@ RULE expansion(ASTProduction p) #BNFSequence(>1) ::=
       eu=expansion_unit(p)
       [ nd=node_descriptor() ]
 <?
-        jjtree.closeNodeScope($NODE, jjtree.nodeArity() >1);
-        $BOOL = false;
-        if (jjtree.nodeCreated()) {
-         jjtreeCloseNodeScope($NODE);
-        }
-        if (jjtree.nodeCreated()) {
-          $NODE.node_scope = new JJTNodeScope(p, nd);
-          $NODE.expansion_unit = eu;
-        }
+	$BOOL = closeNodeScope(jjtree, $NODE, jjtree.nodeArity() > 1);
+	if (jjtree.nodeCreated()) {
+		$NODE.node_scope = new JJTNodeScope(p, nd);
+		$NODE.expansion_unit = eu;
+	}
 ?>
-    ) #BNFExpansionScope(>1)
+    ) #BNFExpansionScope(> 1)
   )+
-};
+;
 
-RULE local_lookahead(ASTProduction p) ::=
+local_lookahead(ASTProduction p) =
 <?
-    boolean commaAtEnd = false;
-    boolean emptyLA = true;
+	boolean commaAtEnd = false;
+	boolean emptyLA = true;
 ?>
   [
     /*
@@ -140,9 +118,9 @@ RULE local_lookahead(ASTProduction p) ::=
   [ LOOKAHEAD(0, { checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd) } )
     < LBRACE > [ Expression() ] < RBRACE >
   ]
-};
+;
 
-RULE expansion_unit(ASTProduction p) : ASTNode ::=
+expansion_unit(ASTProduction p) : ASTNode =
 <? Token t; ?>
 (
   LOOKAHEAD(1)
@@ -163,26 +141,21 @@ RULE expansion_unit(ASTProduction p) : ASTNode ::=
     regular_expression() [ < DOT > t=<IDENTIFIER>  ]
   | ( identifier() Arguments() ) #BNFNonTerminal
   )
-) #BNFAssignment(>1)
+) #BNFAssignment(> 1)
 |
   t=< LPAREN > expansion_choices(p) < RPAREN >
   (
     < PLUS > #BNFOneOrMore(1)
   | < STAR > #BNFZeroOrMore(1)
   | < HOOK > #BNFZeroOrOne(1)
-  | {} <? jjtree.closeNodeScope($NODE, 1);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?> #BNFParenthesized(1)
-
+  | {} <? $BOOL = closeNodeScope(jjtree, $NODE, 1); ?> #BNFParenthesized(1)
   )
-  <? ((ASTNode)jjtree.peekNode()).setFirstToken(t); ?>
+  <? ((ASTNode) jjtree.peekNode()).setFirstToken(t); ?>
 )
-<? return (ASTNode)jjtree.peekNode(); ?>
-};
+<? return (ASTNode) jjtree.peekNode(); ?>
+;
 
-RULE regular_expression() ::=
+regular_expression =
   StringLiteral() #REStringLiteral
 |
   LOOKAHEAD(3)
@@ -191,18 +164,18 @@ RULE regular_expression() ::=
   ) #RENamed
 | LOOKAHEAD(2) ( < LT > identifier() < GT > ) #REReference
 | ( < LT > < _EOF > < GT > ) #REEOF
-};
+;
 
-RULE complex_regular_expression_choices() #REChoice(>1) ::=
+complex_regular_expression_choices() #REChoice(> 1) =
   complex_regular_expression() ( < BIT_OR > complex_regular_expression() )*
-};
+;
 
-RULE complex_regular_expression() #RESequence(>1) ::=
+complex_regular_expression() #RESequence(> 1) =
   ( complex_regular_expression_unit() )+
-};
+;
 
-RULE complex_regular_expression_unit() ::=
-<? Token t; ?>
+complex_regular_expression_unit =
+<?Token t;?>
 (
   StringLiteral() #REStringLiteral
 | ( < LT > identifier() < GT > ) #REReference
@@ -213,43 +186,39 @@ RULE complex_regular_expression_unit() ::=
   | < STAR > #REZeroOrMore(1)
   | < HOOK > #REZeroOrOne(1)
   | < LBRACE > IntegerLiteral() [ < COMMA >  [ IntegerLiteral() ] ] < RBRACE > #RRepetitionRange(1)
-  | {} <? jjtree.closeNodeScope($NODE, 1);
-    $BOOL = false;
-    if (jjtree.nodeCreated()) {
-     jjtreeCloseNodeScope($NODE);
-    }?> #REParenthesized(1)
+  | {} <? $BOOL = closeNodeScope(jjtree, $NODE, 1); ?> #REParenthesized(1)
   )
-<? ((ASTNode)jjtree.peekNode()).setFirstToken(t); ?>
+<? ((ASTNode) jjtree.peekNode()).setFirstToken(t); ?>
 )
-};
+;
 
-RULE character_list() #RECharList ::=
+character_list() #RECharList =
   [ < TILDE > ] < LBRACKET > [ character_descriptor() ( < COMMA > character_descriptor() )* ] < RBRACKET >
-};
+;
 
-RULE character_descriptor() #CharDescriptor ::=
+character_descriptor() #CharDescriptor =
   StringLiteral() [ < MINUS > StringLiteral() ]
-};
+;
 
-RULE identifier() : Token ::=
+identifier() : Token =
   <? Token t; ?>
   t=<IDENTIFIER>
   <? return t; ?>
-};
+;
 
-RULE value() : Token ::=
-  ( <INTEGER_LITERAL> | <FALSE> | <TRUE> )
+value() : Token =
+  ( <INTEGER_LITERAL> | BooleanLiteral() )
   <? return token; ?>
-};
+;
 
 /**********************************************
  * THE JJTREE PRODUCTIONS START HERE       *
  **********************************************/
 
-RULE node_descriptor() : ASTNodeDescriptor #NodeDescriptor ::=
+node_descriptor() : ASTNodeDescriptor #NodeDescriptor =
 <?
-    Token t = null;
-    String s = null;
+	Token t = null;
+	String s = null;
 ?>
   < HASH >
   s=TypeParameter() <? $NODE.setName(s); ?>
@@ -261,14 +230,10 @@ RULE node_descriptor() : ASTNodeDescriptor #NodeDescriptor ::=
    < RPAREN >
   ]
 <?
-  jjtree.closeNodeScope($NODE, true);
-  $BOOL = false;
-  if (jjtree.nodeCreated()) {
-   jjtreeCloseNodeScope($NODE);
-  }
-  return $NODE;
+	$BOOL = closeNodeScope(jjtree, $NODE, true);
+	return $NODE;
 ?>
-};
+;
 
 /**********************************************
  * THE JAVA GRAMMAR SPECIFICATION STARTS HERE *
@@ -279,12 +244,13 @@ RULE node_descriptor() : ASTNodeDescriptor #NodeDescriptor ::=
  * includes the reserved words of JavaCC also.
  */
 
-RULE TypeParameter() : String ::=
+TypeParameter() : String =
 (
   <IDENTIFIER>
 | < _LOOKAHEAD >
 | < _IGNORE_CASE >
-| < _PARSER >
+| < _GRAMMAR >
+| < _OPTIONS >
 | < _TOKEN >
 | < _SPECIAL_TOKEN >
 | < _MORE >
@@ -292,86 +258,86 @@ RULE TypeParameter() : String ::=
 | < _EOF >
 )
 <? return token.image; ?>
-};
+;
 
 /*
  * Program structuring syntax follows.
  */
-RULE TypeParameters() ::=
+TypeParameters =
   < LT > TypeParameter() ( < COMMA > TypeParameter() )* < GT >
-};
+;
 
-RULE FormalParameter() ::=
+FormalParameter =
   Type() TypeParameter()
-};
+;
 
 
 /*
  * Type, name and expression syntax follows.
  */
-RULE Type() ::=
+Type =
    LOOKAHEAD(2) TypeParameter()
  | PrimitiveType()
-};
+;
 
-RULE PrimitiveType() ::=
+PrimitiveType =
   < BOOLEAN >
 | < CHAR >
 | < INT >
-};
+;
 
 
 /*
  * Expression syntax follows.
  */
-RULE Expression() #Expression ::=
+Expression() #Expression =
   PrimaryPrefix() ( LOOKAHEAD(2) PrimarySuffix() )*
-};
+;
 
-RULE PrimaryPrefix() ::=
+PrimaryPrefix =
   Literal()
 | < LPAREN > Expression() < RPAREN >
 | TypeParameter()
-};
+;
 
-RULE PrimarySuffix() ::=
+PrimarySuffix =
   < LBRACKET > Expression() < RBRACKET >
 | Arguments()
-};
+;
 
-RULE Literal() ::=
+Literal =
   < NULL >
 | <INTEGER_LITERAL>
 | <FLOATING_POINT_LITERAL>
 | <CHARACTER_LITERAL>
 | <STRING_LITERAL>
 | BooleanLiteral()
-};
+;
 
-RULE IntegerLiteral() ::= <INTEGER_LITERAL> };
+IntegerLiteral = <INTEGER_LITERAL> ;
 
-RULE BooleanLiteral() ::= < TRUE > | < FALSE > };
+BooleanLiteral = < TRUE > | < FALSE > ;
 
-RULE StringLiteral() ::= <STRING_LITERAL> };
+StringLiteral = <STRING_LITERAL> ;
 
 /*
  * Parsing this fills "tokens" with all tokens of the arguments
  * excluding the parentheses at each end.
  */
-RULE Arguments() ::=
+Arguments =
   < LPAREN > [ ArgumentList() ] < RPAREN >
-};
+;
 
-RULE ArgumentList() ::=
+ArgumentList =
   Expression() ( < COMMA > Expression() )*
-};
+;
 
 /*
  * Statement syntax follows.
  * Parsing this fills "tokens" with all tokens of the block
  * excluding the braces at each end.
  */
-RULE Statement() ::=
+Statement =
   < ECODE_DATA > < ECODE_END >
 | < LBRACE > ( Statement() )* < RBRACE >
-};
+;

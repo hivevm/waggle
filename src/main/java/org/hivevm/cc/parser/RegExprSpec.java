@@ -5,6 +5,7 @@ package org.hivevm.cc.parser;
 
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenProduction;
 
 /**
  * The object type of entries in the vector "respecs" of class "TokenProduction".
@@ -35,7 +36,8 @@ public class RegExprSpec {
      */
     public Token nsTok;
 
-    public RegExprSpec(RExpression rexp) {
+    RegExprSpec(RExpression rexp, TokenProduction production) {
         this.rexp = rexp;
+        this.rexp.setTokenProduction(production);
     }
 }

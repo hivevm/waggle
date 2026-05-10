@@ -7,16 +7,12 @@ import org.hivevm.cc.model.NodeDescriptor;
 
 public class ParserDescriptor implements NodeDescriptor {
 
-    private String  name;
+    private String name;
     private boolean isGT;
-    private String  text;
+    private String text;
 
     public String getName() {
         return this.name;
-    }
-
-    public boolean isVoid() {
-        return this.name.equals("void");
     }
 
     @Override
@@ -36,8 +32,7 @@ public class ParserDescriptor implements NodeDescriptor {
         return this.isGT;
     }
 
-
-    public void setGreaterThan() {
+    void setGreaterThan() {
         this.isGT = true;
     }
 

@@ -24,4 +24,22 @@ public class Choice extends Expansion {
     public List<Expansion> getChoices() {
         return this.choices;
     }
+
+    /**
+     * Collapses a list of alternative expansions into a single node: the sole child is returned
+     * unchanged for a single alternative, otherwise a {@link Choice} located at the first child and
+     * owning every child (parent wired) is created.
+     */
+    public static Expansion of(List<Expansion> choices) {
+        if (choices.size() == 1) {
+            return choices.get(0);
+        }
+        Choice choice = new Choice();
+        choice.setLocation(choices.get(0));
+        for (Expansion c : choices) {
+            choice.getChoices().add(c);
+            c.setParent(choice);
+        }
+        return choice;
+    }
 }

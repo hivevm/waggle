@@ -4,9 +4,17 @@
 package org.hivevm.cc;
 
 
+import org.hivevm.cc.generator.GeneratorProvider;
+import org.hivevm.cc.model.NodeScope;
+import org.hivevm.cc.parser.JavaCCData;
+import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.JavaCCParserDefault;
+import org.hivevm.cc.parser.StringProvider;
+import org.hivevm.cc.semantic.Semanticize;
+import org.hivevm.source.LinePrinter;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -15,13 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.hivevm.cc.generator.GeneratorProvider;
-import org.hivevm.cc.parser.JavaCCData;
-import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.JavaCCParserDefault;
-import org.hivevm.cc.parser.StringProvider;
-import org.hivevm.cc.semantic.Semanticize;
 
 /**
  * The {@link Parser} class.
@@ -32,8 +33,8 @@ public class Parser {
 
     private final File file;
 
-    private final Language     language;
-    private final File         targetDir;
+    private final Language language;
+    private final File targetDir;
     private final List<String> customNodes;
 
     public Parser(File file, Language language, File targetDir, List<String> customNodes) {
@@ -80,6 +81,7 @@ public class Parser {
 
             Parser.bannerLine("Parser Generator");
             JavaCCErrors.reInit();
+            NodeScope.reInit();
 
             var options = parseContext(arguments);
             var request = new JavaCCData(Parser.isGenerated(text), options);
@@ -93,8 +95,7 @@ public class Parser {
             options.set(HiveCC.PARSER_NAME, request.getParserName());
             var generator = GeneratorProvider.generatorFor(options.getOutputLanguage());
             generator.generate(request);
-        }
-        catch (ParseException | IOException e) {
+        } catch (ParseException | IOException e) {
             e.printStackTrace();
         }
 
@@ -102,12 +103,10 @@ public class Parser {
             System.out.printf("Detected %s errors and %s warnings.\n",
                     JavaCCErrors.get_error_count(), JavaCCErrors.get_warning_count());
             System.exit(JavaCCErrors.get_error_count() == 0 ? 0 : 1);
-        }
-        else if (JavaCCErrors.hasWarning()) {
+        } else if (JavaCCErrors.hasWarning()) {
             System.out.printf("Parser generated with 0 errors and %s warnings.\n",
                     JavaCCErrors.get_warning_count());
-        }
-        else {
+        } else {
             System.out.println("Parser generated successfully.");
         }
     }
@@ -115,8 +114,8 @@ public class Parser {
     /**
      * Writes the generated string.
      */
-    protected static void writeGenerated(PrintWriter writer) {
-        writer.println("/* @generated(JJTree) */");
+    protected static void writeGenerated(LinePrinter printer) {
+        printer.println("/* @generated(JJTree) */");
     }
 
     /**

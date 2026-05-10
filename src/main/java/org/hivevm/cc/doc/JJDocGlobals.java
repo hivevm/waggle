@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.doc;
 
+import org.hivevm.cc.HiveCCOptions;
+
 /**
  * Global variables for JJDoc.
  */
@@ -28,35 +30,8 @@ class JJDocGlobals {
      *
      * @return the generator configured in options or set by setter.
      */
-    static Generator getGenerator(JJDocOptions opts) {
-        if (JJDocGlobals.generator == null) {
-            if (opts.getText()) {
-                JJDocGlobals.generator = new TextGenerator(opts);
-            }
-            else if (opts.getBNF()) {
-                JJDocGlobals.generator = new BNFGenerator(opts);
-            }
-            else if (opts.getXText()) {
-                JJDocGlobals.generator = new XTextGenerator(opts);
-            }
-            else {
-                JJDocGlobals.generator = new HTMLGenerator(opts);
-            }
-        }
-        else if (opts.getText()) {
-            if (JJDocGlobals.generator instanceof HTMLGenerator) {
-                JJDocGlobals.generator = new TextGenerator(opts);
-            }
-        }
-        else if (opts.getBNF()) {
-            JJDocGlobals.generator = new BNFGenerator(opts);
-        }
-        else if (opts.getXText()) {
-            JJDocGlobals.generator = new XTextGenerator(opts);
-        }
-        else if (JJDocGlobals.generator instanceof TextGenerator) {
-            JJDocGlobals.generator = new HTMLGenerator(opts);
-        }
+    static Generator getGenerator(HiveCCOptions opts) {
+        JJDocGlobals.generator = new BNFGenerator(opts);
         return JJDocGlobals.generator;
     }
 

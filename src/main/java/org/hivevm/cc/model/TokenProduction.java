@@ -3,27 +3,16 @@
 
 package org.hivevm.cc.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.Token;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Describes the various regular expression productions.
  */
-
 public class TokenProduction extends Production {
-
-    /**
-     * Definitions of constants that identify the kind of regular expression production this is.
-     */
-    public enum Kind {
-        TOKEN,
-        SKIP,
-        MORE,
-        SPECIAL
-    }
 
     /**
      * The states in which this regular expression production exists. If this array is null, then
@@ -36,7 +25,7 @@ public class TokenProduction extends Production {
     /**
      * The kind of this token production - TOKEN, SKIP, MORE, or SPECIAL.
      */
-    private Kind kind;
+    private TokenKind kind;
 
     /**
      * The list of regular expression specifications that comprise this production. Each entry is a
@@ -63,13 +52,19 @@ public class TokenProduction extends Production {
     private Token firstToken;
 
     public TokenProduction() {
+        setLexStates(new String[]{"DEFAULT"});
     }
 
-    public final Kind getKind() {
+    public TokenProduction(TokenKind kind) {
+        setKind(kind);
+        setLexStates(new String[]{"DEFAULT"});
+    }
+
+    public final TokenKind getKind() {
         return this.kind;
     }
 
-    public final void setKind(Kind kind) {
+    public final void setKind(TokenKind kind) {
         this.kind = kind;
     }
 

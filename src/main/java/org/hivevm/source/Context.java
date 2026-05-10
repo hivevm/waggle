@@ -1,8 +1,8 @@
 package org.hivevm.source;
 
-import java.util.function.Function;
-
 import org.hivevm.cc.parser.Options;
+
+import java.util.function.Function;
 
 public interface Context extends Options {
 
@@ -32,12 +32,12 @@ public interface Context extends Options {
     @FunctionalInterface
     interface SourceConsumer {
 
-        void apply(SourceWriter writer);
+        void apply(LinePrinter printer);
     }
 
     @FunctionalInterface
     interface SourceProvider<V> {
 
-        void apply(V value, SourceWriter writer);
+        void apply(V value, LinePrinter printer);
     }
 }

@@ -3,6 +3,8 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.lexer.LexerData;
+
 /**
  * The {@link FileGenerator} class.
  */

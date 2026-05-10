@@ -3,17 +3,16 @@
 
 package org.hivevm.source;
 
+import org.hivevm.core.Environment;
+
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
-
-import org.hivevm.core.Environment;
 
 /**
  * Represents a template rendering system that interprets a set of commands embedded within input
  * data, allowing conditional logic and repetitive constructs. A template is processed with an
- * underlying environment, and the output is written to a specified {@link PrintWriter}.
+ * underlying environment, and the output is written to a specified {@link java.io.Writer}.
  * <p>
  * Commands such as "if", "elif", "else", "foreach", and their corresponding closing commands are
  * parsed and constructed into a tree structure, which is then rendered dynamically based on the
@@ -33,7 +32,7 @@ public class Template {
     }
 
     private static final Pattern STATEMENT = Pattern.compile(
-            "(\\h*)//@(\\w+)(?:\\(([^)]+)\\))?\\v?|__([^_()][\\w+]+[^_()])__", Pattern.MULTILINE);
+            "(\\t*)//@(\\w+)(?:\\(([^)]+)\\))?\\v?|__([^_()][\\w+]+[^_()])__", Pattern.MULTILINE);
 
 
     private final String text;
@@ -96,7 +95,7 @@ public class Template {
                     break;
 
                 case INVOKE:
-                    var intend = matcher.group(1).length() / 4;
+                    var intend = matcher.group(1).length();
                     builder.setIntend(intend);
                     builder.addVar(param);
                     builder.setIntend(-intend);
@@ -110,9 +109,8 @@ public class Template {
             builder.addText(text.substring(offset));
         }
 
-        var renderer = builder.build();
         try (var writer = TemplateWriter.create(title, outputStream, environment)) {
-            renderer.render(writer, writer);
+            builder.build().render(writer, writer);
         }
     }
 

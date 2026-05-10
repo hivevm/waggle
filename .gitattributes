@@ -1,0 +1,4 @@
+# Normalize line endings. Shell scripts must stay LF so they run on Linux (CI) and in the
+# Dev Container regardless of the committer's platform.
+* text=auto
+*.sh text eol=lf

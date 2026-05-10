@@ -3,9 +3,7 @@
 
 package org.hivevm.cc.parser;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.BNFProduction;
@@ -13,7 +11,11 @@ import org.hivevm.cc.model.Expansion;
 import org.hivevm.cc.model.NormalProduction;
 import org.hivevm.cc.model.REndOfFile;
 import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.TokenKind;
 import org.hivevm.cc.model.TokenProduction;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Utilities.
@@ -21,7 +23,7 @@ import org.hivevm.cc.model.TokenProduction;
 abstract class AbstractJavaCCParser implements ParserConstants {
 
     private JavaCCData data;
-    private int        nextFreeLexState;
+    private int nextFreeLexState;
 
     /**
      * This int variable is incremented while parsing local lookaheads. Hence it keeps track of
@@ -80,13 +82,10 @@ abstract class AbstractJavaCCParser implements ParserConstants {
 
     protected void add_inline_regexpr(RExpression r) {
         if (!(r instanceof REndOfFile)) {
-            var p = new TokenProduction();
+            var p = new TokenProduction(TokenKind.TOKEN);
             p.setExplicit(false);
-            p.setLexStates(new String[]{"DEFAULT"});
-            p.setKind(TokenProduction.Kind.TOKEN);
 
-            var res = new RegExprSpec(r);
-            res.rexp.setTpContext(p);
+            var res = new RegExprSpec(r, p);
             res.act = new Action();
             res.nextState = null;
             res.nsTok = null;
@@ -219,8 +218,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         if (s.length() != 1) {
             JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
             return ' ';
-        }
-        else {
+        } else {
             return s.charAt(0);
         }
     }
@@ -229,14 +227,12 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         if (s.length() != 1) {
             JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
             return ' ';
-        }
-        else if ((left.charAt(0)) > (s.charAt(0))) {
+        } else if ((left.charAt(0)) > (s.charAt(0))) {
             JavaCCErrors.parse_error(t, "Right end of character range '" + s
                     + "' has a lower ordinal value than the left end of character range '" + left
                     + "'.");
             return left.charAt(0);
-        }
-        else {
+        } else {
             return s.charAt(0);
         }
     }
@@ -250,44 +246,48 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         t = getToken(1);
         return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
                 && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
-                && (t.kind != ParserConstants.RBRACKET);
+                && (t.kind != ParserConstants.RBRACKET) && (t.kind != ParserConstants.SEMICOLON);
     }
 
     protected abstract Token getNextToken();
 
     protected abstract Token getToken(int index);
 
+    /**
+     * Collects every token of the linked list from {@code first} up to and including {@code last}
+     * into {@code tokens}. Does nothing for an empty sequence (i.e. when {@code last} precedes
+     * {@code first}).
+     */
+    protected void collectTokens(List<Token> tokens, Token first, Token last) {
+        if (last.next != first) { // i.e., this is not an empty sequence
+            Token t = first;
+            while (true) {
+                tokens.add(t);
+                if (t == last) {
+                    break;
+                }
+                t = t.next;
+            }
+        }
+    }
+
+    /**
+     * Parses an argument list whose tokens are not needed by the caller.
+     */
     protected void Arguments() throws ParseException {
         Arguments(new ArrayList<>());
     }
 
+    /**
+     * Parses a nested block of an action whose tokens are collected by the outer block.
+     */
     protected void Statement() throws ParseException {
         Statement(new ArrayList<>());
-    }
-
-    protected void Expression() throws ParseException {
-        Expression(new ArrayList<>());
-    }
-
-    protected void Name() throws ParseException {
-        Name(new ArrayList<>());
-    }
-
-    protected void TypeArguments() throws ParseException {
-        TypeArguments(new ArrayList<>());
     }
 
     protected abstract void Arguments(List<Token> tokens) throws ParseException;
 
     protected abstract void Statement(List<Token> tokens) throws ParseException;
-
-    protected abstract void Expression(List<Token> tokens) throws ParseException;
-
-    protected abstract void FormalParameters(List<Token> tokens) throws ParseException;
-
-    protected abstract void Name(List<Token> tokens) throws ParseException;
-
-    protected abstract void TypeArguments(List<Token> tokens) throws ParseException;
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {
         return !emptyLA && (token.kind != ParserConstants.RPAREN);
@@ -305,6 +305,10 @@ abstract class AbstractJavaCCParser implements ParserConstants {
     protected boolean checkEmpty(Token token) {
         return (token.kind != ParserConstants.RPAREN) && (token.kind
                 != ParserConstants.LBRACE);
+    }
+
+    protected final void setParserName(Token v) {
+        getOptions().setOption(null, v, HiveCC.PARSER_NAME, v.image);
     }
 
     protected final void setInputOption(Token o, Token v) {

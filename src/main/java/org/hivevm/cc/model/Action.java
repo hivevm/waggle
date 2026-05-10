@@ -3,10 +3,10 @@
 
 package org.hivevm.cc.model;
 
+import org.hivevm.cc.parser.Token;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hivevm.cc.parser.Token;
 
 /**
  * Describes actions that may occur on the right hand side of productions.

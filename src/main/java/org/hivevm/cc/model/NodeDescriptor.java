@@ -7,13 +7,15 @@ import org.hivevm.cc.parser.Options;
 
 public interface NodeDescriptor {
 
+    default String getNodeId() {
+        return NodeDescriptor.getNodeId(getName());
+    }
+
     String getName();
 
     String getText();
 
     boolean isGt();
-
-    boolean isVoid();
 
     default String getDescriptor() {
         return getText() == null
@@ -29,11 +31,9 @@ public interface NodeDescriptor {
     default String closeNode(String nodeVar) {
         if (getText() == null) {
             return "jjtree.closeNodeScope(" + nodeVar + ", true);";
-        }
-        else if (isGt()) {
+        } else if (isGt()) {
             return "jjtree.closeNodeScope(" + nodeVar + ", jjtree.nodeArity() >" + getText() + ");";
-        }
-        else {
+        } else {
             return "jjtree.closeNodeScope(" + nodeVar + ", " + getText() + ");";
         }
     }

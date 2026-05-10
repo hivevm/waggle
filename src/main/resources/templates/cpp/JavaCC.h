@@ -49,10 +49,10 @@ static const JJChar JJQUOTE[] = { '\'', 0 };
 // Abstraction on stream classes to read a block of data into a buffer.
 class InputStream {
 public:
-    virtual ~InputStream() {}
-    // Read block of data into a buffer and return the actual number read.
-    virtual size_t read(JJChar* buffer, int offset, size_t len) { return 0; }
-    virtual bool endOfInput() { return true; }
+	virtual ~InputStream() {}
+	// Read block of data into a buffer and return the actual number read.
+	virtual size_t read(JJChar* buffer, int offset, size_t len) { return 0; }
+	virtual bool endOfInput() { return true; }
 };
 
 #ifndef MAX
@@ -65,39 +65,39 @@ public:
 template<typename T>
 struct JJEnter
 {
-    JJEnter(T f) : f{f} {f();}
-    ~JJEnter(){}
-    T f;
+	JJEnter(T f) : f{f} {f();}
+	~JJEnter(){}
+	T f;
 };
 template<typename T>
 struct JJExit
 {
-    JJExit(T f) : f{f} {}
-    ~JJExit(){f();}
-    T f;
+	JJExit(T f) : f{f} {}
+	~JJExit(){f();}
+	T f;
 };
 
 #define OUT_OF_RANGE 0x0A
 template<int size, typename T>
 struct Array {
-    T array[size];
+	T array[size];
 public:
-    T &operator[](size_t index) {
-        if (index >= size)
-            throw OUT_OF_RANGE;
-        return array[index];
-    }
-    const T &operator[](size_t index) const {
-        if (index >= size)
-            throw OUT_OF_RANGE;
-        return array[index];
-    }
-    void* base() {
-        return this->array;
-    }
-    const void* base() const {
-        return this->array;
-    }
+	T &operator[](size_t index) {
+		if (index >= size)
+			throw OUT_OF_RANGE;
+		return array[index];
+	}
+	const T &operator[](size_t index) const {
+		if (index >= size)
+			throw OUT_OF_RANGE;
+		return array[index];
+	}
+	void* base() {
+		return this->array;
+	}
+	const void* base() const {
+		return this->array;
+	}
 };
 
 JJString addUnicodeEscapes(const JJString& str);

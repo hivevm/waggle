@@ -29,44 +29,44 @@ class __CPP_DEFINE___API TokenManager {
 class TokenManager {
 //@fi
 public:
-    TokenManager() {
+	TokenManager() {
 //@if(DEBUG_TOKEN_MANAGER)
-        trace = true;
+		trace = true;
 //@else
-        trace = false;
+		trace = false;
 //@fi
-    }
-    virtual ~TokenManager() {}
+	}
+	virtual ~TokenManager() {}
 
-    // This gets the next token from the input stream. A token of kind 0 (<EOF>) should be returned on EOF.
-    virtual Token * getNextToken() = 0;
-    virtual void lexicalError() = 0;
+	// This gets the next token from the input stream. A token of kind 0 (<EOF>) should be returned on EOF.
+	virtual Token * getNextToken() = 0;
+	virtual void lexicalError() = 0;
 /*
-    void setErrorHandler(TokenManagerErrorHandler* eh) {
-        if (delete_eh) delete errorHandler, errorHandler = nullptr;
-        delete_eh = false;  // We don't delete stuff passed in.
-        errorHandler = eh;
-    }
-    const TokenManagerErrorHandler * getErrorHandler() const { return errorHandler; }
+	void setErrorHandler(TokenManagerErrorHandler* eh) {
+		if (delete_eh) delete errorHandler, errorHandler = nullptr;
+		delete_eh = false;  // We don't delete stuff passed in.
+		errorHandler = eh;
+	}
+	const TokenManagerErrorHandler * getErrorHandler() const { return errorHandler; }
 */  
 protected:
 /*
-    bool                       delete_eh = false;
-    TokenManagerErrorHandler * errorHandler = nullptr;
+	bool                       delete_eh = false;
+	TokenManagerErrorHandler * errorHandler = nullptr;
 */
-    bool                       trace;
+	bool                       trace;
 public:
-    void enable_tracing() {
+	void enable_tracing() {
 //@if(DEBUG_TOKEN_MANAGER)
-        trace = true;
+		trace = true;
 //@fi
-    }
-    void disable_tracing(){
+	}
+	void disable_tracing(){
 //@if(DEBUG_TOKEN_MANAGER)
-        trace = false; 
+		trace = false; 
 //@fi
-    }
-    bool trace_enabled() const { return trace; }
+	}
+	bool trace_enabled() const { return trace; }
 };
 
 //@if(CPP_NAMESPACE)

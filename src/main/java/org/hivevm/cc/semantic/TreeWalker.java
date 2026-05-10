@@ -37,53 +37,41 @@ interface TreeWalker {
      * Visits the nodes of the tree rooted at "node" in pre/post-order. i.e., it executes
      * opObj.action first and then visits the children.
      */
-    static void walk(Expansion node, TreeWalker opObj, boolean post) {
+    static void walk(Expansion node, TreeWalker walker, boolean post) {
         if (!post)
-            opObj.action(node);
+            walker.action(node);
 
-        if (opObj.goDeeper(node)) {
+        if (walker.goDeeper(node)) {
             if (node instanceof Choice choice) {
-                choice.getChoices().forEach(o -> TreeWalker.walk(o, opObj, post));
-            }
-            else if (node instanceof Sequence sequence) {
-                sequence.getUnits().forEach(o -> TreeWalker.walk((Expansion) o, opObj, post));
-            }
-            else if (node instanceof OneOrMore oneOrMore) {
-                TreeWalker.walk(oneOrMore.getExpansion(), opObj, post);
-            }
-            else if (node instanceof ZeroOrMore zeroOrMore) {
-                TreeWalker.walk(zeroOrMore.getExpansion(), opObj, post);
-            }
-            else if (node instanceof ZeroOrOne zeroOrOne) {
-                TreeWalker.walk(zeroOrOne.getExpansion(), opObj, post);
-            }
-            else if (node instanceof Lookahead lookahead) {
+                choice.getChoices().forEach(o -> TreeWalker.walk(o, walker, post));
+            } else if (node instanceof Sequence sequence) {
+                sequence.getUnits().forEach(o -> TreeWalker.walk(o, walker, post));
+            } else if (node instanceof OneOrMore oneOrMore) {
+                TreeWalker.walk(oneOrMore.getExpansion(), walker, post);
+            } else if (node instanceof ZeroOrMore zeroOrMore) {
+                TreeWalker.walk(zeroOrMore.getExpansion(), walker, post);
+            } else if (node instanceof ZeroOrOne zeroOrOne) {
+                TreeWalker.walk(zeroOrOne.getExpansion(), walker, post);
+            } else if (node instanceof Lookahead lookahead) {
                 Expansion nested_e = lookahead.getLaExpansion();
-                if (!((nested_e instanceof Sequence sequence)
-                        && (sequence.getUnits().getFirst()) == node))
-                    TreeWalker.walk(nested_e, opObj, post);
-            }
-            else if (node instanceof RChoice rChoice) {
-                rChoice.getChoices().forEach(o -> TreeWalker.walk(o, opObj, post));
-            }
-            else if (node instanceof RSequence rSequence) {
-                rSequence.getUnits().forEach(o -> TreeWalker.walk(o, opObj, post));
-            }
-            else if (node instanceof ROneOrMore rOneOrMore) {
-                TreeWalker.walk(rOneOrMore.getRegexpr(), opObj, post);
-            }
-            else if (node instanceof RZeroOrMore zeroOrMore) {
-                TreeWalker.walk(zeroOrMore.getRegexpr(), opObj, post);
-            }
-            else if (node instanceof RZeroOrOne rZeroOrOne) {
-                TreeWalker.walk(rZeroOrOne.getRegexpr(), opObj, post);
-            }
-            else if (node instanceof RRepetitionRange rRepetitionRange) {
-                TreeWalker.walk(rRepetitionRange.getRegexpr(), opObj, post);
+                if (!((nested_e instanceof Sequence sequence) && (sequence.getUnits().getFirst()) == node))
+                    TreeWalker.walk(nested_e, walker, post);
+            } else if (node instanceof RChoice rChoice) {
+                rChoice.getChoices().forEach(o -> TreeWalker.walk(o, walker, post));
+            } else if (node instanceof RSequence rSequence) {
+                rSequence.getUnits().forEach(o -> TreeWalker.walk(o, walker, post));
+            } else if (node instanceof ROneOrMore rOneOrMore) {
+                TreeWalker.walk(rOneOrMore.getRegexpr(), walker, post);
+            } else if (node instanceof RZeroOrMore zeroOrMore) {
+                TreeWalker.walk(zeroOrMore.getRegexpr(), walker, post);
+            } else if (node instanceof RZeroOrOne rZeroOrOne) {
+                TreeWalker.walk(rZeroOrOne.getRegexpr(), walker, post);
+            } else if (node instanceof RRepetitionRange rRepetitionRange) {
+                TreeWalker.walk(rRepetitionRange.getRegexpr(), walker, post);
             }
         }
 
         if (post)
-            opObj.action(node);
+            walker.action(node);
     }
 }

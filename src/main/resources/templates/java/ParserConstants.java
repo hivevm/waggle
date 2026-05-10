@@ -5,24 +5,23 @@ package __JAVA_PACKAGE__;
  */
 public interface ParserConstants {
 
-    // End of File
-    int EOF = 0;
+	// End of File
+	int EOF = 0;
 
-    // RegularExpression Ids
+	// RegularExpression Ids
 //@foreach(TOKENS)
-    int __TOKENS_LABEL__ = __TOKENS_ORDINAL__;
+	int __TOKENS_LABEL__ = __TOKENS_ORDINAL__;
 //@end
 
-    // Lexical states
+	// Lexical states
 //@foreach(STATES)
-    int __STATES_NAME__ = __STATES_INDEX__;
+	int __STATES_NAME__ = __STATES_INDEX__;
 //@end
 
-    // Literal token values
-    String[] tokenImage = {
-        "<EOF>",
-//@foreach(PRODUCTIONS)
-        __PRODUCTIONS_LABEL__
+	// Literal token values
+	String[] tokenImage = {
+//@foreach(REXPRESSION_COUNT)
+			__REXPRESSION_LABEL__
 //@end
-    };
+	};
 }

@@ -10,9 +10,9 @@ import org.hivevm.cc.model.Production;
  */
 public final class JavaCCErrors {
 
-    private static int parse_error_count    = 0;
+    private static int parse_error_count = 0;
     private static int semantic_error_count = 0;
-    private static int warning_count        = 0;
+    private static int warning_count = 0;
 
     private JavaCCErrors() {
     }
@@ -20,8 +20,7 @@ public final class JavaCCErrors {
     private static void printLocationInfo(Object node) {
         if (node instanceof Production p) {
             System.err.print("Line " + p.getLine() + ", Column " + p.getColumn() + ": ");
-        }
-        else if (node instanceof Token t) {
+        } else if (node instanceof Token t) {
             System.err.print("Line " + t.beginLine + ", Column " + t.beginColumn + ": ");
         }
     }
@@ -79,10 +78,5 @@ public final class JavaCCErrors {
         JavaCCErrors.parse_error_count = 0;
         JavaCCErrors.semantic_error_count = 0;
         JavaCCErrors.warning_count = 0;
-    }
-
-    public static void fatal(String message) {
-        System.err.println("Fatal Error: " + message);
-        throw new RuntimeException("Fatal Error: " + message);
     }
 }

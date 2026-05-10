@@ -5,519 +5,539 @@ import __JAVA_IMPORTS_VALUE__;
 //@end
 
 public class Parser
-//@if(BASE_PARSER)    extends __BASE_PARSER__
+//@if(BASE_PARSER)
+		extends __BASE_PARSER__
 //@fi
-    implements ParserConstants {
+		implements ParserConstants {
 //@if(USE_AST)
 
-    private final NodeState jjtree = new NodeState();
+	private final NodeState jjtree = new NodeState();
 //@fi
 
-//@foreach(NORMALPRODUCTIONS)
-__NORMALPRODUCTIONS_PHASE__
-//@end
-//@foreach(LOOKAHEADS)
-__LOOKAHEADS_PHASE__
-//@end
-//@foreach(EXPANSIONS)
-__EXPANSIONS_PHASE__
-//@end
-
-  /** Generated Token Manager. */
-  public Lexer               token_source;
-  /** Current token. */
-  public Token token;
-  /** Next token. */
-  public Token               jj_nt;
+	//@invoke(DUMP_NORMALPRODUCTIONS)
+	//@invoke(DUMP_LOOKAHEADS)
+	//@invoke(DUMP_EXPANSIONS)
+	/**
+	 * Generated Token Manager.
+	 */
+	public Lexer token_source;
+	/**
+	 * Current token.
+	 */
+	public Token token;
+	/**
+	 * Next token.
+	 */
+	public Token               jj_nt;
 //@if(CACHE_TOKENS)
 //@else
-  private int                jj_ntk;
+	private int                jj_ntk;
 //@fi
 //@if(DEPTH_LIMIT)
-  private int                jj_depth;
+	private int                jj_depth;
 //@fi
 //@if(MASK_INDEX)
-  private Token              jj_scanpos, jj_lastpos;
-  private int                jj_la;
+	private Token              jj_scanpos, jj_lastpos;
+	private int                jj_la;
 //@if(LOOKAHEAD_NEEDED)
-  /** Whether we are looking ahead. */
-  private boolean            jj_lookingAhead = false;
-  private boolean            jj_semLA;
+	/** Whether we are looking ahead. */
+	private boolean            jj_lookingAhead = false;
+	private boolean            jj_semLA;
 //@fi
 //@fi
 //@if(ERROR_REPORTING)
-  private int                jj_gen;
-  private final int[]        jj_la1    = new int[__MASK_INDEX__];
+	private int                jj_gen;
+	private final int[]        jj_la1    = new int[__MASK_INDEX__];
 //@foreach(TOKEN_MASKS)
-  private static final int[] jj_la1___TOKEN_MASKS_INDEX__  = { __TOKEN_MASKS_MASK__};
+	private static final int[] jj_la1___TOKEN_MASKS_INDEX__  = { __TOKEN_MASKS_VALUE__};
 //@end
 //@fi
-//@if(MASK_INDEX)
+//@if(JJ2_INDEX)
 //@if(ERROR_REPORTING)
-  private final JJCalls[]    jj_2_rtns = new JJCalls[__JJ2_INDEX__];
-  private boolean            jj_rescan = false;
-  private int                jj_gc     = 0;
+	private final JJCalls[]    jj_2_rtns = new JJCalls[__JJ2_INDEX__];
+	private boolean            jj_rescan = false;
+	private int                jj_gc     = 0;
 //@fi
 //@fi
 
 //@if(DEBUG_PARSER)
-  {
-    enable_tracing();
-  }
+	{
+		enable_tracing();
+	}
 //@fi
-  /** Constructor. */
-  public Parser(Provider stream) {
-    this(new Lexer(new JavaCharStream(stream)));
-  }
+	/**
+	 * Constructor.
+	 */
+	public Parser(Provider stream) {
+		this(new Lexer(new JavaCharStream(stream)));
+	}
 
-  /** Constructor. */
-  public Parser(String dsl) throws ParseException, TokenException {
-    this(new StringProvider(dsl));
-  }
+	/**
+	 * Constructor.
+	 */
+	public Parser(String dsl) throws ParseException, TokenException {
+		this(new StringProvider(dsl));
+	}
 
-  /** Constructor with generated Token Manager. */
-  public Parser(Lexer tm) {
-    token_source = tm;
-    token = new Token();
+	/**
+	 * Constructor with generated Token Manager.
+	 */
+	public Parser(Lexer tm) {
+		token_source = tm;
+		token = new Token();
 //@if(CACHE_TOKENS)
-    token.next = jj_nt = token_source.getNextToken();
+		token.next = jj_nt = token_source.getNextToken();
 //@else
-    jj_ntk = -1;
+		jj_ntk = -1;
 //@fi
 //@if(DEPTH_LIMIT)
-    jj_depth = -1;
+		jj_depth = -1;
 //@fi
 //@if(ERROR_REPORTING)
-    jj_gen = 0;
+		jj_gen = 0;
 //@if(MASK_INDEX)
-    for (int i = 0; i < __MASK_INDEX__; i++)
-      jj_la1[i] = -1;
+		for (int i = 0; i < __MASK_INDEX__; i++)
+			jj_la1[i] = -1;
 //@fi
 //@if(JJ2_INDEX)
-    for (int i = 0; i < jj_2_rtns.length; i++)
-      jj_2_rtns[i] = new JJCalls();
+		for (int i = 0; i < jj_2_rtns.length; i++)
+			jj_2_rtns[i] = new JJCalls();
 //@fi
 //@fi
-  }
+	}
 
-  /** Reinitialise. */
-  public void ReInit(Lexer tm) {
-    token_source = tm;
-    token = new Token();
+	/**
+	 * Reinitialise.
+	 */
+	public void ReInit(Lexer tm) {
+		token_source = tm;
+		token = new Token();
 //@if(CACHE_TOKENS)
-    token.next = jj_nt = token_source.getNextToken();
+		token.next = jj_nt = token_source.getNextToken();
 //@else
-    jj_ntk = -1;
+		jj_ntk = -1;
 //@fi
 //@if(DEPTH_LIMIT)
-    jj_depth = -1;
+		jj_depth = -1;
 //@fi
 //@if(USE_AST)
-    jjtree.reset();
+		jjtree.reset();
 //@fi
 //@if(ERROR_REPORTING)
-    jj_gen = 0;
+		jj_gen = 0;
 //@if(MASK_INDEX)
-    for (int i = 0; i < __MASK_INDEX__; i++)
-      jj_la1[i] = -1;
+		for (int i = 0; i < __MASK_INDEX__; i++)
+			jj_la1[i] = -1;
 //@fi
 //@if(JJ2_INDEX)
-    for (int i = 0; i < jj_2_rtns.length; i++)
-      jj_2_rtns[i] = new JJCalls();
+		for (int i = 0; i < jj_2_rtns.length; i++)
+			jj_2_rtns[i] = new JJCalls();
 //@fi
 //@fi
-  }
+	}
 
-  private Token jj_consume_token(int kind) throws ParseException {
+	private Token jj_consume_token(int kind) throws ParseException {
 //@if(CACHE_TOKENS)
-    Token oldToken = token;
-    if ((token = jj_nt).next == null)
-      jj_nt.next = token_source.getNextToken();
-    jj_nt = jj_nt.next;
+		Token oldToken = token;
+		if ((token = jj_nt).next == null)
+			jj_nt.next = token_source.getNextToken();
+		jj_nt = jj_nt.next;
 //@else
-    Token oldToken;
-    if ((oldToken = token).next != null)
-      token = token.next;
-    else
-      token = token.next = token_source.getNextToken();
-    jj_ntk = -1;
+		Token oldToken;
+		if ((oldToken = token).next != null)
+			token = token.next;
+		else
+			token = token.next = token_source.getNextToken();
+		jj_ntk = -1;
 //@fi
-    if (token.kind == kind) {
+		if (token.kind == kind) {
 //@if(ERROR_REPORTING)
-      jj_gen++;
+			jj_gen++;
 //@if(JJ2_INDEX)
-      if (++jj_gc > 100) {
-        jj_gc = 0;
-        for (int i = 0; i < jj_2_rtns.length; i++) {
-          JJCalls c = jj_2_rtns[i];
-          while (c != null) {
-            if (c.gen < jj_gen)
-              c.first = null;
-            c = c.next;
-          }
-        }
-      }
+			if (++jj_gc > 100) {
+				jj_gc = 0;
+				for (int i = 0; i < jj_2_rtns.length; i++) {
+					JJCalls c = jj_2_rtns[i];
+					while (c != null) {
+						if (c.gen < jj_gen)
+							c.first = null;
+						c = c.next;
+					}
+				}
+			}
 //@fi
 //@fi
 //@if(DEBUG_PARSER)
-      trace_token(token, "");
+			trace_token(token, "");
 //@fi
-      return this.token;
-    }
+			return this.token;
+		}
 //@if(CACHE_TOKENS)
-    jj_nt = token;
+		jj_nt = token;
 //@fi
-    this.token = oldToken;
+		this.token = oldToken;
 //@if(ERROR_REPORTING)
-    this.jj_kind = kind;
+		this.jj_kind = kind;
 //@fi
-    throw generateParseException();
-  }
+		throw generateParseException();
+	}
 
 //@if(JJ2_INDEX)
-  @SuppressWarnings("serial")
-  static private final class LookaheadSuccess extends java.lang.RuntimeException {
-    @Override
-    public Throwable fillInStackTrace() {
-      return this;
-    }
-  }
-  static private final LookaheadSuccess jj_ls = new LookaheadSuccess();
-  private boolean jj_scan_token(int kind) {
-    if (jj_scanpos == jj_lastpos) {
-      jj_la--;
-      if (jj_scanpos.next == null) {
-        jj_lastpos = jj_scanpos = jj_scanpos.next = token_source.getNextToken();
-      } else {
-        jj_lastpos = jj_scanpos = jj_scanpos.next;
-      }
-    } else {
-      jj_scanpos = jj_scanpos.next;
-    }
+	@SuppressWarnings("serial")
+	static private final class LookaheadSuccess extends java.lang.RuntimeException {
+		@Override
+		public Throwable fillInStackTrace() {
+			return this;
+		}
+	}
+
+	static private final LookaheadSuccess jj_ls = new LookaheadSuccess();
+
+	private boolean jj_scan_token(int kind) {
+		if (jj_scanpos == jj_lastpos) {
+			jj_la--;
+			if (jj_scanpos.next == null) {
+				jj_lastpos = jj_scanpos = jj_scanpos.next = token_source.getNextToken();
+			} else {
+				jj_lastpos = jj_scanpos = jj_scanpos.next;
+			}
+		} else {
+			jj_scanpos = jj_scanpos.next;
+		}
 //@if(ERROR_REPORTING)
-    if (jj_rescan) {
-      int i = 0;
-      Token tok = token;
-      while (tok != null && tok != jj_scanpos) {
-        i++;
-        tok = tok.next;
-      }
-      if (tok != null)
-        jj_add_error_token(kind, i);
+		if (jj_rescan) {
+			int i = 0;
+			Token tok = token;
+			while (tok != null && tok != jj_scanpos) {
+				i++;
+				tok = tok.next;
+			}
+			if (tok != null)
+				jj_add_error_token(kind, i);
 //@if(DEBUG_LOOKAHEAD)
-    } else {
-      trace_scan(jj_scanpos, kind);
+		} else {
+			trace_scan(jj_scanpos, kind);
 //@fi
-    }
+		}
+//@fi
 //@if(DEBUG_LOOKAHEAD)
-    trace_scan(jj_scanpos, kind);
+		trace_scan(jj_scanpos, kind);
 //@fi
-    if (jj_scanpos.kind != kind)
-      return true;
-    if (jj_la == 0 && jj_scanpos == jj_lastpos)
-      throw Parser.jj_ls;
-    return false;
-  }
+		if (jj_scanpos.kind != kind)
+			return true;
+		if (jj_la == 0 && jj_scanpos == jj_lastpos)
+			throw Parser.jj_ls;
+		return false;
+	}
 
 //@fi
 
-  /** Get the next Token. */
-  final public Token getNextToken() {
+	/**
+	 * Get the next Token.
+	 */
+	final public Token getNextToken() {
 //@if(CACHE_TOKENS)
-    if ((token = jj_nt).next != null)
-      jj_nt = jj_nt.next;
-    else
-      jj_nt = jj_nt.next = token_source.getNextToken();
+		if ((token = jj_nt).next != null)
+			jj_nt = jj_nt.next;
+		else
+			jj_nt = jj_nt.next = token_source.getNextToken();
 //@else
-    if (token.next != null)
-      token = token.next;
-    else
-      token = token.next = token_source.getNextToken();
-      jj_ntk = -1;
+		if (token.next != null)
+			token = token.next;
+		else
+			token = token.next = token_source.getNextToken();
+		jj_ntk = -1;
 //@fi
 //@if(ERROR_REPORTING)
-    jj_gen++;
+		jj_gen++;
 //@fi
 //@if(DEBUG_PARSER)
-    trace_token(token, " (in getNextToken)");
+		trace_token(token, " (in getNextToken)");
 //@fi
-    return this.token;
-  }
+		return this.token;
+	}
 
-  /** Get the specific Token. */
-  final public Token getToken(int index) {
+	/**
+	 * Get the specific Token.
+	 */
+	final public Token getToken(int index) {
 //@if(LOOKAHEAD_NEEDED)
-    Token t = jj_lookingAhead ? jj_scanpos : token;
+		Token t = jj_lookingAhead ? jj_scanpos : token;
 //@else
-    Token t = this.token;
+		Token t = this.token;
 //@fi
-    for (int i = 0; i < index; i++) {
-      if (t.next != null)
-        t = t.next;
-      else
-        t = t.next = token_source.getNextToken();
-    }
-    return t;
-  }
+		for (int i = 0; i < index; i++) {
+			if (t.next != null)
+				t = t.next;
+			else
+				t = t.next = token_source.getNextToken();
+		}
+		return t;
+	}
 
 //@if(CACHE_TOKENS)
 //@else
-  private int jj_ntk_f() {
-    if ((jj_nt=token.next) == null)
-      return (jj_ntk = (token.next=token_source.getNextToken()).kind);
-    else
-      return (jj_ntk = jj_nt.kind);
-  }
-//@fi
+	private int jj_ntk_f() {
+		if ((jj_nt = token.next) == null)
+			return (jj_ntk = (token.next = token_source.getNextToken()).kind);
+		else
+			return (jj_ntk = jj_nt.kind);
+	}
 //@fi
 
 //@if(ERROR_REPORTING)
-  private final java.util.List<int[]> jj_expentries = new java.util.ArrayList<>();
-  private int[]                       jj_expentry;
-  private int                         jj_kind       = -1;
-//@if(JJ2_INDEX)
-  private final int[]                 jj_lasttokens = new int[100];
-  private int                         jj_endpos;
-//@fi
+	private final java.util.List<int[]> jj_expentries = new java.util.ArrayList<>();
+	private int[]                       jj_expentry;
+	private int                         jj_kind       = -1;
+	private final int[]                 jj_lasttokens = new int[100];
+	private int                         jj_endpos;
 
-  private void jj_add_error_token(int kind, int pos) {
-    if (pos >= 100) {
-      return;
-    }
+	private void jj_add_error_token(int kind, int pos) {
+		if (pos >= 100) {
+			return;
+		}
 
-    if (pos == (this.jj_endpos + 1)) {
-      this.jj_lasttokens[this.jj_endpos++] = kind;
-    } else if (this.jj_endpos != 0) {
-      this.jj_expentry = new int[this.jj_endpos];
+		if (pos == (this.jj_endpos + 1)) {
+			this.jj_lasttokens[this.jj_endpos++] = kind;
+		} else if (this.jj_endpos != 0) {
+			this.jj_expentry = new int[this.jj_endpos];
 
-      for (int i = 0; i < this.jj_endpos; i++) {
-        this.jj_expentry[i] = this.jj_lasttokens[i];
-      }
+			for (int i = 0; i < this.jj_endpos; i++) {
+				this.jj_expentry[i] = this.jj_lasttokens[i];
+			}
 
-      for (int[] oldentry : this.jj_expentries) {
-        if (oldentry.length == this.jj_expentry.length) {
-          boolean isMatched = true;
+			for (int[] oldentry : this.jj_expentries) {
+				if (oldentry.length == this.jj_expentry.length) {
+					boolean isMatched = true;
 
-          for (int i = 0; i < this.jj_expentry.length; i++) {
-            if (oldentry[i] != this.jj_expentry[i]) {
-              isMatched = false;
-              break;
-            }
+					for (int i = 0; i < this.jj_expentry.length; i++) {
+						if (oldentry[i] != this.jj_expentry[i]) {
+							isMatched = false;
+							break;
+						}
 
-          }
-          if (isMatched) {
-            this.jj_expentries.add(this.jj_expentry);
-            break;
-          }
-        }
-      }
+					}
+					if (isMatched) {
+						this.jj_expentries.add(this.jj_expentry);
+						break;
+					}
+				}
+			}
 
-      if (pos != 0) {
-        this.jj_lasttokens[(this.jj_endpos = pos) - 1] = kind;
-      }
-    }
-  }
+			if (pos != 0) {
+				this.jj_lasttokens[(this.jj_endpos = pos) - 1] = kind;
+			}
+		}
+	}
 
-    /**
-     * Generate ParseException.
-     */
-    public ParseException generateParseException() {
-        this.jj_expentries.clear();
-        boolean[] la1tokens = new boolean[__TOKEN_COUNT__];
-        if (this.jj_kind >= 0) {
-            la1tokens[this.jj_kind] = true;
-            this.jj_kind = -1;
-        }
-        for (int i = 0; i < __MASK_INDEX__; i++) {
-            if (this.jj_la1[i] == this.jj_gen) {
-                for (int j = 0; j < 32; j++) {
+	/**
+	 * Generate ParseException.
+	 */
+	public ParseException generateParseException() {
+		this.jj_expentries.clear();
+		boolean[] la1tokens = new boolean[__TOKEN_COUNT__];
+		if (this.jj_kind >= 0) {
+			la1tokens[this.jj_kind] = true;
+			this.jj_kind = -1;
+		}
+		for (int i = 0; i < __MASK_INDEX__; i++) {
+			if (this.jj_la1[i] == this.jj_gen) {
+				for (int j = 0; j < 32; j++) {
 //@foreach(TOKEN_MASKS_LA1)
-                    if ((Parser.jj_la1___TOKEN_MASKS_LA1_INDEX__[i] & (1 << j)) != 0) {
-                        la1tokens[__TOKEN_MASKS_LA1_VALUE__j] = true;
-                    }
+					if ((Parser.jj_la1___TOKEN_MASKS_LA1_INDEX__[i] & (1 << j)) != 0) {
+						la1tokens[__TOKEN_MASKS_LA1_VALUE__j] = true;
+					}
 //@end
-                }
-            }
-        }
-        for (int i = 0; i < __TOKEN_COUNT__; i++) {
-            if (la1tokens[i]) {
-                this.jj_expentry = new int[1];
-                this.jj_expentry[0] = i;
-                this.jj_expentries.add(this.jj_expentry);
-            }
-        }
+				}
+			}
+		}
+		for (int i = 0; i < __TOKEN_COUNT__; i++) {
+			if (la1tokens[i]) {
+				this.jj_expentry = new int[1];
+				this.jj_expentry[0] = i;
+				this.jj_expentries.add(this.jj_expentry);
+			}
+		}
 //@if(JJ2_INDEX)
-        this.jj_endpos = 0;
-        jj_rescan_token();
-        jj_add_error_token(0, 0);
+		this.jj_endpos = 0;
+		jj_rescan_token();
+		jj_add_error_token(0, 0);
 //@fi
-        int[][] exptokseq = new int[this.jj_expentries.size()][];
-        for (int i = 0; i < this.jj_expentries.size(); i++) {
-            exptokseq[i] = this.jj_expentries.get(i);
-        }
+		int[][] exptokseq = new int[this.jj_expentries.size()][];
+		for (int i = 0; i < this.jj_expentries.size(); i++) {
+			exptokseq[i] = this.jj_expentries.get(i);
+		}
 
-        return new ParseException(this.token, exptokseq, ParserConstants.tokenImage,
-            this.token_source == null ? null : Lexer.lexStateNames[this.token_source.curLexState]);
-    }
+		return new ParseException(this.token, exptokseq, ParserConstants.tokenImage,
+				this.token_source == null ? null : Lexer.lexStateNames[this.token_source.curLexState]);
+	}
 
 //@else
-    /** Generate ParseException. */
-    public ParseException generateParseException() {
-	    Token errortok = token.next;
+	/** Generate ParseException. */
+	public ParseException generateParseException() {
+		Token errortok = token.next;
 //@if(KEEP_LINE_COLUMN)
-  	    int line = errortok.beginLine, column = errortok.beginColumn;
+		int line = errortok.beginLine, column = errortok.beginColumn;
 //@fi
-	    String mess = (errortok.kind == 0) ? tokenImage[0] : errortok.image;
+		String mess = (errortok.kind == 0) ? tokenImage[0] : errortok.image;
 //@if(KEEP_LINE_COLUMN)
-  	     return new ParseException("Parse error at line " + line + ", column " + column + ".  "
-             + "Encountered: " + mess);
+		 return new ParseException("Parse error at line " + line + ", column " + column + ".  "
+			 + "Encountered: " + mess);
 //@else
-    	 return new ParseException("Parse error at <unknown location>.  Encountered: " + mess);
+		 return new ParseException("Parse error at <unknown location>.  Encountered: " + mess);
 //@fi
-    }
+	}
 
 //@fi
-    private boolean trace_enabled;
+	private boolean trace_enabled;
 
-    /**
-     * Trace enabled.
-     */
-    final public boolean trace_enabled() {
-        return this.trace_enabled;
-    }
+	/**
+	 * Trace enabled.
+	 */
+	final public boolean trace_enabled() {
+		return this.trace_enabled;
+	}
 
 //@if(DEBUG_PARSER)
-    private int trace_indent = 0;
+	private int trace_indent = 0;
 
-    /**
-     * Enable tracing.
-     */
-    public final void enable_tracing() {
-	    trace_enabled = true;
-    }
+	/**
+	 * Enable tracing.
+	 */
+	public final void enable_tracing() {
+		trace_enabled = true;
+	}
 
 /** Disable tracing. */
-    public final void disable_tracing() {
-        trace_enabled = false;
-    }
+	public final void disable_tracing() {
+		trace_enabled = false;
+	}
 
-    protected void trace_call(String s) {
-        if (trace_enabled) {
-            for (int i = 0; i < trace_indent; i++) { System.out.print(" "); }
-            System.out.println("Call:	" + s);
-        }
-        trace_indent = trace_indent + 2;
-    }
+	protected void trace_call(String s) {
+		if (trace_enabled) {
+			for (int i = 0; i < trace_indent; i++) {
+				System.out.print(" ");
+			}
+			System.out.println("Call:	" + s);
+		}
+		trace_indent = trace_indent + 2;
+	}
 
-    protected void trace_return(String s) {
-        trace_indent = trace_indent - 2;
-        if (trace_enabled) {
-            for (int i = 0; i < trace_indent; i++) { System.out.print(" "); }
-            System.out.println("Return: " + s);
-        }
-    }
+	protected void trace_return(String s) {
+		trace_indent = trace_indent - 2;
+		if (trace_enabled) {
+			for (int i = 0; i < trace_indent; i++) {
+				System.out.print(" ");
+			}
+			System.out.println("Return: " + s);
+		}
+	}
 
-    protected void trace_token(Token t, String where) {
-        if (trace_enabled) {
-            for (int i = 0; i < trace_indent; i++) { System.out.print(" "); }
-         System.out.print("Consumed token: <" + tokenImage[t.kind]);
-         if (t.kind != 0 && !tokenImage[t.kind].equals("\\"" + t.image + "\\"")) {
-           System.out.print(": \\"" + TokenException.addEscapes(" + "t.image) + "\\"");
-         }
-        genCodeLine(
-            "	   System.out.println(" at line " + t.beginLine + " + "" column " + t.beginColumn + ">" + where);
-        }
-    }
+	protected void trace_token(Token t, String where) {
+		if (trace_enabled) {
+			for (int i = 0; i < trace_indent; i++) {
+				System.out.print(" ");
+			}
+			System.out.print("Consumed token: <" + tokenImage[t.kind]);
+			if (t.kind != 0 && !tokenImage[t.kind].equals("\\"" + t.image + "\\"")) {
+				System.out.print(": \\"" + TokenException.addEscapes(" + "t.image) + "\\"");
+			}
+			genCodeLine(
+				"	   System.out.println(" at line " + t.beginLine + " + "" column " + t.beginColumn + ">" + where);
+		}
+	}
 
-    protected void trace_scan(Token t1, int t2) {
-        if (trace_enabled) {
-          for (int i = 0; i < trace_indent; i++) { System.out.print(" "); }
-          System.out.print("Visited token: <" + tokenImage[t1.kind]);
-          if (t1.kind != 0 && !tokenImage[t1.kind].equals("\\"" + t1.image + "\\"")) {
-               System.out.print(": \\"" + TokenException.addEscapes(" + "t1.image) + "\\"");
-          }
-          System.out.println(" at line " + t1.beginLine + ""
-            + " column " + t1.beginColumn + ">; Expected token: <" + tokenImage[t2] + ">");
-        }
-    }
+	protected void trace_scan(Token t1, int t2) {
+		if (trace_enabled) {
+			for (int i = 0; i < trace_indent; i++) {
+				System.out.print(" ");
+			}
+			System.out.print("Visited token: <" + tokenImage[t1.kind]);
+			if (t1.kind != 0 && !tokenImage[t1.kind].equals("\\"" + t1.image + "\\"")) {
+				 System.out.print(": \\"" + TokenException.addEscapes(" + "t1.image) + "\\"");
+			}
+			System.out.println(" at line " + t1.beginLine + ""
+				+ " column " + t1.beginColumn + ">; Expected token: <" + tokenImage[t2] + ">");
+		}
+	}
 
 //@else
-    /**
-     * Enable tracing.
-     */
-    final public void enable_tracing() {
-    }
+	/**
+	 * Enable tracing.
+	 */
+	final public void enable_tracing() {
+	}
 
-    /**
-     * Disable tracing.
-     */
-    final public void disable_tracing() {
-    }
+	/**
+	 * Disable tracing.
+	 */
+	final public void disable_tracing() {
+	}
 
 //@fi
 //@if(JJ2_INDEX)
 //@if(ERROR_REPORTING)
-    private void jj_rescan_token() {
-        this.jj_rescan = true;
-        for (int i = 0; i < __JJ2_INDEX__; i++) {
-            try {
-                JJCalls p = this.jj_2_rtns[i];
+	private void jj_rescan_token() {
+		this.jj_rescan = true;
+		for (int i = 0; i < __JJ2_INDEX__; i++) {
+			try {
+				JJCalls p = this.jj_2_rtns[i];
 
-                do {
-                    if (p.gen > this.jj_gen) {
-                        this.jj_la = p.arg;
-                        this.jj_lastpos = this.jj_scanpos = p.first;
-                        switch (i) {
+				do {
+					if (p.gen > this.jj_gen) {
+						this.jj_la = p.arg;
+						this.jj_lastpos = this.jj_scanpos = p.first;
+						switch (i) {
 //@foreach(JJ2_OFFSET)
-                            case __JJ2_OFFSET_INDEX__:
-                                jj_3___JJ2_OFFSET_VALUE__();
-                                break;
+							case __JJ2_OFFSET_INDEX__:
+								jj_3___JJ2_OFFSET_VALUE__();
+								break;
 //@end
-                        }
-                    }
-                    p = p.next;
-                } while (p != null);
-            } catch (LookaheadSuccess ls) {
-            }
-        }
-        this.jj_rescan = false;
-    }
+						}
+					}
+					p = p.next;
+				} while (p != null);
+			} catch (LookaheadSuccess ls) {
+			}
+		}
+		this.jj_rescan = false;
+	}
 
-    private void jj_save(int index, int xla) {
-        JJCalls p = this.jj_2_rtns[index];
-        while (p.gen > this.jj_gen) {
-            if (p.next == null) {
-                p = p.next = new JJCalls();
-                break;
-            }
-            p = p.next;
-        }
+	private void jj_save(int index, int xla) {
+		JJCalls p = this.jj_2_rtns[index];
+		while (p.gen > this.jj_gen) {
+			if (p.next == null) {
+				p = p.next = new JJCalls();
+				break;
+			}
+			p = p.next;
+		}
 
-        p.gen = (this.jj_gen + xla) - this.jj_la;
-        p.first = this.token;
-        p.arg = xla;
-    }
+		p.gen = (this.jj_gen + xla) - this.jj_la;
+		p.first = this.token;
+		p.arg = xla;
+	}
 
-    static final class JJCalls {
+	static final class JJCalls {
 
-        int     gen;
-        Token   first;
-        int     arg;
-        JJCalls next;
-    }
+		int     gen;
+		Token   first;
+		int     arg;
+		JJCalls next;
+	}
 //@fi
 //@fi
 
 //@if(USE_AST)
 
-    protected final Node rootNode() {
-        return this.jjtree.rootNode();
-    }
+	protected final Node rootNode() {
+		return this.jjtree.rootNode();
+	}
 
-    protected void jjtreeOpenNodeScope(Node node) throws ParseException {
-    }
+	protected void jjtreeOpenNodeScope(Node node) throws ParseException {
+	}
 
-    protected void jjtreeCloseNodeScope(Node node) throws ParseException {
-    }
+	protected void jjtreeCloseNodeScope(Node node) throws ParseException {
+	}
 //@fi
 }

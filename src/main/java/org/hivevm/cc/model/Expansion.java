@@ -3,9 +3,6 @@
 
 package org.hivevm.cc.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Describes expansions - entities that may occur on the right hand sides of productions. This is
  * the base class of a bunch of other more specific classes.
@@ -22,7 +19,6 @@ public class Expansion extends Production {
      * node. In case this is the top level of a lookahead expansion,then the parent is null.
      */
     private Object parent;
-    private List<Expansion> children = new ArrayList<>();
 
     // The ordinal of this node with respect to its parent.
     private int ordinal;
@@ -50,18 +46,11 @@ public class Expansion extends Production {
 
     public final void setParent(Object parent) {
         this.parent = parent;
-        if (parent instanceof Expansion e) {
-            e.children.add(this);
-        }
     }
 
     public final void setParent(Object parent, int ordinal) {
         setParent(parent);
         this.ordinal = ordinal;
-    }
-
-    public final boolean isLast(Object child) {
-        return !this.children.isEmpty() && this.children.getLast() == child;
     }
 
     public final long generation() {

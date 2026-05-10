@@ -223,8 +223,7 @@ public class RCharacterList extends RExpression {
                 if (ch != Character.toUpperCase(ch)) {
                     this.descriptors.add(new SingleCharacter(Character.toUpperCase(ch)));
                 }
-            }
-            else {
+            } else {
                 char l = ((CharacterRange) this.descriptors.get(i)).getLeft();
                 char r = ((CharacterRange) this.descriptors.get(i)).getRight();
                 int j = 0;
@@ -254,8 +253,7 @@ public class RCharacterList extends RExpression {
                                 new CharacterRange(
                                         Character.toLowerCase(RCharacterList.diffLowerCaseRanges[j]),
                                         Character.toLowerCase(RCharacterList.diffLowerCaseRanges[j + 1])));
-                    }
-                    else {
+                    } else {
                         if (r <= RCharacterList.diffLowerCaseRanges[j + 1]) {
                             this.descriptors.add(new CharacterRange(
                                     (char) (
@@ -323,8 +321,7 @@ public class RCharacterList extends RExpression {
                             new CharacterRange(
                                     Character.toUpperCase(RCharacterList.diffUpperCaseRanges[j]),
                                     Character.toUpperCase(RCharacterList.diffUpperCaseRanges[j + 1])));
-                }
-                else {
+                } else {
                     if (r <= RCharacterList.diffUpperCaseRanges[j + 1]) {
                         this.descriptors.add(new CharacterRange(
                                 (char) (
@@ -395,26 +392,22 @@ public class RCharacterList extends RExpression {
                     if (newDesc.get(j) instanceof SingleCharacter) {
                         if (((SingleCharacter) newDesc.get(j)).getChar() > s.getChar()) {
                             break;
-                        }
-                        else if (((SingleCharacter) newDesc.get(j)).getChar() == s.getChar()) {
+                        } else if (((SingleCharacter) newDesc.get(j)).getChar() == s.getChar()) {
                             continue Outer;
                         }
-                    }
-                    else {
+                    } else {
                         char l = ((CharacterRange) newDesc.get(j)).getLeft();
 
                         if (RCharacterList.InRange(s.getChar(), (CharacterRange) newDesc.get(j))) {
                             continue Outer;
-                        }
-                        else if (l > s.getChar()) {
+                        } else if (l > s.getChar()) {
                             break;
                         }
                     }
                 }
 
                 newDesc.add(j, s);
-            }
-            else {
+            } else {
                 range = (CharacterRange) descriptor;
 
                 for (j = 0; j < cnt; j++) {
@@ -423,28 +416,22 @@ public class RCharacterList extends RExpression {
                                 range)) {
                             newDesc.remove(j--);
                             cnt--;
-                        }
-                        else if (((SingleCharacter) newDesc.get(j)).getChar() > range.getRight()) {
+                        } else if (((SingleCharacter) newDesc.get(j)).getChar() > range.getRight()) {
                             break;
                         }
-                    }
-                    else if (RCharacterList.SubRange(range, (CharacterRange) newDesc.get(j))) {
+                    } else if (RCharacterList.SubRange(range, (CharacterRange) newDesc.get(j))) {
                         continue Outer;
-                    }
-                    else if (RCharacterList.SubRange((CharacterRange) newDesc.get(j), range)) {
+                    } else if (RCharacterList.SubRange((CharacterRange) newDesc.get(j), range)) {
                         newDesc.set(j, range);
                         continue Outer;
-                    }
-                    else if (RCharacterList.Overlaps(range, (CharacterRange) newDesc.get(j))) {
+                    } else if (RCharacterList.Overlaps(range, (CharacterRange) newDesc.get(j))) {
                         range.setLeft((char) (((CharacterRange) newDesc.get(j)).getRight() + 1));
-                    }
-                    else if (RCharacterList.Overlaps((CharacterRange) newDesc.get(j), range)) {
+                    } else if (RCharacterList.Overlaps((CharacterRange) newDesc.get(j), range)) {
                         CharacterRange tmp = range;
                         ((CharacterRange) newDesc.get(j)).setLeft((char) (range.getRight() + 1));
                         range = (CharacterRange) newDesc.get(j);
                         newDesc.set(j, tmp);
-                    }
-                    else if (((CharacterRange) newDesc.get(j)).getLeft() > range.getRight()) {
+                    } else if (((CharacterRange) newDesc.get(j)).getLeft() > range.getRight()) {
                         break;
                     }
                 }
@@ -477,8 +464,7 @@ public class RCharacterList extends RExpression {
                 // System.out.println("lastRemoved : " + (int)lastRemoved + "; char : " + (int)c);
                 newDescriptors.add(
                         new CharacterRange((char) (lastRemoved + 1), (char) ((lastRemoved = c) - 1)));
-            }
-            else {
+            } else {
                 char l = ((CharacterRange) this.descriptors.get(i)).getLeft();
                 char r = ((CharacterRange) this.descriptors.get(i)).getRight();
 

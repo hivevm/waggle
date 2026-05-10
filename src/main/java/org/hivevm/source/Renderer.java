@@ -3,7 +3,8 @@
 
 package org.hivevm.source;
 
-import java.io.PrintWriter;
+import org.hivevm.core.Environment;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,12 +12,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-import org.hivevm.core.Environment;
-
 /**
  * Represents a template rendering system that interprets a set of commands embedded within input
  * data, allowing conditional logic and repetitive constructs. A template is processed with an
- * underlying environment, and the output is written to a specified {@link PrintWriter}.
+ * underlying environment, and the output is written to a specified {@link LinePrinter}.
  * <p>
  * Commands such as "if", "elif", "else", "foreach", and their corresponding closing commands are
  * parsed and constructed into a tree structure, which is then rendered dynamically based on the
@@ -25,32 +24,32 @@ import org.hivevm.core.Environment;
 interface Renderer {
 
     /**
-     * Renders content to the provided {@link SourceWriter} using the specified {@link Environment}.
+     * Renders content to the provided {@link LinePrinter} using the specified {@link Environment}.
      * The method processes the environment's contextual data to dynamically generate the output.
      */
-    void render(SourceWriter writer, Environment environment);
+    void render(LinePrinter printer, Environment environment);
 
     record IndentRenderer(int indent) implements Renderer {
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
+        public void render(LinePrinter printer, Environment environment) {
             if (indent < 0)
-                IntStream.range(0, -indent).forEach(i -> writer.outdent());
+                IntStream.range(0, -indent).forEach(i -> printer.outdent());
             else
-                IntStream.range(0, indent).forEach(i -> writer.indent());
+                IntStream.range(0, indent).forEach(i -> printer.indent());
         }
     }
 
     /**
      * A record that implements the {@link Renderer} interface for rendering plain text. This class
      * is responsible for directly outputting the provided text to the specified
-     * {@link SourceWriter}, without any additional processing or evaluation of the environment.
+     * {@link LinePrinter}, without any additional processing or evaluation of the environment.
      */
     record TextRenderer(String text) implements Renderer {
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
-            writer.append(text);
+        public void render(LinePrinter printer, Environment environment) {
+            printer.print(text);
         }
     }
 
@@ -62,15 +61,15 @@ interface Renderer {
     record VarRenderer(String text) implements Renderer {
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
+        public void render(LinePrinter printer, Environment environment) {
             if (environment.has(text)) {
                 Object value = environment.get(text);
                 if (value instanceof Context.SourceConsumer consumer)
-                    consumer.apply(writer);
+                    consumer.apply(printer);
                 else if (value instanceof Context.SourceSupplier supplier)
-                    writer.append(supplier.get());
+                    printer.print(supplier.get());
                 else if (value != null)
-                    writer.append(value.toString());
+                    printer.print(value.toString());
             }
         }
     }
@@ -87,8 +86,8 @@ interface Renderer {
         }
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
-            nodes.forEach(n -> n.render(writer, environment));
+        public void render(LinePrinter printer, Environment environment) {
+            nodes.forEach(n -> n.render(printer, environment));
         }
     }
 
@@ -107,16 +106,15 @@ interface Renderer {
         }
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
+        public void render(LinePrinter printer, Environment environment) {
             var result = nodes.keySet().stream()
                     .filter(environment::has)
                     .filter(n -> validate(n, environment))
                     .findFirst();
             if (result.isPresent()) {
-                nodes.get(result.get()).render(writer, environment);
-            }
-            else if (nodes.containsKey(DEFAULT)) {
-                nodes.get(DEFAULT).render(writer, environment);
+                nodes.get(result.get()).render(printer, environment);
+            } else if (nodes.containsKey(DEFAULT)) {
+                nodes.get(DEFAULT).render(printer, environment);
             }
         }
     }
@@ -134,16 +132,15 @@ interface Renderer {
         }
 
         @Override
-        public void render(SourceWriter writer, Environment environment) {
+        public void render(LinePrinter printer, Environment environment) {
             var result = environment.get(list);
             if (result instanceof Integer integer) {
                 for (var i = 0; i < integer; i++) {
-                    renderer.render(writer, new ListEnv(environment, i));
+                    renderer.render(printer, new ListEnv(environment, i));
                 }
-            }
-            else if (result instanceof Iterable<?> iterable) {
+            } else if (result instanceof Iterable<?> iterable) {
                 for (var elem : iterable) {
-                    renderer.render(writer, new ListEnv(environment, elem));
+                    renderer.render(printer, new ListEnv(environment, elem));
                 }
             }
         }
@@ -176,7 +173,7 @@ interface Renderer {
     class ListEnv implements Environment {
 
         private final Environment environment;
-        private final Object      value;
+        private final Object value;
 
         /**
          * Constructs a TemplateEnv instance with the specified underlying environment.
@@ -210,7 +207,7 @@ interface Renderer {
         public final Object get(String name) {
             Object func = environment.get(name);
             if (func instanceof Context.SourceProvider provider)
-                return (Context.SourceConsumer) writer -> provider.apply(value, writer);
+                return (Context.SourceConsumer) printer -> provider.apply(value, printer);
             else if (func instanceof Function)
                 return ((Function<Object, Object>) func).apply(value);
             return environment.get(name);

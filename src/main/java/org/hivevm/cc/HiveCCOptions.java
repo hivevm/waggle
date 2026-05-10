@@ -3,6 +3,9 @@
 
 package org.hivevm.cc;
 
+import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.Options;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,15 +15,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.hivevm.cc.parser.JavaCCErrors;
-import org.hivevm.cc.parser.Options;
-
 /**
  * A class with static state that stores all option information.
  */
 public class HiveCCOptions implements Options {
 
-    private static final String OUTPUT_LANGUAGE_CPP  = "cpp";
+    private static final String OUTPUT_LANGUAGE_CPP = "cpp";
     private static final String OUTPUT_LANGUAGE_JAVA = "java";
     private static final String OUTPUT_LANGUAGE_RUST = "rust";
 
@@ -63,7 +63,6 @@ public class HiveCCOptions implements Options {
 
         temp.add(new OptionInfo(HiveCC.JJPARSER_CPP_NAMESPACE, ""));
         temp.add(new OptionInfo(HiveCC.JJPARSER_CPP_STACK_LIMIT, ""));
-        temp.add(new OptionInfo(HiveCC.JJPARSER_CPP_STOP_ON_FIRST_ERROR, Boolean.FALSE));
 
         userOptions = Collections.unmodifiableSet(temp);
     }
@@ -127,7 +126,7 @@ public class HiveCCOptions implements Options {
     /**
      * Check options for consistency
      */
-    public void validate() {
+    void validate() {
         if (!getVisitor()) {
             if (!getVisitorDataType().isEmpty())
                 JavaCCErrors.warning(
@@ -170,8 +169,7 @@ public class HiveCCOptions implements Options {
             Object object;
             if (value instanceof List) {
                 object = ((List<?>) value).getFirst();
-            }
-            else {
+            } else {
                 object = value;
             }
             boolean isValidInteger = ((object instanceof Integer) && ((Integer) value <= 0));
@@ -211,8 +209,7 @@ public class HiveCCOptions implements Options {
 
         if (arg.charAt(0) == '-') {
             s = arg.substring(1);
-        }
-        else {
+        } else {
             s = arg;
         }
 
@@ -227,36 +224,29 @@ public class HiveCCOptions implements Options {
 
         if (index1 < 0) {
             index = index2;
-        }
-        else if (index2 < 0) {
+        } else if (index2 < 0) {
             index = index1;
-        }
-        else
+        } else
             index = Math.min(index1, index2);
 
         if (index < 0) {
             name = s.toUpperCase();
             if (this.optionValues.containsKey(name)) {
                 Val = Boolean.TRUE;
-            }
-            else if ((name.length() > 2) && (name.charAt(0) == 'N') && (name.charAt(1) == 'O')) {
+            } else if ((name.length() > 2) && (name.charAt(0) == 'N') && (name.charAt(1) == 'O')) {
                 Val = Boolean.FALSE;
                 name = name.substring(2);
-            }
-            else {
+            } else {
                 System.out.println("Warning: Bad option \"" + arg + "\" will be ignored.");
                 return;
             }
-        }
-        else {
+        } else {
             name = s.substring(0, index).toUpperCase();
             if (s.substring(index + 1).equalsIgnoreCase("TRUE")) {
                 Val = Boolean.TRUE;
-            }
-            else if (s.substring(index + 1).equalsIgnoreCase("FALSE")) {
+            } else if (s.substring(index + 1).equalsIgnoreCase("FALSE")) {
                 Val = Boolean.FALSE;
-            }
-            else {
+            } else {
                 try {
                     int i = Integer.parseInt(s.substring(index + 1));
                     if (i <= 0) {
@@ -265,8 +255,7 @@ public class HiveCCOptions implements Options {
                         return;
                     }
                     Val = i;
-                }
-                catch (NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     Val = s.substring(index + 1);
                     // i.e., there is space for two '"'s in value
                     if ((s.length() > (index + 2)) && ((s.charAt(index + 1) == '"') && (
@@ -334,14 +323,12 @@ public class HiveCCOptions implements Options {
                 if (other._default != null) {
                     return false;
                 }
-            }
-            else if (!this._default.equals(other._default)) {
+            } else if (!this._default.equals(other._default)) {
                 return false;
             }
             if (this._name == null) {
                 return other._name == null;
-            }
-            else
+            } else
                 return this._name.equals(other._name);
         }
 
@@ -365,11 +352,10 @@ public class HiveCCOptions implements Options {
         set(HiveCC.PARSER_NAME, value);
     }
 
-    public void set(String name, Object value) {
+    void set(String name, Object value) {
         if (HiveCC.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
             set(HiveCC.JJPARSER_CPP_DEFINE, text.toUpperCase());
-        }
-        else if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
+        } else if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
             value = ((value instanceof String text) && !text.isEmpty())
                     ? Arrays.asList(text.split(","))
                     : Collections.emptyList();

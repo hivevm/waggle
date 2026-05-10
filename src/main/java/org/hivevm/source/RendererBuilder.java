@@ -3,14 +3,14 @@
 
 package org.hivevm.source;
 
-import java.util.Stack;
-
 import org.hivevm.source.Renderer.ForEachRenderer;
 import org.hivevm.source.Renderer.IndentRenderer;
 import org.hivevm.source.Renderer.ListRenderer;
 import org.hivevm.source.Renderer.MatchRenderer;
 import org.hivevm.source.Renderer.TextRenderer;
 import org.hivevm.source.Renderer.VarRenderer;
+
+import java.util.Stack;
 
 /**
  * A builder class for constructing a tree of renderers that can dynamically generate output based
@@ -41,8 +41,7 @@ class RendererBuilder {
         var peek = stack.peek();
         if (peek instanceof ListRenderer(java.util.List<Renderer> nodes)) {
             nodes.add(renderer);
-        }
-        else if (peek instanceof ForEachRenderer forech) {
+        } else if (peek instanceof ForEachRenderer forech) {
             forech.renderer().nodes().add(renderer);
         }
         return renderer;

@@ -3,19 +3,19 @@
 
 package org.hivevm.cc.parser;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.NormalProduction;
 import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.semantic.SemanticRequest;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The {@link JavaCCData} class.
@@ -24,8 +24,8 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
 
     private final Options options;
     private final boolean isGenerated;
-    private       Action  actForEof;
-    private       String  nextStateForEof;
+    private Action actForEof;
+    private String nextStateForEof;
 
     /**
      * The total number of distinct tokens. This is therefore one more than the largest assigned

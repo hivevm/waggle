@@ -9,7 +9,6 @@ import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
-import org.hivevm.cc.generator.TreeGenerator;
 
 /**
  * The {@link CppGenerator} class.
@@ -18,46 +17,41 @@ import org.hivevm.cc.generator.TreeGenerator;
 public class CppGenerator extends GeneratorProvider {
 
     @Override
-    protected final LexerGenerator newLexerGenerator() {
+    public final NodeGenerator newNodeGenerator() {
+        return new CppNodeGenerator();
+    }
+
+    @Override
+    public final LexerGenerator newLexerGenerator() {
         return new CppLexerGenerator();
     }
 
     @Override
-    protected final ParserGenerator newParserGenerator() {
+    public final ParserGenerator newParserGenerator() {
         return new CppParserGenerator();
-    }
-
-    @Override
-    protected final TreeGenerator newTreeGenerator() {
-        return new CppTreeGenerator();
-    }
-
-    @Override
-    protected final NodeGenerator newNodeGenerator() {
-        return new CppNodeGenerator();
     }
 
     @Override
     protected final FileGenerator newFileGenerator() {
         return context -> {
-            CppSources.JAVACC.render(context.options());
+            CppTemplate.JAVACC.render(context.options());
 
-            CppSources.TOKEN.render(context.options());
-            CppSources.TOKEN_H.render(context.options());
-            CppSources.TOKENMANAGER.render(context.options());
-            CppSources.TOKENNANAGERERROR.render(context.options());
-            CppSources.TOKENNANAGERERROR_H.render(context.options());
-            CppSources.TOKENNANAGERHANDLER.render(context.options());
-            CppSources.TOKENNANAGERHANDLER_H.render(context.options());
+            CppTemplate.TOKEN.render(context.options());
+            CppTemplate.TOKEN_H.render(context.options());
+            CppTemplate.TOKENMANAGER.render(context.options());
+            CppTemplate.TOKENNANAGERERROR.render(context.options());
+            CppTemplate.TOKENNANAGERERROR_H.render(context.options());
+            CppTemplate.TOKENNANAGERHANDLER.render(context.options());
+            CppTemplate.TOKENNANAGERHANDLER_H.render(context.options());
 
-            CppSources.READER.render(context.options());
-            CppSources.STRINGREADER.render(context.options());
-            CppSources.STRINGREADER_H.render(context.options());
+            CppTemplate.READER.render(context.options());
+            CppTemplate.STRINGREADER.render(context.options());
+            CppTemplate.STRINGREADER_H.render(context.options());
 
-            CppSources.PARSEEXCEPTION.render(context.options());
-            CppSources.PARSEEXCEPTION_H.render(context.options());
-            CppSources.PARSERHANDLER.render(context.options());
-            CppSources.PARSERHANDLER_H.render(context.options());
+            CppTemplate.PARSEEXCEPTION.render(context.options());
+            CppTemplate.PARSEEXCEPTION_H.render(context.options());
+            CppTemplate.PARSERHANDLER.render(context.options());
+            CppTemplate.PARSERHANDLER_H.render(context.options());
         };
     }
 }

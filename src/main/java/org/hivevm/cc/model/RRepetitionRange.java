@@ -9,9 +9,9 @@ package org.hivevm.cc.model;
 public class RRepetitionRange extends RExpression {
 
     private final RExpression regexpr;
-    private final int         min;
-    private final int         max;
-    private final boolean     hasMax;
+    private final int min;
+    private final int max;
+    private final boolean hasMax;
 
     public RRepetitionRange(RExpression regexpr, int min, int max, boolean hasMax) {
         this.regexpr = regexpr;

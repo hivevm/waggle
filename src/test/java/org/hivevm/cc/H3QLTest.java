@@ -1,7 +1,6 @@
 package org.hivevm.cc;
 
 import java.io.File;
-import java.nio.file.Files;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,8 @@ class H3QLTest {
     @Test
     @Disabled
     void testCpp() {
-        var builder = ParserBuilder.of(Language.CPP);
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.CPP);
         builder.setTargetDir(H3QLTest.PARSER_CPP);
         builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
@@ -29,7 +29,8 @@ class H3QLTest {
     @Test
     @Disabled
     void testJava() {
-        var builder = ParserBuilder.of(Language.JAVA);
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.JAVA);
         builder.setTargetDir(H3QLTest.PARSER_JAVA);
         builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
@@ -38,19 +39,10 @@ class H3QLTest {
     @Test
     @Disabled
     void testRust() {
-        var builder = ParserBuilder.of(Language.RUST);
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.RUST);
         builder.setTargetDir(H3QLTest.PARSER_RUST);
         builder.setParserFile(H3QLTest.PARSER_JJT, "OQL.jj");
         builder.build().parse();
-    }
-
-    public static void main(String... args) throws Exception {
-        File inputFile = new File("/data/smartIO/fastcc/JavaGrammars/Test.java");
-        String input = new String(Files.readAllBytes(inputFile.toPath()));
-
-        var builder = ParserBuilder.of(Language.JAVA);
-        builder.setTargetDir(H3QLTest.PARSER_JAVA);
-        builder.setParserFile(new File("/data/smartIO/fastcc/JavaGrammars"), "Java1.1.jj");
-        builder.interpret(input);
     }
 }

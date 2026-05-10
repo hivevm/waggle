@@ -6,158 +6,157 @@ public class Node extends __NODE_EXTENDS__ {
 public class Node {
 //@fi
 
-    private final int    id;
-    private final Parser parser;
+	private final int    id;
+	private final Parser parser;
 
-    private Node   parent;
-    private Node[] children;
-    private Object value;
+	private Node   parent;
+	private Node[] children;
+	private Object value;
 //@if(TRACK_TOKENS)
-    private Token  firstToken;
-    private Token  lastToken;
+	private Token  firstToken;
+	private Token  lastToken;
 //@fi
 
-    public Node(Parser p, int i) {
-        this.id = i;
-        this.parser = p;
-    }
+	public Node(Parser p, int i) {
+		this.id = i;
+		this.parser = p;
+	}
 
-    public int getId() {
-        return this.id;
-    }
+	public int getId() {
+		return this.id;
+	}
 
-    public Parser jjtParser() {
-        return parser;
-    }
+	public Parser jjtParser() {
+		return parser;
+	}
 
-    public void jjtOpen() {
-    }
+	public void jjtOpen() {
+	}
 
-    public void jjtClose() {
-    }
+	public void jjtClose() {
+	}
 
-    public void jjtSetParent(Node n) {
-        this.parent = n;
-    }
+	public void jjtSetParent(Node n) {
+		this.parent = n;
+	}
 
-    public Node jjtGetParent() {
-        return this.parent;
-    }
+	public Node jjtGetParent() {
+		return this.parent;
+	}
 
-    public void jjtAddChild(Node n, int i) {
-        if (this.children == null) {
-            this.children = new Node[i + 1];
-        }
-        else if (i >= this.children.length) {
-            Node[] c = new Node[i + 1];
-            System.arraycopy(this.children, 0, c, 0, this.children.length);
-            this.children = c;
-        }
-        this.children[i] = n;
-    }
+	public void jjtAddChild(Node n, int i) {
+		if (this.children == null) {
+			this.children = new Node[i + 1];
+		} else if (i >= this.children.length) {
+			Node[] c = new Node[i + 1];
+			System.arraycopy(this.children, 0, c, 0, this.children.length);
+			this.children = c;
+		}
+		this.children[i] = n;
+	}
 
-    public Node jjtGetChild(int i) {
-        return this.children[i];
-    }
+	public Node jjtGetChild(int i) {
+		return this.children[i];
+	}
 
-    public int jjtGetNumChildren() {
-        return (this.children == null) ? 0 : this.children.length;
-    }
+	public int jjtGetNumChildren() {
+		return (this.children == null) ? 0 : this.children.length;
+	}
 
-    public void jjtSetValue(Object value) {
-        this.value = value;
-    }
+	public void jjtSetValue(Object value) {
+		this.value = value;
+	}
 
-    public Object jjtGetValue() {
-        return this.value;
-    }
+	public Object jjtGetValue() {
+		return this.value;
+	}
 
 //@if(TRACK_TOKENS)
-    public Token jjtGetFirstToken() {
-        return firstToken;
-    }
+	public Token jjtGetFirstToken() {
+		return firstToken;
+	}
 
-    public void jjtSetFirstToken(Token token) {
-        this.firstToken = token;
-    }
+	public void jjtSetFirstToken(Token token) {
+		this.firstToken = token;
+	}
 
-    public Token jjtGetLastToken() {
-        return lastToken;
-    }
+	public Token jjtGetLastToken() {
+		return lastToken;
+	}
 
-    public void jjtSetLastToken(Token token) {
-        this.lastToken = token;
-    }
+	public void jjtSetLastToken(Token token) {
+		this.lastToken = token;
+	}
 
 //@fi
 //@if(VISITOR)
 
-    /**
-     * Accept the visitor.
-     **/
+	/**
+	 * Accept the visitor.
+	 **/
 //@if(VISITOR_EXCEPTION)
-    public __VISITOR_RETURN_TYPE__ jjtAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+	public __VISITOR_RETURN_TYPE__ jjtAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
 //@else
-    public __VISITOR_RETURN_TYPE__ jjtAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) {
+	public __VISITOR_RETURN_TYPE__ jjtAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) {
 //@fi
 //@if(VISITOR_RETURN_TYPE_VOID)
-        visitor.visit(this, data);
+		visitor.visit(this, data);
 //@else
-        return visitor.visit(this, data);
+		return visitor.visit(this, data);
 //@fi
-    }
+	}
 
-    /**
-     * Accept the visitor.
-     **/
+	/**
+	 * Accept the visitor.
+	 **/
 //@if(VISITOR_EXCEPTION)
-    public Object childrenAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+	public Object childrenAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
 //@else
-    public Object childrenAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) {
+	public Object childrenAccept(NodeVisitor visitor, __VISITOR_DATA_TYPE__ data) {
 //@fi
-        if (children != null) {
-            for (int i = 0; i < children.length; ++i) {
-                children[i].jjtAccept(visitor, data);
-            }
-        }
-        return data;
-    }
+		if (children != null) {
+			for (int i = 0; i < children.length; ++i) {
+				children[i].jjtAccept(visitor, data);
+			}
+		}
+		return data;
+	}
 
 //@fi
-    /*
-     * You can override these two methods in subclasses of Node to customize the way the node appears
-     * when the tree is dumped. If your output uses more than one line you should override
-     * toString(String), otherwise overriding toString() is probably all you need to do.
-     */
+	/*
+	 * You can override these two methods in subclasses of Node to customize the way the node appears
+	 * when the tree is dumped. If your output uses more than one line you should override
+	 * toString(String), otherwise overriding toString() is probably all you need to do.
+	 */
 
-    @Override
-    public String toString() {
-        return NodeType.jjtNodeName[this.id];
-    }
+	@Override
+	public String toString() {
+		return NodeType.jjtNodeName[this.id];
+	}
 
-    public String toString(String prefix) {
-        return prefix + this;
-    }
+	public String toString(String prefix) {
+		return prefix + this;
+	}
 
-    /*
-     * Override this method if you want to customize how the node dumps out its children.
-     */
+	/*
+	 * Override this method if you want to customize how the node dumps out its children.
+	 */
 
-    public void dump(String prefix) {
-        System.out.println(toString(prefix));
-        if (this.children != null) {
-            for (Node child : this.children) {
-                Node n = child;
-                if (n != null) {
-                    n.dump(prefix + " ");
-                }
-            }
-        }
-    }
+	public void dump(String prefix) {
+		System.out.println(toString(prefix));
+		if (this.children != null) {
+			for (Node child : this.children) {
+				Node n = child;
+				if (n != null) {
+					n.dump(prefix + " ");
+				}
+			}
+		}
+	}
 //@if(NODE_FACTORY)
 
-    public static Node jjtCreate(Parser p, int id) {
-            return new Node(p, id);
-        }
+	public static Node jjtCreate(Parser p, int id) {
+			return new Node(p, id);
+	}
 //@fi
 }

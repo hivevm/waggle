@@ -84,7 +84,8 @@ public abstract class ParserGenerator extends DefaultTask {
         Language target = (config.target == null) ? Language.JAVA : config.target;
         Language language = (task.target == null) ? target : task.target;
 
-        var builder = ParserBuilder.of(language);
+        var builder = new ParserBuilder();
+        builder.setLanguage(language);
         builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
         builder.setParserFile(getFile(task.file == null ? config.file : task.file));
         builder.setCustomNodes(task.treeNodes);
