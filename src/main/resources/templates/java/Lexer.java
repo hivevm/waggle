@@ -106,7 +106,7 @@ class Lexer {
 				curChar = input_stream.BeginToken();
 			} catch (Exception e) {
 //@if(DEBUG_TOKEN_MANAGER)
-				debugStream.println(\"Returning the <EOF> token.\\n\");
+				debugStream.println("Returning the <EOF> token.\n");
 //@fi
 				jjmatchedKind = 0;
 				jjmatchedPos = -1;
@@ -121,6 +121,58 @@ class Lexer {
 //@if(DEBUG_TOKEN_MANAGER)
 	protected static int[][][] statesForState = __STATES_FOR_STATE__;
 	protected static int[][] kindForState = __KIND_FOR_STATE__;
+
+	/** Where the token-manager trace goes. */
+	public java.io.PrintStream debugStream = System.out;
+
+	public void setDebugStream(java.io.PrintStream stream) {
+		this.debugStream = stream;
+	}
+
+	private static int kindCnt = 0;
+
+	/** The token kinds a bit vector of the string-literal DFA still allows. */
+	private static String jjKindsForBitVector(int i, long vec) {
+		var names = new StringBuilder();
+		if (i == 0) {
+			Lexer.kindCnt = 0;
+		}
+		for (int j = 0; j < 64; j++) {
+			if ((vec & (1L << j)) != 0L) {
+				if (Lexer.kindCnt++ > 0) {
+					names.append(", ");
+				}
+				if ((Lexer.kindCnt % 5) == 0) {
+					names.append("\n     ");
+				}
+				names.append(ParserConstants.tokenImage[(i * 64) + j]);
+			}
+		}
+		return names.toString();
+	}
+
+	/** The token kinds the NFA states in "vec" can still lead to. */
+	private static String jjKindsForStateVector(int lexState, int[] vec, int start, int end) {
+		var done = new boolean[ParserConstants.tokenImage.length];
+		var names = new StringBuilder();
+		int cnt = 0;
+		for (int i = start; i < end; i++) {
+			if (vec[i] == -1) {
+				continue;
+			}
+			for (int state : Lexer.statesForState[lexState][vec[i]]) {
+				int kind = Lexer.kindForState[lexState][state];
+				if (!done[kind]) {
+					done[kind] = true;
+					if (cnt++ > 0) {
+						names.append("\n     ");
+					}
+					names.append(ParserConstants.tokenImage[kind]);
+				}
+			}
+		}
+		return (cnt == 0) ? "{  }" : "{ " + names + " }";
+	}
 //@fi
 //@if(HAS_LOOP)
 	int[] jjemptyLineNo = new int[__MAX_LEX_STATES__];
@@ -256,5 +308,6 @@ class Lexer {
 	private final StringBuilder  jjimage    = new StringBuilder();
 	private       StringBuilder  image      = jjimage;
 	private       int            jjimageLen;
+	private       int            lengthOfMatch;
 	protected     int            curChar;
 }

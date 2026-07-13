@@ -48,7 +48,7 @@ public:
 
 //@if(VISITOR)
 	// Accept the visitor.
-	virtual __VISITOR_RETURN_TYPE:void__ jjtAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE:void *__ data) const = 0;
+	virtual __VISITOR_RETURN_TYPE__ jjtAccept(__PARSER_NAME__Visitor *visitor, __VISITOR_DATA_TYPE__ data) const = 0;
 //@fi
 
 private: 

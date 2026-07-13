@@ -6,7 +6,7 @@ package org.hivevm.cc.model;
 /**
  * Describes string literals.
  */
-public class RStringLiteral extends RExpression {
+public final class RStringLiteral extends RExpression {
 
     private final String image;
 

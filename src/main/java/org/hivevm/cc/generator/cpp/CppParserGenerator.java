@@ -40,8 +40,10 @@ class CppParserGenerator extends ParserGenerator {
 
     @Override
     protected final void generate(ParserData data, Context options) {
-        options.set("DUMP_NORMALPRODUCTIONS_IMPL", w ->
-                data.getProductions().forEach(n -> w.println("void " + n.getLhs() + "();")));
+        options.set("DUMP_NORMALPRODUCTIONS_IMPL", w -> data.getProductions().forEach(n -> {
+            Token returnType = n.getReturnTypeToken();
+            w.println((returnType == null ? "void" : returnType.image) + " " + n.getLhs() + "();");
+        }));
 
         CppTemplate.PARSER.render(options, data.getParserName());
         CppTemplate.PARSER_H.render(options, data.getParserName());
@@ -56,9 +58,10 @@ class CppParserGenerator extends ParserGenerator {
 
         setup_token(t);
         printLeadingComments(printer, t);
-        if (p.getReturnTypeToken() != null) {
-            printer.print(t.image);
-            if (t.kind == ParserConstants.STAR) {
+        Token returnType = p.getReturnTypeToken();
+        if (returnType != null) {
+            printer.print(returnType.image);
+            if (returnType.kind == ParserConstants.STAR) {
                 ptr_ret = true;
             }
         } else {

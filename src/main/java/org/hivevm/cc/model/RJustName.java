@@ -8,7 +8,7 @@ package org.hivevm.cc.model;
  * expression with this name has been declared earlier.
  */
 
-public class RJustName extends RExpression {
+public final class RJustName extends RExpression {
 
     /**
      * "regexpr" points to the regular expression denoted by the name.

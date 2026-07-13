@@ -7,7 +7,7 @@ package org.hivevm.cc.model;
 /**
  * Describes one-or-more expansions (e.g., foo+).
  */
-public class OneOrMore extends Expansion {
+public final class OneOrMore extends Expansion {
 
     private final Expansion expansion;
 

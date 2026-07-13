@@ -67,7 +67,7 @@ public:
 
 //@fi
 //@if(VISITOR)
-	virtual __VISITOR_RETURN_TYPE:void__ jjtAccept(__PARSER_NAME__Visitor* visitor,__VISITOR_DATA_TYPE__ data) const;
+	virtual __VISITOR_RETURN_TYPE__ jjtAccept(__PARSER_NAME__Visitor* visitor,__VISITOR_DATA_TYPE__ data) const;
 	virtual void jjtChildrenAccept(__PARSER_NAME__Visitor* visitor, __VISITOR_DATA_TYPE__ data) const;
 	virtual void jjtChildAccept(int childNo, __PARSER_NAME__Visitor* visitor, __VISITOR_DATA_TYPE__ data) const;
 //@fi

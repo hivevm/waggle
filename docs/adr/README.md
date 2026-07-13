@@ -21,9 +21,10 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0005](0005-custom-template-engine.md) | Custom template engine instead of a third-party dependency | 🟢 Accepted |
 | [0006](0006-gradle-plugin-interface.md) | Gradle plugin as the primary tool interface | 🟢 Accepted |
 | [0007](0007-java-21-baseline.md) | Java 21 as the implementation baseline | 🟢 Accepted |
-| [0008](0008-grammar-syntax-and-lexical-file.md) | Redesigned grammar syntax with a separate lexical specification | 🟢 Accepted |
+| [0008](0008-grammar-syntax-and-lexical-file.md) | Redesigned grammar syntax with a separate lexical specification | ⚪ Superseded by [0010](0010-unified-grammar-and-actual-surface-syntax.md) |
 | [0009](0009-self-hosting-bootstrap.md) | Self-hosting bootstrap with a checked-in generated parser | 🟢 Accepted |
-| [0010](0010-unified-grammar-and-actual-surface-syntax.md) | Unified grammar — integrated tree building and the actual surface syntax | 🟡 Proposed |
+| [0010](0010-unified-grammar-and-actual-surface-syntax.md) | Unified grammar — integrated tree building and the actual surface syntax | 🟢 Accepted |
+| [0011](0011-error-handling-contract.md) | Generation reports failure by throwing, never by exiting the JVM | 🟢 Accepted |
 
 ## Process
 

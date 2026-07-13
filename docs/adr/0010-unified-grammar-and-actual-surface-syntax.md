@@ -1,6 +1,6 @@
 # ADR-0010: Unified grammar — integrated tree building and the actual surface syntax
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-07-12
 - **Deciders:** HiveVM CC maintainers
 - **Supersedes:** ADR-0008

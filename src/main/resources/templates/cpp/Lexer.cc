@@ -104,7 +104,7 @@ __NON_ASCII_TABLE_METHOD__
 //@end
 /** Get the next Token. */
 Token * __PARSER_NAME__TokenManager::getNextToken() {
-//@if (HAS_SPECIAL)
+//@if(HAS_SPECIAL)
 	Token *specialToken = nullptr;
 //@fi
 	Token *matchedToken = nullptr;
@@ -116,13 +116,13 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 	    if (reader->endOfInput())
 	    {
 //@if(DEBUG_TOKEN_MANAGER)
-			fprintf(debugStream, \"Returning the <EOF> token.\\n\");
+			fprintf(debugStream, "Returning the <EOF> token.\n");
 //@fi
 			jjmatchedKind = 0;
 			jjmatchedPos = -1;
 			matchedToken = jjFillToken();
 //@if(HAS_SPECIAL)
-			matchedToken->specialToken = specialToken;
+			matchedToken->specialToken() = specialToken;
 //@fi
 			//@invoke(DUMP_GET_NEXT_TOKEN)
 //@if(MAX_LEX_STATES)
@@ -145,9 +145,6 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 			error_after = curPos <= 1 ? JJEMPTY : reader->getImage();
 		}
 		errorHandler->lexicalError(EOFSeen, curLexState, error_line, error_column, error_after, curChar);
-//@fi
-//@if(HAS_MORE)
-	}
 //@fi
 	}
 }
@@ -198,10 +195,10 @@ void __PARSER_NAME__TokenManager::SwitchTo(int lexState)
 		curLexState = lexState;
 }
 
-void OQLTokenManager::lexicalError() {
+void __PARSER_NAME__TokenManager::lexicalError() {
 	std::clog << "Lexical error encountered." << std::endl;
 }
-const  TokenManagerErrorHandler* OQLTokenManager::getErrorHandler() const {
+const  TokenManagerErrorHandler* __PARSER_NAME__TokenManager::getErrorHandler() const {
 	return errorHandler;
 }
 

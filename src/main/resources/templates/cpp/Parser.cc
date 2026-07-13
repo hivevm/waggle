@@ -5,7 +5,9 @@
 
 #include "__PARSER_NAME__.h"
 #include "TokenManagerError.h"
+//@if(USE_AST)
 #include "__PARSER_NAME__Tree.h"
+//@fi
 
 //@if(ERROR_REPORTING)
 //@foreach(TOKEN_MASKS)
@@ -256,10 +258,10 @@ Token * __PARSER_NAME__::getToken(int index)
 //@if(!CACHE_TOKENS)
 int __PARSER_NAME__::jj_ntk_f()
 {
-    if ((jj_nt=token->next) == nullptr)
-        return (jj_ntk = (token->next=token_source->getNextToken())->kind);
+    if ((jj_nt = token->next()) == nullptr)
+        return (jj_ntk = (token->next() = token_source->getNextToken())->kind());
     else
-        return (jj_ntk = jj_nt->kind);
+        return (jj_ntk = jj_nt->kind());
 }
 
 //@fi

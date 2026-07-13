@@ -263,10 +263,8 @@ public class NfaState {
     private void MergeMoves(NfaState other) {
         // Warning : This function does not merge epsilon moves
         if (this.asciiMoves == other.asciiMoves) {
-            JavaCCErrors.semantic_error(
-                    "Bug in JavaCC : Please send "
-                            + "a report along with the input that caused this. Thank you.");
-            throw new Error();
+            throw new IllegalStateException(
+                    "Cannot merge an NFA state with itself: both share the same asciiMoves");
         }
 
         this.asciiMoves[0] = this.asciiMoves[0] | other.asciiMoves[0];

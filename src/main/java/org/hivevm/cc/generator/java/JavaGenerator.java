@@ -10,6 +10,8 @@ import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
 
+import java.util.Set;
+
 /**
  * The {@link JavaGenerator} class.
  */
@@ -43,5 +45,10 @@ public class JavaGenerator extends GeneratorProvider {
             JavaTemplate.TOKEN_EXCEPTION.render(context.options());
             JavaTemplate.PARSER_EXCEPTION.render(context.options());
         };
+    }
+
+    @Override
+    protected final Set<String> reservedNames() {
+        return JavaTemplate.reservedNames();
     }
 }

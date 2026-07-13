@@ -40,10 +40,8 @@ public class ParserInterpreter {
                 ParserInterpreter.tokenize(data, input, this.options);
             }
         } catch (Exception e) {
-            System.out.println(e);
-            System.out.println("Detected " + (JavaCCErrors.get_error_count() + 1) + " errors and "
-                    + JavaCCErrors.get_warning_count() + " warnings.");
-            System.exit(1);
+            throw new GenerationException("Detected " + (JavaCCErrors.get_error_count() + 1)
+                    + " errors and " + JavaCCErrors.get_warning_count() + " warnings.", e);
         }
     }
 

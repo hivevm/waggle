@@ -1,6 +1,13 @@
 use crate::__RUST_MODULE__::charstream::CharStream;
 use crate::__RUST_MODULE__::token::Token;
+//@if(DEBUG_TOKEN_MANAGER)
+use crate::__RUST_MODULE__::parserconstants::TOKEN_IMAGE;
+//@fi
 use std::cmp;
+//@if(HAS_SPECIAL)
+use std::cell::RefCell;
+use std::rc::Rc;
+//@fi
 
 //@foreach(LOHI_BYTES)
 const JJBIT_VEC__LOHI_BYTES_INDEX__: [u64; __LOHI_BYTES_LENGTH__] = [__LOHI_BYTES_VALUE__];
@@ -24,8 +31,8 @@ pub const JJSTR_LITERAL_IMAGES: [&str; __LITERAL_IMAGES_LENGTH__] = [
 //@invoke(DUMP_STATE_SETS)
 
 //@if(DEBUG_TOKEN_MANAGER)
-const statesForState: [][][] = {__STATES_FOR_STATE__};
-const kindForState: [][] = {__KIND_FOR_STATE__};
+const STATES_FOR_STATE: &[&[&[usize]]] = &[__STATES_FOR_STATE__];
+const KIND_FOR_STATE: &[&[usize]] = &[__KIND_FOR_STATE__];
 //@fi
 
 pub struct Lexer<'a> {
@@ -40,6 +47,8 @@ pub struct Lexer<'a> {
 	jjstate_set: [usize; __STATE_SET_SIZE_2__],
 	jjimage_len: usize,
 	length_of_match: usize,
+	/// What the lexical actions of MORE and SKIP append to, and TOKEN reads back.
+	image: String,
 	cur_char: u32,
 	input_stream: CharStream<'a>,
 //@if(HAS_LOOP)
@@ -62,6 +71,7 @@ impl<'a> Lexer<'a> {
 			jjstate_set: [0; __STATE_SET_SIZE_2__],
 			jjimage_len: 0,
 			length_of_match: 0,
+			image: String::new(),
 			cur_char: 0,
 			input_stream: CharStream::new(text),
 //@if(HAS_LOOP)
@@ -84,6 +94,7 @@ impl<'a> Lexer<'a> {
 			jjstate_set: [0; __STATE_SET_SIZE_2__],
 			jjimage_len: 0,
 			length_of_match: 0,
+			image: String::new(),
 			cur_char: 0,
 			input_stream: CharStream::new(text),
 //@if(HAS_LOOP)
@@ -130,20 +141,23 @@ impl<'a> Lexer<'a> {
 		let mut end_column: usize = 0;
 //@fi
 //@if(HAS_EMPTY_MATCH)
-		if self.jjmatched_pos < 0 {
-			if (image == null) {
-				cur_token_image = "";
-			} else {
-				 cur_token_image = image.toString();
-			}
-
+		let cur_token_image: String;
+		// usize::MAX is what "matched nothing yet" looks like in Rust; Java writes -1.
+		if self.jjmatched_pos == usize::MAX {
+			cur_token_image = self.image.clone();
 //@if(KEEP_LINE_COOL)
-			begin_line = end_line = self.input_stream.get_end_line();
-			begin_column = end_column = self.input_stream.get_end_column();
+			begin_line = self.input_stream.get_end_line();
+			end_line = begin_line;
+			begin_column = self.input_stream.get_end_column();
+			end_column = begin_column;
 //@fi
 		} else {
-			String im = JJSTR_LITERAL_IMAGES[self.jjmatched_kind as usize];
-			cur_token_image: &str = if im == "" { self.input_stream.get_image() } else { im };
+			let im: &str = JJSTR_LITERAL_IMAGES[self.jjmatched_kind as usize];
+			cur_token_image = if im.is_empty() {
+				self.input_stream.get_image()
+			} else {
+				im.to_string()
+			};
 //@if(KEEP_LINE_COOL)
 			begin_line = self.input_stream.get_begin_line();
 			begin_column = self.input_stream.get_begin_column();
@@ -181,7 +195,8 @@ impl<'a> Lexer<'a> {
 
 	pub fn get_next_token(&mut self) -> Token {
 //@if(HAS_SPECIAL)
-		let mut specialToken: Token;
+		// The special tokens form a doubly linked chain, so they are shared and mutable.
+		let mut special_token: Option<Rc<RefCell<Token>>> = None;
 //@fi
 		let mut matched_token: Token;
 		let mut cur_pos: usize = 0;
@@ -192,19 +207,19 @@ impl<'a> Lexer<'a> {
 				self.cur_char = u32::from(result.unwrap());
 			} else {
 //@if(DEBUG_TOKEN_MANAGER)
-				debugStream.println("Returning the <EOF> token.\n");
+				eprintln!("Returning the <EOF> token.");
 //@fi
 				self.jjmatched_kind = 0;
 				self.jjmatched_pos = usize::MAX;
 				matched_token = self.jj_fill_token();
 //@if(HAS_SPECIAL)
-				matched_token.specialToken = specialToken;
+				matched_token.special = special_token.take();
 //@fi
 			//@invoke(DUMP_GET_NEXT_TOKEN)
 		}
 	}
 
-	fn skip_lexical_actions(&self, matched_token: &Token) {
+	fn skip_lexical_actions(&mut self, matched_token: Option<&Token>) {
 		match self.jjmatched_kind {
 			//@invoke(DUMP_SKIP_ACTIONS)
 			_ => {}
@@ -220,12 +235,63 @@ impl<'a> Lexer<'a> {
 		}
 	}
 
-	fn token_lexical_actions(&self, matched_token: &Token) {
+	fn token_lexical_actions(&mut self, matched_token: &mut Token) {
 		match self.jjmatched_kind {
 			//@invoke(DUMP_TOKEN_ACTIONS)
 			_ => {}
 		}
 	}
+
+//@if(DEBUG_TOKEN_MANAGER)
+	/// The token kinds a bit vector of the string-literal DFA still allows.
+	fn jj_kinds_for_bit_vector(&self, i: usize, vec: u64, kind_cnt: &mut usize) -> String {
+		let mut names = String::new();
+		if i == 0 {
+			*kind_cnt = 0;
+		}
+		for j in 0..64 {
+			if (vec & (1u64 << j)) != 0 {
+				if *kind_cnt > 0 {
+					names.push_str(", ");
+				}
+				*kind_cnt += 1;
+				if (*kind_cnt % 5) == 0 {
+					names.push_str("\n     ");
+				}
+				names.push_str(TOKEN_IMAGE[(i * 64) + j]);
+			}
+		}
+		names
+	}
+
+	/// The token kinds the NFA states in "vec" can still lead to.
+	fn jj_kinds_for_state_vector(&self, lex_state: usize, vec: &[usize], start: usize, end: usize)
+		-> String {
+		let mut done = vec![false; TOKEN_IMAGE.len()];
+		let mut names = String::new();
+		let mut cnt = 0;
+		for i in start..end {
+			if vec[i] == usize::MAX {
+				continue;
+			}
+			for state in STATES_FOR_STATE[lex_state][vec[i]] {
+				let kind = KIND_FOR_STATE[lex_state][*state];
+				if !done[kind] {
+					done[kind] = true;
+					if cnt > 0 {
+						names.push_str("\n     ");
+					}
+					cnt += 1;
+					names.push_str(TOKEN_IMAGE[kind]);
+				}
+			}
+		}
+		if cnt == 0 {
+			return "{  }".to_string();
+		}
+		format!("{{ {} }}", names)
+	}
+//@fi
 
 	fn jj_check_n_add(&mut self, state: usize) {
 		if self.jjrounds[state] != self.jjround {

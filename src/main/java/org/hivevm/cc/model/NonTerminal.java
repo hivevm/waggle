@@ -13,7 +13,7 @@ import java.util.List;
  * case there is no LHS, then the vector remains empty.
  */
 
-public class NonTerminal extends Expansion {
+public final class NonTerminal extends Expansion {
 
     private String name;
     private NormalProduction prod;

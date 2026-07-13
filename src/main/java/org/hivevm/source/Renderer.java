@@ -6,7 +6,7 @@ package org.hivevm.source;
 import org.hivevm.core.Environment;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -62,15 +62,20 @@ interface Renderer {
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
-            if (environment.has(text)) {
-                Object value = environment.get(text);
-                if (value instanceof Context.SourceConsumer consumer)
-                    consumer.apply(printer);
-                else if (value instanceof Context.SourceSupplier supplier)
-                    printer.print(supplier.get());
-                else if (value != null)
-                    printer.print(value.toString());
+            if (!environment.has(text)) {
+                // Rendering an unknown placeholder as "" produces source that does not compile —
+                // "class ASTx extends  {}" or "jjtAccept(NodeVisitor v,  data)". Say so instead.
+                throw new TemplateException(
+                        "Unknown placeholder or invoke target '" + text + "'");
             }
+
+            Object value = environment.get(text);
+            if (value instanceof Context.SourceConsumer consumer)
+                consumer.apply(printer);
+            else if (value instanceof Context.SourceSupplier supplier)
+                printer.print(supplier.get());
+            else if (value != null)
+                printer.print(value.toString());
         }
     }
 
@@ -101,14 +106,19 @@ interface Renderer {
 
         private static final String DEFAULT = "_";
 
+        // A LinkedHashMap, so that an if/elif chain is evaluated in source order rather than in
+        // hash order.
         public MatchRenderer() {
-            this(new HashMap<>());
+            this(new LinkedHashMap<>());
         }
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
+            // No environment::has pre-filter here: a negated condition ("!FLAG") is not a name in
+            // the environment, so the pre-filter used to drop it before validate() ever saw it —
+            // which silently disabled every //@if(!X) block. validate() does the lookup itself.
             var result = nodes.keySet().stream()
-                    .filter(environment::has)
+                    .filter(n -> !DEFAULT.equals(n))
                     .filter(n -> validate(n, environment))
                     .findFirst();
             if (result.isPresent()) {

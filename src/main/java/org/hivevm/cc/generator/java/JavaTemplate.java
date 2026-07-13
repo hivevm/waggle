@@ -17,6 +17,10 @@ import java.io.File;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 enum JavaTemplate implements SourceProvider {
 
     LEXER("Lexer"),
@@ -68,5 +72,15 @@ enum JavaTemplate implements SourceProvider {
         var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase());
         var targetName = (name == null ? this.name : String.format(this.name, name)) + ".java";
         return new File(targetDir, targetName);
+    }
+
+    /**
+     * The files this back end writes under a name of its own, i.e. one that does not derive from the
+     * grammar. A generated parser or AST node may not be called any of these, or it would silently
+     * overwrite the runtime class.
+     */
+    static Set<String> reservedNames() {
+        return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
+                .collect(Collectors.toSet());
     }
 }

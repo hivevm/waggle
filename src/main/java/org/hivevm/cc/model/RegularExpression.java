@@ -6,6 +6,6 @@ package org.hivevm.cc.model;
 /**
  * Describes regular expressions.
  */
-public abstract class RegularExpression extends Expansion {
+public abstract sealed class RegularExpression extends Expansion permits RExpression {
 
 }

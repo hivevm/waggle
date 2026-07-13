@@ -9,7 +9,7 @@ import java.util.Hashtable;
  * Describes BNF productions.
  */
 
-public class BNFProduction extends NormalProduction {
+public final class BNFProduction extends NormalProduction {
 
     private int nextScope;
     private final Hashtable<NodeScope, Integer> scopes;

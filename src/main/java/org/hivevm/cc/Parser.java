@@ -96,14 +96,20 @@ public class Parser {
             var generator = GeneratorProvider.generatorFor(options.getOutputLanguage());
             generator.generate(request);
         } catch (ParseException | IOException e) {
-            e.printStackTrace();
+            // Swallowing this used to let the code fall through to the verdict below, which only
+            // consults the JavaCCErrors counters — untouched by an I/O failure. A missing grammar
+            // therefore printed "Parser generated successfully." and produced nothing.
+            throw new GenerationException("Failed to generate a parser from " + this.file, e);
         }
 
         if (JavaCCErrors.hasError()) {
-            System.out.printf("Detected %s errors and %s warnings.\n",
-                    JavaCCErrors.get_error_count(), JavaCCErrors.get_warning_count());
-            System.exit(JavaCCErrors.get_error_count() == 0 ? 0 : 1);
-        } else if (JavaCCErrors.hasWarning()) {
+            throw new GenerationException(
+                    "Failed to generate a parser from " + this.file + ": detected "
+                            + JavaCCErrors.get_error_count() + " error(s) and "
+                            + JavaCCErrors.get_warning_count() + " warning(s)");
+        }
+
+        if (JavaCCErrors.hasWarning()) {
             System.out.printf("Parser generated with 0 errors and %s warnings.\n",
                     JavaCCErrors.get_warning_count());
         } else {
@@ -145,8 +151,7 @@ public class Parser {
         var options = new HiveCCOptions();
         for (var arg : args) {
             if (!options.isOption(arg)) {
-                System.out.printf("Argument '%s' must be an option setting.\n", arg);
-                System.exit(1);
+                throw new GenerationException("Argument '" + arg + "' must be an option setting.");
             }
             options.setCmdLineOption(arg);
         }

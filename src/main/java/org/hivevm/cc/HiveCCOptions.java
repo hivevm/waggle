@@ -166,14 +166,12 @@ public class HiveCCOptions implements Options {
 
         final Object existingValue = this.optionValues.get(nameUpperCase);
         if (existingValue != null) {
-            Object object;
-            if (value instanceof List) {
-                object = ((List<?>) value).getFirst();
-            } else {
-                object = value;
-            }
-            boolean isValidInteger = ((object instanceof Integer) && ((Integer) value <= 0));
-            if (isValidInteger) {
+            // A list-valued option is judged by its first element. Casting "value" here instead of
+            // the unwrapped element threw a ClassCastException for exactly that case; the flag was
+            // also named for the opposite of what it tests.
+            Object element = (value instanceof List<?> list) ? list.getFirst() : value;
+
+            if ((element instanceof Integer number) && (number <= 0)) {
                 JavaCCErrors.warning(valueloc,
                         "Bad option value \"" + value + "\" for \"" + name
                                 + "\".  Option setting will be ignored.");
@@ -352,7 +350,8 @@ public class HiveCCOptions implements Options {
         set(HiveCC.PARSER_NAME, value);
     }
 
-    void set(String name, Object value) {
+    @Override
+    public void set(String name, Object value) {
         if (HiveCC.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
             set(HiveCC.JJPARSER_CPP_DEFINE, text.toUpperCase());
         } else if (HiveCC.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {

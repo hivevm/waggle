@@ -5,6 +5,17 @@ import java.io.File;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+/**
+ * A local scratch harness for the external H3QL/OQL grammar. It reads from {@code ../model} and
+ * writes into {@code /data/hivevm/hql/src} — paths that exist on one developer's machine and on no
+ * CI runner.
+ *
+ * <p>Disabled, and it has to be: it used to pass everywhere, because the missing grammar threw a
+ * NoSuchFileException that generation swallowed while still reporting success. Since generation now
+ * throws (ADR-0011), the test fails honestly — which is the whole point. Re-enable it locally when
+ * the sibling checkout is present.
+ */
+@Disabled("Depends on external paths (../model, /data/hivevm/hql/src); enable locally")
 class H3QLTest {
 
     public static final File WORKING_DIR = new File("../h3vm").getAbsoluteFile();
@@ -17,7 +28,6 @@ class H3QLTest {
     public static final File PARSER_RUST = new File("/data/hivevm/hql/src");
 
     @Test
-    @Disabled
     void testCpp() {
         var builder = new ParserBuilder();
         builder.setLanguage(Language.CPP);
@@ -27,7 +37,6 @@ class H3QLTest {
     }
 
     @Test
-    @Disabled
     void testJava() {
         var builder = new ParserBuilder();
         builder.setLanguage(Language.JAVA);
@@ -37,7 +46,6 @@ class H3QLTest {
     }
 
     @Test
-    @Disabled
     void testRust() {
         var builder = new ParserBuilder();
         builder.setLanguage(Language.RUST);

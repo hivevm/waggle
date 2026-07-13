@@ -6,7 +6,7 @@ package org.hivevm.cc.model;
 /**
  * Describes zero-or-one regular expressions (<foo?>).
  */
-public class RZeroOrOne extends RExpression {
+public final class RZeroOrOne extends RExpression {
 
     private final RExpression regexpr;
 

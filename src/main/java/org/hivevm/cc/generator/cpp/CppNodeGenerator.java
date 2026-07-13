@@ -100,9 +100,20 @@ class CppNodeGenerator implements NodeGenerator {
             options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID,
                     CppNodeGenerator.getVisitorReturnType(context).equals("void"));
             options.set(HiveCC.JJTREE_NODE_TYPE, nodeType);
+            options.set(HiveCC.JJTREE_NODE_CLASS, CppNodeGenerator.nodeClass(context));
 
-            CppTemplate.MULTINODE.render(options);
+            CppTemplate.MULTINODE_H.render(options, nodeType);
+            CppTemplate.MULTINODE.render(options, nodeType);
         }
+    }
+
+    /**
+     * The base class the generated node classes extend. Defaults to the generated {@code Node}, so
+     * that a grammar which does not supply a NODE_CLASS still yields compilable node classes.
+     */
+    private static String nodeClass(Options context) {
+        var nodeClass = context.getNodeClass();
+        return nodeClass.isEmpty() ? "Node" : nodeClass.trim();
     }
 
     private void generateNodeInterface(Options context) {

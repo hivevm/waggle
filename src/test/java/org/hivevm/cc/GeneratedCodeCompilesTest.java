@@ -86,6 +86,33 @@ class GeneratedCodeCompilesTest {
             ;
             """;
 
+    /**
+     * A grammar whose tokens reach beyond ASCII, so the NFA builds composite states and the lexer
+     * dispatches on {@code jjCanMove_0}. That path emitted {@code case 12: &#123;} — a case that opens a
+     * block — and then wrote the remaining labels of the very same body <em>inside</em> it, which
+     * javac rejects as an orphaned case. It went unnoticed because no test ever compiled a grammar
+     * that reached it.
+     */
+    private static final String NON_ASCII_COMPOSITE_STATES = """
+            grammar Str;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input =
+              ( <STRING> | <FLOAT> | <COMMENT> )* <EOF>
+            ;
+
+            SKIP = " " | "\\t" | "\\n" | "\\r" ;
+
+            TOKEN =
+              < STRING: "\\"" ( ~["\\"","\\\\"] | "\\\\" ["n","t","r"] )* "\\"" >
+            | < FLOAT: (["0"-"9"])+ "." (["0"-"9"])* ( ["e","E"] (["+","-"])? (["0"-"9"])+ )? >
+            | < COMMENT: "/*" ( ~["*"] | "*" ~["/"] )* "*/" >
+            ;
+            """;
+
     @Test
     void grammarWithoutSyntacticLookaheadCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "NoLookahead.jj", GeneratedCodeCompilesTest.NO_LOOKAHEAD);
@@ -95,6 +122,29 @@ class GeneratedCodeCompilesTest {
     void treeGrammarWithoutNodeOptionsCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "TreeDefaults.jj",
                 GeneratedCodeCompilesTest.TREE_WITHOUT_NODE_OPTIONS);
+    }
+
+    /**
+     * The token-manager trace. It referenced a {@code debugStream} that was never declared, a
+     * {@code tokenImage} the lexer had no access to, and two {@code jjKindsFor…} helpers that did not
+     * exist — 41 missing symbols in all. Nothing that switched DEBUG_TOKEN_MANAGER on had ever
+     * compiled.
+     */
+    private static final String TOKEN_MANAGER_TRACE =
+            GeneratedCodeCompilesTest.NO_LOOKAHEAD.replace(
+                    "  JAVA_PACKAGE: \"org.example\"",
+                    "  JAVA_PACKAGE: \"org.example\",\n  DEBUG_TOKEN_MANAGER: true");
+
+    @Test
+    void grammarWithTokenManagerTraceCompiles(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "Trace.jj",
+                GeneratedCodeCompilesTest.TOKEN_MANAGER_TRACE);
+    }
+
+    @Test
+    void grammarWithCompositeNonAsciiStatesCompiles(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "Str.jj",
+                GeneratedCodeCompilesTest.NON_ASCII_COMPOSITE_STATES);
     }
 
     private static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)

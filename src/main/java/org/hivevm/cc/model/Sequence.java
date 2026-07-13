@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Describes expansions that are sequences of expansion units. (c1 c2 ...)
  */
-public class Sequence extends Expansion {
+public final class Sequence extends Expansion {
 
     // The list of units in this expansion sequence. Each List component will narrow to Expansion.
     private final List<Expansion> units;

@@ -7,7 +7,7 @@ package org.hivevm.cc.model;
  * Describes zero-or-more regular expressions (<foo*>).
  */
 
-public class RZeroOrMore extends RExpression {
+public final class RZeroOrMore extends RExpression {
 
     private final RExpression regexpr;
 

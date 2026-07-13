@@ -7,7 +7,7 @@ package org.hivevm.cc.model;
  * Describes the EOF regular expression
  */
 
-public class REndOfFile extends RExpression {
+public final class REndOfFile extends RExpression {
 
     @Override
     public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {

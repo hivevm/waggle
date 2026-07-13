@@ -6,7 +6,7 @@ package org.hivevm.cc.model;
 /**
  * Describes one-or-more regular expressions (<foo+>).
  */
-public class RRepetitionRange extends RExpression {
+public final class RRepetitionRange extends RExpression {
 
     private final RExpression regexpr;
     private final int min;

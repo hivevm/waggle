@@ -218,8 +218,8 @@ public class NfaStateData {
         int[] nameSet = getNextStates(stateSetString);
 
         if (nameSet == null) {
-            throw new Error(
-                    "JavaCC Bug: Please file a bug at: https://github.com/javacc/javacc/issues");
+            throw new IllegalStateException(
+                    "No next states registered for the state set: " + stateSetString);
         }
 
         if (nameSet.length == 1) {

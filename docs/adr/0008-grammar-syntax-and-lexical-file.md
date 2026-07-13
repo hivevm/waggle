@@ -1,10 +1,10 @@
 # ADR-0008: Redesigned grammar syntax with a separate lexical specification
 
-- **Status:** 🟢 Accepted
+- **Status:** ⚪ Superseded by ADR-0010
 - **Date:** 2026-07-05
 - **Deciders:** HiveVM CC maintainers
 - **Supersedes:** —
-- **Superseded by:** —
+- **Superseded by:** [ADR-0010](0010-unified-grammar-and-actual-surface-syntax.md)
 
 ## Context
 

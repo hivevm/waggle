@@ -227,7 +227,8 @@ class DfaBuilder {
 
             if (tmp.stateForCase != null) {
                 if (stateForCase != null) {
-                    throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu : ");
+                    throw new IllegalStateException(
+                            "Two NFA states of the same composite state claim stateForCase");
                 }
                 stateForCase = tmp.stateForCase;
             }
@@ -422,7 +423,8 @@ class DfaBuilder {
 
             if (tmp.stateForCase != null) {
                 if (stateForCase != null) {
-                    throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu : ");
+                    throw new IllegalStateException(
+                            "Two NFA states of the same composite state claim stateForCase");
                 }
                 stateForCase = tmp.stateForCase;
             }
@@ -538,7 +540,9 @@ class DfaBuilder {
     private static void getNoBreak(NfaStateData data, NfaState state, int byteNum,
                                    boolean[] dumped) {
         if (state.inNextOf != 1) {
-            throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
+            throw new IllegalStateException(
+                    "getNoBreak expects a state that occurs in exactly one next-state set, but "
+                            + "inNextOf = " + state.inNextOf);
         }
 
         dumped[state.stateName] = true;
@@ -560,7 +564,9 @@ class DfaBuilder {
         List<NfaState> v = data.cloneAllStates();
 
         if (data.getAllStateCount() != data.generatedStates()) {
-            throw new Error("What??");
+            throw new IllegalStateException("NFA state count changed while rearranging: "
+                    + data.getAllStateCount() + " states, but " + data.generatedStates()
+                    + " were generated");
         }
 
         for (NfaState tmp : v) {
@@ -643,7 +649,8 @@ class DfaBuilder {
 
     private static boolean canStartNfaUsingAscii(NfaStateData data, char c) {
         if (c >= 128) {
-            throw new Error("JavaCC Bug: Please send mail to sankar@cs.stanford.edu");
+            throw new IllegalStateException(
+                    "canStartNfaUsingAscii called with a non-ASCII character: " + (int) c);
         }
 
         String s = data.getInitialState().GetEpsilonMovesString();

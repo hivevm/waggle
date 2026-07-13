@@ -6,7 +6,7 @@ package org.hivevm.cc.model;
 /**
  * Describes one-or-more regular expressions (<foo+>).
  */
-public class ROneOrMore extends RExpression {
+public final class ROneOrMore extends RExpression {
 
     private final RExpression regexpr;
 

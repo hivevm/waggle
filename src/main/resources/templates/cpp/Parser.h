@@ -151,8 +151,10 @@ public:
 //@fi
 //@fi
 protected:
+//@if(USE_AST)
 	virtual void jjtreeOpenNodeScope(Node * node) = 0;
 	virtual void jjtreeCloseNodeScope(Node * node) = 0;
+//@fi
 
 //@if(USE_AST)
 	TreeState jjtree;

@@ -10,7 +10,7 @@ import java.util.List;
  * Describes regular expressions which are sequences of other regular expressions.
  */
 
-public class RSequence extends RExpression {
+public final class RSequence extends RExpression {
 
     private final List<RExpression> units;
 

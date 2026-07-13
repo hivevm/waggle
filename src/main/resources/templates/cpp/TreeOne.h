@@ -8,7 +8,7 @@
 
 #include "Node.h"
 //@foreach(NODES)
-#include __NODES_NAME__.h"
+#include "__NODES_NAME__.h"
 //@end
 
 #endif

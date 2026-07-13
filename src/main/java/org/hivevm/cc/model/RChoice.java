@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Describes regular expressions which are choices from from among included regular expressions.
  */
-public class RChoice extends RExpression {
+public final class RChoice extends RExpression {
 
     /**
      * The list of choices of this regular expression. Each list component will narrow to

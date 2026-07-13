@@ -6,7 +6,7 @@ package org.hivevm.cc.model;
 /**
  * Describes zero-or-one expansions (e.g., [foo], foo?).
  */
-public class ZeroOrOne extends Expansion {
+public final class ZeroOrOne extends Expansion {
 
     private final Expansion expansion;
 

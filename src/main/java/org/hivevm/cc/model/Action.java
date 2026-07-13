@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Describes actions that may occur on the right hand side of productions.
  */
-public class Action extends Expansion {
+public final class Action extends Expansion {
 
     private final List<Token> action_tokens = new ArrayList<>();
 

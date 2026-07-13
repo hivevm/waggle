@@ -47,6 +47,19 @@ impl<'a> CharStream<'a> {
 		}
 	}
 
+	pub fn get_suffix(&self, len: usize) -> String {
+		let pos = (self.bufpos + 1) as usize;
+		if pos >= len {
+			return self.buffer[(pos - len)..pos].iter().collect::<String>();
+		}
+		// The match wrapped around the ring buffer: the head is at its end.
+		let head = len - pos;
+		self.buffer[(self.bufsize - head)..self.bufsize]
+			.iter()
+			.collect::<String>()
+			+ &self.buffer[0..pos].iter().collect::<String>()
+	}
+
 	pub fn get_image(&self) -> String {
 		if self.bufpos >= self.token_begin.try_into().unwrap() {
 			return self.buffer[self.token_begin..(self.bufpos as usize - self.token_begin) + 1]
@@ -133,6 +146,9 @@ impl<'a> CharStream<'a> {
 //@if(KEEP_LINE_COLUMN)
 
 	fn update_line_column(&mut self, c: char) {
+		// Without this the column never advances: it stayed 0 for every token, not just the trace.
+		self.column += 1;
+
 		if self.prev_char_is_lf {
 			self.prev_char_is_lf = false;
 			self.column = 1;

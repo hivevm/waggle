@@ -7,6 +7,7 @@ package org.hivevm.cc;
 import org.hivevm.cc.parser.jjtree.JJTreeParser;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -72,8 +73,8 @@ public class ParserBuilder {
             var interpreter = new ParserInterpreter(options);
             var grammar = new String(Files.readAllBytes(this.parserFile.toPath()));
             interpreter.runTokenizer(grammar, text);
-        } catch (Throwable e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw new GenerationException("Failed to read " + this.parserFile, e);
         }
     }
 

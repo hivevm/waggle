@@ -31,8 +31,40 @@ public class Template {
         INVOKE
     }
 
+    /**
+     * Resolves a directive name. An unknown one (e.g. "//@endif", which this engine does not know —
+     * it uses "//@fi") used to surface as a bare IllegalArgumentException from valueOf.
+     */
+    private static Function parse(String template, String name) {
+        try {
+            return Function.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            throw new TemplateException(template + ": unknown directive '//@" + name.toLowerCase()
+                    + "' — known are: if, elif, else, fi, foreach, end, invoke");
+        }
+    }
+
+    // "\\s*" before the parameter list: "//@if (X)" used to leave the parameter unmatched, which
+    // silently turned the condition into "no condition" and dropped the block.
+    //
+    // The placeholder body is reluctant ("\\w*?"): the previous greedy form ran across two adjacent
+    // placeholders — "__A__ __B__" was captured as the single name "A__ " — so neither was
+    // substituted. The leading "[^_()]" stays: it is what lets a name be glued to a prefix that ends
+    // in an underscore, as in "jjbitVec___TOKEN_MASKS_INDEX__".
     private static final Pattern STATEMENT = Pattern.compile(
-            "(\\t*)//@(\\w+)(?:\\(([^)]+)\\))?\\v?|__([^_()][\\w+]+[^_()])__", Pattern.MULTILINE);
+            "(\\t*)//@(\\w+)(?:\\s*\\(([^)]+)\\))?\\v?|__([^_()]\\w*?)__",
+            Pattern.MULTILINE);
+
+    /**
+     * Returns the parameter of a directive that requires one.
+     */
+    private static String require(String template, String name, String param) {
+        if (param == null) {
+            throw new TemplateException(
+                    template + ": //@" + name.toLowerCase() + " requires a parameter");
+        }
+        return param;
+    }
 
 
     private final String text;
@@ -57,7 +89,7 @@ public class Template {
      * structure to construct and render the output.
      */
     public final void render(String title, OutputStream outputStream, Environment environment) {
-        var builder = new RendererBuilder();
+        var builder = new RendererBuilder(title);
 
         var offset = 0;
         var matcher = Template.STATEMENT.matcher(text);
@@ -70,12 +102,15 @@ public class Template {
             var isFunc = matcher.group(4) == null;
             var func = isFunc ? matcher.group(2).toUpperCase() : "VAR";
             var param = matcher.group(isFunc ? 3 : 4);
-            switch (Function.valueOf(func)) {
+            switch (Template.parse(title, func)) {
                 case IF:
-                    builder.addMatch(param);
+                    builder.addMatch(Template.require(title, func, param));
                     break;
 
                 case ELIF:
+                    builder.addCase(Template.require(title, func, param));
+                    break;
+
                 case ELSE:
                     builder.addCase(param);
                     break;

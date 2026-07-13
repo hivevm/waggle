@@ -45,40 +45,40 @@ void MoreLexicalActions();
 void TokenLexicalActions(Token *matchedToken);
 //@fi
 #define jjCheckNAdd(state)\
-{\
+do {\
 	if (jjrounds[state] != jjround)\
 	{\
 		jjstateSet[jjnewStateCnt++] = state;\
 		jjrounds[state] = jjround;\
 	}\
-}
+} while (false)
 #define jjAddStates(start, end)\
-{\
+do {\
 	for (int x = start; x <= end; x++) {\
 		jjstateSet[jjnewStateCnt++] = jjnextStates[x];\
 	} /*while (start++ != end);*/\
-}
+} while (false)
 #define jjCheckNAddTwoStates(state1, state2)\
-{\
+do {\
 	jjCheckNAdd(state1);\
 	jjCheckNAdd(state2);\
-}
+} while (false)
 
 //@if(CHECK_NADD_STATES_DUAL_NEEDED)
 #define jjCheckNAddStates(start, end)\
-{\
+do {\
 	for (int x = start; x <= end; x++) {\
 		jjCheckNAdd(jjnextStates[x]);\
 	} /*while (start++ != end);*/\
-}
+} while (false)
 
 //@fi
 //@if(CHECK_NADD_STATES_UNARY_NEEDED)
 #define jjCheckNAddStates(start)\
-{\
+do {\
 	jjCheckNAdd(jjnextStates[start]);\
 	jjCheckNAdd(jjnextStates[start + 1]);\
-}
+} while (false)
 //@fi
 	Reader*        reader;
 

@@ -3,24 +3,26 @@
 
 package org.hivevm.cc.semantic;
 
-import org.hivevm.cc.model.Production;
+import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
-import org.hivevm.cc.parser.Token;
 
 /**
  * The {@link SemanticContext} class.
+ *
+ * <p>Errors and warnings are reported through {@link JavaCCErrors}. This class used to keep a second,
+ * independent error counter, so a semantic error raised here never reached the verdict the driver
+ * based on {@link JavaCCErrors} — generation could report success while it had already failed.
  */
 class SemanticContext {
 
     private final Options options;
-    private int errorCount = 0;
 
     public SemanticContext(Options options) {
         this.options = options;
     }
 
     final boolean hasErrors() {
-        return this.errorCount > 0;
+        return JavaCCErrors.hasError();
     }
 
     public final int getLookahead() {
@@ -44,28 +46,14 @@ class SemanticContext {
     }
 
     final void onSemanticError(Object node, String message) {
-        this.errorCount++;
-        System.err.print("Error: ");
-        printLocationInfo(node);
-        System.err.println(message);
+        JavaCCErrors.semantic_error(node, message);
     }
 
     final void onWarning(String message) {
-        System.err.print("Warning: ");
-        System.err.println(message);
+        JavaCCErrors.warning(message);
     }
 
     final void onWarning(Object node, String message) {
-        System.err.print("Warning: ");
-        printLocationInfo(node);
-        System.err.println(message);
-    }
-
-    private static void printLocationInfo(Object node) {
-        if (node instanceof Production p) {
-            System.err.print("Line " + p.getLine() + ", Column " + p.getColumn() + ": ");
-        } else if (node instanceof Token t) {
-            System.err.print("Line " + t.beginLine + ", Column " + t.beginColumn + ": ");
-        }
+        JavaCCErrors.warning(node, message);
     }
 }

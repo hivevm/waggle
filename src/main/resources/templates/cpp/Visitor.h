@@ -3,8 +3,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef __DEFINE_VISITOR___VISITOR
-#define __DEFINE_VISITOR___VISITOR
+#ifndef __CPP_DEFINE___VISITOR
+#define __CPP_DEFINE___VISITOR
 
 #include "JavaCC.h"
 #include "__PARSER_NAME__Tree.h"
@@ -20,15 +20,15 @@ public:
 	virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
 //@if(NODE_MULTI)
 //@foreach(NODES)
-	virtual __RETURN_TYPE__ visit(const {{NODES_TYPE} *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __ARGUMENT_TYPE__ data) = 0;
 //@end
-//@endif
+//@fi
 
 	virtual ~__PARSER_NAME__Visitor() { }
 };
 		
 
-class __PARSER_NAME__DefaultVisitor()
+class __PARSER_NAME__DefaultVisitor
     : public __PARSER_NAME__Visitor
 {
 
@@ -45,7 +45,7 @@ public:
 		__RETURN__defaultVisit(node, data);
 	}
 //@end
-//@endif
+//@fi
 
 	~__PARSER_NAME__DefaultVisitor() { }
 };

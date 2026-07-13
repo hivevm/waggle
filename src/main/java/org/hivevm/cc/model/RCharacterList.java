@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Describes character lists.
  */
-public class RCharacterList extends RExpression {
+public final class RCharacterList extends RExpression {
 
     private boolean transformed = false;
 

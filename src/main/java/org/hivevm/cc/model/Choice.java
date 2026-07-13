@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Describes expansions where one of many choices is taken (c1|c2|...).
  */
-public class Choice extends Expansion {
+public final class Choice extends Expansion {
 
     /**
      * The list of choices of this expansion unit. Each List component will narrow to

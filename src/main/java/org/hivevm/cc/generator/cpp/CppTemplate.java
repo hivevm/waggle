@@ -17,6 +17,10 @@ import java.io.File;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 enum CppTemplate implements SourceProvider {
 
     JAVACC("JavaCC"),
@@ -48,8 +52,9 @@ enum CppTemplate implements SourceProvider {
 
     NODE("Node", false),
     NODE_H("Node"),
-    MULTINODE("MultiNode", false),
-    MULTINODE_H("MultiNode"),
+    /** One file per AST node: the name is the node type, not the template name. */
+    MULTINODE("MultiNode", "%s", false),
+    MULTINODE_H("MultiNode", "%s"),
 
     TREE("Tree"),
     TREE_ONE("TreeOne", "%sTree"),
@@ -94,5 +99,15 @@ enum CppTemplate implements SourceProvider {
     public final File getTargetFile(String name, Options options) {
         var targetName = (name == null ? this.name : String.format(this.name, name)) + "." + filetype;
         return new File(options.getOutputDirectory(), targetName);
+    }
+
+    /**
+     * The files this back end writes under a name of its own, i.e. one that does not derive from the
+     * grammar. A generated parser or AST node may not be called any of these, or it would silently
+     * overwrite the runtime class.
+     */
+    static Set<String> reservedNames() {
+        return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
+                .collect(Collectors.toSet());
     }
 }

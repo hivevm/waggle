@@ -13,7 +13,7 @@ import java.util.List;
  * case this describes the lookahead rule for a single expansion unit, then a sequence is created
  * with this node as the first element, and the expansion unit as the second and last element.
  */
-public class Lookahead extends Expansion {
+public final class Lookahead extends Expansion {
 
     private final List<Token> action_tokens = new ArrayList<>();
 

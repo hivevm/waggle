@@ -11,7 +11,9 @@ import java.util.List;
 /**
  * Describes regular expressions.
  */
-public abstract class RExpression extends RegularExpression {
+public abstract sealed class RExpression extends RegularExpression
+        permits RCharacterList, RChoice, REndOfFile, RJustName, ROneOrMore, RRepetitionRange,
+        RSequence, RStringLiteral, RZeroOrMore, RZeroOrOne {
 
     // The label of the regular expression (if any). If no label is present, this is set to "".
     private String label = "";

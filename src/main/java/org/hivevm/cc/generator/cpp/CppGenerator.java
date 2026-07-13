@@ -10,6 +10,8 @@ import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
 
+import java.util.Set;
+
 /**
  * The {@link CppGenerator} class.
  */
@@ -53,5 +55,15 @@ public class CppGenerator extends GeneratorProvider {
             CppTemplate.PARSERHANDLER.render(context.options());
             CppTemplate.PARSERHANDLER_H.render(context.options());
         };
+    }
+
+    @Override
+    protected final Set<String> reservedNames() {
+        return CppTemplate.reservedNames();
+    }
+
+    @Override
+    protected final boolean parserNameIsFileName() {
+        return true;
     }
 }

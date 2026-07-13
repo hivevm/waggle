@@ -75,6 +75,9 @@ public:
 	 */
 	virtual JJString getImage() = 0;
 
+	/** Returns the last {@code len} characters of the current match. */
+	virtual JJString getSuffix(int len) = 0;
+
 	virtual bool endOfInput() = 0;
 };
 

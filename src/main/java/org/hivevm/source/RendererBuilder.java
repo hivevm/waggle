@@ -24,12 +24,14 @@ class RendererBuilder {
 
     private static final String DEFAULT = "_";
 
+    private final String template;
     private final Stack<Renderer> stack;
 
     /**
-     * Constructs a new instance of the RendererBuilder.
+     * Constructs a new instance of the RendererBuilder for the named template.
      */
-    public RendererBuilder() {
+    public RendererBuilder(String template) {
+        this.template = template;
         this.stack = new Stack<Renderer>();
         this.stack.push(new ListRenderer());
     }
@@ -43,6 +45,13 @@ class RendererBuilder {
             nodes.add(renderer);
         } else if (peek instanceof ForEachRenderer forech) {
             forech.renderer().nodes().add(renderer);
+        } else {
+            // Reached when a block was closed with the wrong directive (e.g. //@end for an //@if),
+            // which leaves the MatchRenderer on the stack. Dropping the content here is how a
+            // template loses its tail without a word.
+            throw new TemplateException(template
+                    + ": content in a block that is not open — a //@if closed with //@end, or a "
+                    + "//@foreach closed with //@fi?");
         }
         return renderer;
     }
@@ -118,12 +127,31 @@ class RendererBuilder {
         return this;
     }
 
+    /**
+     * Closes the innermost block. The root list renderer must never be popped — a //@fi or //@end
+     * without a matching opener would otherwise unbalance the stack.
+     */
     public final RendererBuilder pop() {
+        if (stack.size() <= 1) {
+            throw new TemplateException(template
+                    + ": //@fi or //@end without a matching //@if or //@foreach");
+        }
         stack.pop();
         return this;
     }
 
+    /**
+     * Returns the root renderer.
+     *
+     * <p>Fails when blocks are left open. Previously this popped whatever was on top, so a missing
+     * //@fi returned the innermost block instead of the root — the rest of the template was dropped
+     * silently, leaving a truncated file with a valid checksum footer.
+     */
     public final Renderer build() {
+        if (stack.size() != 1) {
+            throw new TemplateException(template + ": " + (stack.size() - 1)
+                    + " block(s) left open — a //@fi or //@end is missing");
+        }
         return stack.pop();
     }
 }

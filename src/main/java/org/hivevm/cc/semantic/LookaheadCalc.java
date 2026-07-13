@@ -4,6 +4,7 @@
 package org.hivevm.cc.semantic;
 
 import org.hivevm.cc.Encoding;
+import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.Choice;
 import org.hivevm.cc.model.Expansion;
 import org.hivevm.cc.model.Lookahead;
@@ -261,69 +262,92 @@ class LookaheadCalc {
 
     static List<MatchInfo> genFirstSet(Semanticize data, List<MatchInfo> partialMatches,
                                        Expansion exp) {
-        if (exp instanceof RExpression re) {
-            List<MatchInfo> retval = new ArrayList<>();
-            for (MatchInfo m : partialMatches) {
-                MatchInfo mnew = m.copyWith(re.getOrdinal());
-                if (mnew.firstFreeLoc() == data.laLimit())
-                    data.getSizeLimitedMatches().add(mnew);
-                else
-                    retval.add(mnew);
+        return switch (exp) {
+            case RExpression regexp -> {
+                List<MatchInfo> retval = new ArrayList<>();
+                for (MatchInfo m : partialMatches) {
+                    MatchInfo mnew = m.copyWith(regexp.getOrdinal());
+                    if (mnew.firstFreeLoc() == data.laLimit()) {
+                        data.getSizeLimitedMatches().add(mnew);
+                    } else {
+                        retval.add(mnew);
+                    }
+                }
+                yield retval;
             }
-            return retval;
-        } else if (exp instanceof NonTerminal) {
-            NormalProduction prod = ((NonTerminal) exp).getProd();
-            return LookaheadCalc.genFirstSet(data, partialMatches, prod.getExpansion());
-        } else if (exp instanceof Choice ch) {
-            List<MatchInfo> retval = new ArrayList<>();
-            for (var element : ch.getChoices()) {
-                List<MatchInfo> v = LookaheadCalc.genFirstSet(data, partialMatches, element);
-                LookaheadCalc.listAppend(retval, v);
+
+            case NonTerminal nonTerminal -> LookaheadCalc.genFirstSet(data, partialMatches,
+                    nonTerminal.getProd().getExpansion());
+
+            case Choice choice -> {
+                List<MatchInfo> retval = new ArrayList<>();
+                for (var alternative : choice.getChoices()) {
+                    LookaheadCalc.listAppend(retval,
+                            LookaheadCalc.genFirstSet(data, partialMatches, alternative));
+                }
+                yield retval;
             }
-            return retval;
-        } else if (exp instanceof Sequence seq) {
-            List<MatchInfo> v = partialMatches;
-            for (var element : seq.getUnits()) {
-                v = LookaheadCalc.genFirstSet(data, v, element);
-                if (v.isEmpty())
-                    break;
+
+            case Sequence sequence -> {
+                List<MatchInfo> matches = partialMatches;
+                for (var unit : sequence.getUnits()) {
+                    matches = LookaheadCalc.genFirstSet(data, matches, unit);
+                    if (matches.isEmpty()) {
+                        break;
+                    }
+                }
+                yield matches;
             }
-            return v;
-        } else if (exp instanceof OneOrMore om) {
-            List<MatchInfo> retval = new ArrayList<>();
-            List<MatchInfo> v = partialMatches;
-            while (true) {
-                v = LookaheadCalc.genFirstSet(data, v, om.getExpansion());
-                if (v.isEmpty())
-                    break;
-                LookaheadCalc.listAppend(retval, v);
+
+            case OneOrMore oneOrMore -> LookaheadCalc.genRepeated(data, partialMatches,
+                    oneOrMore.getExpansion(), false);
+
+            // Zero repetitions is a match too, so the incoming matches are kept.
+            case ZeroOrMore zeroOrMore -> LookaheadCalc.genRepeated(data, partialMatches,
+                    zeroOrMore.getExpansion(), true);
+
+            case ZeroOrOne zeroOrOne -> {
+                List<MatchInfo> retval = new ArrayList<>();
+                LookaheadCalc.listAppend(retval, partialMatches);
+                LookaheadCalc.listAppend(retval,
+                        LookaheadCalc.genFirstSet(data, partialMatches, zeroOrOne.getExpansion()));
+                yield retval;
             }
-            return retval;
-        } else if (exp instanceof ZeroOrMore zm) {
-            List<MatchInfo> retval = new ArrayList<>();
+
+            // A semantic lookahead cuts the first set: nothing is guaranteed to match.
+            case Lookahead lookahead
+                    when data.considerSemanticLA() && !lookahead.getActionTokens().isEmpty() ->
+                    new ArrayList<>();
+
+            case Lookahead lookahead -> LookaheadCalc.copyOf(partialMatches);
+            case Action action -> LookaheadCalc.copyOf(partialMatches);
+            case NormalProduction production -> LookaheadCalc.copyOf(partialMatches);
+        };
+    }
+
+    /** The first set of an expansion repeated any number of times. */
+    private static List<MatchInfo> genRepeated(Semanticize data, List<MatchInfo> partialMatches,
+                                               Expansion body, boolean zeroAllowed) {
+        List<MatchInfo> retval = new ArrayList<>();
+        if (zeroAllowed) {
             LookaheadCalc.listAppend(retval, partialMatches);
-            List<MatchInfo> v = partialMatches;
-            while (true) {
-                v = LookaheadCalc.genFirstSet(data, v, zm.getExpansion());
-                if (v.isEmpty())
-                    break;
-                LookaheadCalc.listAppend(retval, v);
-            }
-            return retval;
-        } else if (exp instanceof ZeroOrOne) {
-            List<MatchInfo> retval = new ArrayList<>();
-            LookaheadCalc.listAppend(retval, partialMatches);
-            LookaheadCalc.listAppend(retval,
-                    LookaheadCalc.genFirstSet(data, partialMatches, ((ZeroOrOne) exp).getExpansion()));
-            return retval;
-        } else if (data.considerSemanticLA() && (exp instanceof Lookahead lookahead)
-                && (!lookahead.getActionTokens().isEmpty())) {
-            return new ArrayList<>();
-        } else {
-            List<MatchInfo> retval = new ArrayList<>();
-            LookaheadCalc.listAppend(retval, partialMatches);
-            return retval;
         }
+
+        List<MatchInfo> matches = partialMatches;
+        while (true) {
+            matches = LookaheadCalc.genFirstSet(data, matches, body);
+            if (matches.isEmpty()) {
+                break;
+            }
+            LookaheadCalc.listAppend(retval, matches);
+        }
+        return retval;
+    }
+
+    private static List<MatchInfo> copyOf(List<MatchInfo> matches) {
+        List<MatchInfo> retval = new ArrayList<>();
+        LookaheadCalc.listAppend(retval, matches);
+        return retval;
     }
 
     private static void listSplit(List<MatchInfo> toSplit, List<MatchInfo> mask,
@@ -347,66 +371,82 @@ class LookaheadCalc {
         if (exp.generation() == generation)
             return new ArrayList<>();
 
-        // System.out.println("*** Parent: " + exp.parent);
         exp.setGeneration(generation);
-        if (exp.parent() == null) {
-            List<MatchInfo> retval = new ArrayList<>();
-            LookaheadCalc.listAppend(retval, partialMatches);
-            return retval;
-        } else if (exp.parent() instanceof NormalProduction np) {
-            List<Object> parents = np.getParents();
-            List<MatchInfo> retval = new ArrayList<>();
-            // System.out.println("1; gen: " + generation + "; exp: " + exp);
-            for (Object parent : parents) {
-                List<MatchInfo> v = LookaheadCalc.genFollowSet(partialMatches, (Expansion) parent,
-                        generation, data);
-                LookaheadCalc.listAppend(retval, v);
+
+        Expansion parent = exp.parent();
+        if (parent == null) {
+            return LookaheadCalc.copyOf(partialMatches);
+        }
+
+        return switch (parent) {
+            // Follow the production to each place it is used.
+            case NormalProduction production -> {
+                List<MatchInfo> retval = new ArrayList<>();
+                for (var user : production.getParents()) {
+                    LookaheadCalc.listAppend(retval,
+                            LookaheadCalc.genFollowSet(partialMatches, user, generation, data));
+                }
+                yield retval;
             }
-            return retval;
-        } else if (exp.parent() instanceof Sequence seq) {
-            List<MatchInfo> v = partialMatches;
-            for (int i = exp.parentOrdinal() + 1; i < seq.getUnits().size(); i++) {
-                v = LookaheadCalc.genFirstSet(data, v, seq.getUnits().get(i));
-                if (v.isEmpty())
-                    return v;
+
+            // What follows is the rest of the sequence, and then whatever follows the sequence.
+            case Sequence sequence -> {
+                List<MatchInfo> matches = partialMatches;
+                for (int i = exp.parentOrdinal() + 1; i < sequence.getUnits().size(); i++) {
+                    matches = LookaheadCalc.genFirstSet(data, matches, sequence.getUnits().get(i));
+                    if (matches.isEmpty()) {
+                        yield matches;
+                    }
+                }
+                yield LookaheadCalc.followParent(matches, partialMatches, sequence, generation, data);
             }
-            List<MatchInfo> v1 = new ArrayList<>();
-            List<MatchInfo> v2 = new ArrayList<>();
-            LookaheadCalc.listSplit(v, partialMatches, v1, v2);
-            if (!v1.isEmpty())
-                // System.out.println("2; gen: " + generation + "; exp: " + exp);
-                v1 = LookaheadCalc.genFollowSet(v1, seq, generation, data);
-            if (!v2.isEmpty())
-                // System.out.println("3; gen: " + generation + "; exp: " + exp);
-                v2 = LookaheadCalc.genFollowSet(v2, seq, data.nextGenerationIndex(), data);
-            LookaheadCalc.listAppend(v2, v1);
-            return v2;
-        } else if ((exp.parent() instanceof OneOrMore) || (exp.parent() instanceof ZeroOrMore)) {
-            List<MatchInfo> moreMatches = new ArrayList<>();
-            LookaheadCalc.listAppend(moreMatches, partialMatches);
-            List<MatchInfo> v = partialMatches;
-            while (true) {
-                v = LookaheadCalc.genFirstSet(data, v, exp);
-                if (v.isEmpty())
-                    break;
-                LookaheadCalc.listAppend(moreMatches, v);
+
+            // A repetition may loop, so what follows it may also be itself.
+            case OneOrMore oneOrMore ->
+                    LookaheadCalc.followRepeated(partialMatches, exp, oneOrMore, generation, data);
+            case ZeroOrMore zeroOrMore ->
+                    LookaheadCalc.followRepeated(partialMatches, exp, zeroOrMore, generation, data);
+
+            default -> LookaheadCalc.genFollowSet(partialMatches, parent, generation, data);
+        };
+    }
+
+    /** What follows a repetition: the repetition itself, and then whatever follows it. */
+    private static List<MatchInfo> followRepeated(List<MatchInfo> partialMatches, Expansion exp,
+                                                  Expansion parent, long generation,
+                                                  Semanticize data) {
+        List<MatchInfo> moreMatches = new ArrayList<>();
+        LookaheadCalc.listAppend(moreMatches, partialMatches);
+
+        List<MatchInfo> matches = partialMatches;
+        while (true) {
+            matches = LookaheadCalc.genFirstSet(data, matches, exp);
+            if (matches.isEmpty()) {
+                break;
             }
-            List<MatchInfo> v1 = new ArrayList<>();
-            List<MatchInfo> v2 = new ArrayList<>();
-            LookaheadCalc.listSplit(moreMatches, partialMatches, v1, v2);
-            if (!v1.isEmpty())
-                // System.out.println("4; gen: " + generation + "; exp: " + exp);
-                v1 = LookaheadCalc.genFollowSet(v1, (Expansion) exp.parent(), generation, data);
-            if (!v2.isEmpty())
-                // System.out.println("5; gen: " + generation + "; exp: " + exp);
-                v2 = LookaheadCalc.genFollowSet(v2, (Expansion) exp.parent(),
-                        data.nextGenerationIndex(),
-                        data);
-            LookaheadCalc.listAppend(v2, v1);
-            return v2;
-        } else
-            // System.out.println("6; gen: " + generation + "; exp: " + exp);
-            return LookaheadCalc.genFollowSet(partialMatches, (Expansion) exp.parent(), generation,
-                    data);
+            LookaheadCalc.listAppend(moreMatches, matches);
+        }
+        return LookaheadCalc.followParent(moreMatches, partialMatches, parent, generation, data);
+    }
+
+    /**
+     * Continues into what follows "parent". Matches that were already present on the way in keep the
+     * current generation; the ones added here get a fresh one, so a right-recursive loop terminates.
+     */
+    private static List<MatchInfo> followParent(List<MatchInfo> matches,
+                                                List<MatchInfo> partialMatches, Expansion parent,
+                                                long generation, Semanticize data) {
+        List<MatchInfo> known = new ArrayList<>();
+        List<MatchInfo> fresh = new ArrayList<>();
+        LookaheadCalc.listSplit(matches, partialMatches, known, fresh);
+
+        if (!known.isEmpty()) {
+            known = LookaheadCalc.genFollowSet(known, parent, generation, data);
+        }
+        if (!fresh.isEmpty()) {
+            fresh = LookaheadCalc.genFollowSet(fresh, parent, data.nextGenerationIndex(), data);
+        }
+        LookaheadCalc.listAppend(fresh, known);
+        return fresh;
     }
 }

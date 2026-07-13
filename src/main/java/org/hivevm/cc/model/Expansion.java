@@ -8,7 +8,9 @@ package org.hivevm.cc.model;
  * the base class of a bunch of other more specific classes.
  */
 
-public class Expansion extends Production {
+public abstract sealed class Expansion extends Production
+        permits Action, Choice, Lookahead, NonTerminal, OneOrMore, Sequence, ZeroOrMore, ZeroOrOne,
+        NormalProduction, RegularExpression {
 
     // An internal name for this expansion. This is used to generate parser routines.
     private String internal_name = "";
@@ -18,7 +20,7 @@ public class Expansion extends Production {
      * it is a reference to the production node otherwise it is a reference to another Expansion
      * node. In case this is the top level of a lookahead expansion,then the parent is null.
      */
-    private Object parent;
+    private Expansion parent;
 
     // The ordinal of this node with respect to its parent.
     private int ordinal;
@@ -36,7 +38,7 @@ public class Expansion extends Production {
 
     private NodeScope node_scope;
 
-    public final Object parent() {
+    public final Expansion parent() {
         return this.parent;
     }
 
@@ -44,11 +46,11 @@ public class Expansion extends Production {
         return this.ordinal;
     }
 
-    public final void setParent(Object parent) {
+    public final void setParent(Expansion parent) {
         this.parent = parent;
     }
 
-    public final void setParent(Object parent, int ordinal) {
+    public final void setParent(Expansion parent, int ordinal) {
         setParent(parent);
         this.ordinal = ordinal;
     }

@@ -11,10 +11,11 @@ import java.util.List;
 /**
  * Describes JavaCC productions.
  */
-public class NormalProduction extends Expansion {
+public abstract sealed class NormalProduction extends Expansion permits BNFProduction {
 
     // The NonTerminal nodes which refer to this production.
-    private final List<Object> parents = new ArrayList<>();
+    /** Every NonTerminal that references this production. */
+    private final List<NonTerminal> parents = new ArrayList<>();
 
     // The name of the non-terminal of this production.
     private String lhs;
@@ -38,11 +39,10 @@ public class NormalProduction extends Expansion {
     private boolean emptyPossible = false;
 
     /**
-     * A list of all non-terminals that this one can expand to without having to consume any tokens.
-     * Also an index that shows how many pointers exist.
+     * All non-terminals this one can expand to without consuming any token. Was a hand-grown array
+     * plus a public "leIndex" length field, resized by hand at the single call site.
      */
-    private NormalProduction[] leftExpansions = new NormalProduction[10];
-    public int leIndex = 0;
+    private final List<NormalProduction> leftExpansions = new ArrayList<>();
 
     /**
      * The following variable is used to maintain state information for the left-recursion
@@ -63,7 +63,7 @@ public class NormalProduction extends Expansion {
     /**
      * @return the parents
      */
-    public List<? super Object> getParents() {
+    public List<NonTerminal> getParents() {
         return this.parents;
     }
 
@@ -147,16 +147,9 @@ public class NormalProduction extends Expansion {
     }
 
     /**
-     * @param leftExpansions the leftExpansions to set
-     */
-    public void setLeftExpansions(NormalProduction[] leftExpansions) {
-        this.leftExpansions = leftExpansions;
-    }
-
-    /**
      * @return the leftExpansions
      */
-    public NormalProduction[] getLeftExpansions() {
+    public List<NormalProduction> getLeftExpansions() {
         return this.leftExpansions;
     }
 

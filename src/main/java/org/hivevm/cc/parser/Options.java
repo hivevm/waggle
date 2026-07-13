@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
  */
 public interface Options extends Environment {
 
+    /** Sets an option, e.g. a back end filling in a default only it can know. */
+    void set(String name, Object value);
+
     default int intValue(final String option) {
         return ((Integer) get(option));
     }

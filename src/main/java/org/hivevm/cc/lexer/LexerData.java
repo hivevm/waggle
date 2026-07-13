@@ -304,7 +304,7 @@ public class LexerData {
                 return i;
             }
         }
-        throw new Error(); // Should never come here
+        throw new IllegalStateException("Unknown lexical state: " + name);
     }
 
     /**
