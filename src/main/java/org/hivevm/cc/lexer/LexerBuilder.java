@@ -6,6 +6,8 @@ package org.hivevm.cc.lexer;
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.model.RChoice;
 import org.hivevm.cc.model.RExpression;
+import org.hivevm.cc.model.RStringLiteral;
+import org.hivevm.cc.model.TokenKind;
 import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RegExprSpec;
@@ -33,13 +35,9 @@ public class LexerBuilder {
         choices.forEach(c -> StringLiteralAnalyzer.checkUnmatchability((RChoice) c, data));
         StringLiteralAnalyzer.checkEmptyStringMatch(data);
 
-        for (String key : data.getStateNames()) {
-            NfaStateData stateData = data.getStateData(key);
-            if (stateData.hasNFA && !stateData.isMixedState()) {
-                Nfa.calcNfaStartStatesCode(stateData, stateData.statesForPos);
-            }
-        }
-
+        // The stop-string-literal DFA registers its composite state sets lazily at emit time via
+        // LexerGenerator#dumpNfaStartStatesCode; an earlier compute-time pre-registration pass here
+        // was dead code (its guard was never satisfied) and has been removed.
         for (String stateName : data.getStateNames()) {
             NfaStateData stateData = data.getStateData(stateName);
             if (stateData.hasNFA) {
@@ -53,7 +51,30 @@ public class LexerBuilder {
                 DfaBuilder.getMoveNfa(stateData);
             }
         }
+
+        warnAboutUnlabelledTokens(request);
         return data;
+    }
+
+    /**
+     * An unlabelled TOKEN that is not a string literal can only be reported to the user as
+     * "&lt;token of kind N&gt;". This used to be diagnosed by the back ends while they rendered the
+     * token-image table — once per table, so C++ reported it twice.
+     */
+    private static void warnAboutUnlabelledTokens(ParserRequest request) {
+        for (TokenProduction tp : request.getTokenProductions()) {
+            if (tp.getRespecs() == null) {
+                continue;
+            }
+            for (RegExprSpec respec : tp.getRespecs()) {
+                RExpression re = respec.rexp;
+                if (!(re instanceof RStringLiteral) && re.getLabel().isEmpty()
+                        && (re.getTokenKind() == TokenKind.TOKEN)) {
+                    JavaCCErrors.warning(re,
+                            "Consider giving this non-string token a label for better error reporting.");
+                }
+            }
+        }
     }
 
     private LexerData buildLexStatesTable(ParserRequest request,

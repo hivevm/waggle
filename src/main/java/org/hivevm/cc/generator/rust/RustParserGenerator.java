@@ -4,6 +4,7 @@
 package org.hivevm.cc.generator.rust;
 
 import org.hivevm.cc.Encoding;
+import org.hivevm.cc.GenerationException;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.generator.ParserData;
 import org.hivevm.cc.generator.ParserGenerator;
@@ -38,6 +39,15 @@ class RustParserGenerator extends ParserGenerator {
 
     @Override
     protected final void generate(ParserData data, Context options) {
+        if (data.getDepthLimit() > 0) {
+            // The Rust back end has no depth-limit support yet: the template lacks the
+            // jj_depth_error flag and jj_depth is a u32 (so the -1 sentinel would not compile).
+            // Fail honestly instead of emitting Rust that cannot compile (SPECIFICATION.md §3:
+            // target feature gaps are tracked, not silently produced).
+            throw new GenerationException(
+                    "DEPTH_LIMIT is not supported for the Rust target.");
+        }
+
         options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
                 .set("LA1_SUFFIX", i -> "_" + i)
                 .set("LA1_MASK", i -> (i == 0) ? "" : (32 * i) + " + ");
@@ -94,14 +104,7 @@ class RustParserGenerator extends ParserGenerator {
      */
     @Override
     protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String returnType, Consumer<LinePrinter> consumer) {
-        if (data.getDepthLimit() > 0) {
-            printer.println("if(++jj_depth > " + data.getDepthLimit() + ") {");
-            printer.println("  jj_consume_token(u32::MAX);");
-            printer.println("  throw new ParseException();");
-            printer.println("}");
-            printer.println("try {");
-        }
-
+        // DEPTH_LIMIT is rejected up front in generate(); the Rust back end never emits guard code.
         if (data.getDebugParser()) {
             printer.println();
             printer.println("    trace_call(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(p), Language.JAVA) + "\");");
@@ -114,11 +117,6 @@ class RustParserGenerator extends ParserGenerator {
             printer.println("    } finally {");
             printer.println("        trace_return(\"" + Encoding.escapeUnicode(
                     normal_production_as_snake_case(p), Language.JAVA) + "\");");
-            printer.println("    }");
-        }
-        if (data.getDepthLimit() > 0) {
-            printer.println("    } finally {");
-            printer.println("        --jj_depth;");
             printer.println("    }");
         }
     }
@@ -254,7 +252,7 @@ class RustParserGenerator extends ParserGenerator {
                 printer.print("\n_ => {");
                 printer.indent();
                 if (index >= 0) {
-                    printer.print("\nself.jj_la1[" + index + "] = self.jj_gen;//test");
+                    printer.print("\nself.jj_la1[" + index + "] = self.jj_gen;");
                 }
                 printer.print("\nif ");
         }
@@ -312,9 +310,9 @@ class RustParserGenerator extends ParserGenerator {
         printer.println("    self.jj_lastpos = Some(self.token.clone());");
         printer.println("    self.jj_scanpos = Some(self.token.clone());");
 
-        String ret_suffix = (data.getDepthLimit() > 0) ? " && !self.jj_depth_error" : "";
+        // DEPTH_LIMIT is rejected up front in generate(), so there is no jj_depth_error to test.
         printer.println("//    try {");
-        printer.println("      let result = !self.jj_3" + internal_name_as_snake_case(e) + "()" + ret_suffix + ";");
+        printer.println("      let result = !self.jj_3" + internal_name_as_snake_case(e) + "();");
         printer.println("//    } catch (LookaheadSuccess ls) {");
         printer.println("//      true");
         if (data.getErrorReporting()) {
@@ -333,14 +331,7 @@ class RustParserGenerator extends ParserGenerator {
 
         printer.println("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {");
 
-        if (data.getDepthLimit() > 0) {
-            printer.println("if ++jj_depth > " + data.getDepthLimit() + " {");
-            printer.println("    jj_consume_token(u32::MAX);");
-            printer.println("    throw new ParseException();");
-            printer.println("}");
-            printer.println("try {");
-        }
-
+        // DEPTH_LIMIT is rejected up front in generate(); the Rust back end never emits guard code.
         boolean xsp_declared = false;
         Expansion jj3_expansion = null;
         if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {

@@ -5,14 +5,18 @@
 - **Deciders:** HiveVM CC maintainers
 - **Supersedes:** —
 - **Superseded by:** —
+- **Erratum (2026-07-13):** the context, decision item 3 and the last consequence described files and
+  directories that do not exist (`JavaCC.lex`, `src/main/generated1/`, `src/main/generated2/`). They
+  are corrected below; the decision itself is unchanged.
 
 ## Context
 
 HiveVM CC parses grammars written in its own redesigned syntax
-([ADR-0008](0008-grammar-syntax-and-lexical-file.md)). The parser that reads that syntax is itself
-produced by HiveVM CC from a grammar (`src/main/resources/JavaCC.jj` + `JavaCC.lex`; the JJTree
-front end from `JJTree.jjt`). This is a classic bootstrap: the tool needs a working parser to build
-the tool. Something has to break the cycle.
+([ADR-0010](0010-unified-grammar-and-actual-surface-syntax.md), which supersedes
+[ADR-0008](0008-grammar-syntax-and-lexical-file.md)). The parser that reads that syntax is itself
+produced by HiveVM CC from a grammar (`src/main/resources/JavaCC.jj`; the JJTree front end from
+`JJTree.jj` plus its lexical file `JJTree.lex`). This is a classic bootstrap: the tool needs a working
+parser to build the tool. Something has to break the cycle.
 
 ## Decision
 
@@ -24,9 +28,8 @@ repository**:
 2. The `generateParser` Gradle task ([ADR-0006](0006-gradle-plugin-interface.md)) regenerates that
    parser from the bootstrap grammars; CI runs `./gradlew generateParser build`, so the tool
    regenerates its own parser on every build and then compiles with it.
-3. Regeneration round-trips are exercised by tests (`CCParserTest` regenerates into a separate
-   `src/main/generated2/` and the JJTree pass likewise), keeping the checked-in parser and the
-   grammars in agreement without overwriting the live tree mid-build.
+3. Regeneration is exercised by tests (`CCParserTest`) that generate from the bootstrap grammars into
+   a temporary directory, so a test run never overwrites the live tree.
 
 ## Consequences
 
@@ -38,9 +41,11 @@ repository**:
   regeneration so the checked-in parser stays consistent. A stale generated tree is a defect.
 - Diffs can be large when the generator output changes; that noise is the accepted cost of the
   bootstrap.
-- Multiple generation output directories (`generated`, `generated1`, `generated2`) exist to separate
-  the live bootstrap from regeneration/scratch targets; their roles must stay clear to avoid
-  confusion.
+- `src/main/generated/` is the only generation output directory in the repository; regeneration during
+  a test run goes to a temporary directory instead.
+- **"A stale generated tree is a defect" is not enforced today.** No test compares regenerated output
+  against the checked-in tree, and `generateParser` overwrites it in place without CI diffing the
+  result — so a stale bootstrap cannot currently be detected. Closing that gap is open work.
 
 ## Alternatives considered
 

@@ -21,7 +21,8 @@ import org.hivevm.cc.semantic.Semanticize;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +59,9 @@ public class ParserData {
      */
     private final List<Lookahead> phase2list;
     final List<Phase3Data> phase3list = new ArrayList<>();
-    final Hashtable<Expansion, Integer> phase3table = new Hashtable<>();
+    // LinkedHashMap (not Hashtable): iteration follows insertion order, so getExpansions() emits
+    // phase-3 routines deterministically instead of in hash-bucket order (reproducible output).
+    final LinkedHashMap<Expansion, Integer> phase3table = new LinkedHashMap<>();
 
     private final NodeData nodeData;
 
@@ -86,7 +89,7 @@ public class ParserData {
     }
 
     public final boolean isGenerated() {
-        return this.request.isGenerated() || !this.nodeData.getNodesToGenerate().isEmpty();
+        return this.request.isGenerated() || this.nodeData.usesTree();
     }
 
     public final int getDepthLimit() {
@@ -137,12 +140,9 @@ public class ParserData {
         return this.phase2list;
     }
 
-    public final Iterable<Expansion> getExpansions() {
-        return this.phase3table.keySet();
-    }
-
-    public final int getCount(Expansion e) {
-        return this.phase3table.get(e);
+    /** Phase-3 expansions paired with their lookahead count, in deterministic insertion order. */
+    public final Iterable<Map.Entry<Expansion, Integer>> getExpansionCounts() {
+        return this.phase3table.entrySet();
     }
 
     public final Lookahead[] getLoakaheads(Expansion e) {

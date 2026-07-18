@@ -687,7 +687,7 @@ class DfaBuilder {
 
             if (tmp.asciiMoves[byteNum] != 0L) {
                 int j;
-                int p = numberOfBitsSet(tmp.asciiMoves[byteNum]);
+                int p = Long.bitCount(tmp.asciiMoves[byteNum]);
 
                 for (j = 0; j < i; j++) {
                     if (cardinalities[j] <= p) {
@@ -729,15 +729,5 @@ class DfaBuilder {
         }
 
         return partition;
-    }
-
-    private static int numberOfBitsSet(long l) {
-        int ret = 0;
-        for (int i = 0; i < 63; i++) {
-            if (((l >> i) & 1L) != 0L) {
-                ret++;
-            }
-        }
-        return ret;
     }
 }

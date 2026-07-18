@@ -8,7 +8,6 @@ import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.RStringLiteral;
 import org.hivevm.cc.model.TokenKind;
 import org.hivevm.cc.model.TokenProduction;
-import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.RegExprSpec;
 
 import java.util.ArrayList;
@@ -223,13 +222,9 @@ record Nfa(NfaState start, NfaState end) {
                 continue;
             }
 
-            try {
-                oldStates = (List<NfaState>) initialState.epsilonMoves.clone();
-                if ((oldStates == null) || oldStates.isEmpty()) {
-                    return;
-                }
-            } catch (Exception e) {
-                JavaCCErrors.semantic_error("Error cloning state vector");
+            oldStates = new ArrayList<>(initialState.epsilonMoves);
+            if (oldStates.isEmpty()) {
+                return;
             }
 
             data.intermediateKinds[i] = new int[image.length()];
@@ -303,37 +298,6 @@ record Nfa(NfaState start, NfaState end) {
                 }
 
                 actives[i / 64] |= 1L << (i % 64);
-            }
-        }
-    }
-
-    /**
-     * Calculates and registers composite state sets needed for NFA start state transitions.
-     */
-    public static void calcNfaStartStatesCode(NfaStateData data,
-                                              Hashtable<String, long[]>[] statesForPos) {
-        if (data.maxStrKind == 0) {
-            return;
-        }
-
-        int i;
-        boolean condGenerated = false;
-        int ind = 0;
-
-        for (i = 0; i < (data.maxLen - 1); i++) {
-            if (statesForPos[i] == null) {
-                continue;
-            }
-            for (String stateSetString : statesForPos[i].keySet()) {
-                if (condGenerated) {
-                    String afterKind = stateSetString.substring(ind + 2);
-                    afterKind = stateSetString.substring(ind + 2);
-                    stateSetString = afterKind.substring(afterKind.indexOf(", ") + 2);
-                    if (!stateSetString.equals("null;")) {
-                        data.addCompositeStateSet(stateSetString);
-                    }
-                    condGenerated = false;
-                }
             }
         }
     }

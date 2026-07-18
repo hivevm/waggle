@@ -60,7 +60,7 @@ generation unit — it is an ordinary `task` whose grammar happens to use `#Node
 
 ~~~
 plugins {
-  id "org.hivevm.cc" version "1.0.10"
+  id "org.hivevm.cc" version "1.0.11"
 }
 
 parserProject {
@@ -113,6 +113,25 @@ parserProject {
 * The HiveVM CC release includes a wide range of examples including Java and HTML grammars. The examples, along with their documentation, are a great way to get acquainted with HiveVM CC.
 
 
+## Known limitations
+
+Feature parity across the targets is not guaranteed at every moment
+([SPECIFICATION §3](docs/SPECIFICATION.md)); the gaps we know about are listed here rather than left
+to be discovered.
+
+* **Tree building for Rust is partial.** The Rust back end has no templates for node classes or
+  visitors, so a Rust grammar with `NODE_MULTI` (and `BUILD_NODE_FILES`) or `VISITOR` is rejected
+  with a `GenerationException` that says so. A grammar with plain `#Node` annotations generates its
+  parser; the tree runtime (`node.rs`, `treestate.rs`, `treeconstants.rs`) is written only with
+  `NODE_SCOPE_HOOK`, otherwise the project supplies it.
+
+* **The JJTree pre-processor is dead code.** `org.hivevm.cc.parser.jjtree` is unreachable: the branch
+  in `ParserBuilder` that would select it tests `Path.endsWith(".jjt")`, which compares path elements
+  rather than file suffixes and is never true. This is inert rather than harmful — the pipeline has no
+  pre-processing stage by design ([SPECIFICATION §4](docs/SPECIFICATION.md)), and `#Node` tree building
+  runs in the normal pass — but the subsystem is still carried in the tree.
+
+
 ## Example
 
 This example recognizes matching braces followed by zero or more line terminators and then an end of file.
@@ -163,40 +182,24 @@ TOKEN =
 
 The same grammar written for JavaCC would need a `PARSER_BEGIN(Example) … PARSER_END(Example)`
 wrapper around a full Java class, `void Input() : {} { … }` productions, and `{ … }` action blocks.
-None of that is accepted here — see [ADR-0008](docs/adr/0008-grammar-syntax-and-lexical-file.md).
+None of that is accepted here — see
+[ADR-0010](docs/adr/0010-unified-grammar-and-actual-surface-syntax.md) for the syntax as implemented.
 
 ### Output
 
-```java
-$ java Example
-{{}}<return>
-```
+The Java back end writes `Parser`, `Lexer` and `ParserConstants` into the configured package, together
+with the runtime classes the generated code needs (`Token`, `ParseException`, `TokenException`,
+`Provider`, `StringProvider`, `JavaCharStream`). No `main` is generated — the parser is a library, and
+each production becomes a method on `Parser`:
 
 ```java
-$ java Example
-{x<return>
-Lexical error at line 1, column 2.  Encountered: "x"
-TokenMgrError: Lexical error at line 1, column 2.  Encountered: "x" (120), after : ""
-        at ExampleTokenManager.getNextToken(ExampleTokenManager.java:146)
-        at Example.getToken(Example.java:140)
-        at Example.MatchedBraces(Example.java:51)
-        at Example.Input(Example.java:10)
-        at Example.main(Example.java:6)
+new Parser("{{}}").Input();   // accepts
 ```
 
-```java
-$ java Example
-{}}<return>
-ParseException: Encountered "}" at line 1, column 3.
-Was expecting one of:
-    <EOF>
-    "\n" ...
-    "\r" ...
-        at Example.generateParseException(Example.java:184)
-        at Example.jj_consume_token(Example.java:126)
-        at Example.Input(Example.java:32)
-        at Example.main(Example.java:6)
-```
+Input the grammar does not accept fails on the same call: a character no token matches raises a
+`TokenException` (`{x` — no token starts with `x`), and a token in the wrong place raises a
+`ParseException` (`{}}` — a third brace where `<EOF>` or a line terminator was expected). Both carry
+the line and column of the offending input.
 
 ## Documentation
 

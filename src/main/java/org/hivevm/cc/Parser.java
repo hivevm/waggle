@@ -15,6 +15,7 @@ import org.hivevm.source.LinePrinter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -50,7 +51,20 @@ public class Parser {
         JavaCCErrors.reInit();
         System.out.printf("Reading from file '%s' ...\n", file);
 
-        return new String(Files.readAllBytes(file.toPath()));
+        return Parser.readGrammar(this.file);
+    }
+
+    /**
+     * Reads a grammar or lexical file.
+     *
+     * <p>The charset is fixed to UTF-8 and line endings are normalised to {@code \n}. Both matter for
+     * reproducibility: action text is copied verbatim into the generated source, so reading with the
+     * platform default charset — or on a CRLF checkout — made the output, and therefore the checksum
+     * of every generated file, depend on the machine it was generated on.
+     */
+    private static String readGrammar(File file) throws IOException {
+        return Files.readString(file.toPath(), StandardCharsets.UTF_8)
+                .replace("\r\n", "\n").replace('\r', '\n');
     }
 
     /**
@@ -65,18 +79,21 @@ public class Parser {
         }
 
         var filename = this.file.getName();
+        // A grammar without an extension used to make lastIndexOf('.') return -1 and throw a bare
+        // StringIndexOutOfBoundsException here.
+        var dot = filename.lastIndexOf('.');
         var lexerFile = new File(this.file.getParentFile(),
-                filename.substring(0, filename.lastIndexOf('.')) + ".lex"
+                (dot < 0 ? filename : filename.substring(0, dot)) + ".lex"
         );
 
         try {
             var text = filename.endsWith(".jjt")
                     ? parseJJTree(filename, arguments)
-                    : new String(Files.readAllBytes(file.toPath()));
+                    : Parser.readGrammar(this.file);
 
             if (lexerFile.exists()) {
-                System.out.printf("Reading from file %s ...\n", file);
-                text += new String(Files.readAllBytes(lexerFile.toPath()));
+                System.out.printf("Reading from file %s ...\n", lexerFile);
+                text += Parser.readGrammar(lexerFile);
             }
 
             Parser.bannerLine("Parser Generator");

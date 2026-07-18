@@ -134,7 +134,7 @@ impl<'a> Lexer<'a> {
 	}
 
 	fn jj_fill_token(&self) -> Token {
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		let mut begin_line: usize = 0;
 		let mut end_line: usize = 0;
 		let mut begin_column: usize = 0;
@@ -145,7 +145,7 @@ impl<'a> Lexer<'a> {
 		// usize::MAX is what "matched nothing yet" looks like in Rust; Java writes -1.
 		if self.jjmatched_pos == usize::MAX {
 			cur_token_image = self.image.clone();
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 			begin_line = self.input_stream.get_end_line();
 			end_line = begin_line;
 			begin_column = self.input_stream.get_end_column();
@@ -158,7 +158,7 @@ impl<'a> Lexer<'a> {
 			} else {
 				im.to_string()
 			};
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 			begin_line = self.input_stream.get_begin_line();
 			begin_column = self.input_stream.get_begin_column();
 			end_line = self.input_stream.get_end_line();
@@ -172,14 +172,14 @@ impl<'a> Lexer<'a> {
 		} else {
 			im.to_string()
 		};
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		begin_line = self.input_stream.get_begin_line();
 		begin_column = self.input_stream.get_begin_column();
 		end_line = self.input_stream.get_end_line();
 		end_column = self.input_stream.get_end_column();
 //@fi
 //@fi
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		Token::new(
 			self.jjmatched_kind,
 			cur_token_image,

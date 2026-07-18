@@ -82,7 +82,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         options.set("DUMP_LOOKAHEADS", w ->
                 data.getLoakaheads().forEach(e -> generate_phase2(e.getLaExpansion(), w, data)));
         options.set("DUMP_EXPANSIONS", w ->
-                data.getExpansions().forEach(e -> generate_phase3_routine(data, e, data.getCount(e), w)));
+                data.getExpansionCounts().forEach(e -> generate_phase3_routine(data, e.getKey(), e.getValue(), w)));
 
         generate(data, options);
     }

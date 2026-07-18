@@ -9,8 +9,10 @@ import org.hivevm.cc.generator.FileGenerator;
 import org.hivevm.cc.generator.GeneratorName;
 import org.hivevm.cc.generator.GeneratorProvider;
 import org.hivevm.cc.generator.LexerGenerator;
+import org.hivevm.cc.generator.NodeData;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.generator.ParserGenerator;
+import org.hivevm.cc.parser.Options;
 
 import java.util.Locale;
 import java.util.Set;
@@ -49,6 +51,16 @@ public class RustGenerator extends GeneratorProvider {
             options.set(HiveCC.JJPARSER_RUST_MODULE,
                     request.getParserName().toLowerCase(Locale.ROOT));
         }
+    }
+
+    /**
+     * A Rust project that uses "#Name" nodes supplies node.rs, treestate.rs and treeconstants.rs
+     * itself, and generation has always left them alone: they are written only for NODE_MULTI or
+     * NODE_SCOPE_HOOK, as before. Writing them for every node would overwrite the project's own.
+     */
+    @Override
+    protected final boolean generatesTreeRuntime(NodeData nodes, Options options) {
+        return !nodes.getNodesToGenerate().isEmpty() || options.getNodeScopeHook();
     }
 
     @Override

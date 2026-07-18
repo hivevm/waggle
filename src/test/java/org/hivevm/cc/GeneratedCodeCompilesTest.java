@@ -113,6 +113,104 @@ class GeneratedCodeCompilesTest {
             ;
             """;
 
+    /**
+     * A choice whose middle alternative can match the empty sequence, after one that opens a switch.
+     * Semanticize only warns about it, but generation then died with a NullPointerException: the
+     * parser builder filed the switch's default case under the last alternative, while the generator
+     * looked it up under the one the lookahead loop had stopped at.
+     */
+    static final String EMPTY_ALTERNATIVE = """
+            grammar EmptyAlt;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input =
+              ( <A> | [ <B> ] | <C> ) <EOF>
+            ;
+
+            SKIP = " " ;
+
+            TOKEN =
+              < A: "a" >
+            | < B: "b" >
+            | < C: "c" >
+            ;
+            """;
+
+    /**
+     * A TOKEN that is neither labelled nor a string literal. The back ends warned about it and then
+     * wrote nothing into the token-image table — an initializer with an empty element, which does
+     * not compile, and every later token reported under its neighbour's image.
+     */
+    static final String UNLABELLED_TOKEN = """
+            grammar Unlabelled;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input =
+              ( <ID> | "+" )* <EOF>
+            ;
+
+            SKIP = " " ;
+
+            TOKEN =
+              < ["0"-"9"] >
+            | < ID: (["a"-"z"])+ >
+            ;
+            """;
+
+    /**
+     * Nodes without NODE_MULTI. The parser opened "new Node(this, NodeType.X)" on a tree it never
+     * declared, and neither Node, NodeType nor NodeState was generated: only NODE_MULTI switched
+     * the tree runtime on.
+     */
+    static final String NODES_WITHOUT_NODE_MULTI = """
+            grammar SingleNode;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input() #Root =
+              <NUMBER> #Number <EOF>
+            ;
+
+            SKIP = " " ;
+
+            TOKEN =
+              < NUMBER: (["0"-"9"])+ >
+            ;
+            """;
+
+    @Test
+    void choiceWithAnEmptyAlternativeCompiles(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "EmptyAlt.jj", GeneratedCodeCompilesTest.EMPTY_ALTERNATIVE);
+    }
+
+    @Test
+    void unlabelledTokenKeepsItsEntryInTheTokenImageTable(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "Unlabelled.jj", GeneratedCodeCompilesTest.UNLABELLED_TOKEN);
+
+        String constants;
+        try (Stream<Path> paths = Files.walk(dir.resolve("generated"))) {
+            var file = paths.filter(p -> p.getFileName().toString().equals("ParserConstants.java"))
+                    .findFirst().orElseThrow();
+            constants = Files.readString(file);
+        }
+        assertTrue(constants.contains("\"<token of kind "),
+                "the unlabelled token has no entry in tokenImage:\n" + constants);
+    }
+
+    @Test
+    void nodesWithoutNodeMultiCompile(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "SingleNode.jj",
+                GeneratedCodeCompilesTest.NODES_WITHOUT_NODE_MULTI);
+    }
+
     @Test
     void grammarWithoutSyntacticLookaheadCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "NoLookahead.jj", GeneratedCodeCompilesTest.NO_LOOKAHEAD);
@@ -145,6 +243,49 @@ class GeneratedCodeCompilesTest {
     void grammarWithCompositeNonAsciiStatesCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "Str.jj",
                 GeneratedCodeCompilesTest.NON_ASCII_COMPOSITE_STATES);
+    }
+
+    /**
+     * KEEP_LINE_COLUMN drives the line/column tracking in {@code jjFillToken()}. Nothing asserted
+     * that, and a lexer stripped of it still compiles — it just hands out tokens whose position is
+     * always zero. The condition guarding those blocks was spelled {@code KEEP_LINE_COOL} in the
+     * templates <em>and</em> in the generator, so it worked by accident; this pins the behaviour to
+     * the option rather than to the spelling.
+     */
+    @Test
+    void keepLineColumnDrivesPositionTracking(@TempDir Path dir) throws IOException {
+        var on = generate(dir.resolve("on"), "Pos.jj", GeneratedCodeCompilesTest.NO_LOOKAHEAD);
+        assertTrue(lexerOf(on).contains("t.beginLine = beginLine;"),
+                "the lexer does not track line/column, although KEEP_LINE_COLUMN defaults to true");
+
+        var off = generate(dir.resolve("off"), "Pos.jj", GeneratedCodeCompilesTest.NO_LOOKAHEAD
+                .replace("  JAVA_PACKAGE: \"org.example\"",
+                        "  JAVA_PACKAGE: \"org.example\",\n  KEEP_LINE_COLUMN: false"));
+        assertTrue(!lexerOf(off).contains("t.beginLine = beginLine;"),
+                "the lexer still tracks line/column, although KEEP_LINE_COLUMN was switched off");
+    }
+
+    /** Reads the generated {@code Lexer.java}, wherever the package layout put it. */
+    private static String lexerOf(Path target) throws IOException {
+        try (Stream<Path> paths = Files.walk(target)) {
+            var lexer = paths.filter(p -> p.getFileName().toString().equals("Lexer.java")).findFirst()
+                    .orElseThrow(() -> new AssertionError("no Lexer.java was generated in " + target));
+            return Files.readString(lexer);
+        }
+    }
+
+    private static Path generate(Path dir, String name, String grammar) throws IOException {
+        Files.createDirectories(dir);
+        var source = dir.resolve(name);
+        Files.writeString(source, grammar);
+
+        var target = dir.resolve("generated");
+        var builder = new ParserBuilder();
+        builder.setLanguage(Language.JAVA);
+        builder.setTargetDir(target.toFile());
+        builder.setParserFile(source.toFile());
+        builder.build().parse();
+        return target;
     }
 
     private static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)

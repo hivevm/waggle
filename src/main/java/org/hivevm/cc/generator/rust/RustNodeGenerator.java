@@ -3,109 +3,49 @@
 
 package org.hivevm.cc.generator.rust;
 
-import org.hivevm.cc.HiveCC;
+import org.hivevm.cc.GenerationException;
 import org.hivevm.cc.generator.NodeData;
 import org.hivevm.cc.generator.NodeGenerator;
 import org.hivevm.cc.model.NodeScope;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.source.Template;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
+/**
+ * The Rust tree runtime: the tree state, the tree constants and the node trait. Rust has no
+ * templates for per-node classes (NODE_MULTI) or visitors (VISITOR) — the ones it had were unported
+ * Java leftovers under names that did not exist, so such a grammar died with "Invalid template
+ * name". It is rejected up front with a message that says what is missing, as DEPTH_LIMIT is.
+ */
 class RustNodeGenerator implements NodeGenerator {
 
     @Override
     public final void generate(Options context, NodeData data) {
-        generateTreeState(context);
-        generateTreeConstants(context);
-        generateVisitors(context);
+        rejectUnsupported(context, data);
 
-        // TreeClasses
-        generateNode(context);
-        generateTreeNodes(context, data.getNodesToGenerate());
-    }
-
-    private void generateTreeState(Options context) {
         RustTemplate.TREE_STATE.render(context);
+        generateTreeConstants(context, data);
+        RustTemplate.NODE.render(context);
     }
 
-    private void generateTreeConstants(Options context) {
+    private static void rejectUnsupported(Options context, NodeData data) {
+        if (context.getVisitor()) {
+            throw new GenerationException("VISITOR is not supported for the Rust target.");
+        }
+
+        var excludes = context.getExcudeNodes();
+        if (context.getBuildNodeFiles()
+                && data.getNodesToGenerate().stream().anyMatch(n -> !excludes.contains(n))) {
+            throw new GenerationException("Node classes (NODE_MULTI with BUILD_NODE_FILES) are not "
+                    + "supported for the Rust target.");
+        }
+    }
+
+    private void generateTreeConstants(Options context, NodeData data) {
         var options = Template.newContext(context);
         options.add("NODES", NodeScope.getNodeIds().size())
                 .set("LABEL", i -> NodeScope.getNodeIds().get(i))
                 .set("TITLE", i -> NodeScope.getNodeNames().get(i));
 
         RustTemplate.TREE_CONSTANTS.render(options);
-    }
-
-    private void generateVisitors(Options context) {
-        if (!context.getVisitor()) {
-            return;
-        }
-
-        var nodeNames = NodeScope.getNodeNames().stream()
-                .filter(n -> !n.equals("void"))
-                .collect(Collectors.toList());
-        var argumentType = context.getVisitorDataType().isEmpty() ? "Object" : context.getVisitorDataType().trim();
-        var returnValue = RustNodeGenerator.returnValue(context.getVisitorReturnType(), argumentType);
-        var isVoidReturnType = "void".equals(context.getVisitorReturnType());
-
-        var options = Template.newContext(context);
-        options.add("NODES", nodeNames);
-        options.set("RETURN_TYPE", context.getVisitorReturnType());
-        options.set("RETURN_VALUE", returnValue);
-        options.set("RETURN", isVoidReturnType ? "" : "return ");
-        options.set("ARGUMENT_TYPE", argumentType);
-        options.set("EXCEPTION", RustNodeGenerator.mergeVisitorException(context));
-        options.set(HiveCC.JJTREE_MULTI, context.getMulti());
-
-        RustTemplate.VISITOR.render(options, context.getParserName());
-        RustTemplate.DEFAULT_VISITOR.render(options, context.getParserName());
-    }
-
-    private void generateNode(Options context) {
-        RustTemplate.NODE.render(context);
-    }
-
-    private void generateTreeNodes(Options context, Set<String> nodesToGenerate) {
-        var options = Template.newContext(context);
-        options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, context.getVisitorReturnType().equals("void"));
-
-        var excludes = context.getExcudeNodes();
-        for (var nodeType : nodesToGenerate) {
-            if (!context.getBuildNodeFiles() || excludes.contains(nodeType)) {
-                continue;
-            }
-            options.set(HiveCC.JJTREE_NODE_TYPE, nodeType);
-
-            RustTemplate.MULTI_NODE.render(options, nodeType);
-        }
-    }
-
-    private static String mergeVisitorException(Options context) {
-        var ve = context.getVisitorException();
-        return "".equals(ve) ? ve : " throws " + ve;
-    }
-
-    private static String returnValue(String returnType, String argumentType) {
-        var isVoidReturnType = "void".equals(returnType);
-        if (isVoidReturnType) {
-            return "";
-        }
-
-        if (returnType.equals(argumentType)) {
-            return " data";
-        }
-
-        return switch (returnType) {
-            case "boolean" -> " false";
-            case "int", "short", "byte" -> " 0";
-            case "long" -> " 0L";
-            case "double" -> " 0.0d";
-            case "float" -> " 0.0f";
-            case "char" -> " '\u0000'";
-            default -> " null";
-        };
     }
 }

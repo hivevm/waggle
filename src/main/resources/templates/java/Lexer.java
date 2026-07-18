@@ -24,7 +24,7 @@ class Lexer {
 	protected Token jjFillToken() {
 		final Token t;
 		final String curTokenImage;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		final int beginLine;
 		final int endLine;
 		final int beginColumn;
@@ -37,14 +37,14 @@ class Lexer {
 			} else {
 				curTokenImage = image.toString();
 			}
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 			beginLine = endLine = input_stream.getEndLine();
 			beginColumn = endColumn = input_stream.getEndColumn();
 //@fi
 		} else {
 			String im = jjstrLiteralImages[jjmatchedKind];
 			curTokenImage = (im == null) ? input_stream.GetImage() : im;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 			beginLine = input_stream.getBeginLine();
 			beginColumn = input_stream.getBeginColumn();
 			endLine = input_stream.getEndLine();
@@ -54,7 +54,7 @@ class Lexer {
 //@else
 		String im = jjstrLiteralImages[jjmatchedKind];
 		curTokenImage = (im == null) ? input_stream.GetImage() : im;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		beginLine = input_stream.getBeginLine();
 		beginColumn = input_stream.getBeginColumn();
 		endLine = input_stream.getEndLine();
@@ -62,7 +62,7 @@ class Lexer {
 //@fi
 //@fi
 		t = new Token(jjmatchedKind, curTokenImage);
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		t.beginLine = beginLine;
 		t.endLine = endLine;
 		t.beginColumn = beginColumn;

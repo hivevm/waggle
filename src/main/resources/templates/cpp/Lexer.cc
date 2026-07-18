@@ -48,7 +48,7 @@ namespace __CPP_NAMESPACE__ {
 	Token * __PARSER_NAME__TokenManager::jjFillToken() {
 	Token *t;
 	JJString curTokenImage;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 	int beginLine   = -1;
 	int endLine     = -1;
 	int beginColumn = -1;
@@ -58,7 +58,7 @@ namespace __CPP_NAMESPACE__ {
 	if (jjmatchedPos < 0)
 	{
 		curTokenImage = image.c_str();
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		if(reader->getTrackLineColumn()) {
 			beginLine = endLine = reader->getEndLine();
 			beginColumn = endColumn = reader->getEndColumn();
@@ -67,7 +67,7 @@ namespace __CPP_NAMESPACE__ {
 	} else {
 		JJString im = jjstrLiteralImages[jjmatchedKind];
 		curTokenImage = (im.length() == 0) ? reader->getImage() : im;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 		if (reader->getTrackLineColumn()) {
 				beginLine = reader->getBeginLine();
 				beginColumn = reader->getBeginColumn();
@@ -79,7 +79,7 @@ namespace __CPP_NAMESPACE__ {
 //@else
 	JJString im = jjstrLiteralImages[jjmatchedKind];
 	curTokenImage = (im.length() == 0) ? reader->getImage() : im;
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 	if (reader->getTrackLineColumn()) {
 		beginLine = reader->getBeginLine();
 		beginColumn = reader->getBeginColumn();
@@ -89,7 +89,7 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 //@fi
 	t = Token::newToken(jjmatchedKind, curTokenImage);
-//@if(KEEP_LINE_COOL)
+//@if(KEEP_LINE_COLUMN)
 
 	t->beginLine() = beginLine;
 	t->endLine() = endLine;

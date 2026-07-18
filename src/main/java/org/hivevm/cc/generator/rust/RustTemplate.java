@@ -33,11 +33,7 @@ enum RustTemplate implements SourceProvider {
     PARSER_CONSTANTS("parserconstants"),
 
     TREE_STATE("treestate"),
-    TREE_CONSTANTS("treeconstants"),
-
-    MULTI_NODE("MultiNode", "%s"),
-    VISITOR("Visitor", "%sVisitor"),
-    DEFAULT_VISITOR("DefaultVisitor", "%sDefaultVisitor");
+    TREE_CONSTANTS("treeconstants");
 
     private final String name;
     private final String path;

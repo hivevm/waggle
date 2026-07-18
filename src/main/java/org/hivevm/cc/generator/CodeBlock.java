@@ -32,11 +32,25 @@ public enum CodeBlock {
                 var lines = Arrays.asList(text.split("\n"));
                 var first = lines.get(0).trim().isEmpty() ? 1 : 0;
                 var tab = lines.get(first).indexOf(lines.get(first).trim());
-                text = lines.stream().skip(first).map(l -> l.length() < tab ? l : l.substring(tab)).collect(Collectors.joining("\n"));
+                text = lines.stream().skip(first).map(l -> CodeBlock.outdent(l, tab))
+                        .collect(Collectors.joining("\n"));
             } else {
                 text = text.trim();
             }
         }
         return text;
+    }
+
+    /**
+     * Removes up to {@code tab} characters of leading whitespace. Cutting a fixed {@code tab}
+     * characters instead turned a line indented less than the first one into garbage — with a
+     * first line indented by 8, {@code "    bar();"} came out as {@code ");"}.
+     */
+    private static String outdent(String line, int tab) {
+        int i = 0;
+        while ((i < tab) && (i < line.length()) && Character.isWhitespace(line.charAt(i))) {
+            i++;
+        }
+        return line.substring(i);
     }
 }

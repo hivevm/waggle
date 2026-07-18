@@ -12,7 +12,6 @@ import org.hivevm.cc.lexer.NfaStateData.KindInfo;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.RStringLiteral;
-import org.hivevm.cc.model.TokenKind;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Token;
 import org.hivevm.source.Context;
@@ -49,7 +48,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
     private static final String DEFAULT_LEX_STATE = "DEFAULT_LEX_STATE";
     private static final String MAX_LEX_STATES = "MAX_LEX_STATES";
     private static final String STATE_NAMES = "STATE_NAMES";
-    private static final String KEEP_LINE_COL = "KEEP_LINE_COOL";
     private static final String STATE_COUNT = "STATE_COUNT";
     private static final String STATE_SET_SIZE = "STATE_SET_SIZE";
     private static final String DUAL_NEED = "CHECK_NADD_STATES_DUAL_NEEDED";
@@ -272,7 +270,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         options.set(LexerGenerator.STATE_COUNT, data.getStateCount());
         options.set(LexerGenerator.STATE_SET_SIZE, data.stateSetSize());
         options.set(LexerGenerator.STATE_SET_SIZE + "_2", data.stateSetSize() * 2);
-        options.set(LexerGenerator.KEEP_LINE_COL, data.keepLineCol());
         options.set(LexerGenerator.DUAL_NEED, data.jjCheckNAddStatesDualNeeded());
         options.set(LexerGenerator.UNARY_NEED, data.jjCheckNAddStatesUnaryNeeded());
 
@@ -961,10 +958,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 printStringLiteralImage(printer, literal, isImage);
             } else if (!re.getLabel().isEmpty()) {
                 printTokenImage(printer, "<" + re.getLabel() + ">");
-            } else if (re.getTokenKind() == TokenKind.TOKEN) {
-                JavaCCErrors.warning(re,
-                        "Consider giving this non-string token a label for better error reporting.");
             } else {
+                // An unlabelled token still needs its entry, or every later index is off by one —
+                // and a Java or C++ initializer with an empty element does not even compile.
                 printTokenImage(printer, "<token of kind " + re.getOrdinal() + ">");
             }
         }
@@ -2541,7 +2537,7 @@ printDebugPossibleMatches(printer, data, i);
 
             if (tmp.asciiMoves[byteNum] != 0L) {
                 int j;
-                int p = LexerGenerator.NumberOfBitsSet(tmp.asciiMoves[byteNum]);
+                int p = Long.bitCount(tmp.asciiMoves[byteNum]);
 
                 for (j = 0; j < i; j++) {
                     if (cardinalities[j] <= p) {
@@ -2583,16 +2579,6 @@ printDebugPossibleMatches(printer, data, i);
         }
 
         return partition;
-    }
-
-    private static int NumberOfBitsSet(long l) {
-        int ret = 0;
-        for (int i = 0; i < 63; i++) {
-            if (((l >> i) & 1L) != 0L) {
-                ret++;
-            }
-        }
-        return ret;
     }
 
     protected final int InitStateName(NfaStateData data) {

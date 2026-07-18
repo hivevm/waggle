@@ -67,8 +67,8 @@ class ParserBuilder {
             }
         }
 
-        for (Expansion e : data.getExpansions()) {
-            buildPhase3Routine(data, e, data.getCount(e));
+        for (var e : data.getExpansionCounts()) {
+            buildPhase3Routine(data, e.getKey(), e.getValue());
         }
 
         return data;
@@ -169,7 +169,9 @@ class ParserBuilder {
         int tokenMaskSize = ((data.getTokenCount() - 1) / 32) + 1;
         boolean[] casedValues = new boolean[data.getTokenCount()];
 
-        for (Lookahead la : conds) {
+        Lookahead la = null;
+        for (Lookahead cond : conds) {
+            la = cond;
             jj2LA = false;
 
             if ((la.getAmount() == 0) || Semanticize.emptyExpansionExists(la.getLaExpansion())) {
@@ -260,9 +262,11 @@ class ParserBuilder {
             }
         }
 
+        // The default case is keyed by the condition the loop stopped at — the one a trivially true
+        // lookahead broke out on, or the last — exactly as the generator looks it up.
         switch (state) {
             case OPENSWITCH:
-                data.addMask(tokenMask, conds[conds.length - 1]);
+                data.addMask(tokenMask, la);
             case OPENIF:
             case NOOPENSTM:
         }

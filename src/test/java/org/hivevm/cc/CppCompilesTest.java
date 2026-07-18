@@ -116,6 +116,27 @@ class CppCompilesTest {
         assertCompiles(CppCompilesTest.GRAMMAR_AST, dir);
     }
 
+    @Test
+    void choiceWithAnEmptyAlternativeCompiles(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        assertCompiles(GeneratedCodeCompilesTest.EMPTY_ALTERNATIVE, dir);
+    }
+
+    /** C++ compiled the missing entry as an empty image, {@code tokenImage_N[] = {0}}. */
+    @Test
+    void unlabelledTokenHasATokenImage(@TempDir Path dir) throws IOException, InterruptedException {
+        assertCompiles(GeneratedCodeCompilesTest.UNLABELLED_TOKEN, dir);
+
+        var constants = Files.readString(dir.resolve("cpp").resolve("UnlabelledConstants.h"));
+        assertEquals(false, constants.matches("(?s).*tokenImage_\\d+\\[\\] = \\{0\\};.*"),
+                "a token has an empty image:\n" + constants);
+    }
+
+    @Test
+    void nodesWithoutNodeMultiCompile(@TempDir Path dir) throws IOException, InterruptedException {
+        assertCompiles(GeneratedCodeCompilesTest.NODES_WITHOUT_NODE_MULTI, dir);
+    }
+
     private static void assertCompiles(String grammar, Path dir)
             throws IOException, InterruptedException {
         assumeTrue(CppCompilesTest.hasCompiler(), "no C++ compiler on PATH");

@@ -209,6 +209,96 @@ class RustCompilesTest {
     }
 
     /**
+     * DEPTH_LIMIT is unimplemented for the Rust target: the template has no {@code jj_depth_error}
+     * flag and declares {@code jj_depth} as a {@code u32} (so the {@code -1} sentinel cannot
+     * compile), and the generator emitted Java {@code throw}/{@code try}/{@code ++} into the Rust
+     * output. Rather than produce Rust that cannot compile, generation must fail honestly
+     * (SPECIFICATION.md §3: target feature gaps are tracked, not silently produced).
+     */
+    @Test
+    void rejectsDepthLimitForRust(@TempDir Path dir) throws IOException {
+        var grammar = RustCompilesTest.KEYWORDS.replace(
+                "  JAVA_PACKAGE: \"org.example\"",
+                "  JAVA_PACKAGE: \"org.example\",\n  DEPTH_LIMIT: 5");
+        var source = dir.resolve("Grammar.jj");
+        Files.writeString(source, grammar);
+
+        var builder = new ParserBuilder()
+                .setLanguage(Language.RUST)
+                .setParserFile(source.toFile())
+                .setTargetDir(dir.resolve("rust").toFile());
+
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(
+                org.hivevm.cc.GenerationException.class, () -> builder.build().parse());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                failure.getMessage() != null && failure.getMessage().contains("DEPTH_LIMIT"),
+                "expected a DEPTH_LIMIT-not-supported message, got: " + failure.getMessage());
+    }
+
+    /** The token-image table lost the entry of an unlabelled token: {@code [ "<EOF>", , … ]}. */
+    @Test
+    void unlabelledTokenCompiles(@TempDir Path dir) throws IOException, InterruptedException {
+        assertLexerCompiles(GeneratedCodeCompilesTest.UNLABELLED_TOKEN, "unlabelled", dir);
+    }
+
+    /**
+     * A Rust project that uses "#Name" nodes supplies node.rs, treestate.rs and treeconstants.rs
+     * itself. Generation must go on producing its parser — and leave those files alone. A broader
+     * rejection of tree building once broke exactly this (the H3QL grammar).
+     */
+    @Test
+    void generatesAGrammarWithNodesForRust(@TempDir Path dir) throws IOException {
+        var source = dir.resolve("Grammar.jj");
+        Files.writeString(source, GeneratedCodeCompilesTest.NODES_WITHOUT_NODE_MULTI);
+        var target = dir.resolve("rust");
+
+        new ParserBuilder()
+                .setLanguage(Language.RUST)
+                .setParserFile(source.toFile())
+                .setTargetDir(target.toFile())
+                .build().parse();
+
+        var module = target.resolve("singlenode");
+        org.junit.jupiter.api.Assertions.assertTrue(Files.isRegularFile(module.resolve("parser.rs")),
+                "no parser.rs was generated");
+        org.junit.jupiter.api.Assertions.assertFalse(Files.exists(module.resolve("node.rs")),
+                "node.rs belongs to the project and must not be written without NODE_SCOPE_HOOK");
+    }
+
+    /**
+     * Rust has no templates for node classes or visitors: the ones it had were Java leftovers under
+     * names that did not exist, so generation died with "Invalid template name". It must fail with
+     * a message that says what is unsupported instead.
+     */
+    @Test
+    void rejectsNodeClassesForRust(@TempDir Path dir) throws IOException {
+        assertRejected(dir, "  NODE_MULTI: true", "NODE_MULTI");
+    }
+
+    @Test
+    void rejectsVisitorForRust(@TempDir Path dir) throws IOException {
+        assertRejected(dir, "  VISITOR: true,\n  NODE_SCOPE_HOOK: true", "VISITOR");
+    }
+
+    private static void assertRejected(Path dir, String options, String expected) throws IOException {
+        var grammar = GeneratedCodeCompilesTest.NODES_WITHOUT_NODE_MULTI.replace(
+                "  JAVA_PACKAGE: \"org.example\"", "  JAVA_PACKAGE: \"org.example\",\n" + options);
+        var source = dir.resolve("Grammar.jj");
+        Files.writeString(source, grammar);
+
+        var builder = new ParserBuilder()
+                .setLanguage(Language.RUST)
+                .setParserFile(source.toFile())
+                .setTargetDir(dir.resolve("rust").toFile());
+
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(
+                org.hivevm.cc.GenerationException.class, () -> builder.build().parse());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                failure.getMessage() != null && failure.getMessage().contains(expected),
+                "expected a " + expected + "-not-supported message, got: " + failure.getMessage());
+    }
+
+    /**
      * The parser is not covered yet: it still emits Java. Only the lexer and what it depends on go
      * through rustc.
      */

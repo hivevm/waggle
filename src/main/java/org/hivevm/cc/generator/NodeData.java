@@ -19,9 +19,15 @@ import java.util.Set;
 public class NodeData {
 
     private final Set<String> nodesToGenerate;
+    private boolean usesTree;
 
     public NodeData() {
         this.nodesToGenerate = new HashSet<>();
+    }
+
+    /** Whether the grammar builds a tree at all, i.e. declares at least one node. */
+    public final boolean usesTree() {
+        return this.usesTree;
     }
 
     public final Set<String> getNodesToGenerate() {
@@ -41,8 +47,10 @@ public class NodeData {
      * Finds the expansion nodes.
      */
     final void parseExpansion(Expansion exp, Options options) {
-        if (exp.getNodeScope() != null)
+        if (exp.getNodeScope() != null) {
+            this.usesTree = true;
             addNodeDescriptor(exp.getNodeScope().getNodeDescriptor(), options);
+        }
         switch (exp) {
             case Choice p -> p.getChoices().forEach(e -> parseExpansion(e, options));
             case Sequence p -> p.getUnits().forEach(e -> parseExpansion(e, options));

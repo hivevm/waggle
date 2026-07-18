@@ -7,6 +7,7 @@ import org.hivevm.cc.Language;
 import org.hivevm.cc.ParserRequest;
 import org.hivevm.cc.lexer.LexerBuilder;
 import org.hivevm.cc.parser.JavaCCErrors;
+import org.hivevm.cc.parser.Options;
 
 import java.text.ParseException;
 import java.util.ServiceLoader;
@@ -42,6 +43,15 @@ public abstract class GeneratorProvider implements Generator {
     }
 
     /**
+     * Whether the tree runtime — the node base, the node constants and the tree state — is written.
+     * Any node needs it, not only NODE_MULTI's node classes: a grammar with "#Name" but without
+     * NODE_MULTI used to reference Node, NodeType and NodeState without generating them.
+     */
+    protected boolean generatesTreeRuntime(NodeData nodes, Options options) {
+        return nodes.usesTree() || options.getNodeScopeHook();
+    }
+
+    /**
      * Generates the parser files.
      */
     @Override
@@ -55,7 +65,7 @@ public abstract class GeneratorProvider implements Generator {
         dataParser.getProductions().forEach(e -> dataNode.parseExpansion(e, request.options()));
 
         checkNamesAreFree(request.getParserName(), dataNode);
-        if (!dataNode.getNodesToGenerate().isEmpty() || dataParser.options().getNodeScopeHook()) {
+        if (generatesTreeRuntime(dataNode, dataParser.options())) {
             newNodeGenerator().generate(request.options(), dataNode);
         }
 

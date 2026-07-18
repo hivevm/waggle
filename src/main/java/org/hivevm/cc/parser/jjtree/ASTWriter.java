@@ -10,7 +10,6 @@ import org.hivevm.source.LinePrinter;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Writer;
-import java.util.stream.IntStream;
 
 
 /**
@@ -62,7 +61,9 @@ class ASTWriter implements LinePrinter, AutoCloseable {
     @Override
     public void println() {
         printer.println();
-        IntStream.of(indent).forEach(indent -> print("    "));
+        for (int i = 0; i < this.indent; i++) {
+            print("    ");
+        }
     }
 
     @Override
