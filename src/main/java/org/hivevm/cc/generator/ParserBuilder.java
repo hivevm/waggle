@@ -22,9 +22,9 @@ import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.ParseException;
 import org.hivevm.cc.semantic.Semanticize;
 
-class ParserBuilder {
+import java.util.ArrayList;
 
-    // Shares ParserGenerator.LookaheadState (same package) instead of redeclaring the enum.
+class ParserBuilder {
 
     private int rIndex;
 
@@ -55,11 +55,9 @@ class ParserBuilder {
             data.addExpansion(la);
         }
 
-        int phase3index = 0;
-        while (phase3index < data.phase3list.size()) {
-            for (; phase3index < data.phase3list.size(); phase3index++) {
-                setupPhase3Builds(data, data.phase3list.get(phase3index));
-            }
+        // setupPhase3Builds appends to the list it walks.
+        for (int phase3index = 0; phase3index < data.phase3list.size(); phase3index++) {
+            setupPhase3Builds(data, data.phase3list.get(phase3index));
         }
 
         for (var e : data.getExpansionCounts()) {
@@ -70,198 +68,164 @@ class ParserBuilder {
     }
 
     private void buildPhase1(ParserData data, Expansion e) {
-        if (e instanceof Choice e_nrw) {
-            Lookahead[] conds = new Lookahead[e_nrw.getChoices().size()];
-            // In previous line, the "throw" never throws an exception since the
-            // evaluation of jj_consume_token(-1) causes ParseException to be
-            // thrown first.
-            for (int i = 0; i < e_nrw.getChoices().size(); i++) {
-                Sequence nestedSeq = (Sequence) e_nrw.getChoices().get(i);
-                buildPhase1(data, nestedSeq);
-                conds[i] = (Lookahead) nestedSeq.getUnits().getFirst();
+        switch (e) {
+            case Choice choice -> {
+                Lookahead[] conds = new Lookahead[choice.getChoices().size()];
+                for (int i = 0; i < choice.getChoices().size(); i++) {
+                    Sequence nestedSeq = (Sequence) choice.getChoices().get(i);
+                    buildPhase1(data, nestedSeq);
+                    conds[i] = (Lookahead) nestedSeq.getUnits().getFirst();
+                }
+                data.setLookaheadPlan(e, buildLookahead(data, conds));
             }
-            data.setLookupAhead(e, conds);
-
-            buildLookahead(data, conds);
-        } else if (e instanceof Sequence e_nrw) {
-            // We skip the first element in the following iteration since it is the
-            // Lookahead object.
-            for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                // For C++, since we are not using exceptions, we will protect all the
-                // expansion choices with if (!error)
-                buildPhase1(data, e_nrw.getUnits().get(i));
+            case Sequence sequence -> {
+                // The first unit is the sequence's Lookahead.
+                for (int i = 1; i < sequence.getUnits().size(); i++) {
+                    buildPhase1(data, sequence.getUnits().get(i));
+                }
             }
-        } else if (e instanceof OneOrMore e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-            Lookahead la;
-            if (nested_e instanceof Sequence seq) {
-                la = (Lookahead) seq.getUnits().getFirst();
-            } else {
-                la = new Lookahead();
-                la.setAmount(data.getLookahead());
-                la.setLaExpansion(nested_e);
+            // The order matters: it numbers the jj_2 routines and the jj_la1 slots. A "(…)*" tests
+            // before its body is built, "(…)+" and "[…]" after.
+            case ZeroOrMore loop -> {
+                LookaheadPlan plan = buildLookahead(data, loopCondition(data, loop.getExpansion()));
+                data.setLookaheadPlan(e, plan);
+                buildPhase1(data, loop.getExpansion());
             }
-
-            Lookahead[] conds = {la};
-            data.setLookupAhead(e, conds);
-
-            buildPhase1(data, nested_e);
-            buildLookahead(data, conds);
-        } else if (e instanceof ZeroOrMore e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-            Lookahead la;
-            if (nested_e instanceof Sequence seq) {
-                la = (Lookahead) seq.getUnits().getFirst();
-            } else {
-                la = new Lookahead();
-                la.setAmount(data.getLookahead());
-                la.setLaExpansion(nested_e);
+            case OneOrMore loop -> {
+                Lookahead[] conds = loopCondition(data, loop.getExpansion());
+                buildPhase1(data, loop.getExpansion());
+                data.setLookaheadPlan(e, buildLookahead(data, conds));
             }
-
-            Lookahead[] conds = {la};
-            data.setLookupAhead(e, conds);
-
-            buildLookahead(data, conds);
-            buildPhase1(data, nested_e);
-        } else if (e instanceof ZeroOrOne e_nrw) {
-            Expansion nested_e = e_nrw.getExpansion();
-
-            Lookahead la;
-            if (nested_e instanceof Sequence seq) {
-                la = (Lookahead) seq.getUnits().getFirst();
-            } else {
-                la = new Lookahead();
-                la.setAmount(data.getLookahead());
-                la.setLaExpansion(nested_e);
+            case ZeroOrOne option -> {
+                Lookahead[] conds = loopCondition(data, option.getExpansion());
+                buildPhase1(data, option.getExpansion());
+                data.setLookaheadPlan(e, buildLookahead(data, conds));
             }
-
-            Lookahead[] conds = {la};
-            data.setLookupAhead(e, conds);
-
-            buildPhase1(data, nested_e);
-            buildLookahead(data, conds);
+            default -> {
+            }
         }
     }
 
+    /** The single condition of a loop or an option: its body's own lookahead, or the default one. */
+    private static Lookahead[] loopCondition(ParserData data, Expansion body) {
+        if (body instanceof Sequence seq) {
+            return new Lookahead[]{(Lookahead) seq.getUnits().getFirst()};
+        }
+        Lookahead la = new Lookahead();
+        la.setAmount(data.getLookahead());
+        la.setLaExpansion(body);
+        return new Lookahead[]{la};
+    }
+
     /**
-     * This method takes two parameters - an array of Lookahead's "conds", and an array of String's
-     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java
-     * source code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the
-     * lookahead required by "conds[i]" is indeed the case. This method returns a string
-     * corresponding to the Java code for:
-     * <p>
-     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else
-     * actions[action.length-1]
-     * <p>
-     * A particular action entry ("actions[i]") can be null, in which case, a noop is generated for
-     * that action.
+     * Decides how the conditions of one choice point are tested, in order: consecutive one-token
+     * lookaheads share a switch on the next token, anything else becomes an {@code if}. A
+     * condition that trivially holds — no lookahead wanted, or one that matches the empty sequence,
+     * and no semantic lookahead either — ends the chain; its alternative is the default.
+     *
+     * <p>Registers the token mask of every switch ({@code jj_la1}) and the {@code jj_2} routine of
+     * every syntactic lookahead.
      */
-    private void buildLookahead(ParserData data, Lookahead[] conds) {
-        ParserGenerator.LookaheadState state = ParserGenerator.LookaheadState.NOOPENSTM;
-        boolean jj2LA;
-
+    private static LookaheadPlan buildLookahead(ParserData data, Lookahead[] conds) {
+        var steps = new ArrayList<LookaheadPlan.Step>();
+        var inSwitch = false;
         int[] tokenMask = null;
-        int tokenMaskSize = ((data.getTokenCount() - 1) / 32) + 1;
-        boolean[] casedValues = new boolean[data.getTokenCount()];
+        boolean[] casedValues = null;
 
-        Lookahead la = null;
-        for (Lookahead cond : conds) {
-            la = cond;
-            jj2LA = false;
+        for (Lookahead la : conds) {
+            LookaheadPlan.Kind kind;
+            boolean[] firstSet = null;
 
             if ((la.getAmount() == 0) || Semanticize.emptyExpansionExists(la.getLaExpansion())) {
-                // This handles the following cases:
-                // . If syntactic lookahead is not wanted (and hence explicitly specified
-                // as 0).
-                // . If it is possible for the lookahead expansion to recognize the empty
-                // string - in which case the lookahead trivially passes.
-                // . If the lookahead expansion has a JAVACODE production that it directly
-                // expands to - in which case the lookahead trivially passes.
                 if (la.getActionTokens().isEmpty()) {
-                    // In addition, if there is no semantic lookahead, then the
-                    // lookahead trivially succeeds. So break the main loop and
-                    // treat this case as the default last action.
-                    break;
-                } else {
-                    // This case is when there is only semantic lookahead
-                    // (without any preceding syntactic lookahead). In this
-                    // case, an "if" statement is generated.
-                    switch (state) {
-                        case OPENSWITCH:
-                            data.addMask(tokenMask, la);
-                        case OPENIF:
-                        case NOOPENSTM:
-                    }
-                    state = ParserGenerator.LookaheadState.OPENIF;
+                    break; // trivially true: this alternative is the default
                 }
-
-            } else if ((la.getAmount() == 1) && (la.getActionTokens().isEmpty())) {
-                // Special optimal processing when the lookahead is exactly 1, and there
-                // is no semantic lookahead.
-                boolean[] firstSet = new boolean[data.getTokenCount()]; // already all-false
-
-                // jj2LA is set to false at the beginning of the containing "if" statement.
-                // It is checked immediately after the end of the same statement to determine
-                // if lookaheads are to be performed using calls to the jj2 methods.
-                jj2LA = data.genFirstSet(la.getLaExpansion(), firstSet, jj2LA);
-                // genFirstSet may find that semantic attributes are appropriate for the next
-                // token. In which case, it sets jj2LA to true.
-                if (!jj2LA) {
-                    // This case is if there is no applicable semantic lookahead and the lookahead
-                    // is one (excluding the earlier cases such as JAVACODE, etc.).
-                    switch (state) {
-                        case OPENIF:
-                        case NOOPENSTM:
-                            for (int i = 0; i < data.getTokenCount(); i++) {
-                                casedValues[i] = false;
-                            }
-                            tokenMask = new int[tokenMaskSize];
-                            for (int i = 0; i < tokenMaskSize; i++) {
-                                tokenMask[i] = 0;
-                            }
-                            // Don't need to do anything if state is OPENSWITCH.
-                        default:
-                    }
-                    for (int i = 0; i < data.getTokenCount(); i++) {
-                        if (firstSet[i] && !casedValues[i]) {
-                            casedValues[i] = true;
-                            int j1 = i / 32;
-                            int j2 = i % 32;
-                            tokenMask[j1] |= 1 << j2;
-                        }
-                    }
-                    state = ParserGenerator.LookaheadState.OPENSWITCH;
-                }
+                kind = LookaheadPlan.Kind.SEMANTIC;
+            } else if ((la.getAmount() == 1) && la.getActionTokens().isEmpty()) {
+                // One token decides — unless the FIRST set runs into a semantic lookahead.
+                firstSet = new boolean[data.getTokenCount()];
+                kind = ParserBuilder.genFirstSet(data, la.getLaExpansion(), firstSet, false)
+                        ? LookaheadPlan.Kind.SYNTACTIC
+                        : LookaheadPlan.Kind.SWITCH;
             } else {
-                // This is the case when lookahead is determined through calls to
-                // jj2 methods. The other case is when lookahead is 1, but semantic
-                // attributes need to be evaluated. Hence this crazy control structure.
-                jj2LA = true;
+                kind = LookaheadPlan.Kind.SYNTACTIC;
             }
 
-            if (jj2LA) {
-                // In this case lookahead is determined by the jj2 methods.
-                switch (state) {
-                    case OPENSWITCH:
-                        data.addMask(tokenMask, la);
-                    case OPENIF:
-                    case NOOPENSTM:
+            int[] tokens = null;
+            int mask = -1;
+            if (kind == LookaheadPlan.Kind.SWITCH) {
+                if (!inSwitch) {
+                    tokenMask = new int[((data.getTokenCount() - 1) / 32) + 1];
+                    casedValues = new boolean[data.getTokenCount()];
                 }
+                tokens = ParserBuilder.caseTokens(firstSet, casedValues, tokenMask);
+                inSwitch = true;
+            } else {
+                if (inSwitch) {
+                    mask = data.addMask(tokenMask);
+                }
+                if (kind == LookaheadPlan.Kind.SYNTACTIC) {
+                    // At this point, la.la_expansion.internal_name must be "".
+                    la.getLaExpansion().setInternalName("_" + data.addLookupAhead(la));
+                }
+                inSwitch = false;
+            }
+            steps.add(new LookaheadPlan.Step(kind, la, tokens, mask));
+        }
 
-                // At this point, la.la_expansion.internal_name must be "".
-                la.getLaExpansion().setInternalName("_" + data.addLookupAhead(la));
-                state = ParserGenerator.LookaheadState.OPENIF;
+        return new LookaheadPlan(steps, inSwitch ? data.addMask(tokenMask) : -1);
+    }
+
+    /** The token kinds of a FIRST set that no earlier case of the switch claimed. */
+    private static int[] caseTokens(boolean[] firstSet, boolean[] casedValues, int[] tokenMask) {
+        var tokens = new ArrayList<Integer>();
+        for (int i = 0; i < firstSet.length; i++) {
+            if (firstSet[i] && !casedValues[i]) {
+                casedValues[i] = true;
+                tokenMask[i / 32] |= 1 << (i % 32);
+                tokens.add(i);
             }
         }
+        return tokens.stream().mapToInt(Integer::intValue).toArray();
+    }
 
-        // The default case is keyed by the condition the loop stopped at — the one a trivially true
-        // lookahead broke out on, or the last — exactly as the generator looks it up.
-        switch (state) {
-            case OPENSWITCH:
-                data.addMask(tokenMask, la);
-            case OPENIF:
-            case NOOPENSTM:
+    /**
+     * Collects the FIRST set of an expansion into {@code firstSet}, which the caller resets.
+     * Returns whether a semantic lookahead has to be evaluated for the next token, or
+     * {@code jj2la} if none is found.
+     */
+    private static boolean genFirstSet(ParserData data, Expansion exp, boolean[] firstSet,
+                                       boolean jj2la) {
+        switch (exp) {
+            case RExpression re -> firstSet[re.getOrdinal()] = true;
+            case NonTerminal nt -> jj2la = genFirstSet(data, nt.getProd().getExpansion(), firstSet, jj2la);
+            case Choice ch -> {
+                for (Expansion element : ch.getChoices()) {
+                    jj2la = genFirstSet(data, element, firstSet, jj2la);
+                }
+            }
+            case Sequence seq -> {
+                if ((seq.getUnits().getFirst() instanceof Lookahead la)
+                        && !la.getActionTokens().isEmpty()) {
+                    jj2la = true;
+                }
+                for (Expansion element : seq.getUnits()) {
+                    // Javacode productions can not have FIRST sets. Instead we generate the FIRST set
+                    // for the preceding LOOKAHEAD (the semantic checks should have made sure that
+                    // the LOOKAHEAD is suitable).
+                    jj2la = genFirstSet(data, element, firstSet, jj2la);
+                    if (!Semanticize.emptyExpansionExists(element)) {
+                        break;
+                    }
+                }
+            }
+            case OneOrMore om -> jj2la = genFirstSet(data, om.getExpansion(), firstSet, jj2la);
+            case ZeroOrMore zm -> jj2la = genFirstSet(data, zm.getExpansion(), firstSet, jj2la);
+            case ZeroOrOne zo -> jj2la = genFirstSet(data, zo.getExpansion(), firstSet, jj2la);
+            default -> {
+            }
         }
+        return jj2la;
     }
 
     private void setupPhase3Builds(ParserData data, Phase3Data p3d) {

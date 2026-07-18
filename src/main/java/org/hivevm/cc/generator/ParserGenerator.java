@@ -20,7 +20,6 @@ import org.hivevm.cc.model.ZeroOrMore;
 import org.hivevm.cc.model.ZeroOrOne;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.Token;
-import org.hivevm.cc.semantic.Semanticize;
 import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.Template;
@@ -43,7 +42,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected static final String TOKEN_MASKS = "TOKEN_MASKS";
     protected static final String JJPARSER_USE_AST = "USE_AST";
 
-    // Constants used in the following method "buildLookaheadChecker".
+    /** What the lookahead checker has opened so far: nothing, an if chain or a switch. */
     protected enum LookaheadState {
         NOOPENSTM,
         OPENIF,
@@ -230,11 +229,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 }
             }
             case Choice e_nrw -> {
-                // In previous line, the "throw" never throws an exception since the
-                // evaluation of jj_consume_token(-1) causes ParseException to be
-                // thrown first.
-                Lookahead[] conds = data.getLookaheads(e);
-                print_lookahead_checker(printer, data, scope, conds, (p, i) -> {
+                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e), (p, i) -> {
                     if (i == e_nrw.getChoices().size()) {
                         generate_phase1_choice(printer);
                     } else {
@@ -243,28 +238,22 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 });
             }
             case Sequence e_nrw -> {
-                // We skip the first element in the following iteration since it is the
-                // Lookahead object.
+                // The leading Lookahead unit renders as nothing.
                 e_nrw.getUnits().forEach(exp -> generate_phase1_expansion(data, exp, scope, printer));
             }
             case ZeroOrOne e_nrw -> {
-                Lookahead[] conds = data.getLookaheads(e);
-                print_lookahead_checker(printer, data, scope, conds,
-                        (p, i) -> {
-                            if (i == 0) {
-                                generate_phase1_expansion(data, e_nrw.getExpansion(), scope, p);
-//                    } else {
-//                        p.print("\n;");
-                            }
-                        });
+                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e), (p, i) -> {
+                    if (i == 0) {
+                        generate_phase1_expansion(data, e_nrw.getExpansion(), scope, p);
+                    }
+                });
             }
             case OneOrMore e_nrw -> {
                 printer.println();
                 int labelIndex = nextLabelIndex();
                 generate_phase1_more(labelIndex, printer);
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
-                Lookahead[] conds = data.getLookaheads(e);
-                print_lookahead_checker(printer, data, scope, conds,
+                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
                         (p, i) -> print_phase1_more_end(labelIndex, p, i));
                 printer.outdent();
                 printer.println();
@@ -275,8 +264,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 printer.println();
                 int labelIndex = nextLabelIndex();
                 generate_phase1_more(labelIndex, printer);
-                Lookahead[] conds = data.getLookaheads(e);
-                print_lookahead_checker(printer, data, scope, conds,
+                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
                         (p, i) -> print_phase1_more_end(labelIndex, p, i));
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
                 printer.outdent();
@@ -313,141 +301,66 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     }
 
     /**
-     * This method takes two parameters - an array of Lookahead's "conds", and an array of String's
-     * "actions". "actions" contains exactly one element more than "conds". "actions" are Java
-     * source code, and "conds" translate to conditions - so lets say "f(conds[i])" is true if the
-     * lookahead required by "conds[i]" is indeed the case. This method returns a string
-     * corresponding to the Java code for:
-     * <p>
-     * if (f(conds[0]) actions[0] else if (f(conds[1]) actions[1] . . . else
-     * actions[action.length-1]
-     * <p>
-     * A particular action entry ("actions[i]") can be null, in which case, a noop is generated for
-     * that action.
+     * Renders how a choice point picks its alternative, as {@link ParserBuilder} planned it: an
+     * {@code if}/{@code else if} chain, with runs of one-token lookaheads folded into a switch on the
+     * next token, and the default alternative last. {@code actions} emits alternative {@code i}.
      */
-    private void print_lookahead_checker(LinePrinter printer, ParserData data,
-                                         NodeScope scope, Lookahead[] conds,
+    private void print_lookahead_checker(LinePrinter printer, ParserData data, NodeScope scope,
+                                         LookaheadPlan plan,
                                          BiConsumer<LinePrinter, Integer> actions) {
-        // The state variables.
         var state = LookaheadState.NOOPENSTM;
-        boolean[] casedValues = new boolean[data.getTokenCount()];
-        Lookahead la = null;
-
-        // Iterate over all the conditions.
-        boolean jj2LA;
         int indentAmt = 0;
-        int index = 0;
-        while (index < conds.length) {
-            la = conds[index];
-            jj2LA = false;
 
-            var offset = index;
-            Consumer<LinePrinter> action = p -> actions.accept(p, offset);
+        for (int index = 0; index < plan.steps().size(); index++) {
+            var step = plan.steps().get(index);
+            var alternative = index;
+            Consumer<LinePrinter> action = p -> actions.accept(p, alternative);
 
-            if ((la.getAmount() == 0) || Semanticize.emptyExpansionExists(la.getLaExpansion())) {
-                // This handles the following cases:
-                // . If syntactic lookahead is not wanted (and hence explicitly specified as 0).
-                // . If it is possible for the lookahead expansion to recognize the empty
-                // string - in which case the lookahead trivially passes.
-                // . If the lookahead expansion has a JAVACODE production that it directly
-                // expands to - in which case the lookahead trivially passes.
-                if (la.getActionTokens().isEmpty()) {
-                    // In addition, if there is no semantic lookahead, then the
-                    // lookahead trivially succeeds. So break the main loop and
-                    // treat this case as the default last action.
-                    break;
-                } else {
-                    // This case is when there is only semantic lookahead
-                    // (without any preceding syntactic lookahead). In this
-                    // case, an "if" statement is generated.
-                    switch (state) {
-                        case NOOPENSTM:
-                            indentAmt++;
-                            break;
-                        case OPENIF:
-                            break;
-                        case OPENSWITCH:
-                            indentAmt += 2;
-                    }
-
-                    print_lookahead_amount0(printer, state, action, la, scope,
-                            state == LookaheadState.OPENSWITCH && data.getErrorReporting() ? data.getIndex(la) : -1);
-
+            switch (step.kind()) {
+                case SEMANTIC -> {
+                    indentAmt += ParserGenerator.openedBlocks(state);
+                    print_lookahead_amount0(printer, state, action, step.la(), scope,
+                            maskIndex(data, step.mask()));
                     state = LookaheadState.OPENIF;
                 }
-            } else if ((la.getAmount() == 1) && la.getActionTokens().isEmpty()) {
-                // Special optimal processing when the lookahead is exactly 1, and there
-                // is no semantic lookahead.
-                boolean[] firstSet = new boolean[data.getTokenCount()]; // already all-false
-
-                // jj2LA is set to false at the beginning of the containing "if" statement.
-                // It is checked immediately after the end of the same statement to determine
-                // if lookaheads are to be performed using calls to the jj2 methods.
-                jj2LA = data.genFirstSet(la.getLaExpansion(), firstSet, jj2LA);
-                // genFirstSet may find that semantic attributes are appropriate for the next
-                // token. In which case, it sets jj2LA to true.
-                if (!jj2LA) {
-                    // This case is if there is no applicable semantic lookahead and the lookahead
-                    // is one (excluding the earlier cases such as JAVACODE, etc.).
-                    switch (state) {
-                        case OPENIF:
-                            //$FALL-THROUGH$ Control flows through to next case.
-                        case NOOPENSTM:
-                            for (int i = 0; i < data.getTokenCount(); i++) {
-                                casedValues[i] = false;
-                            }
-                            indentAmt++;
-                            // Don't need to do anything if state is OPENSWITCH.
-                        default:
+                case SWITCH -> {
+                    if (state != LookaheadState.OPENSWITCH) {
+                        indentAmt++;
                     }
-
                     var cases = new ArrayList<String>();
-                    for (int i = 0; i < data.getTokenCount(); i++) {
-                        if (firstSet[i] && !casedValues[i]) {
-                            casedValues[i] = true;
-                            String s = data.getNameOfToken(i);
-                            cases.add((s == null) ? "" + i : s);
-                        }
+                    for (int kind : step.tokens()) {
+                        String name = data.getNameOfToken(kind);
+                        cases.add((name == null) ? "" + kind : name);
                     }
-
                     print_lookahead_amount1(printer, state, action, data.getCacheTokens(), cases);
-
                     state = LookaheadState.OPENSWITCH;
                 }
-
-            } else {
-                // This is the case when lookahead is determined through calls to
-                // jj2 methods. The other case is when lookahead is 1, but semantic
-                // attributes need to be evaluated. Hence this crazy control structure.
-                jj2LA = true;
-            }
-
-            if (jj2LA) {
-                // In this case lookahead is determined by the jj2 methods.
-                switch (state) {
-                    case NOOPENSTM:
-                        indentAmt++;
-                        break;
-                    case OPENIF:
-                        break;
-                    case OPENSWITCH:
-                        indentAmt += 2;
+                case SYNTACTIC -> {
+                    indentAmt += ParserGenerator.openedBlocks(state);
+                    print_lookahead(printer, state, action, step.la(), scope,
+                            maskIndex(data, step.mask()));
+                    state = LookaheadState.OPENIF;
                 }
-
-                print_lookahead(printer, state, action, la, scope,
-                        state == LookaheadState.OPENSWITCH && data.getErrorReporting() ? data.getIndex(la) : -1);
-
-                state = LookaheadState.OPENIF;
             }
-
-            index++;
         }
 
-        var offset = index;
-        print_lookahead_tail(printer, state, p -> actions.accept(p, offset),
+        print_lookahead_tail(printer, state, p -> actions.accept(p, plan.defaultAlternative()),
                 state == LookaheadState.OPENSWITCH ? indentAmt + 1 : indentAmt,
-                state == LookaheadState.OPENSWITCH && data.getErrorReporting() ? data.getIndex(la) : -1
-        );
+                maskIndex(data, plan.defaultMask()));
+    }
+
+    /** The blocks an {@code if} opens, depending on what it follows. */
+    private static int openedBlocks(LookaheadState state) {
+        return switch (state) {
+            case NOOPENSTM -> 1;
+            case OPENIF -> 0;
+            case OPENSWITCH -> 2;
+        };
+    }
+
+    /** The jj_la1 slot to record, or -1 when there is none or ERROR_REPORTING is off. */
+    private static int maskIndex(ParserData data, int mask) {
+        return data.getErrorReporting() ? mask : -1;
     }
 
     protected abstract void print_lookahead_amount0(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index);

@@ -3,6 +3,7 @@
 
 package org.hivevm.cc.lexer;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.lexer.NfaStateData.KindInfo;
 import org.hivevm.cc.model.RChoice;
 import org.hivevm.cc.model.RExpression;
@@ -242,6 +243,56 @@ class StringLiteralAnalyzer {
                                 + "\ncontaining regular expressions with empty matches."
                                 + " This can result in an endless loop of empty string matches.");
             }
+        }
+    }
+
+    /**
+     * Warns about every string literal the DFA reports as another token, because a shorter literal
+     * or a catch-all token declared before it wins. The back ends used to diagnose this while they
+     * rendered the DFA — after the literal images they quote had already been pruned.
+     */
+    public static void checkShadowedLiterals(NfaStateData data) {
+        int maxLongsReqd = (data.getMaxStrKind() / 64) + 1;
+        for (int i = 0; i < data.getMaxLen(); i++) {
+            Hashtable<String, KindInfo> tab = data.getCharPosKind(i);
+            for (String key : NfaStateData.reArrange(tab)) {
+                KindInfo info = tab.get(key);
+                if (data.isPlainSkip(info, i, key.charAt(0)) || !info.hasFinalKindCnt()) {
+                    continue;
+                }
+
+                for (int j = 0; j < maxLongsReqd; j++) {
+                    for (int k = 0; k < 64; k++) {
+                        int kind = (j * 64) + k;
+                        if ((info.finalKinds[j] & (1L << k)) == 0L) {
+                            continue;
+                        }
+                        if (data.isShadowedByIntermediate(i, kind)
+                                || data.isShadowedByAnyChar(i, kind)) {
+                            warnShadowed(data.global, kind, data.kindToPrint(i, kind));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void warnShadowed(LexerData data, int kind, int matchedAs) {
+        RExpression re = data.getRegExp(kind);
+        JavaCCErrors.warning(" \"" + Encoding.escape(data.getImage(kind))
+                + "\" cannot be matched as a string literal token  at line " + re.getLine()
+                + ", column " + re.getColumn() + ". It will be matched as "
+                + StringLiteralAnalyzer.label(data, matchedAs) + ".");
+    }
+
+    private static String label(LexerData data, int kind) {
+        RExpression re = data.getRegExp(kind);
+        if (re instanceof RStringLiteral literal) {
+            return " \"" + Encoding.escape(literal.getImage()) + "\"";
+        } else if (!re.getLabel().isEmpty()) {
+            return " <" + re.getLabel() + ">";
+        } else {
+            return " <token of kind " + kind + ">";
         }
     }
 }

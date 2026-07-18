@@ -40,8 +40,6 @@ public class LexerData {
     int[][] kinds;
     int[][][] statesForState;
 
-    boolean boilerPlateDumped;
-
     boolean jjCheckNAddStatesUnaryNeeded;
     boolean jjCheckNAddStatesDualNeeded;
 
@@ -107,7 +105,6 @@ public class LexerData {
         this.lastIndex = 0;
         this.jjCheckNAddStatesUnaryNeeded = false;
         this.jjCheckNAddStatesDualNeeded = false;
-        this.boilerPlateDumped = false;
 
         // additionals
         this.defaultLexState = 0;
@@ -192,14 +189,6 @@ public class LexerData {
 
     public final boolean jjCheckNAddStatesUnaryNeeded() {
         return this.jjCheckNAddStatesUnaryNeeded;
-    }
-
-    public final void setCheckNAddStates(boolean dual_needed) {
-        if (dual_needed) {
-            this.jjCheckNAddStatesDualNeeded = true;
-        } else {
-            this.jjCheckNAddStatesUnaryNeeded = true;
-        }
     }
 
     public final boolean jjCheckNAddStatesDualNeeded() {
@@ -294,10 +283,6 @@ public class LexerData {
         return this.allImages[index];
     }
 
-    public final void setImage(int index, String image) {
-        this.allImages[index] = image;
-    }
-
     public final int getStateIndex(String name) {
         for (int i = 0; i < this.lexStateNames.length; i++) {
             if ((this.lexStateNames[i] != null) && this.lexStateNames[i].equals(name)) {
@@ -390,13 +375,5 @@ public class LexerData {
     public final void init() {
         this.kinds = new int[this.maxLexStates()][];
         this.statesForState = new int[this.maxLexStates()][][];
-    }
-
-    public final boolean isBoilerPlateDumped() {
-        return this.boilerPlateDumped;
-    }
-
-    public final void setBoilerPlateDumped(boolean boilerPlateDumped) {
-        this.boilerPlateDumped = boilerPlateDumped;
     }
 }

@@ -10,7 +10,6 @@ import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
-import java.util.Locale;
 
 /**
  * Generate lexer.
@@ -41,21 +40,10 @@ class JavaLexerGenerator extends LexerGenerator {
 
         String image;
         int i;
-        int charCnt = 0; // Set to zero in reInit() but just to be sure
+        int charCnt = 0;
 
-        data.setImage(0, "");
         for (i = 0; i < data.getImageCount(); i++) {
-            if (((image = data.getImage(i)) == null)
-                    || (((data.toSkip(i / 64) & (1L << (i % 64))) == 0L) && (
-                    (data.toMore(i / 64) & (1L << (i % 64))) == 0L)
-                    && ((data.toToken(i / 64) & (1L << (i % 64))) == 0L))
-                    || ((data.toSkip(i / 64) & (1L << (i % 64))) != 0L) || (
-                    (data.toMore(i / 64) & (1L << (i % 64))) != 0L)
-                    || data.canReachOnMore(data.getState(i))
-                    || ((data.ignoreCase() || data.ignoreCase(i)) && (
-                    !image.equals(image.toLowerCase(Locale.ENGLISH))
-                            || !image.equals(image.toUpperCase(Locale.ENGLISH))))) {
-                data.setImage(i, null);
+            if ((image = data.getImage(i)) == null) {
                 if ((charCnt += 6) > 80) {
                     printer.println();
                     charCnt = 0;

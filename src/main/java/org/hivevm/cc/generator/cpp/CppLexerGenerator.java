@@ -21,7 +21,6 @@ import org.hivevm.source.SourceProvider;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Generate lexer.
@@ -46,7 +45,7 @@ class CppLexerGenerator extends LexerGenerator {
 
         CppTemplate.LEXER.render(options, data.getParserName());
 
-        data.setBoilerPlateDumped(false);
+        setStopAtPosDumped(false);
         CppTemplate.LEXER_H.render(options, data.getParserName());
     }
 
@@ -153,7 +152,7 @@ class CppLexerGenerator extends LexerGenerator {
         // For C++
         String image;
         int i;
-        int charCnt = 0; // Set to zero in reInit() but just to be sure
+        int charCnt = 0;
 
         int literalCount = 0;
 
@@ -161,20 +160,8 @@ class CppLexerGenerator extends LexerGenerator {
             printer.println("static const JJString jjstrLiteralImages[] = {};");
             return;
         }
-
-        data.setImage(0, "");
         for (i = 0; i < data.getImageCount(); i++) {
-            if (((image = data.getImage(i)) == null)
-                    || (((data.toSkip(i / 64) & (1L << (i % 64))) == 0L) && (
-                    (data.toMore(i / 64) & (1L << (i % 64))) == 0L)
-                    && ((data.toToken(i / 64) & (1L << (i % 64))) == 0L))
-                    || ((data.toSkip(i / 64) & (1L << (i % 64))) != 0L) || (
-                    (data.toMore(i / 64) & (1L << (i % 64))) != 0L)
-                    || data.canReachOnMore(data.getState(i))
-                    || ((data.ignoreCase() || data.ignoreCase(i)) && (
-                    !image.equals(image.toLowerCase(Locale.ENGLISH))
-                            || !image.equals(image.toUpperCase(Locale.ENGLISH))))) {
-                data.setImage(i, null);
+            if ((image = data.getImage(i)) == null) {
                 if ((charCnt += 6) > 80) {
                     printer.println();
                     charCnt = 0;
@@ -251,9 +238,9 @@ class CppLexerGenerator extends LexerGenerator {
 
         if (data.getMaxLen() == 0) {
             printer.println("int jjMoveStringLiteralDfa0" + lexer_state_suffix + "();");
-        } else if (!data.global.isBoilerPlateDumped()) {
+        } else if (!isStopAtPosDumped()) {
             printer.println("int jjStopAtPos(int pos, int kind);");
-            data.global.setBoilerPlateDumped(true);
+            setStopAtPosDumped(true);
         }
 
         // Dump DFA code

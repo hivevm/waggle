@@ -216,21 +216,10 @@ class RustLexerGenerator extends LexerGenerator {
 
         String image;
         int i;
-        int charCnt = 0; // Set to zero in reInit() but just to be sure
+        int charCnt = 0;
 
-        data.setImage(0, "");
         for (i = 0; i < data.getImageCount(); i++) {
-            if (((image = data.getImage(i)) == null)
-                    || (((data.toSkip(i / 64) & (1L << (i % 64))) == 0L) && (
-                    (data.toMore(i / 64) & (1L << (i % 64))) == 0L)
-                    && ((data.toToken(i / 64) & (1L << (i % 64))) == 0L))
-                    || ((data.toSkip(i / 64) & (1L << (i % 64))) != 0L) || (
-                    (data.toMore(i / 64) & (1L << (i % 64))) != 0L)
-                    || data.canReachOnMore(data.getState(i))
-                    || ((data.ignoreCase() || data.ignoreCase(i)) && (
-                    !image.equals(image.toLowerCase(Locale.ENGLISH))
-                            || !image.equals(image.toUpperCase(Locale.ENGLISH))))) {
-                data.setImage(i, null);
+            if ((image = data.getImage(i)) == null) {
                 if ((charCnt += 6) > 80) {
                     charCnt = 0;
                 }
@@ -557,7 +546,7 @@ class RustLexerGenerator extends LexerGenerator {
         for (i = 0; i < data.getMaxLen(); i++) {
             boolean startNfaNeeded = false;
             tab = data.getCharPosKind(i);
-            var keys = LexerGenerator.re_arrange(tab);
+            var keys = NfaStateData.reArrange(tab);
 
             printMoveStringLiteralDfaSignature(printer, data, i, maxLongsReqd);
 
@@ -582,7 +571,7 @@ class RustLexerGenerator extends LexerGenerator {
                 ifGenerated = false;
                 char c = key.charAt(0);
 
-                if (isPlainSkip(data, info, i, maxLongsReqd, c)) {
+                if (data.isPlainSkip(info, i, c)) {
                     continue;
                 }
 
@@ -623,27 +612,10 @@ class RustLexerGenerator extends LexerGenerator {
                             }
                             ifGenerated = true;
 
-                            int kindToPrint;
-
-                            if ((data.getIntermediateKinds() != null) && (
-                                    data.getIntermediateKinds()[((j * 64) + k)] != null)
-                                    && (data.getIntermediateKinds()[((j * 64) + k)][i] < ((j * 64) + k))
-                                    && (data.getIntermediateMatchedPos() != null)
-                                    && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i)) {
-                                show_warning_intermediate(data, i, j, k);
-                                kindToPrint = data.getIntermediateKinds()[((j * 64) + k)][i];
-                            } else if ((i == 0) && (data.global.canMatchAnyChar(data.getStateIndex())
-                                    >= 0)
-                                    && (data.global.canMatchAnyChar(data.getStateIndex()) < ((j * 64)
-                                    + k))) {
-                                show_warning_match(data, i, j, k);
-                                kindToPrint = data.global.canMatchAnyChar(data.getStateIndex());
-                            } else {
-                                kindToPrint = (j * 64) + k;
-                            }
+                            int kindToPrint = data.kindToPrint(i, (j * 64) + k);
 
                             if (!data.isSubString((j * 64) + k)) {
-                                int stateSetName = GetStateSetForKind(data, i, (j * 64) + k);
+                                int stateSetName = data.getStateSetName(i, (j * 64) + k);
 
                                 if (stateSetName != -1) {
                                     printer.println("return self.jjStartNfaWithStates"

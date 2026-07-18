@@ -15,6 +15,7 @@ import org.hivevm.cc.parser.RegExprSpec;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The {@link LexerBuilder} class.
@@ -52,7 +53,11 @@ public class LexerBuilder {
             }
         }
 
+        for (String stateName : data.getStateNames()) {
+            StringLiteralAnalyzer.checkShadowedLiterals(data.getStateData(stateName));
+        }
         warnAboutUnlabelledTokens(request);
+        pruneLiteralImages(data);
         return data;
     }
 
@@ -73,6 +78,35 @@ public class LexerBuilder {
                     JavaCCErrors.warning(re,
                             "Consider giving this non-string token a label for better error reporting.");
                 }
+            }
+        }
+    }
+
+    /**
+     * Keeps a string literal's image only where the token manager may use it verbatim: for a TOKEN
+     * that is not reached through MORE and whose case does not vary. Every other image is dropped,
+     * so that the image table and the lexical actions fall back to the matched text. The three back
+     * ends used to do this themselves, while rendering the image table — so whether an action saw
+     * the pruned table depended on where its template happened to place that table.
+     */
+    private static void pruneLiteralImages(LexerData data) {
+        if (data.getImageCount() <= 0) {
+            return;
+        }
+
+        data.allImages[0] = "";
+        for (int i = 0; i < data.getImageCount(); i++) {
+            String image = data.allImages[i];
+            long bit = 1L << (i % 64);
+            boolean isSkip = (data.toSkip[i / 64] & bit) != 0L;
+            boolean isMore = (data.toMore[i / 64] & bit) != 0L;
+            boolean isToken = (data.toToken[i / 64] & bit) != 0L;
+            if ((image == null) || !isToken || isSkip || isMore
+                    || data.canReachOnMore(data.getState(i))
+                    || ((data.ignoreCase() || data.ignoreCase(i))
+                    && (!image.equals(image.toLowerCase(Locale.ENGLISH))
+                    || !image.equals(image.toUpperCase(Locale.ENGLISH))))) {
+                data.allImages[i] = null;
             }
         }
     }

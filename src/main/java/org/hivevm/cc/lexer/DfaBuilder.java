@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.lexer;
 
-import org.hivevm.cc.generator.LexerGenerator;
 import org.hivevm.cc.lexer.NfaStateData.KindInfo;
 
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ import java.util.Vector;
 /**
  * Computes DFA/NFA move tables and prepares the code-generation data structures.
  */
-class DfaBuilder {
+public class DfaBuilder {
 
     /**
      * Prepares DFA code data for a single lexer state (charPosKind → skip/token tables).
@@ -33,13 +32,13 @@ class DfaBuilder {
         for (i = 0; i < data.maxLen; i++) {
             tab = data.charPosKind.get(i);
             CaseLoop:
-            for (String key2 : reArrange(tab)) {
+            for (String key2 : NfaStateData.reArrange(tab)) {
                 key = key2;
                 info = (KindInfo) tab.get(key);
                 char c = key.charAt(0);
 
                 if ((i == 0) && (c < 128) && info.hasFinalKindCnt()
-                        && ((data.generatedStates() == 0) || !canStartNfaUsingAscii(data, c))) {
+                        && ((data.generatedStates() == 0) || !data.canStartNfaUsingAscii(c))) {
                     int kind;
                     for (j = 0; j < maxLongsReqd; j++) {
                         if (info.finalKinds[j] != 0L) {
@@ -94,6 +93,7 @@ class DfaBuilder {
 
                             if (!data.subString[((j * 64) + k)]) {
                                 int stateSetName = getStateSetForKind(data, i, (j * 64) + k);
+                                data.putStateSetName(i, (j * 64) + k, stateSetName);
                                 if (stateSetName != -1) {
                                     data.createStartNfa = true;
                                 }
@@ -560,7 +560,7 @@ class DfaBuilder {
     // State set helpers
     // -----------------------------------------------------------------------
 
-    private static void reArrange(NfaStateData data) {
+    public static void reArrange(NfaStateData data) {
         List<NfaState> v = data.cloneAllStates();
 
         if (data.getAllStateCount() != data.generatedStates()) {
@@ -576,11 +576,7 @@ class DfaBuilder {
         }
     }
 
-    private static String[] reArrange(Hashtable<String, ?> tab) {
-        return LexerGenerator.re_arrange(tab);
-    }
-
-    private static void fixStateSets(NfaStateData data) {
+    public static void fixStateSets(NfaStateData data) {
         Hashtable<String, int[]> fixedSets = new Hashtable<>();
         int[] tmp = new int[data.generatedStates()];
         int i;
@@ -645,27 +641,6 @@ class DfaBuilder {
             }
         }
         return -1;
-    }
-
-    private static boolean canStartNfaUsingAscii(NfaStateData data, char c) {
-        if (c >= 128) {
-            throw new IllegalStateException(
-                    "canStartNfaUsingAscii called with a non-ASCII character: " + (int) c);
-        }
-
-        String s = data.getInitialState().GetEpsilonMovesString();
-        if ((s == null) || s.equals("null;")) {
-            return false;
-        }
-
-        int[] states = data.getNextStates(s);
-        for (int state : states) {
-            NfaState tmp = data.getIndexedState(state);
-            if ((tmp.asciiMoves[c / 64] & (1L << (c % 64))) != 0L) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static void addCharToSkip(NfaStateData data, NfaState[] singlesToSkip, char c,

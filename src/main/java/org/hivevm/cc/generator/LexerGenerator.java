@@ -54,6 +54,18 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
     private static final String DUAL_NEED = "CHECK_NADD_STATES_DUAL_NEEDED";
     private static final String UNARY_NEED = "CHECK_NADD_STATES_UNARY_NEEDED";
 
+    // jjStopAtPos is shared by all lexical states and must be emitted once per rendered file. It is
+    // state of this rendering, so it lives here — it used to be a flag on the lexer model.
+    private boolean stopAtPosDumped;
+
+    protected final boolean isStopAtPosDumped() {
+        return this.stopAtPosDumped;
+    }
+
+    protected final void setStopAtPosDumped(boolean dumped) {
+        this.stopAtPosDumped = dumped;
+    }
+
     protected String self() {
         return "";
     }
@@ -235,8 +247,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
         boolean isRange = (indices[0] + 1) != indices[1];
 
+        // Whether jjCheckNAddStates is needed at all was decided in stage 4 (DfaBuilder); the
+        // template reads that flag before any of this is rendered.
         if (nextIntersects) {
-            data.global.setCheckNAddStates(isRange);
             printCheckNAddStates(printer, indices[0], indices[1], isRange);
         } else {
             printAddStates(printer, indices[0], indices[1]);
@@ -967,169 +980,16 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         }
         printImageSeparator(printer, i, expressions);
     }
-// --------------------------------------- RString
-
-    public static <T> String[] re_arrange(Hashtable<String, T> tab) {
-        var ret = new String[tab.size()];
-        int cnt = 0;
-
-        for (var s : tab.keySet()) {
-            int i = 0, j;
-            char c = s.charAt(0);
-
-            while ((i < cnt) && (ret[i].charAt(0) < c)) {
-                i++;
-            }
-
-            if (i < cnt) {
-                for (j = cnt - 1; j >= i; j--) {
-                    ret[j + 1] = ret[j];
-                }
-            }
-
-            ret[i] = s;
-            cnt++;
-        }
-
-        return ret;
-    }
-
-    private int GetLine(LexerData data, int kind) {
-        return data.getRegExp(kind).getLine();
-    }
-
-    private int GetColumn(LexerData data, int kind) {
-        return data.getRegExp(kind).getColumn();
-    }
-
-    protected final void show_warning_intermediate(NfaStateData data, int i, int j, int k) {
-        JavaCCErrors.warning(
-                " \"" + Encoding.escape(data.global.getImage((j * 64) + k))
-                        + "\" cannot be matched as a string literal token  at line "
-                        + GetLine(data.global, (j * 64) + k) + ", column "
-                        + GetColumn(data.global, (j * 64) + k)
-                        + ". It will be matched as " + GetLabel(data.global,
-                        data.getIntermediateKinds()[((j * 64) + k)][i]) + ".");
-    }
-
-    protected final void show_warning_match(NfaStateData data, int i, int j, int k) {
-        JavaCCErrors.warning(
-                " \"" + Encoding.escape(data.global.getImage((j * 64) + k))
-                        + "\" cannot be matched as a string literal token  at line "
-                        + GetLine(data.global, (j * 64) + k) + ", column "
-                        + GetColumn(data.global, (j * 64) + k)
-                        + ". It will be matched as " + GetLabel(data.global,
-                        data.global.canMatchAnyChar(data.getStateIndex())) + ".");
-    }
-
-    protected final int GetStateSetForKind(NfaStateData data, int pos, int kind) {
-        if (data.isMixedState() || (data.generatedStates() == 0)) {
-            return -1;
-        }
-
-        var allStateSets = data.statesForPos[pos];
-        if (allStateSets == null) {
-            return -1;
-        }
-
-        for (var s : allStateSets.keySet()) {
-            long[] actives = allStateSets.get(s);
-
-            s = s.substring(s.indexOf(", ") + 2);
-            s = s.substring(s.indexOf(", ") + 2);
-            if (s.equals("null;")) {
-                continue;
-            }
-
-            if ((actives != null) && ((actives[kind / 64] & (1L << (kind % 64))) != 0L)) {
-                return AddCompositeStateSet(data, s);
-            }
-        }
-        return -1;
-    }
-
-    protected final boolean CanStartNfaUsingAscii(NfaStateData data, char c) {
-        if (c >= 128) {
-            throw new IllegalStateException(
-                    "CanStartNfaUsingAscii called with a non-ASCII character: " + (int) c);
-        }
-
-        var move = data.getInitialState().GetEpsilonMovesString();
-        if ((move == null) || move.equals("null;")) {
-            return true;
-        }
-
-        int[] states = data.getNextStates(move);
-        for (int state : states) {
-            NfaState tmp = data.getIndexedState(state);
-            if ((tmp.asciiMoves[c / 64] & (1L << (c % 64))) != 0L) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     // ////////////////////////// NFaState
-
-    private void re_arrange(NfaStateData data) {
-        List<NfaState> v = data.cloneAllStates();
-
-        if (data.getAllStateCount() != data.generatedStates()) {
-            throw new IllegalStateException("NFA state count changed while rearranging: "
-                    + data.getAllStateCount() + " states, but " + data.generatedStates()
-                    + " were generated");
-        }
-
-        for (NfaState tmp : v) {
-            if ((tmp.stateName != -1) && !tmp.dummy) {
-                data.setAllState(tmp.stateName, tmp);
-            }
-        }
-    }
-
-    private void FixStateSets(NfaStateData data) {
-        Hashtable<String, int[]> fixedSets = new Hashtable<>();
-        int[] tmp = new int[data.generatedStates()];
-        int i;
-
-        for (String s : data.stateSetsToFix.keySet()) {
-            int[] toFix = data.stateSetsToFix.get(s);
-            int cnt = 0;
-
-            // System.out.print("Fixing : ");
-            for (i = 0; i < toFix.length; i++) {
-                // System.out.print(toFix[i] + ", ");
-                if (toFix[i] != -1) {
-                    tmp[cnt++] = toFix[i];
-                }
-            }
-
-            int[] fixed = new int[cnt];
-            System.arraycopy(tmp, 0, fixed, 0, cnt);
-            fixedSets.put(s, fixed);
-            data.setNextStates(s, fixed);
-        }
-
-        for (i = 0; i < data.getAllStateCount(); i++) {
-            NfaState tmpState = data.getAllState(i);
-            int[] newSet;
-
-            if ((tmpState.next == null) || (tmpState.next.usefulEpsilonMoves == 0)) {
-                continue;
-            }
-
-            if ((newSet = fixedSets.get(tmpState.next.epsilonMovesString)) != null) {
-                tmpState.FixNextStates(newSet);
-            }
-        }
-    }
 
     private void dump_nfa_and_dfa(NfaStateData stateData, LinePrinter printer) {
         if (stateData.hasNFA && !stateData.isMixedState())
             dumpNfaStartStatesCode(printer, stateData, stateData.statesForPos);
         dumpDfaCode(printer, stateData);
         if (stateData.hasNFA) {
-            prepareNfaStates(stateData);
+            // ADR-0012: no NFA-state preparation here — stage 4 (DfaBuilder.getMoveNfa, run from
+            // LexerBuilder for every hasNFA state) already rearranged the states, populated
+            // global.kinds / global.statesForState, and fixed the state sets on these very objects.
             dumpMoveNfa(printer, stateData);
         }
     }
@@ -1410,7 +1270,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
             return;
         }
 
-        if (!data.global.isBoilerPlateDumped()) {
+        if (!this.stopAtPosDumped) {
             printStopAtPosSignature(printer, data);
             printer.indent();
             printer.println(matchedKind() + " = kind;");
@@ -1423,7 +1283,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
             printReturn(printer, "pos + 1");
             printer.outdent();
             printer.println("}");
-            data.global.setBoilerPlateDumped(true);
+            this.stopAtPosDumped = true;
         }
 
         dumpDfaStates(printer, data);
@@ -1672,50 +1532,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         printer.println("default: {");
     }
 
-    /**
-     * Whether the literal behind "key" needs no case of its own in the string-literal DFA: it is a
-     * plain SKIP — no action, no lexical state change — and the token manager deals with it elsewhere.
-     *
-     * <p>The C++ back end had lost this check; only the now-dead loop that computes "j" was left
-     * behind. It therefore emitted a case per skipped character (space, tab, newline) that Java and
-     * Rust leave out.
-     */
-    protected final boolean isPlainSkip(NfaStateData data, KindInfo info, int i, int maxLongsReqd,
-                                        char c) {
-        if (!((i == 0) && (c < 128) && info.hasFinalKindCnt()
-                && ((data.generatedStates() == 0) || CanStartNfaUsingAscii(data, c)))) {
-            return false;
-        }
-
-        int j;
-        for (j = 0; j < maxLongsReqd; j++) {
-            if (info.finalKinds[j] != 0L) {
-                break;
-            }
-        }
-
-        int kind;
-        for (int k = 0; k < 64; k++) {
-            if (((info.finalKinds[j] & (1L << k)) != 0L) && !data.isSubString(kind = ((j * 64) + k))) {
-                if (((data.getIntermediateKinds() != null)
-                        && (data.getIntermediateKinds()[((j * 64) + k)] != null)
-                        && (data.getIntermediateKinds()[((j * 64) + k)][i] < ((j * 64) + k))
-                        && (data.getIntermediateMatchedPos() != null)
-                        && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i))
-                        || ((data.global.canMatchAnyChar(data.getStateIndex()) >= 0)
-                        && (data.global.canMatchAnyChar(data.getStateIndex()) < ((j * 64) + k)))) {
-                    return false;
-                } else if (((data.global.toSkip(kind / 64) & (1L << (kind % 64))) != 0L)
-                        && ((data.global.toSpecial(kind / 64) & (1L << (kind % 64))) == 0L)
-                        && (data.global.actions(kind) == null)
-                        && (data.global.newLexState(kind) == null)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     /** The trace of the character the token manager is looking at. */
     protected void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
         printer.println("debugStream.println("
@@ -1944,7 +1760,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         for (i = 0; i < data.getMaxLen(); i++) {
             boolean startNfaNeeded = false;
             tab = data.getCharPosKind(i);
-            var keys = LexerGenerator.re_arrange(tab);
+            var keys = NfaStateData.reArrange(tab);
 
             printMoveStringLiteralDfaSignature(printer, data, i, maxLongsReqd);
 
@@ -1969,7 +1785,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 ifGenerated = false;
                 char c = key.charAt(0);
 
-                if (isPlainSkip(data, info, i, maxLongsReqd, c)) {
+                if (data.isPlainSkip(info, i, c)) {
                     continue;
                 }
 
@@ -2006,30 +1822,14 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
                             ifGenerated = true;
 
-                            int kindToPrint;
                             if (i != 0) {
                                 printer.print("((active" + j + " & " + toHexString(1L << k) + ") != 0L)");
                             }
 
-                            if ((data.getIntermediateKinds() != null) && (
-                                    data.getIntermediateKinds()[((j * 64) + k)] != null)
-                                    && (data.getIntermediateKinds()[((j * 64) + k)][i] < ((j * 64) + k))
-                                    && (data.getIntermediateMatchedPos() != null)
-                                    && (data.getIntermediateMatchedPos()[((j * 64) + k)][i] == i)) {
-                                show_warning_intermediate(data, i, j, k);
-                                kindToPrint = data.getIntermediateKinds()[((j * 64) + k)][i];
-                            } else if ((i == 0) && (data.global.canMatchAnyChar(data.getStateIndex())
-                                    >= 0)
-                                    && (data.global.canMatchAnyChar(data.getStateIndex()) < ((j * 64)
-                                    + k))) {
-                                show_warning_match(data, i, j, k);
-                                kindToPrint = data.global.canMatchAnyChar(data.getStateIndex());
-                            } else {
-                                kindToPrint = (j * 64) + k;
-                            }
+                            int kindToPrint = data.kindToPrint(i, (j * 64) + k);
 
                             if (!data.isSubString((j * 64) + k)) {
-                                int stateSetName = GetStateSetForKind(data, i, (j * 64) + k);
+                                int stateSetName = data.getStateSetName(i, (j * 64) + k);
 
                                 if (stateSetName != -1) {
                                     printer.println("return jjStartNfaWithStates"
@@ -2405,47 +2205,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         return data.stateNameForComposite.get(stateSetString);
     }
 
-    private void prepareNfaStates(NfaStateData data) {
-        int i;
-        int[] kindsForStates = null;
-
-        if (data.global.getKinds() == null) {
-            data.global.init();
-        }
-
-        re_arrange(data);
-
-        for (i = 0; i < data.getAllStateCount(); i++) {
-            var temp = data.getAllState(i);
-            if ((temp.lexState != data.getStateIndex()) || !temp.HasTransitions() || temp.dummy || (
-                    temp.stateName == -1)) {
-                continue;
-            }
-
-            if (kindsForStates == null) {
-                kindsForStates = new int[data.generatedStates()];
-                data.global.getStatesForState()[data.getStateIndex()] =
-                        new int[Math.max(data.generatedStates(), data.dummyStateIndex + 1)][];
-            }
-
-            kindsForStates[temp.stateName] = temp.lookingFor;
-            data.global.getStatesForState()[data.getStateIndex()][temp.stateName] = temp.compositeStates;
-        }
-
-        for (var s : data.stateNameForComposite.keySet()) {
-            int state = data.stateNameForComposite.get(s);
-            if (state >= data.generatedStates()) {
-                data.global.getStatesForState()[data.getStateIndex()][state] = data.getNextStates(s);
-            }
-        }
-
-        if (!data.stateSetsToFix.isEmpty()) {
-            FixStateSets(data);
-        }
-
-        data.global.setKinds(data.getStateIndex(), kindsForStates);
-    }
-
     protected final Vector<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
         var cardinalities = new int[states.length];
         var original = new Vector<NfaState>();
@@ -2543,85 +2302,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         return nameSet[toRet];
     }
 
-    private int AddCompositeStateSet(NfaStateData data, String stateSetString) {
-        Integer stateNameToReturn;
-
-        if ((stateNameToReturn = data.stateNameForComposite.get(stateSetString)) != null) {
-            return stateNameToReturn;
-        }
-
-        int toRet = 0;
-        int[] nameSet = data.getNextStates(stateSetString);
-
-        if (nameSet == null) {
-            throw new IllegalStateException(
-                    "No next states registered for the state set: " + stateSetString);
-        }
-
-        if (nameSet.length == 1) {
-            stateNameToReturn = nameSet[0];
-            data.stateNameForComposite.put(stateSetString, stateNameToReturn);
-            return nameSet[0];
-        }
-
-        for (int element : nameSet) {
-            if (element == -1) {
-                continue;
-            }
-
-            NfaState st = data.getIndexedState(element);
-            st.isComposite = true;
-            st.compositeStates = nameSet;
-        }
-
-        while ((toRet < nameSet.length) && ((data.getIndexedState(nameSet[toRet]).inNextOf > 1))) {
-            toRet++;
-        }
-
-        for (String s : data.compositeStateTable.keySet()) {
-            if (!s.equals(stateSetString) && NfaState.Intersect(data, stateSetString, s)) {
-                int[] other = data.compositeStateTable.get(s);
-
-                while ((toRet < nameSet.length) && (
-                        ((data.getIndexedState(nameSet[toRet]).inNextOf > 1))
-                                || (NfaState.ElemOccurs(nameSet[toRet], other) >= 0))) {
-                    toRet++;
-                }
-            }
-        }
-
-        int tmp;
-
-        if (toRet >= nameSet.length) {
-            if (data.dummyStateIndex == -1) {
-                tmp = data.dummyStateIndex = data.generatedStates();
-            } else {
-                tmp = ++data.dummyStateIndex;
-            }
-        } else {
-            tmp = nameSet[toRet];
-        }
-
-        stateNameToReturn = tmp;
-        data.stateNameForComposite.put(stateSetString, stateNameToReturn);
-        data.compositeStateTable.put(stateSetString, nameSet);
-        return tmp;
-    }
-
     protected final void printActionToken(LinePrinter printer, Action action) {
         for (Token token : action.getActionTokens()) {
             printToken(token, printer);
-        }
-    }
-
-    protected final String GetLabel(LexerData data, int kind) {
-        RExpression re = data.getRegExp(kind);
-        if (re instanceof RStringLiteral) {
-            return " \"" + Encoding.escape(((RStringLiteral) re).getImage()) + "\"";
-        } else if (!re.getLabel().isEmpty()) {
-            return " <" + re.getLabel() + ">";
-        } else {
-            return " <token of kind " + kind + ">";
         }
     }
 

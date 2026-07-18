@@ -55,6 +55,11 @@ public class NfaStateData {
     public final Hashtable<String, int[]> stateSetsToFix;
     final Hashtable<String, NfaState> equivStatesTable;
 
+    // ADR-0012: finished-model DFA lookup. Stage 4 (DfaBuilder#getDfaCode) records the composite
+    // state-set name for every (position, kind) it visits, so the stage-5 generators render it
+    // without recomputing — or registering — DFA structure at emit time.
+    private final Hashtable<Long, Integer> stateSetForPosKind;
+
 
     NfaStateData(LexerData data, String name) {
         this.global = data;
@@ -91,6 +96,7 @@ public class NfaStateData {
         this.stateBlockTable = new Hashtable<>();
         this.stateSetsToFix = new Hashtable<>();
         this.equivStatesTable = new Hashtable<>();
+        this.stateSetForPosKind = new Hashtable<>();
 
         // Do at end
         this.initialState = new NfaState(this);
@@ -207,6 +213,151 @@ public class NfaStateData {
 
     public final boolean isSubStringAtPos(int index) {
         return this.subStringAtPos[index];
+    }
+
+    /**
+     * Whether the string literal of {@code kind} is shadowed at position {@code i} by a shorter
+     * literal that is complete there and declared earlier: the DFA then reports that one instead.
+     */
+    public final boolean isShadowedByIntermediate(int i, int kind) {
+        return (this.intermediateKinds != null) && (this.intermediateKinds[kind] != null)
+                && (this.intermediateKinds[kind][i] < kind)
+                && (this.intermediateMatchedPos != null)
+                && (this.intermediateMatchedPos[kind][i] == i);
+    }
+
+    /**
+     * Whether the string literal of {@code kind} is shadowed on its first character by an earlier
+     * catch-all token of this lexical state.
+     */
+    public final boolean isShadowedByAnyChar(int i, int kind) {
+        int anyChar = this.global.canMatchAnyChar(getStateIndex());
+        return (i == 0) && (anyChar >= 0) && (anyChar < kind);
+    }
+
+    /** The kind the string-literal DFA reports at position {@code i} for the literal of {@code kind}. */
+    public final int kindToPrint(int i, int kind) {
+        if (isShadowedByIntermediate(i, kind)) {
+            return this.intermediateKinds[kind][i];
+        }
+        if (isShadowedByAnyChar(i, kind)) {
+            return this.global.canMatchAnyChar(getStateIndex());
+        }
+        return kind;
+    }
+
+    /**
+     * Whether the single character {@code c} at position {@code i} needs no case of its own in the
+     * string-literal DFA: it is a plain SKIP — no action, no lexical state change — that the token
+     * manager deals with elsewhere.
+     */
+    public final boolean isPlainSkip(KindInfo info, int i, char c) {
+        // Both call sites used to compute "generatedStates == 0 || no ASCII move for c" through
+        // helpers of opposite sense; canStartNfaUsingAscii is the positive one.
+        if (!((i == 0) && (c < 128) && info.hasFinalKindCnt()
+                && ((generatedStates() == 0) || !canStartNfaUsingAscii(c)))) {
+            return false;
+        }
+
+        int maxLongsReqd = (this.maxStrKind / 64) + 1;
+        int j;
+        for (j = 0; j < maxLongsReqd; j++) {
+            if (info.finalKinds[j] != 0L) {
+                break;
+            }
+        }
+
+        for (int k = 0; k < 64; k++) {
+            int kind = (j * 64) + k;
+            if (((info.finalKinds[j] & (1L << k)) != 0L) && !isSubString(kind)) {
+                if (isShadowedByIntermediate(i, kind) || isShadowedByAnyChar(i, kind)) {
+                    return false;
+                } else if (((this.global.toSkip(kind / 64) & (1L << (kind % 64))) != 0L)
+                        && ((this.global.toSpecial(kind / 64) & (1L << (kind % 64))) == 0L)
+                        && (this.global.actions(kind) == null)
+                        && (this.global.newLexState(kind) == null)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Records the composite state-set name computed for a {@code (position, kind)} slot during stage
+     * 4 (see {@link DfaBuilder#getDfaCode}). Stored once so the generators can render it without
+     * recomputing or registering DFA structure (ADR-0012).
+     */
+    void putStateSetName(int pos, int kind, int stateSetName) {
+        this.stateSetForPosKind.put(posKindKey(pos, kind), stateSetName);
+    }
+
+    /**
+     * Returns the composite state-set name recorded for {@code (pos, kind)} in stage 4, or {@code -1}
+     * when none was registered.
+     */
+    public int getStateSetName(int pos, int kind) {
+        Integer stateSetName = this.stateSetForPosKind.get(posKindKey(pos, kind));
+        return (stateSetName == null) ? -1 : stateSetName;
+    }
+
+    private static long posKindKey(int pos, int kind) {
+        return ((long) pos << 32) | (kind & 0xffffffffL);
+    }
+
+    /**
+     * Whether the NFA can start on the ASCII character {@code c} from this state's initial state.
+     * A pure query over the finished DFA model; owned by the lexer layer so stage-5 generators read
+     * it instead of recomputing DFA structure (ADR-0012).
+     */
+    public boolean canStartNfaUsingAscii(char c) {
+        if (c >= 128) {
+            throw new IllegalStateException(
+                    "canStartNfaUsingAscii called with a non-ASCII character: " + (int) c);
+        }
+
+        String s = getInitialState().GetEpsilonMovesString();
+        if ((s == null) || s.equals("null;")) {
+            return false;
+        }
+
+        for (int state : getNextStates(s)) {
+            NfaState tmp = getIndexedState(state);
+            if ((tmp.asciiMoves[c / 64] & (1L << (c % 64))) != 0L) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the keys of {@code tab} ordered by their first character (a stable insertion sort).
+     * A pure ordering helper shared by stage 4 and the stage-5 generators; kept in the lexer layer
+     * so no generator has to reach into {@link DfaBuilder} for it (ADR-0012).
+     */
+    public static <T> String[] reArrange(Hashtable<String, T> tab) {
+        String[] ret = new String[tab.size()];
+        int cnt = 0;
+
+        for (String s : tab.keySet()) {
+            int i = 0, j;
+            char c = s.charAt(0);
+
+            while ((i < cnt) && (ret[i].charAt(0) < c)) {
+                i++;
+            }
+
+            if (i < cnt) {
+                for (j = cnt - 1; j >= i; j--) {
+                    ret[j + 1] = ret[j];
+                }
+            }
+
+            ret[i] = s;
+            cnt++;
+        }
+
+        return ret;
     }
 
     int addCompositeStateSet(String stateSetString) {
