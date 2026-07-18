@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.IntConsumer;
 import java.util.function.IntToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -942,7 +943,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
     /** Separates two entries of the table. C++ emits one array per entry and needs none. */
     protected void printImageSeparator(LinePrinter printer, int i, List<RExpression> expressions) {
-        if ((i == 0) || (expressions.indexOf(expressions.get(i - 1)) < (expressions.size() - 1))) {
+        if ((i == 0) || (i < expressions.size())) { // every entry but the last, and always <EOF>
             printer.print(",");
         }
     }
@@ -1428,7 +1429,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         dumpDfaStates(printer, data);
     }
 
-/** The declaration of jjMoveStringLiteralDfa<i>, up to the opening parenthesis. */
+    /** The declaration of jjMoveStringLiteralDfa<i>, up to the opening parenthesis. */
     protected void printMoveStringLiteralDfaHead(LinePrinter printer, NfaStateData data, int i) {
         printer.print("private int jjMoveStringLiteralDfa" + i + data.getLexerStateSuffix() + "(");
     }
@@ -1504,7 +1505,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
      * cannot express, since an assignment is not a value there. Rust therefore overrides this and
      * emits a "let" per vector first.
      */
-
     protected void printActiveCheck(LinePrinter printer, NfaStateData data, int i,
                                    int maxLongsReqd) {
         int j;
@@ -1562,7 +1562,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
      * spells its logging differently — Java concatenates, C++ builds a printf format — so this is a
      * pure dialect method.
      */
-
     protected void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
         if ((i != 0) && data.global.options().getDebugTokenManager()) {
             printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
@@ -1865,49 +1864,13 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
     /** The lexical actions of the TOKEN productions. */
     protected void dumpTokenActions(LinePrinter printer, LexerData data) {
         printActionsPrologue(printer, data, "TokenLexicalActions(Token *matchedToken)", null);
-
-        Outer:
-        for (int i = 0; i < data.maxOrdinal(); i++) {
-            if ((data.toToken(i / 64) & (1L << (i % 64))) == 0L) {
-                continue;
+        dumpActions(printer, data, data::toToken, i -> {
+            if (i == 0) {
+                printImageReset(printer); // for EOF there is no image
+            } else {
+                printImageAppend(printer, data, i, "        ");
             }
-
-            for (; ; ) {
-                Action act = data.actions(i);
-                if (((act == null) || act.getActionTokens().isEmpty())
-                        && !data.canLoop(data.getState(i))) {
-                    continue Outer;
-                }
-
-                printActionCase(printer, i);
-
-                if ((data.initMatch(data.getState(i)) == i) && data.canLoop(data.getState(i))) {
-                    printEmptyLoopCheck(printer, data, i);
-                }
-
-                if (((act = data.actions(i)) == null) || act.getActionTokens().isEmpty()) {
-                    break;
-                }
-
-                if (i == 0) {
-                    printImageReset(printer); // for EOF there is no image
-                } else {
-                    printImageAppend(printer, data, i, "        ");
-                }
-
-                setup_token(act.getActionTokens().getFirst());
-                reset_column();
-
-                printActionToken(printer, act);
-                printer.println();
-
-                break;
-            }
-
-            printActionBreak(printer);
-            printActionCaseEnd(printer);
-        }
-
+        });
         printActionsEpilogue(printer);
     }
 
@@ -1915,98 +1878,57 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
     protected void dumpMoreActions(LinePrinter printer, LexerData data) {
         printActionsPrologue(printer, data, "MoreLexicalActions()",
                 "   " + imageLen() + " += (" + lengthOfMatch() + " = " + matchedPosVar() + " + 1);");
-
-        Outer:
-        for (int i = 0; i < data.maxOrdinal(); i++) {
-            if ((data.toMore(i / 64) & (1L << (i % 64))) == 0L) {
-                continue;
-            }
-
-            for (; ; ) {
-                Action act = data.actions(i);
-                if (((act == null) || act.getActionTokens().isEmpty())
-                        && !data.canLoop(data.getState(i))) {
-                    continue Outer;
-                }
-
-                printActionCase(printer, i);
-
-                if ((data.initMatch(data.getState(i)) == i) && data.canLoop(data.getState(i))) {
-                    printEmptyLoopCheck(printer, data, i);
-                }
-
-                if (((act = data.actions(i)) == null) || act.getActionTokens().isEmpty()) {
-                    break;
-                }
-
-                printImageAppendMore(printer, data, i);
-
-                printer.println("         " + imageLen() + " = 0;");
-                setup_token(act.getActionTokens().getFirst());
-                reset_column();
-
-                printActionToken(printer, act);
-                printer.println();
-
-                break;
-            }
-
-            printActionBreak(printer);
-            printActionCaseEnd(printer);
-        }
-
+        dumpActions(printer, data, data::toMore, i -> {
+            printImageAppendMore(printer, data, i);
+            printer.println("         " + imageLen() + " = 0;");
+        });
         printActionsEpilogue(printer);
     }
 
     /** The lexical actions of the SKIP productions. */
     protected void dumpSkipActions(LinePrinter printer, LexerData data) {
         printActionsPrologue(printer, data, "SkipLexicalActions(Token *matchedToken)", null);
+        dumpActions(printer, data, data::toSkip, i -> printImageAppend(printer, data, i, "         "));
+        printActionsEpilogue(printer);
+    }
 
-        Outer:
+    /**
+     * One case per token kind of {@code kinds} that has a lexical action or can loop on the empty
+     * string: the loop guard, then the image update and the action itself.
+     */
+    private void dumpActions(LinePrinter printer, LexerData data, IntToLongFunction kinds,
+                             IntConsumer imageUpdate) {
         for (int i = 0; i < data.maxOrdinal(); i++) {
-            if ((data.toSkip(i / 64) & (1L << (i % 64))) == 0L) {
+            if ((kinds.applyAsLong(i / 64) & (1L << (i % 64))) == 0L) {
                 continue;
             }
 
-            for (; ; ) {
-                Action act = data.actions(i);
-                if (((act == null) || act.getActionTokens().isEmpty())
-                        && !data.canLoop(data.getState(i))) {
-                    continue Outer;
-                }
+            Action act = data.actions(i);
+            boolean hasAction = (act != null) && !act.getActionTokens().isEmpty();
+            boolean canLoop = data.canLoop(data.getState(i));
+            if (!hasAction && !canLoop) {
+                continue;
+            }
 
-                printActionCase(printer, i);
+            printActionCase(printer, i);
 
-                if ((data.initMatch(data.getState(i)) == i) && data.canLoop(data.getState(i))) {
-                    printEmptyLoopCheck(printer, data, i);
-                }
+            if ((data.initMatch(data.getState(i)) == i) && canLoop) {
+                printEmptyLoopCheck(printer, data, i);
+            }
 
-                if (((act = data.actions(i)) == null) || act.getActionTokens().isEmpty()) {
-                    break;
-                }
-
-                printImageAppend(printer, data, i, "         ");
-
+            if (hasAction) {
+                imageUpdate.accept(i);
                 setup_token(act.getActionTokens().getFirst());
                 reset_column();
-
                 printActionToken(printer, act);
                 printer.println();
-
-                break;
             }
 
             printActionBreak(printer);
             printActionCaseEnd(printer);
         }
-
-        printActionsEpilogue(printer);
     }
 
-    /**
-     * The per-state code of the string-literal DFA. Java and C++ share it verbatim; every place they
-     * used to differ is now one of the dialect hooks above. Rust still overrides it.
-     */
     /**
      * The per-state code of the string-literal DFA. Java and C++ share it verbatim — every place
      * they used to differ is now one of the dialect hooks above. Rust still overrides it.
@@ -2029,7 +1951,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
             if (i != 0) {
                 printActiveCheck(printer, data, i, maxLongsReqd);
 
-printDebugPossibleMatches(printer, data, i);
+                printDebugPossibleMatches(printer, data, i);
 
                 printEofBailout(printer, data, i, maxLongsReqd);
             }
@@ -2710,7 +2632,8 @@ printDebugPossibleMatches(printer, data, i);
 
     private boolean print_no_break(LinePrinter printer, NfaStateData data, NfaState state, int byteNum, boolean[] dumped) {
         if (state.inNextOf != 1) {
-            throw new Error("HiveVM Bug");
+            throw new IllegalStateException(
+                    "NFA state " + state.stateName + " is the case of more than one state");
         }
 
         dumped[state.stateName] = true;
@@ -2758,7 +2681,8 @@ printDebugPossibleMatches(printer, data, i);
 
             if (tmp.stateForCase != null) {
                 if (stateForCase != null) {
-                    throw new Error("HiveVM Bug");
+                    throw new IllegalStateException(
+                            "Two NFA states of the same composite state claim stateForCase");
                 }
                 stateForCase = tmp.stateForCase;
             }
@@ -2819,11 +2743,6 @@ printDebugPossibleMatches(printer, data, i);
 
         printBreak(printer, "    ");
         printCasesClose(printer);
-    }
-
-    private void DumpAsciiMove(LinePrinter printer, NfaStateData data, NfaState state, int byteNum,
-                               boolean[] dumped, boolean use_state_name) {
-        DumpAsciiMove(printer, data, state, byteNum, dumped, use_state_name, new ArrayList<>(), "");
     }
 
     /**
@@ -2975,7 +2894,6 @@ printDebugPossibleMatches(printer, data, i);
             }
         }
 
-        // System.out.println(stateName + " \'s nextIntersects : " + nextIntersects);
         boolean hasIf = false;
         if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
             int oneBit = NfaState.OnlyOneBitSet(state.asciiMoves[byteNum]);
@@ -3047,11 +2965,6 @@ printDebugPossibleMatches(printer, data, i);
             printer.outdent();
             printer.println("}");
         }
-    }
-
-    private void DumpNonAsciiMove(LinePrinter printer, NfaStateData data, NfaState state,
-                                  boolean[] dumped) {
-        DumpNonAsciiMove(printer, data, state, dumped, new ArrayList<>());
     }
 
     /** @param cases see {@link #DumpAsciiMove} -- one list per body, never two. */
@@ -3303,13 +3216,16 @@ printDebugPossibleMatches(printer, data, i);
                 continue;
             }
 
+            // A stateForCase without moves of its own shares this body, as in the composite and
+            // non-ASCII paths. This used to print "case " + the NfaState object itself and open a
+            // block that was never closed.
+            var cases = new ArrayList<String>();
             if (toPrint) {
-                print_case(printer, "" + element.stateForCase);
-                printer.indent();
+                printCaseLabel(printer, cases, element.stateForCase.stateName);
             }
 
             dumped[element.stateName] = true;
-            DumpAsciiMove(printer, data, element, byteNum, dumped, true);
+            DumpAsciiMove(printer, data, element, byteNum, dumped, true, cases, "");
         }
 
         printDefaultAndEndLoop(printer, (byteNum != 0) && (byteNum != 1));
@@ -3384,7 +3300,7 @@ printDebugPossibleMatches(printer, data, i);
         return "}";
     }
 
-protected final String getStatesForState(LexerData data) {
+    protected final String getStatesForState(LexerData data) {
         // A grammar made only of string literals has no NFA, hence no state table. The assert that
         // used to sit here claimed the opposite and blew up as soon as assertions were on.
         if (data.getStatesForState() == null) {
@@ -3416,7 +3332,7 @@ protected final String getStatesForState(LexerData data) {
         return stateSet(builder);
     }
 
-protected final String getKindForState(LexerData data) {
+    protected final String getKindForState(LexerData data) {
         if (data.getKinds() == null) {
             return noStateSet();
         }

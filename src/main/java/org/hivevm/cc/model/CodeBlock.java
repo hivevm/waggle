@@ -1,7 +1,7 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.generator;
+package org.hivevm.cc.model;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -25,7 +25,7 @@ public enum CodeBlock {
         return CodeBlock.END.image;
     }
 
-    static String strip(String text) {
+    public static String strip(String text) {
         if (text.startsWith(CodeBlock.BEGIN.image)) {
             text = text.substring(CodeBlock.BEGIN.image.length());
             if (text.contains("\n")) {

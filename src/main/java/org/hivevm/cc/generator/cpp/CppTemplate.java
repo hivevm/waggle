@@ -7,9 +7,12 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.source.SourceProvider;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Represents a collection of predefined templates for generating Rust code. Each enum constant
+ * Represents a collection of predefined templates for generating C++ code. Each enum constant
  * corresponds to a specific type of template file with an associated name and optional path format
  * for filename generation.
  * <p>
@@ -17,10 +20,6 @@ import java.io.File;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 enum CppTemplate implements SourceProvider {
 
     JAVACC("JavaCC"),

@@ -93,12 +93,7 @@ class CppParserGenerator extends ParserGenerator {
         return default_return;
     }
 
-    /**
-     * The phase 1 routines generates their output into String's and dumps these String's once for
-     * each method. These String's contain the special characters '\u0001' to indicate a positive
-     * indent, and '\u0002' to indicate a negative indent. '\n' is used to indicate a line
-     * terminator.
-     */
+    /** Wraps the body of a production in the DEPTH_LIMIT guard and the DEBUG_PARSER trace. */
     @Override
     protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String default_return, Consumer<LinePrinter> consumer) {
         boolean hasReturnErr = false;
@@ -407,10 +402,7 @@ class CppParserGenerator extends ParserGenerator {
             case Choice e_nrw -> {
                 Sequence nested_seq;
                 if (e_nrw.getChoices().size() != 1) {
-                    if (!xsp_declared) {
-                        xsp_declared = true;
-                        printer.println("    Token* xsp;");
-                    }
+                    xsp_declared = declareXsp(printer, xsp_declared);
                     printer.println("    xsp = jj_scanpos;");
                 }
 
@@ -457,33 +449,17 @@ class CppParserGenerator extends ParserGenerator {
                 }
             }
             case OneOrMore e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    Token* xsp;");
-                }
+                xsp_declared = declareXsp(printer, xsp_declared);
                 Expansion nested_e = e_nrw.getExpansion();
                 printer.println("    if (" + genjj_3Call(nested_e) + ") " + genReturn(jj3_expansion, true, data));
-                printer.println("    while (true) {");
-                printer.println("      xsp = jj_scanpos;");
-                printer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
-                printer.println("    }");
+                printScanLoop(printer, nested_e);
             }
             case ZeroOrMore e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    Token* xsp;");
-                }
-                Expansion nested_e = e_nrw.getExpansion();
-                printer.println("    while (true) {");
-                printer.println("      xsp = jj_scanpos;");
-                printer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
-                printer.println("    }");
+                xsp_declared = declareXsp(printer, xsp_declared);
+                printScanLoop(printer, e_nrw.getExpansion());
             }
             case ZeroOrOne e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    Token* xsp;");
-                }
+                xsp_declared = declareXsp(printer, xsp_declared);
                 Expansion nested_e = e_nrw.getExpansion();
                 printer.println("    xsp = jj_scanpos;");
                 printer.println("    if (" + genjj_3Call(nested_e) + ") jj_scanpos = xsp;");
@@ -494,27 +470,23 @@ class CppParserGenerator extends ParserGenerator {
         return xsp_declared;
     }
 
-
-    private String genReturn(Expansion expansion, boolean value, ParserData data) {
-        String retval = Boolean.toString(value);
-        if (data.getDebugLookahead() && (expansion != null)) {
-            String tracecode =
-                    "trace_return(\"" + Encoding.escapeUnicode(
-                            ((NormalProduction) expansion.parent()).getLhs(), Language.CPP)
-                            + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
-            if (data.getErrorReporting()) {
-                tracecode = "if (!jj_rescan) " + tracecode;
-            }
-            return "{ " + tracecode + " return " + retval + "; }";
-        } else {
-            return "return " + retval + ";";
+    /** Declares the scan position a lookahead backtracks to, once per jj_3 routine. */
+    private static boolean declareXsp(LinePrinter printer, boolean declared) {
+        if (!declared) {
+            printer.println("    Token* xsp;");
         }
+        return true;
     }
 
-    private String genjj_3Call(Expansion e) {
-        var name = e.internalName();
-        return name.startsWith("jj_scan_token") ? name : "jj_3" + name + "()";
+    /** Scans {@code nested_e} as often as it matches — the tail of (…)* and (…)+. */
+    private void printScanLoop(LinePrinter printer, Expansion nested_e) {
+        printer.println("    while (true) {");
+        printer.println("      xsp = jj_scanpos;");
+        printer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
+        printer.println("    }");
     }
+
+
 
     @Override
     public final void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {

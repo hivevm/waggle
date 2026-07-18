@@ -91,8 +91,8 @@ public class NfaState {
     }
 
     void AddMove(NfaState newState) {
-        if (!this.epsilonMoves.contains(newState))
-            NfaState.InsertInOrder(this.epsilonMoves, newState);
+        // InsertInOrder already returns early on a duplicate id, so no separate contains() scan.
+        NfaState.InsertInOrder(this.epsilonMoves, newState);
     }
 
     private void AddASCIIMove(char c) {
@@ -663,15 +663,7 @@ public class NfaState {
     }
 
     public static int OnlyOneBitSet(long l) {
-        int oneSeen = -1;
-        for (int i = 0; i < 64; i++) {
-            if (((l >> i) & 1L) != 0L) {
-                if (oneSeen >= 0)
-                    return -1;
-                oneSeen = i;
-            }
-        }
-        return oneSeen;
+        return (Long.bitCount(l) == 1) ? Long.numberOfTrailingZeros(l) : -1;
     }
 
     public static int ElemOccurs(int elem, int[] arr) {

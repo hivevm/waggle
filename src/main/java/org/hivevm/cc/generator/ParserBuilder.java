@@ -24,12 +24,7 @@ import org.hivevm.cc.semantic.Semanticize;
 
 class ParserBuilder {
 
-    // Constants used in the following method "buildLookaheadChecker".
-    private enum LookaheadState {
-        NOOPENSTM,
-        OPENIF,
-        OPENSWITCH
-    }
+    // Shares ParserGenerator.LookaheadState (same package) instead of redeclaring the enum.
 
     private int rIndex;
 
@@ -56,7 +51,7 @@ class ParserBuilder {
             }
         }
 
-        for (Lookahead la : data.getLoakaheads()) {
+        for (Lookahead la : data.getLookaheads()) {
             data.addExpansion(la);
         }
 
@@ -162,7 +157,7 @@ class ParserBuilder {
      * that action.
      */
     private void buildLookahead(ParserData data, Lookahead[] conds) {
-        LookaheadState state = LookaheadState.NOOPENSTM;
+        ParserGenerator.LookaheadState state = ParserGenerator.LookaheadState.NOOPENSTM;
         boolean jj2LA;
 
         int[] tokenMask = null;
@@ -197,16 +192,13 @@ class ParserBuilder {
                         case OPENIF:
                         case NOOPENSTM:
                     }
-                    state = LookaheadState.OPENIF;
+                    state = ParserGenerator.LookaheadState.OPENIF;
                 }
 
             } else if ((la.getAmount() == 1) && (la.getActionTokens().isEmpty())) {
                 // Special optimal processing when the lookahead is exactly 1, and there
                 // is no semantic lookahead.
-                boolean[] firstSet = new boolean[data.getTokenCount()];
-                for (int i = 0; i < data.getTokenCount(); i++) {
-                    firstSet[i] = false;
-                }
+                boolean[] firstSet = new boolean[data.getTokenCount()]; // already all-false
 
                 // jj2LA is set to false at the beginning of the containing "if" statement.
                 // It is checked immediately after the end of the same statement to determine
@@ -238,7 +230,7 @@ class ParserBuilder {
                             tokenMask[j1] |= 1 << j2;
                         }
                     }
-                    state = LookaheadState.OPENSWITCH;
+                    state = ParserGenerator.LookaheadState.OPENSWITCH;
                 }
             } else {
                 // This is the case when lookahead is determined through calls to
@@ -258,7 +250,7 @@ class ParserBuilder {
 
                 // At this point, la.la_expansion.internal_name must be "".
                 la.getLaExpansion().setInternalName("_" + data.addLookupAhead(la));
-                state = LookaheadState.OPENIF;
+                state = ParserGenerator.LookaheadState.OPENIF;
             }
         }
 
@@ -294,7 +286,7 @@ class ParserBuilder {
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                 Expansion eseq = e_nrw.getUnits().get(i);
                 setupPhase3Builds(data, new Phase3Data(eseq, cnt));
-                cnt -= ParserBuilder.minimumSize(data, eseq);
+                cnt -= data.minimumSize(eseq);
                 if (cnt <= 0) {
                     break;
                 }
@@ -376,7 +368,7 @@ class ParserBuilder {
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                 var eseq = e_nrw.getUnits().get(i);
                 buildPhase3Routine(data, eseq, cnt);
-                cnt -= ParserBuilder.minimumSize(data, eseq);
+                cnt -= data.minimumSize(eseq);
                 if (cnt <= 0) {
                     break;
                 }
@@ -384,64 +376,4 @@ class ParserBuilder {
         }
     }
 
-    private static int minimumSize(ParserData data, Expansion e) {
-        return ParserBuilder.minimumSize(data, e, Integer.MAX_VALUE);
-    }
-
-    /*
-     * Returns the minimum number of tokens that can parse to this expansion.
-     */
-    private static int minimumSize(ParserData data, Expansion e, int oldMin) {
-        if (e.inMinimumSize())
-            // recursive search for minimum size unnecessary.
-            return Integer.MAX_VALUE;
-        e.setInMinimumSize(true);
-        try {
-            return switch (e) {
-                case RegularExpression regularExpression -> 1;
-                case NonTerminal e_nrw -> {
-                    var ntprod = data.getProduction(e_nrw.getName());
-                    yield ParserBuilder.minimumSize(data, ntprod.getExpansion());
-                }
-                case Choice e_nrw -> {
-                    int min = oldMin;
-                    Expansion nested_e;
-                    for (int i = 0; (min > 1) && (i < e_nrw.getChoices().size()); i++) {
-                        nested_e = e_nrw.getChoices().get(i);
-                        int min1 = ParserBuilder.minimumSize(data, nested_e, min);
-                        if (min > min1) {
-                            min = min1;
-                        }
-                    }
-                    yield min;
-                }
-                case Sequence e_nrw -> {
-                    int min = 0;
-                    // We skip the first element in the following iteration since it is the
-                    // Lookahead object.
-                    for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                        var eseq = e_nrw.getUnits().get(i);
-                        int mineseq = ParserBuilder.minimumSize(data, eseq);
-                        if ((min == Integer.MAX_VALUE) || (mineseq == Integer.MAX_VALUE)) {
-                            min = Integer.MAX_VALUE; // Adding infinity to something results in infinity.
-                        } else {
-                            min += mineseq;
-                            if (min > oldMin) {
-                                break;
-                            }
-                        }
-                    }
-                    yield min;
-                }
-                case OneOrMore e_nrw -> ParserBuilder.minimumSize(data, e_nrw.getExpansion());
-                case ZeroOrMore zeroOrMore -> 0;
-                case ZeroOrOne zeroOrOne -> 0;
-                case Lookahead lookahead -> 0;
-                case Action action -> 0;
-                default -> 0;
-            };
-        } finally {
-            e.setInMinimumSize(false);
-        }
-    }
 }

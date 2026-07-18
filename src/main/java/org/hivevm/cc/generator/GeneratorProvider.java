@@ -105,6 +105,7 @@ public abstract class GeneratorProvider implements Generator {
         provider = provider.filter(p -> p.type().isAnnotationPresent(GeneratorName.class)
                 && p.type().getAnnotation(GeneratorName.class).value()
                 .equalsIgnoreCase(language.name()));
-        return provider.findFirst().orElseThrow().get();
+        return provider.findFirst().orElseThrow(() -> new IllegalStateException(
+                "No code generator is registered for " + language)).get();
     }
 }

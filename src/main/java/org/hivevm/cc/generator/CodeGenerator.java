@@ -5,6 +5,7 @@ package org.hivevm.cc.generator;
 
 import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
+import org.hivevm.cc.model.CodeBlock;
 import org.hivevm.cc.model.NodeScope;
 import org.hivevm.cc.parser.ParserConstants;
 import org.hivevm.cc.parser.Token;
@@ -20,6 +21,10 @@ public abstract class CodeGenerator<D> {
 
     protected CodeGenerator(Language language) {
         this.language = language;
+    }
+
+    protected final Language getLanguage() {
+        return this.language;
     }
 
     public abstract void generate(D context);
@@ -41,14 +46,7 @@ public abstract class CodeGenerator<D> {
         if (t.specialToken == null) {
             return;
         }
-        var tt = t.specialToken;
-        while (tt.specialToken != null) {
-            tt = tt.specialToken;
-        }
-        while (tt != null) {
-            printer.print(getStringForTokenOnly(tt));
-            tt = tt.next;
-        }
+        printer.print(specialTokensOf(t));
         if ((this.ccol != 1) && (this.crow != t.beginLine)) {
             printer.println();
             this.crow++;
@@ -57,20 +55,17 @@ public abstract class CodeGenerator<D> {
     }
 
     protected final void printToken(Token t, LinePrinter printer) {
-        var tt = t.specialToken;
-        if (tt != null) {
-            while (tt.specialToken != null) {
-                tt = tt.specialToken;
-            }
-            while (tt != null) {
-                printer.print(getStringForTokenOnly(tt));
-                tt = tt.next;
-            }
-        }
-        printer.print(getStringForTokenOnly(t));
+        printToken(t, null, printer);
     }
 
+    /** Prints the token with the comments before it; {@code $NODE}/{@code $BOOL} refer to {@code ns}. */
     protected final void printToken(Token t, NodeScope ns, LinePrinter printer) {
+        var text = specialTokensOf(t) + getStringForTokenOnly(t);
+        printer.print(ns != null ? CodeGenerator.replace(text, ns) : text);
+    }
+
+    /** The special tokens (comments) in front of {@code t}, oldest first, laid out in place. */
+    private String specialTokensOf(Token t) {
         var sb = new StringBuilder();
         var tt = t.specialToken;
         if (tt != null) {
@@ -82,8 +77,7 @@ public abstract class CodeGenerator<D> {
                 tt = tt.next;
             }
         }
-        var text = sb.append(getStringForTokenOnly(t)).toString();
-        printer.print(ns != null ? CodeGenerator.replace(text, ns) : text);
+        return sb.toString();
     }
 
     private String getStringForTokenOnly(Token t) {

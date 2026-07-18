@@ -564,7 +564,7 @@ class RustLexerGenerator extends LexerGenerator {
             if (i != 0) {
                 printActiveCheck(printer, data, i, maxLongsReqd);
 
-printDebugPossibleMatches(printer, data, i);
+                printDebugPossibleMatches(printer, data, i);
 
                 printEofBailout(printer, data, i, maxLongsReqd);
             }

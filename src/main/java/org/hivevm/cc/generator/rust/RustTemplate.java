@@ -7,6 +7,10 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.source.SourceProvider;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Represents a collection of predefined templates for generating Rust code. Each enum constant
@@ -17,10 +21,6 @@ import java.io.File;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 enum RustTemplate implements SourceProvider {
 
     NODE("node"),
@@ -60,7 +60,7 @@ enum RustTemplate implements SourceProvider {
     @Override
     public final File getTargetFile(String name, Options options) {
         var targetDir = new File(options.getOutputDirectory(),
-                options.getParserName().toLowerCase());
+                options.getParserName().toLowerCase(Locale.ROOT));
         var targetName = (name == null ? this.name : String.format(this.name, name)) + ".rs";
         return new File(targetDir, targetName);
     }

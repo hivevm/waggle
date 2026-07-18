@@ -110,55 +110,55 @@ abstract class AbstractJavaCCParser implements ParserConstants {
     }
 
     protected String remove_escapes_and_quotes(Token t, String str) {
-        String retval = "";
+        StringBuilder retval = new StringBuilder();
         int index = 1;
         char ch, ch1;
         int ordinal;
         while (index < (str.length() - 1)) {
             if (str.charAt(index) != '\\') {
-                retval += str.charAt(index);
+                retval.append(str.charAt(index));
                 index++;
                 continue;
             }
             index++;
             ch = str.charAt(index);
             if (ch == 'b') {
-                retval += '\b';
+                retval.append('\b');
                 index++;
                 continue;
             }
             if (ch == 't') {
-                retval += '\t';
+                retval.append('\t');
                 index++;
                 continue;
             }
             if (ch == 'n') {
-                retval += '\n';
+                retval.append('\n');
                 index++;
                 continue;
             }
             if (ch == 'f') {
-                retval += '\f';
+                retval.append('\f');
                 index++;
                 continue;
             }
             if (ch == 'r') {
-                retval += '\r';
+                retval.append('\r');
                 index++;
                 continue;
             }
             if (ch == '"') {
-                retval += '\"';
+                retval.append('\"');
                 index++;
                 continue;
             }
             if (ch == '\'') {
-                retval += '\'';
+                retval.append('\'');
                 index++;
                 continue;
             }
             if (ch == '\\') {
-                retval += '\\';
+                retval.append('\\');
                 index++;
                 continue;
             }
@@ -175,7 +175,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
                         index++;
                     }
                 }
-                retval += (char) ordinal;
+                retval.append((char) ordinal);
                 continue;
             }
             if (ch == 'u') {
@@ -205,13 +205,13 @@ abstract class AbstractJavaCCParser implements ParserConstants {
                         "Encountered non-hex character '" + ch + "' at position " + index
                                 + " of string "
                                 + "- Unicode escape must have 4 hex digits after it.");
-                return retval;
+                return retval.toString();
             }
             JavaCCErrors.parse_error(t,
                     "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
-            return retval;
+            return retval.toString();
         }
-        return retval;
+        return retval.toString();
     }
 
     protected char character_descriptor_assign(Token t, String s) {

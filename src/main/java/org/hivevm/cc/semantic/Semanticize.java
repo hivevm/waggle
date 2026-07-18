@@ -132,7 +132,6 @@ public class Semanticize {
 
         resolveRegularExpressionNames();
         removePreparedItems();
-        removePreparedItems();
 
         if (this.context.hasErrors())
             throw new ParseException();

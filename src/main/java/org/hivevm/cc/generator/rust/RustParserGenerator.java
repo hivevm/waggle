@@ -26,7 +26,9 @@ import org.hivevm.source.LinePrinter;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * Implements the {@link ParserGenerator} for the RUST language.
@@ -96,12 +98,7 @@ class RustParserGenerator extends ParserGenerator {
         super.generate_phase1_tail(printer);
     }
 
-    /**
-     * The phase 1 routines generates their output into String's and dumps these String's once for
-     * each method. These String's contain the special characters '\u0001' to indicate a positive
-     * indent, and '\u0002' to indicate a negative indent. '\n' is used to indicate a line
-     * terminator.
-     */
+    /** Wraps the body of a production in the DEBUG_PARSER trace. */
     @Override
     protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String returnType, Consumer<LinePrinter> consumer) {
         // DEPTH_LIMIT is rejected up front in generate(); the Rust back end never emits guard code.
@@ -389,10 +386,7 @@ class RustParserGenerator extends ParserGenerator {
             case Choice e_nrw -> {
                 Sequence nested_seq;
                 if (e_nrw.getChoices().size() != 1) {
-                    if (!xsp_declared) {
-                        xsp_declared = true;
-                        printer.println("    let mut xsp: Rc<RefCell<Token>>;");
-                    }
+                    xsp_declared = declareXsp(printer, xsp_declared);
                     printer.println("    xsp = self.jj_scanpos.as_mut().unwrap().clone();");
                 }
 
@@ -441,44 +435,19 @@ class RustParserGenerator extends ParserGenerator {
                 }
             }
             case OneOrMore e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    let mut xsp: Rc<RefCell<Token>>;");
-                }
+                xsp_declared = declareXsp(printer, xsp_declared);
                 Expansion nested_e = e_nrw.getExpansion();
-                printer.print(String.format("""
-                                    if self.%s {
-                                        return %s;
-                                    }
-                                    loop {
-                                        xsp = self.jj_scanpos.as_mut().unwrap().clone();
-                                        if self.%s {
-                                            self.jj_scanpos = Some(xsp.clone());
-                                            break;
-                                        }
-                                    }
-                                """, genjj_3Call(nested_e), genReturn(jj3_expansion, true, data),
-                        genjj_3Call(nested_e)));
+                printer.println("    if self." + genjj_3Call(nested_e) + " {");
+                printer.println("        return " + genReturn(jj3_expansion, true, data) + ";");
+                printer.println("    }");
+                printScanLoop(printer, nested_e);
             }
             case ZeroOrMore e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    let mut xsp: Rc<RefCell<Token>>;");
-                }
-                Expansion nested_e = e_nrw.getExpansion();
-                printer.println("    loop {");
-                printer.println("        xsp = self.jj_scanpos.as_mut().unwrap().clone();");
-                printer.println("        if self." + genjj_3Call(nested_e) + " {");
-                printer.println("            self.jj_scanpos = Some(xsp.clone());");
-                printer.println("            break;");
-                printer.println("        }");
-                printer.println("    }");
+                xsp_declared = declareXsp(printer, xsp_declared);
+                printScanLoop(printer, e_nrw.getExpansion());
             }
             case ZeroOrOne e_nrw -> {
-                if (!xsp_declared) {
-                    xsp_declared = true;
-                    printer.println("    let mut xsp: Rc<RefCell<Token>>;");
-                }
+                xsp_declared = declareXsp(printer, xsp_declared);
                 Expansion nested_e = e_nrw.getExpansion();
                 printer.println("    xsp = self.jj_scanpos.as_mut().unwrap().clone();");
                 printer.println("    if self." + genjj_3Call(nested_e) + " {");
@@ -491,8 +460,28 @@ class RustParserGenerator extends ParserGenerator {
         return xsp_declared;
     }
 
+    /** Declares the scan position a lookahead backtracks to, once per jj_3 routine. */
+    private static boolean declareXsp(LinePrinter printer, boolean declared) {
+        if (!declared) {
+            printer.println("    let mut xsp: Rc<RefCell<Token>>;");
+        }
+        return true;
+    }
 
-    private String genReturn(Expansion expansion, boolean value, ParserData data) {
+    /** Scans {@code nested_e} as often as it matches — the tail of (…)* and (…)+. */
+    private void printScanLoop(LinePrinter printer, Expansion nested_e) {
+        printer.println("    loop {");
+        printer.println("        xsp = self.jj_scanpos.as_mut().unwrap().clone();");
+        printer.println("        if self." + genjj_3Call(nested_e) + " {");
+        printer.println("            self.jj_scanpos = Some(xsp.clone());");
+        printer.println("            break;");
+        printer.println("        }");
+        printer.println("    }");
+    }
+
+
+    @Override
+    protected String genReturn(Expansion expansion, boolean value, ParserData data) {
         String retval = Boolean.toString(value);
         if (data.getDebugLookahead() && (expansion != null)) {
             String tracecode =
@@ -508,7 +497,8 @@ class RustParserGenerator extends ParserGenerator {
         }
     }
 
-    private String genjj_3Call(Expansion e) {
+    @Override
+    protected String genjj_3Call(Expansion e) {
         var name = e.internalName();
         return name.startsWith("jj_scan_token") ? name : "jj_3" + internal_name_as_snake_case(e) + "()";
     }
@@ -521,10 +511,15 @@ class RustParserGenerator extends ParserGenerator {
         return to_snake_case(p.getLhs());
     }
 
+    // Compiled once instead of on every conversion (to_snake_case is called per expansion, often
+    // repeatedly for the same name).
+    private static final Pattern SNAKE_ACRONYM = Pattern.compile("([A-Z])(?=[A-Z])");
+    private static final Pattern SNAKE_BOUNDARY = Pattern.compile("([a-z])([A-Z])");
+
     private static String to_snake_case(String name) {
-        return name.replaceAll("([A-Z])(?=[A-Z])", "$1_")
-                .replaceAll("([a-z])([A-Z])", "$1_$2")
-                .toLowerCase();
+        String s = SNAKE_ACRONYM.matcher(name).replaceAll("$1_");
+        s = SNAKE_BOUNDARY.matcher(s).replaceAll("$1_$2");
+        return s.toLowerCase(Locale.ROOT);
     }
 
     @Override

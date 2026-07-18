@@ -147,30 +147,29 @@ class LookaheadCalc {
             if (LookaheadCalc.explicitLA(ch.getChoices().get(i)) && !context.isForceLaCheck())
                 continue;
             if (minLA[i] > context.getChoiceAmbiguityCheck()) {
-                context.onWarning("Choice conflict involving two expansions at");
-                System.err.print("         line " + ch.getChoices().get(i).getLine());
-                System.err.print(", column " + ch.getChoices().get(i).getColumn());
-                System.err.print(" and line " + ch.getChoices().get(other[i]).getLine());
-                System.err.print(", column " + ch.getChoices().get(other[i]).getColumn());
-                System.err.println(" respectively.");
-                System.err.println(
-                        "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
-                System.err.println("         Consider using a lookahead of " + minLA[i]
-                        + " or more for earlier expansion.");
+                warnChoiceConflict(context, data, ch, i, other[i], overlapInfo[i], minLA[i], " or more");
             } else if (minLA[i] > 1) {
-                context.onWarning("Choice conflict involving two expansions at");
-                System.err.print("         line " + ch.getChoices().get(i).getLine());
-                System.err.print(", column " + ch.getChoices().get(i).getColumn());
-                System.err.print(" and line " + ch.getChoices().get(other[i]).getLine());
-                System.err.print(", column " + ch.getChoices().get(other[i]).getColumn());
-                System.err.println(" respectively.");
-                System.err.println(
-                        "         A common prefix is: " + LookaheadCalc.image(overlapInfo[i], data));
-                System.err.println(
-                        "         Consider using a lookahead of " + minLA[i]
-                                + " for earlier expansion.");
+                warnChoiceConflict(context, data, ch, i, other[i], overlapInfo[i], minLA[i], "");
             }
         }
+    }
+
+    /**
+     * Emits the "choice conflict" warning for choice {@code i} overlapping choice {@code other}. The
+     * two call sites differed only in the trailing "{@code or more}" hint, passed as {@code amount}.
+     */
+    private static void warnChoiceConflict(SemanticContext context, Semanticize data, Choice ch,
+                                           int i, int other, MatchInfo overlapInfo, int minLA,
+                                           String amount) {
+        context.onWarning("Choice conflict involving two expansions at");
+        System.err.print("         line " + ch.getChoices().get(i).getLine());
+        System.err.print(", column " + ch.getChoices().get(i).getColumn());
+        System.err.print(" and line " + ch.getChoices().get(other).getLine());
+        System.err.print(", column " + ch.getChoices().get(other).getColumn());
+        System.err.println(" respectively.");
+        System.err.println("         A common prefix is: " + LookaheadCalc.image(overlapInfo, data));
+        System.err.println(
+                "         Consider using a lookahead of " + minLA + amount + " for earlier expansion.");
     }
 
     private static boolean explicitLA(Expansion exp) {

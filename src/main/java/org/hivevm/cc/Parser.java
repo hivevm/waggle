@@ -5,7 +5,6 @@ package org.hivevm.cc;
 
 
 import org.hivevm.cc.generator.GeneratorProvider;
-import org.hivevm.cc.model.NodeScope;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.JavaCCParserDefault;
@@ -98,7 +97,6 @@ public class Parser {
 
             Parser.bannerLine("Parser Generator");
             JavaCCErrors.reInit();
-            NodeScope.reInit();
 
             var options = parseContext(arguments);
             var request = new JavaCCData(Parser.isGenerated(text), options);

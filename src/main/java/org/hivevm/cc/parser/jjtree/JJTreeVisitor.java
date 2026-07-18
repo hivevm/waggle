@@ -3,7 +3,7 @@
 
 package org.hivevm.cc.parser.jjtree;
 
-import org.hivevm.cc.generator.CodeBlock;
+import org.hivevm.cc.model.CodeBlock;
 import org.hivevm.cc.model.NodeScope;
 
 public class JJTreeVisitor extends NodeDefaultVisitor {

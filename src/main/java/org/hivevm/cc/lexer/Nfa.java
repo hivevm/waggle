@@ -11,8 +11,10 @@ import org.hivevm.cc.model.TokenProduction;
 import org.hivevm.cc.parser.RegExprSpec;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A Non-deterministic Finite Automaton.
@@ -212,6 +214,20 @@ record Nfa(NfaState start, NfaState end) {
         data.intermediateKinds = new int[data.maxStrKind + 1][];
         data.intermediateMatchedPos = new int[data.maxStrKind + 1][];
 
+        // Precompute image -> smallest matching string kind for this lexical state, so the inner
+        // loop below does an O(1) lookup instead of rescanning every string kind (the former
+        // getStrKind was O(maxStrKind), making the whole pass O(maxStrKind^2 * maxLen)).
+        Map<String, Integer> strKindByImage = new HashMap<>();
+        for (int k = 0; k < data.maxStrKind; k++) {
+            if (data.global.getState(k) != data.getStateIndex()) {
+                continue;
+            }
+            String img = data.global.getImage(k);
+            if (img != null) {
+                strKindByImage.putIfAbsent(img, k);
+            }
+        }
+
         for (i = 0; i < data.maxStrKind; i++) {
             if (data.global.getState(i) != data.getStateIndex()) {
                 continue;
@@ -246,7 +262,7 @@ record Nfa(NfaState start, NfaState end) {
                         kind = data.global.canMatchAnyChar[data.getStateIndex()];
                     }
 
-                    if (getStrKind(data, image.substring(0, j + 1)) < kind) {
+                    if (strKindByImage.getOrDefault(image.substring(0, j + 1), Integer.MAX_VALUE) < kind) {
                         data.intermediateKinds[i][j] = kind = Integer.MAX_VALUE;
                         jjmatchedPos = 0;
                     } else if (kind != Integer.MAX_VALUE) {
@@ -392,36 +408,10 @@ record Nfa(NfaState start, NfaState end) {
             }
 
             if (common != null) {
-                Integer ind;
-                String tmp;
-                long[] lohiByte = {common[0], common[1], common[2], common[3]};
-                tmp = "{\n   0x" + Long.toHexString(common[0]) + "L, " + "0x" + Long.toHexString(common[1])
-                        + "L, " + "0x" + Long.toHexString(common[2]) + "L, " + "0x" + Long.toHexString(common[3])
-                        + "L\n};";
-                if ((ind = data.lohiByteTab.get(tmp)) == null) {
-                    data.allBitVectors.add(tmp);
-
-                    if (!NfaState.AllBitsSet(tmp)) {
-                        data.lohiByte.put(data.lohiByteCnt, lohiByte);
-                    }
-                    data.lohiByteTab.put(tmp, ind = data.lohiByteCnt++);
-                }
-
-                tmpIndices[cnt++] = ind;
-                lohiByte = new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]};
-
-                tmp = "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(loBytes[i][1])
-                        + "L, " + "0x" + Long.toHexString(loBytes[i][2]) + "L, " + "0x" + Long.toHexString(loBytes[i][3])
-                        + "L\n};";
-                if ((ind = data.lohiByteTab.get(tmp)) == null) {
-                    data.allBitVectors.add(tmp);
-
-                    if (!NfaState.AllBitsSet(tmp)) {
-                        data.lohiByte.put(data.lohiByteCnt, lohiByte);
-                    }
-                    data.lohiByteTab.put(tmp, ind = data.lohiByteCnt++);
-                }
-                tmpIndices[cnt++] = ind;
+                tmpIndices[cnt++] = internBitVector(data,
+                        new long[]{common[0], common[1], common[2], common[3]});
+                tmpIndices[cnt++] = internBitVector(data,
+                        new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]});
                 common = null;
             }
         }
@@ -433,28 +423,32 @@ record Nfa(NfaState start, NfaState end) {
             if (done[i]) {
                 loBytes[i] = null;
             } else {
-                String tmp;
-                Integer ind;
-
-                long[] lohiByte = {loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]};
-                tmp = "{\n   0x" + Long.toHexString(loBytes[i][0]) + "L, " + "0x" + Long.toHexString(loBytes[i][1])
-                        + "L, " + "0x" + Long.toHexString(loBytes[i][2]) + "L, " + "0x" + Long.toHexString(loBytes[i][3])
-                        + "L\n};";
-
-                if ((ind = data.lohiByteTab.get(tmp)) == null) {
-                    data.allBitVectors.add(tmp);
-
-                    if (!NfaState.AllBitsSet(tmp)) {
-                        data.lohiByte.put(data.lohiByteCnt, lohiByte);
-                    }
-                    data.lohiByteTab.put(tmp, ind = data.lohiByteCnt++);
-                }
-
                 state.loByteVec.add(i);
-                state.loByteVec.add(ind);
+                state.loByteVec.add(internBitVector(data,
+                        new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]}));
             }
         }
         updateDuplicateNonAsciiMoves(data, state);
+    }
+
+    /**
+     * Formats a four-word lo/hi byte vector as its {@code {0x..L, ..}} source string and interns it
+     * in the shared bit-vector tables, returning its index. Previously this format-and-intern block
+     * was written out three times inside {@link #getNonAsciiMoves}.
+     */
+    private static int internBitVector(LexerData data, long[] vec) {
+        String tmp = "{\n   0x" + Long.toHexString(vec[0]) + "L, " + "0x" + Long.toHexString(vec[1])
+                + "L, " + "0x" + Long.toHexString(vec[2]) + "L, " + "0x" + Long.toHexString(vec[3])
+                + "L\n};";
+        Integer ind = data.lohiByteTab.get(tmp);
+        if (ind == null) {
+            data.allBitVectors.add(tmp);
+            if (!NfaState.AllBitsSet(tmp)) {
+                data.lohiByte.put(data.lohiByteCnt, vec);
+            }
+            data.lohiByteTab.put(tmp, ind = data.lohiByteCnt++);
+        }
+        return ind;
     }
 
     // -----------------------------------------------------------------------
@@ -484,19 +478,6 @@ record Nfa(NfaState start, NfaState end) {
         return epsilonMovesString;
     }
 
-    private static int getStrKind(NfaStateData data, String str) {
-        for (int i = 0; i < data.maxStrKind; i++) {
-            if (data.global.getState(i) != data.getStateIndex()) {
-                continue;
-            }
-
-            String image = data.global.allImages[i];
-            if ((image != null) && image.equals(str)) {
-                return i;
-            }
-        }
-        return Integer.MAX_VALUE;
-    }
 
     private static void updateDuplicateNonAsciiMoves(LexerData data, NfaState state) {
         for (int i = 0; i < data.nonAsciiTableForMethod.size(); i++) {

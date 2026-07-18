@@ -113,14 +113,6 @@ public class HiveCCOptions implements Options {
         set(HiveCC.JJTREE_VISITOR_DATA_TYPE, "");
         set(HiveCC.JJTREE_VISITOR_RETURN_TYPE, "Object");
         set(HiveCC.JJTREE_VISITOR_EXCEPTION, "");
-
-        // Also appears to be a duplicate
-        set(HiveCC.JJPARSER_JAVA_PACKAGE, "");
-        set(HiveCC.JJPARSER_JAVA_IMPORTS, "");
-        set(HiveCC.JJPARSER_BASE_PARSER, "");
-        set(HiveCC.JJPARSER_BASE_LEXER, "");
-        set(HiveCC.JJPARSER_RUST_MODULE, "");
-        set(HiveCC.JJPARSER_CPP_NAMESPACE, "");
     }
 
     /**
@@ -291,11 +283,9 @@ public class HiveCCOptions implements Options {
         String language = (String) this.optionValues.get(HiveCC.JJPARSER_CODEGENERATOR);
         if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE_CPP))
             return Language.CPP;
-        else if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE_JAVA))
-            return Language.JAVA;
-        else if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE_RUST))
+        if (language.equalsIgnoreCase(HiveCCOptions.OUTPUT_LANGUAGE_RUST))
             return Language.RUST;
-        return Language.JAVA;
+        return Language.JAVA; // default (also covers OUTPUT_LANGUAGE_JAVA)
     }
 
     private record OptionInfo(String _name, Object _default) implements Comparable<OptionInfo> {
@@ -308,28 +298,8 @@ public class HiveCCOptions implements Options {
             return this._default;
         }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if ((obj == null) || (getClass() != obj.getClass())) {
-                return false;
-            }
-            OptionInfo other = (OptionInfo) obj;
-            if (this._default == null) {
-                if (other._default != null) {
-                    return false;
-                }
-            } else if (!this._default.equals(other._default)) {
-                return false;
-            }
-            if (this._name == null) {
-                return other._name == null;
-            } else
-                return this._name.equals(other._name);
-        }
-
+        // equals/hashCode come from the record (component-wise, matching the former hand-written
+        // equals); only the name-based ordering needs an explicit implementation.
         @Override
         public int compareTo(OptionInfo o) {
             return this._name.compareTo(o._name);

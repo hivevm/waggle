@@ -7,9 +7,13 @@ import org.hivevm.cc.parser.Options;
 import org.hivevm.source.SourceProvider;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * Represents a collection of predefined templates for generating Rust code. Each enum constant
+ * Represents a collection of predefined templates for generating Java code. Each enum constant
  * corresponds to a specific type of template file with an associated name and optional path format
  * for filename generation.
  * <p>
@@ -17,10 +21,6 @@ import java.io.File;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 enum JavaTemplate implements SourceProvider {
 
     LEXER("Lexer"),
@@ -69,7 +69,7 @@ enum JavaTemplate implements SourceProvider {
     @Override
     public final File getTargetFile(String name, Options options) {
         var packagePath = options.getJavaPackageName().replace('.', File.separatorChar);
-        var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase());
+        var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase(Locale.ROOT));
         var targetName = (name == null ? this.name : String.format(this.name, name)) + ".java";
         return new File(targetDir, targetName);
     }

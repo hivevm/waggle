@@ -3,6 +3,7 @@
 
 package org.hivevm.cc.generator;
 
+import org.hivevm.cc.Encoding;
 import org.hivevm.cc.Language;
 import org.hivevm.cc.model.Action;
 import org.hivevm.cc.model.Choice;
@@ -80,7 +81,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         options.set("DUMP_NORMALPRODUCTIONS", w ->
                 data.getProductions().forEach(n -> generatePhase1(n, w, data)));
         options.set("DUMP_LOOKAHEADS", w ->
-                data.getLoakaheads().forEach(e -> generate_phase2(e.getLaExpansion(), w, data)));
+                data.getLookaheads().forEach(e -> generate_phase2(e.getLaExpansion(), w, data)));
         options.set("DUMP_EXPANSIONS", w ->
                 data.getExpansionCounts().forEach(e -> generate_phase3_routine(data, e.getKey(), e.getValue(), w)));
 
@@ -101,6 +102,35 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         if (t.next != null) {
             printLeadingComments(printer, t.next);
         }
+    }
+
+    /**
+     * The value returned from a jj_3 lookahead routine. Shared by the Java and C++ back ends; the
+     * Rust back end overrides it (snake-case production name, no {@code return ...;} wrapper).
+     */
+    protected String genReturn(Expansion expansion, boolean value, ParserData data) {
+        String retval = Boolean.toString(value);
+        if (data.getDebugLookahead() && (expansion != null)) {
+            String tracecode =
+                    "trace_return(\"" + Encoding.escapeUnicode(
+                            ((NormalProduction) expansion.parent()).getLhs(), getLanguage())
+                            + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
+            if (data.getErrorReporting()) {
+                tracecode = "if (!jj_rescan) " + tracecode;
+            }
+            return "{ " + tracecode + " return " + retval + "; }";
+        } else {
+            return "return " + retval + ";";
+        }
+    }
+
+    /**
+     * The call to a jj_3 routine (or a raw {@code jj_scan_token...}). Shared by the Java and C++ back
+     * ends; the Rust back end overrides it to snake-case the internal name.
+     */
+    protected String genjj_3Call(Expansion e) {
+        var name = e.internalName();
+        return name.startsWith("jj_scan_token") ? name : "jj_3" + name + "()";
     }
 
     private void generatePhase1(NormalProduction p, LinePrinter printer, ParserData data) {
@@ -203,7 +233,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 // In previous line, the "throw" never throws an exception since the
                 // evaluation of jj_consume_token(-1) causes ParseException to be
                 // thrown first.
-                Lookahead[] conds = data.getLoakaheads(e);
+                Lookahead[] conds = data.getLookaheads(e);
                 print_lookahead_checker(printer, data, scope, conds, (p, i) -> {
                     if (i == e_nrw.getChoices().size()) {
                         generate_phase1_choice(printer);
@@ -218,7 +248,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 e_nrw.getUnits().forEach(exp -> generate_phase1_expansion(data, exp, scope, printer));
             }
             case ZeroOrOne e_nrw -> {
-                Lookahead[] conds = data.getLoakaheads(e);
+                Lookahead[] conds = data.getLookaheads(e);
                 print_lookahead_checker(printer, data, scope, conds,
                         (p, i) -> {
                             if (i == 0) {
@@ -233,7 +263,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 int labelIndex = nextLabelIndex();
                 generate_phase1_more(labelIndex, printer);
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
-                Lookahead[] conds = data.getLoakaheads(e);
+                Lookahead[] conds = data.getLookaheads(e);
                 print_lookahead_checker(printer, data, scope, conds,
                         (p, i) -> print_phase1_more_end(labelIndex, p, i));
                 printer.outdent();
@@ -245,7 +275,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 printer.println();
                 int labelIndex = nextLabelIndex();
                 generate_phase1_more(labelIndex, printer);
-                Lookahead[] conds = data.getLoakaheads(e);
+                Lookahead[] conds = data.getLookaheads(e);
                 print_lookahead_checker(printer, data, scope, conds,
                         (p, i) -> print_phase1_more_end(labelIndex, p, i));
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
@@ -348,10 +378,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             } else if ((la.getAmount() == 1) && la.getActionTokens().isEmpty()) {
                 // Special optimal processing when the lookahead is exactly 1, and there
                 // is no semantic lookahead.
-                boolean[] firstSet = new boolean[data.getTokenCount()];
-                for (int i = 0; i < data.getTokenCount(); i++) {
-                    firstSet[i] = false;
-                }
+                boolean[] firstSet = new boolean[data.getTokenCount()]; // already all-false
 
                 // jj2LA is set to false at the beginning of the containing "if" statement.
                 // It is checked immediately after the end of the same statement to determine

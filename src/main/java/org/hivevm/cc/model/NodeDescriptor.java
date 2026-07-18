@@ -5,6 +5,8 @@ package org.hivevm.cc.model;
 
 import org.hivevm.cc.parser.Options;
 
+import java.util.Locale;
+
 public interface NodeDescriptor {
 
     default String getNodeId() {
@@ -39,7 +41,7 @@ public interface NodeDescriptor {
     }
 
     static String getNodeId(String name) {
-        return "JJT" + name.toUpperCase().replace('.', '_');
+        return "JJT" + name.toUpperCase(Locale.ROOT).replace('.', '_');
     }
 
     static String getNodeType(String name, boolean isMulti) {

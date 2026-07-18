@@ -22,7 +22,6 @@ import org.hivevm.cc.semantic.Semanticize;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.List;
 import java.util.Map;
 
@@ -136,7 +135,7 @@ public class ParserData {
         return this.lookaheadNeeded;
     }
 
-    public final Iterable<Lookahead> getLoakaheads() {
+    public final Iterable<Lookahead> getLookaheads() {
         return this.phase2list;
     }
 
@@ -145,7 +144,7 @@ public class ParserData {
         return this.phase3table.entrySet();
     }
 
-    public final Lookahead[] getLoakaheads(Expansion e) {
+    public final Lookahead[] getLookaheads(Expansion e) {
         return this.lookaheads.get(e);
     }
 

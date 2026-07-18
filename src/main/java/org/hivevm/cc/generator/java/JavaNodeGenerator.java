@@ -6,7 +6,6 @@ package org.hivevm.cc.generator.java;
 import org.hivevm.cc.HiveCC;
 import org.hivevm.cc.generator.NodeData;
 import org.hivevm.cc.generator.NodeGenerator;
-import org.hivevm.cc.model.NodeScope;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.source.Template;
 
@@ -17,8 +16,8 @@ class JavaNodeGenerator implements NodeGenerator {
 
     @Override
     public final void generate(Options context, NodeData data) {
-        generateTreeConstants(context);
-        generateVisitors(context);
+        generateTreeConstants(context, data);
+        generateVisitors(context, data);
 
         // TreeClasses
         generateNode(context);
@@ -27,23 +26,23 @@ class JavaNodeGenerator implements NodeGenerator {
         JavaTemplate.NODESTATE.render(context);
     }
 
-    private void generateTreeConstants(Options context) {
+    private void generateTreeConstants(Options context, NodeData data) {
         var options = Template.newContext(context);
-        options.add("NODE_NAMES", NodeScope.getNodeNames())
+        options.add("NODE_NAMES", data.getNodeNames())
                 .set("NODE_NAMES_TITLE", i -> i);
-        options.add("NODES", NodeScope.getNodeIds().size())
+        options.add("NODES", data.getNodeIds().size())
                 .set("NODES_ORDINAL", i -> i)
-                .set("NODES_LABEL", i -> NodeScope.getNodeIds().get(i));
+                .set("NODES_LABEL", i -> data.getNodeIds().get(i));
 
         JavaTemplate.NODETYPE.render(options, context.getParserName());
     }
 
-    private void generateVisitors(Options context) {
+    private void generateVisitors(Options context, NodeData data) {
         if (!context.getVisitor()) {
             return;
         }
 
-        var nodeNames = NodeScope.getNodeNames().stream()
+        var nodeNames = data.getNodeNames().stream()
                 .filter(n -> !n.equals("void"))
                 .collect(Collectors.toList());
         var argumentType = JavaNodeGenerator.visitorDataType(context);
@@ -71,6 +70,10 @@ class JavaNodeGenerator implements NodeGenerator {
     }
 
     private void generateTreeNodes(Options context, Set<String> nodesToGenerate) {
+        if (!context.getBuildNodeFiles()) {
+            return;
+        }
+
         var options = Template.newContext(context);
         options.set(HiveCC.JJTREE_VISITOR_RETURN_VOID, context.getVisitorReturnType().equals("void"));
         options.set(HiveCC.JJTREE_NODE_CLASS, JavaNodeGenerator.nodeClass(context));
@@ -78,7 +81,7 @@ class JavaNodeGenerator implements NodeGenerator {
 
         var excludes = context.getExcudeNodes();
         for (var nodeType : nodesToGenerate) {
-            if (!context.getBuildNodeFiles() || excludes.contains(nodeType)) {
+            if (excludes.contains(nodeType)) {
                 continue;
             }
             options.set(HiveCC.JJTREE_NODE_TYPE, nodeType);

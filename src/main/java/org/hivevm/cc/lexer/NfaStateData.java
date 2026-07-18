@@ -66,7 +66,9 @@ public class NfaStateData {
         this.maxStrKind = 0;
         this.subString = null;
         this.subStringAtPos = null;
-        this.maxLenForActive = new int[100]; // 6400 tokens
+        // Indexed by ordinal / 64 (see StringLiteralAnalyzer), so size it from the token count
+        // instead of a fixed 100 ints (which silently overflowed past 6400 token kinds).
+        this.maxLenForActive = new int[(this.global.maxOrdinal / 64) + 1];
         this.intermediateKinds = null;
         this.intermediateMatchedPos = null;
         this.charPosKind = new ArrayList<>();

@@ -6,7 +6,6 @@ package org.hivevm.cc.generator.rust;
 import org.hivevm.cc.GenerationException;
 import org.hivevm.cc.generator.NodeData;
 import org.hivevm.cc.generator.NodeGenerator;
-import org.hivevm.cc.model.NodeScope;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.source.Template;
 
@@ -42,9 +41,9 @@ class RustNodeGenerator implements NodeGenerator {
 
     private void generateTreeConstants(Options context, NodeData data) {
         var options = Template.newContext(context);
-        options.add("NODES", NodeScope.getNodeIds().size())
-                .set("LABEL", i -> NodeScope.getNodeIds().get(i))
-                .set("TITLE", i -> NodeScope.getNodeNames().get(i));
+        options.add("NODES", data.getNodeIds().size())
+                .set("LABEL", i -> data.getNodeIds().get(i))
+                .set("TITLE", i -> data.getNodeNames().get(i));
 
         RustTemplate.TREE_CONSTANTS.render(options);
     }

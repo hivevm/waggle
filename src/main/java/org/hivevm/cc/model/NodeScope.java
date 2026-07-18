@@ -5,17 +5,9 @@ package org.hivevm.cc.model;
 
 import org.hivevm.cc.parser.ParserDescriptor;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 public class NodeScope {
-
-    private static final List<String> nodeIds = new ArrayList<>();
-    private static final List<String> nodeNames = new ArrayList<>();
-    private static final Set<String> nodeSeen = new LinkedHashSet<>();
 
     private final NodeDescriptor node_descriptor;
     private final int scopeNumber;
@@ -26,7 +18,6 @@ public class NodeScope {
 
     protected NodeScope(NodeConfig config, Function<NodeScope, Integer> scope_number) {
         this.node_descriptor = config.node_descriptor();
-        setId(config.id());
 
         this.scopeNumber = scope_number.apply(this);
         this.nodeVar = constructVariable("n");
@@ -42,11 +33,9 @@ public class NodeScope {
             var nd = new ParserDescriptor(/*p.jjtParser(), NodeType.JJTNODEDESCRIPTOR*/);
             nd.setName(nm);
 //                nd.setFaked();
-            setId(nm); //NodeScope.setNodeId(nm);
             this.node_descriptor = nd;
         } else {
             this.node_descriptor = n;
-            setId(n.getName());
         }
 
         this.scopeNumber = p.getNodeScopeNumber(this);
@@ -86,33 +75,6 @@ public class NodeScope {
 
     public static NodeScope create(BNFProduction p, NodeDescriptor nd) {
         return new NodeScope(p, nd);
-    }
-
-    public void setId(String name) {
-        var nodeId = NodeDescriptor.getNodeId(name);
-        if (NodeScope.nodeSeen.add(nodeId)) {
-            NodeScope.nodeNames.add(name);
-            NodeScope.nodeIds.add(nodeId);
-        }
-    }
-
-    /**
-     * Discards the nodes collected for the previous grammar. Must run before each generation, since
-     * the collected nodes are static and several grammars are generated in one process (the Gradle
-     * plugin runs every task in a single JVM).
-     */
-    public static void reInit() {
-        NodeScope.nodeIds.clear();
-        NodeScope.nodeNames.clear();
-        NodeScope.nodeSeen.clear();
-    }
-
-    public static List<String> getNodeIds() {
-        return NodeScope.nodeIds;
-    }
-
-    public static List<String> getNodeNames() {
-        return NodeScope.nodeNames;
     }
 
     public record NodeConfig(String id, NodeDescriptor node_descriptor) {

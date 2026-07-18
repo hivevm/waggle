@@ -8,7 +8,6 @@ import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.model.*;
 import org.hivevm.cc.parser.JavaCCData;
 import org.hivevm.cc.parser.RegExprSpec;
-import org.hivevm.cc.parser.Token;
 
 import java.util.Iterator;
 
@@ -25,34 +24,11 @@ class JJDoc extends JJDocGlobals {
         JJDocGlobals.generator.documentEnd();
     }
 
-    private static Token getPrecedingSpecialToken(Token tok) {
-        Token t = tok;
-        while (t.specialToken != null) {
-            t = t.specialToken;
-        }
-        return (t != tok) ? t : null;
-    }
-
-    private static void emitTopLevelSpecialTokens(Token tok) {
-        if (tok == null)
-            // Strange ...
-            return;
-        JJDoc.getPrecedingSpecialToken(tok);
-    }
-
-    /*
-     * private static boolean toplevelExpansion(Expansion exp) { return exp.parent != null && (
-     * (exp.parent instanceof NormalProduction) || (exp.parent instanceof TokenProduction) ); }
-     */
 
     private static void emitTokenProductions(Generator gen, Iterable<TokenProduction> prods) {
         gen.tokensStart();
-        // FIXME there are many empty productions here
         for (TokenProduction tp : prods) {
-            JJDoc.emitTopLevelSpecialTokens(tp.getFirstToken());
-
             gen.handleTokenProduction(tp);
-
         }
         gen.tokensEnd();
     }
@@ -99,7 +75,6 @@ class JJDoc extends JJDocGlobals {
     private static void emitNormalProductions(Generator gen, Iterable<NormalProduction> prods) {
         gen.nonterminalsStart();
         for (NormalProduction np : prods) {
-            JJDoc.emitTopLevelSpecialTokens(np.getFirstToken());
             if (np instanceof BNFProduction) {
                 gen.productionStart(np);
                 if (np.getExpansion() instanceof Choice c) {
@@ -210,7 +185,7 @@ class JJDoc extends JJDocGlobals {
     }
 
     private static String emitRE(RExpression re) {
-        String returnString = "";
+        StringBuilder returnString = new StringBuilder();
         boolean hasLabel = !re.getLabel().isEmpty();
         boolean justName = re instanceof RJustName;
         boolean eof = re instanceof REndOfFile;
@@ -218,107 +193,107 @@ class JJDoc extends JJDocGlobals {
         boolean toplevelRE = (re.getTokenKind() != null);
         boolean needBrackets = justName || eof || hasLabel || (!isString && toplevelRE);
         if (needBrackets) {
-            returnString += "<";
+            returnString.append("<");
             if (!justName) {
                 if (re.isPrivateExp()) {
-                    returnString += "#";
+                    returnString.append("#");
                 }
                 if (hasLabel) {
-                    returnString += re.getLabel();
-                    returnString += ": ";
+                    returnString.append(re.getLabel());
+                    returnString.append(": ");
                 }
             }
         }
         switch (re) {
             case RCharacterList cl -> {
                 if (cl.isNegated_list()) {
-                    returnString += "~";
+                    returnString.append("~");
                 }
-                returnString += "[";
+                returnString.append("[");
                 for (Iterator<Object> it = cl.getDescriptors().iterator(); it.hasNext(); ) {
                     Object o = it.next();
                     if (o instanceof SingleCharacter c) {
-                        returnString += "\"";
+                        returnString.append("\"");
                         char[] s = {c.getChar()};
-                        returnString += Encoding.escape(new String(s));
-                        returnString += "\"";
+                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append("\"");
                     } else if (o instanceof CharacterRange range) {
-                        returnString += "\"";
+                        returnString.append("\"");
                         char[] s = {range.getLeft()};
-                        returnString += Encoding.escape(new String(s));
-                        returnString += "\"-\"";
+                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append("\"-\"");
                         s[0] = range.getRight();
-                        returnString += Encoding.escape(new String(s));
-                        returnString += "\"";
+                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append("\"");
                     } else {
                         JJDocGlobals.error("Oops: unknown character list element type.");
                     }
                     if (it.hasNext())
-                        returnString += ",";
+                        returnString.append(",");
                 }
-                returnString += "]";
+                returnString.append("]");
             }
             case RChoice c -> {
                 for (Iterator<RExpression> it = c.getChoices().iterator(); it.hasNext(); ) {
                     RExpression sub = it.next();
-                    returnString += JJDoc.emitRE(sub);
+                    returnString.append(JJDoc.emitRE(sub));
                     if (it.hasNext())
-                        returnString += " | ";
+                        returnString.append(" | ");
                 }
             }
-            case REndOfFile rEndOfFile -> returnString += "EOF";
-            case RJustName jn -> returnString += jn.getLabel();
+            case REndOfFile rEndOfFile -> returnString.append("EOF");
+            case RJustName jn -> returnString.append(jn.getLabel());
             case ROneOrMore om -> {
-                returnString += "(";
-                returnString += JJDoc.emitRE(om.getRegexpr());
-                returnString += ")+";
+                returnString.append("(");
+                returnString.append(JJDoc.emitRE(om.getRegexpr()));
+                returnString.append(")+");
             }
             case RSequence s -> {
                 for (Iterator<RExpression> it = s.getUnits().iterator(); it.hasNext(); ) {
                     RExpression sub = it.next();
                     boolean needParens = sub instanceof RChoice;
                     if (needParens) {
-                        returnString += "(";
+                        returnString.append("(");
                     }
-                    returnString += JJDoc.emitRE(sub);
+                    returnString.append(JJDoc.emitRE(sub));
                     if (needParens) {
-                        returnString += ")";
+                        returnString.append(")");
                     }
                     if (it.hasNext()) {
-                        returnString += " ";
+                        returnString.append(" ");
                     }
                 }
             }
-            case RStringLiteral sl -> returnString += ("\"" + Encoding.escape(sl.getImage()) + "\"");
+            case RStringLiteral sl -> returnString.append("\"").append(Encoding.escape(sl.getImage())).append("\"");
             case RZeroOrMore zm -> {
-                returnString += "(";
-                returnString += JJDoc.emitRE(zm.getRegexpr());
-                returnString += ")*";
+                returnString.append("(");
+                returnString.append(JJDoc.emitRE(zm.getRegexpr()));
+                returnString.append(")*");
             }
             case RZeroOrOne zo -> {
-                returnString += "(";
-                returnString += JJDoc.emitRE(zo.getRegexpr());
-                returnString += ")?";
+                returnString.append("(");
+                returnString.append(JJDoc.emitRE(zo.getRegexpr()));
+                returnString.append(")?");
             }
             case RRepetitionRange zo -> {
-                returnString += "(";
-                returnString += JJDoc.emitRE(zo.getRegexpr());
-                returnString += ")";
-                returnString += "{";
+                returnString.append("(");
+                returnString.append(JJDoc.emitRE(zo.getRegexpr()));
+                returnString.append(")");
+                returnString.append("{");
                 if (zo.hasMax()) {
-                    returnString += zo.getMin();
-                    returnString += ",";
-                    returnString += zo.getMax();
+                    returnString.append(zo.getMin());
+                    returnString.append(",");
+                    returnString.append(zo.getMax());
                 } else {
-                    returnString += zo.getMin();
+                    returnString.append(zo.getMin());
                 }
-                returnString += "}";
+                returnString.append("}");
             }
             default -> JJDocGlobals.error("Oops: Unknown regular expression type.");
         }
         if (needBrackets) {
-            returnString += ">";
+            returnString.append(">");
         }
-        return returnString;
+        return returnString.toString();
     }
 }
