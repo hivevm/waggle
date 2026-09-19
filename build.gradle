@@ -54,7 +54,9 @@ sourceSets {
     main {
         java {
             srcDirs += 'src/main/gradle'
-            srcDirs += 'src/main/generated'
+            // The generated parser (src/main/generated) is the output of generateParser. Adding the
+            // task instead of the bare path makes compileJava and sourcesJar depend on it.
+            srcDir(tasks.named('generateParser'))
         }
         resources {
         }

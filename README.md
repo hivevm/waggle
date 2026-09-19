@@ -60,7 +60,7 @@ generation unit — it is an ordinary `task` whose grammar happens to use `#Node
 
 ~~~
 plugins {
-  id "org.hivevm.waggle" version "1.0.11"
+  id "org.hivevm.waggle" version "1.0.0"
 }
 
 parserProject {
