@@ -3,10 +3,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC___CPP_DEFINE___TREECONSTANTS_H
-#define JAVACC___CPP_DEFINE___TREECONSTANTS_H
+#ifndef WAGGLE___CPP_DEFINE___TREECONSTANTS_H
+#define WAGGLE___CPP_DEFINE___TREECONSTANTS_H
 
-#include "JavaCC.h"
+#include "Waggle.h"
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {
 //@fi

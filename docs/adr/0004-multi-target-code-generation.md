@@ -18,10 +18,10 @@ language-independent and must be shared; only the back end (emitting source) is 
 We separate a **shared, language-independent front end** from **pluggable per-language back ends**
 selected at runtime through a service-provider interface:
 
-1. The output language is the enum [`org.hivevm.cc.Language`](../../src/main/java/org/hivevm/cc/Language.java)
+1. The output language is the enum [`org.hivevm.cc.Language`](../../src/main/java/org/hivevm/waggle/Language.java)
    (`JAVA`, `CPP`, `RUST`), chosen via the `CODE_GENERATOR` option (default `java`).
 2. Back ends implement the
-   [`org.hivevm.cc.generator.Generator`](../../src/main/java/org/hivevm/cc/generator/Generator.java)
+   [`org.hivevm.cc.generator.Generator`](../../src/main/java/org/hivevm/waggle/generator/Generator.java)
    interface, which produces the three sub-generators — `NodeGenerator`, `LexerGenerator`,
    `ParserGenerator`.
 3. Back ends are registered as **Java `ServiceLoader` providers** in

@@ -3,10 +3,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_STRINGREADER
-#define JAVACC_STRINGREADER
+#ifndef WAGGLE_STRINGREADER
+#define WAGGLE_STRINGREADER
 
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Reader.h"
 
 //@if(CPP_NAMESPACE)

@@ -11,7 +11,7 @@ import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Nested;
 
-import org.hivevm.cc.Language;
+import org.hivevm.waggle.Language;
 
 public abstract class ParserProject {
 

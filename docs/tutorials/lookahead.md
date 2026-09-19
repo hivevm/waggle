@@ -1,6 +1,6 @@
 # Lookahead
 
-HiveVM CC generates **top-down, recursive-descent** parsers. At every point where the grammar offers
+HiveVM Waggle generates **top-down, recursive-descent** parsers. At every point where the grammar offers
 more than one way forward, the parser must decide which way to go *without* backtracking. It does so
 by looking a little way ahead in the token stream. This page explains where those decisions happen,
 how the default works, and how to guide it with `LOOKAHEAD`.
@@ -50,7 +50,7 @@ Prefer this whenever it is natural; it is faster and clearer than an explicit lo
 ## Guiding the parser with `LOOKAHEAD`
 
 When refactoring is not practical, place a `LOOKAHEAD( … )` hint at the start of the alternative (or
-of the `?`/`*`/`+` body) to tell the parser how to decide. HiveVM CC supports the same forms as
+of the `?`/`*`/`+` body) to tell the parser how to decide. HiveVM Waggle supports the same forms as
 JavaCC.
 
 ### Numeric lookahead

@@ -11,7 +11,7 @@ namespace __CPP_NAMESPACE__ {
 
 JJString TokenManagerError::lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, const JJString& errorAfter, JJChar curChar) {
 	JJString s;
-#if (JAVACC_CHAR_TYPE_SIZEOF == 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
 	s += "Lexical error at line ";
 	s += std::to_string(errorLine);
 	s += ":";
@@ -69,7 +69,7 @@ static char hexChar(int i) {
 	 * Replaces unprintable characters by their escaped (or unicode escaped)
 	 * equivalents in the given string
 	 */
-#if (JAVACC_CHAR_TYPE_SIZEOF == 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
 #define JJB "\\b"
 #define JJT "\\t"
 #define JJN "\\n"

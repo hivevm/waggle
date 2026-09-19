@@ -1,5 +1,5 @@
 {
-  "name": "HiveVM CC DevContainer",
+  "name": "HiveVM Waggle DevContainer",
   "image": "mcr.microsoft.com/devcontainers/java:25",
   "runArgs": [
     "--network=host"

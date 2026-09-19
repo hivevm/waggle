@@ -3,10 +3,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC___CPP_DEFINE__
-#define JAVACC___CPP_DEFINE__
+#ifndef WAGGLE___CPP_DEFINE__
+#define WAGGLE___CPP_DEFINE__
 
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Reader.h"
 #include "Token.h"
 #include "TokenManager.h"

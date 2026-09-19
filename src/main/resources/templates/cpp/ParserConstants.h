@@ -6,10 +6,10 @@
 /**
  * Token literal values and constants.
  */
-#ifndef JAVACC_PARSER_CONSTANTS
-#define JAVACC_PARSER_CONSTANTS
+#ifndef WAGGLE_PARSER_CONSTANTS
+#define WAGGLE_PARSER_CONSTANTS
 
-#include "JavaCC.h"
+#include "Waggle.h"
 
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {

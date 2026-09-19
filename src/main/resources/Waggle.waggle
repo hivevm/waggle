@@ -1,0 +1,870 @@
+grammar Waggle;
+
+options {
+  JAVA_PACKAGE: "org.hivevm.waggle.parser",
+  JAVA_IMPORTS: "java.util.ArrayList,java.util.List,org.hivevm.waggle.model.*",
+  BASE_PARSER: "AbstractJavaCCParser"
+}
+
+/************************************************
+ * THE WAGGLE GRAMMAR SPECIFICATION STARTS HERE *
+ ************************************************/
+javacc_input =
+  < _GRAMMAR > <IDENTIFIER> <? setParserName(getToken(0)); ?> < SEMICOLON >
+  [ < _OPTIONS > < LBRACE > option_binding() (< COMMA > option_binding())* < RBRACE > ]
+  ( ( regular_expr_production() | bnf_production() ) < SEMICOLON > ) +
+  <EOF>
+;
+
+option_binding =
+  <? Token t = getToken(1); ?>
+  <IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
+  <? setInputOption(t, getToken(0)); ?>
+;
+
+bnf_production =
+<?
+	var t = getToken(1);
+	String name;
+	Expansion e;
+	var p = new BNFProduction();
+	p.setFirstToken(t);
+	p.setLocation(t);
+	p.setThrowsList(new ArrayList<>());
+?>
+  name=identifier() <? p.setLhs(name); ?>
+  [ < LPAREN > [ FormalParameters(p.getParameterListTokens()) ] < RPAREN > ]
+  [ < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ]
+  [ node_descriptor(p, p) ]
+  < ASSIGN >
+  e=expansion_choices(p)
+<?
+	production_addexpansion(p, e);
+	addproduction(p);
+?>
+;
+
+regular_expr_production =
+<?
+	List<String> states;
+	var t = getToken(1);
+	var p = new TokenProduction();
+	p.setFirstToken(t);
+	p.setLocation(t);
+?>
+  regexpr_kind(p)
+  [
+    LOOKAHEAD(2) < LT > < STAR > < GT > <? p.setLexStates(null); ?>
+  | < LT > <? states = new ArrayList<>(); ?> t=<IDENTIFIER> <? states.add(t.image); ?>
+      ( < COMMA > t=<IDENTIFIER> <? states.add(t.image); ?> ) *
+    < GT >
+<?
+	p.setLexStates(new String[states.size()]);
+	for (int i = 0; i < states.size(); i++)
+		p.setLexState(states.get(i), i);
+?>
+  ]
+  [ < LBRACKET > t=< _IGNORE_CASE > < RBRACKET > <? p.setIgnoreCase(true); ?> ]
+  < ASSIGN > regexpr_spec(p) ( < BIT_OR > regexpr_spec(p) )* <? addregexpr(p); ?>
+;
+
+/*
+ * Sets the kind on "p" rather than returning a TokenKind: a "return" inside a choice
+ * alternative generates unreachable code, so returning would need a local plus a
+ * trailing action, which is longer than just assigning here.
+ */
+regexpr_kind(TokenProduction p) =
+  < _TOKEN > <? p.setKind(TokenKind.TOKEN); ?>
+| < _SPECIAL_TOKEN > <? p.setKind(TokenKind.SPECIAL); ?>
+| < _SKIP > <? p.setKind(TokenKind.SKIP); ?>
+| < _MORE > <? p.setKind(TokenKind.MORE); ?>
+;
+
+regexpr_spec(TokenProduction p) =
+<?
+	RExpression re;
+	var a = new Action();
+	Token t = null;
+?>
+  re=regular_expression()
+<?
+	var res = new RegExprSpec(re, p);
+?>
+  [ <? t = getToken(1); ?> Statement(a.getActionTokens())
+<?
+	if (res.rexp.isPrivateExp())
+		JavaCCErrors.parse_error(t, "Actions are not permitted on private (#) regular expressions.");
+?>
+  ]
+  [ < COLON > t=<IDENTIFIER>
+<?
+	res.nextState = t.image;
+	if (res.rexp.isPrivateExp())
+		JavaCCErrors.parse_error(t, "Lexical state changes are not permitted after private (#) regular expressions.");
+?>
+  ]
+<?
+	res.act = a;
+	res.nsTok = t;
+	p.getRespecs().add(res);
+?>
+;
+
+expansion_choices(BNFProduction p) : Expansion =
+<?
+	Expansion e;
+	var choices = new ArrayList<Expansion>();
+?>
+  e=expansion(p) <? choices.add(e); ?>
+  ( < BIT_OR > e=expansion(p) <? choices.add(e); ?> )*
+<?
+	return Choice.of(choices);
+?>
+;
+
+expansion(BNFProduction p) : Expansion =
+<?
+	Expansion exp = null;
+	var t = getToken(1);
+	var seq = new Sequence();
+	seq.setLocation(t);
+	var la = new Lookahead();
+	la.setLocation(t);
+	la.setAmount(getOptions().getLookahead());
+	la.setLaExpansion(null);
+	la.setExplicit(false);
+?>
+  ( LOOKAHEAD(1)
+    t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
+<?
+	if (inLocalLA != 0 && la.getAmount() != 0)
+		JavaCCErrors.warning(t, "Only semantic lookahead specifications within other lookahead specifications is considered.  Syntactic lookahead is ignored.");
+?>
+  )?
+<?
+	seq.getUnits().add(la);
+?>
+  ( LOOKAHEAD(0, { notTailOfExpansionUnit() } )
+    exp=expansion_unit(p)
+<?
+	seq.getUnits().add(exp);
+	exp.setParent(seq, seq.getUnits().size() - 1);
+?>
+    [ node_descriptor(exp, p) ]
+  )+
+<?
+	if (la.getLaExpansion() == null)
+		la.setLaExpansion(seq);
+	return seq;
+?>
+;
+
+local_lookahead(BNFProduction p) : Lookahead =
+<?
+	var la = new Lookahead();
+	la.setExplicit(true);
+	la.setLaExpansion(null);
+	la.setLocation(getToken(1));
+	Expansion e;
+	boolean commaAtEnd = false;
+	boolean emptyLA = true;
+	int laAmount;
+	inLocalLA++;
+?>
+  [
+    /*
+     * The lookahead of 1 is to turn off the warning message that lets
+     * us know that an expansion choice can also start with an integer
+     * literal because a primary expression can do the same.  But we
+     * know that this is what we want.
+     */
+    LOOKAHEAD(1) laAmount = IntegerLiteral()
+<?
+	emptyLA = false;
+	la.setAmount(laAmount);
+?>
+  ]
+  [ LOOKAHEAD(0, { checkEmptyLA(emptyLA, getToken(1)) } ) < COMMA > <? commaAtEnd = true; ?> ]
+  [ LOOKAHEAD(0, { checkEmpty(getToken(1)) } ) e=expansion_choices(p)
+<?
+	emptyLA = false; commaAtEnd = false;
+	la.setLaExpansion(e);
+?>
+  ]
+  [ LOOKAHEAD(0, { checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1)) } ) < COMMA > <? commaAtEnd = true; ?> ]
+  [ LOOKAHEAD(0, { checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd) } )
+    < LBRACE >
+    [ <? var first = getToken(1); ?>
+      PrimaryExpression()
+      <? collectTokens(la.getActionTokens(), first, getToken(0)); ?>
+    ]
+    < RBRACE >
+<?
+	if (emptyLA)
+		la.setAmount(0);
+?>
+  ]
+<?
+	inLocalLA--;
+	return la;
+?>
+;
+
+expansion_unit(BNFProduction p) : Expansion =
+<?
+	String name;
+	var lhsTokens = new ArrayList<Token>();
+	Expansion e = null;
+	RExpression re = null;
+	NonTerminal nt;
+	Action act;
+	Token t;
+	Lookahead la;
+?>
+(
+  LOOKAHEAD(1)
+  /*
+   * We give this priority over primary expressions which use LOOKAHEAD as the
+   * name of its identifier.
+   */
+  t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
+<?
+	// Now set the la_expansion field of la with a dummy
+	// expansion (we use EOF).
+	la.setLaExpansion(new REndOfFile());
+	// Create a singleton choice with an empty action.
+	var ch = new Choice();
+	ch.setLocation(t);
+	var seq = new Sequence();
+	seq.setLocation(t);
+	seq.getUnits().add(la);
+	la.setParent(seq, 0);
+	act = new Action();
+	act.setLocation(t);
+	seq.getUnits().add(act);
+	act.setParent(seq, 1);
+	ch.getChoices().add(seq);
+	seq.setParent(ch, 0);
+	if (la.getAmount() != 0) {
+		if (!la.getActionTokens().isEmpty())
+			JavaCCErrors.warning(t, "Encountered LOOKAHEAD(...) at a non-choice location.  Only semantic lookahead will be considered here.");
+		else
+			JavaCCErrors.warning(t, "Encountered LOOKAHEAD(...) at a non-choice location.  This will be ignored.");
+	}
+	e = ch;
+?>
+| <?
+	act = new Action();
+	t = getToken(1);
+	act.setLocation(t);
+?>
+  Statement(act.getActionTokens())
+<?
+	if (inLocalLA != 0)
+		JavaCCErrors.warning(t, "Action within lookahead specification will be ignored.");
+	e = act;
+?>
+| t=< LBRACKET > e=expansion_choices(p) < RBRACKET >
+<?
+	e = new ZeroOrOne(e);
+	e.setLocation(t);
+?>
+|
+  LOOKAHEAD(
+    identifier()
+  | StringLiteral()
+  | < LT >
+  | PrimaryExpression() < ASSIGN >
+  )
+  [
+    LOOKAHEAD(PrimaryExpression() < ASSIGN >)
+<?
+	var first = getToken(1);
+?>
+    PrimaryExpression()
+<?
+	var last = getToken(0);
+?>
+    < ASSIGN >
+<?
+	collectTokens(lhsTokens, first, last);
+?>
+  ]
+  (
+	LOOKAHEAD( identifier() < LPAREN >)
+<?
+	  t = getToken(1);
+	  nt = new NonTerminal();
+	  nt.setLocation(t);
+	  nt.setLhsTokens(lhsTokens);
+?>
+    name=identifier() Arguments(nt.getArgumentTokens())
+<?
+	  nt.setName(name);
+	  e = nt;
+?>
+  | re=regular_expression()
+<?
+	  re.setLhsTokens(lhsTokens);
+	  add_inline_regexpr(re);
+	  e = re;
+?>
+	[ < DOT > t=<IDENTIFIER> <? re.setRhsToken(t); ?> ]
+  )
+|
+  t=< LPAREN > e=expansion_choices(p) < RPAREN >
+  (
+     < PLUS > <? e = new OneOrMore(e); e.setLocation(t); ?>
+   | < STAR > <? e = new ZeroOrMore(e); e.setLocation(t); ?>
+   | < HOOK > <? e = new ZeroOrOne(e); e.setLocation(t); ?>
+  )?
+)
+<?
+	return e;
+?>
+;
+
+regular_expression() : RExpression =
+<?
+	REndOfFile ef;
+	RExpression re = null;
+	String image;
+	boolean private_rexp = false;
+	var t = getToken(1);
+?>
+(
+  image=StringLiteral()
+<?
+	re = new RStringLiteral(image);
+	re.setLocation(t);
+?>
+| LOOKAHEAD(3)
+<?
+	image = "";
+?>
+  < LT >
+  [
+    [ < HASH >
+<?
+	  private_rexp = true;
+?>
+    ]
+    image=identifier() < COLON >
+  ]
+  re=complex_regular_expression_choices() < GT >
+<?
+	if (re instanceof RJustName m) {
+		var seq = new RSequence();
+		seq.getUnits().add(m);
+		re = seq;
+	}
+	re.setLabel(image);
+	re.setPrivateRegExp(private_rexp);
+	re.setLocation(t);
+?>
+| LOOKAHEAD(2)
+  < LT > image=identifier() < GT >
+<?
+	re = new RJustName(image);
+	re.setLocation(t);
+?>
+| < LT > < _EOF > < GT >
+<?
+	ef = new REndOfFile();
+	ef.setLocation(t);
+	ef.setOrdinal(0);
+	re = ef;
+?>
+)
+<?
+	return re;
+?>
+;
+
+complex_regular_expression_choices() : RExpression =
+<?
+	RExpression re;
+	var choices = new ArrayList<RExpression>();
+?>
+  re=complex_regular_expression() <? choices.add(re); ?>
+  ( < BIT_OR > re=complex_regular_expression() <? choices.add(re); ?> )*
+<?
+	return RChoice.of(choices);
+?>
+;
+
+complex_regular_expression() : RExpression =
+<?
+	RExpression re;
+	var units = new ArrayList<RExpression>();
+?>
+  ( re=complex_regular_expression_unit() <? units.add(re); ?> )+
+<?
+	return RSequence.of(units);
+?>
+;
+
+complex_regular_expression_unit() : RExpression =
+<?
+	String image;
+	RExpression re = null;
+	var t = getToken(1);
+	int r1 = 0, r2 = -1;
+	boolean hasMax = false;
+?>
+(
+  image=StringLiteral()
+<?
+	re = new RStringLiteral(image);
+	re.setLocation(t);
+?>
+| < LT > image=identifier() < GT >
+<?
+	re = new RJustName(image);
+	re.setLocation(t);
+?>
+| re=character_list()
+| < LPAREN > re=complex_regular_expression_choices() < RPAREN >
+  (  < PLUS >
+<?
+	re = new ROneOrMore(re);
+	re.setLocation(t);
+?>
+   | < STAR >
+<?
+	re = new RZeroOrMore(re);
+	re.setLocation(t);
+?>
+   | < HOOK >
+<?
+	re = new RZeroOrOne(re);
+	re.setLocation(t);
+?>
+   | < LBRACE > r1 = IntegerLiteral()
+      [ < COMMA > <? hasMax = true; ?> [ r2 = IntegerLiteral() ] ]
+     < RBRACE >
+<?
+	re = new RRepetitionRange(re, r1, r2, hasMax);
+	re.setLocation(t);
+?>
+  )?
+)
+<?
+	return re;
+?>
+;
+
+character_list() : RExpression =
+<?
+	var p = new RCharacterList();
+	var t = getToken(1);
+	p.setLocation(t);
+	Production d;
+?>
+  [ < TILDE > <? p.setNegatedList(); ?> ]
+  < LBRACKET > [ d=character_descriptor()
+<?
+	p.getDescriptors().add(d);
+?>
+  ( < COMMA > d=character_descriptor()
+<?
+	p.getDescriptors().add(d);
+?>
+  )*
+  ]
+  < RBRACKET >
+<?
+	return p;
+?>
+;
+
+character_descriptor() : Production =
+<?
+	String imageL, imageR;
+	Production d;
+	var t = getToken(1);
+?>
+  imageL=StringLiteral()
+<?
+	char c1 = character_descriptor_assign(getToken(0), imageL);
+	d = new SingleCharacter(c1);
+?>
+  [ < MINUS > imageR=StringLiteral()
+<?
+	char c2 = character_descriptor_assign(getToken(0), imageR, imageL);
+	d = new CharacterRange(c1, c2);
+?>
+  ]
+<?
+	d.setLocation(t);
+	return d;
+?>
+;
+
+identifier() : String =
+  <IDENTIFIER>
+<?
+	return getToken(0).image;
+?>
+;
+
+/**********************************************
+ * THE JJTREE PRODUCTIONS START HERE       *
+ **********************************************/
+
+node_descriptor(Expansion exp, BNFProduction p) =
+<?
+	Token t;
+	var nd = new ParserDescriptor();
+?>
+  < HASH >
+  t=TypeParameter() <? nd.setName(t.image); ?>
+  [
+   LOOKAHEAD(1)
+   < LPAREN >
+      [ < GT > <? nd.setGreaterThan(); ?> ]
+      value() <? nd.setExpressionText(getToken(0).image); ?>
+   < RPAREN >
+  ]
+<?
+  exp.setNodeScope(NodeScope.create(p, nd));
+?>
+;
+
+value = <INTEGER_LITERAL> | BooleanLiteral() ;
+
+/**********************************************
+ * THE JAVA GRAMMAR SPECIFICATION STARTS HERE *
+ **********************************************/
+
+/*
+ * The following production defines Java identifiers - it
+ * includes the reserved words of JavaCC also.
+ */
+
+TypeParameter() : Token =
+(
+  <IDENTIFIER>
+| < _LOOKAHEAD >
+| < _IGNORE_CASE >
+| < _GRAMMAR >
+| < _OPTIONS >
+| < _TOKEN >
+| < _SPECIAL_TOKEN >
+| < _MORE >
+| < _SKIP >
+| < _EOF >
+)
+<?
+  var retval = getToken(0);
+  retval.kind = IDENTIFIER;
+  return retval;
+?>
+;
+
+/*
+ * Program structuring syntax follows.
+ */
+FormalParameters(List<Token> tokens) =
+/*
+ * Parsing this fills "tokens" with all tokens of the formal
+ * parameters excluding the parentheses at each end.
+ */
+<?
+	var first = getToken(1);
+?>
+  Type() TypeParameter() ( < COMMA > Type() TypeParameter() )*
+<?
+	collectTokens(tokens, first, getToken(0));
+?>
+;
+
+
+/*
+ * Type, name and expression syntax follows.
+ */
+Type =
+   LOOKAHEAD(2) ClassOrInterfaceType()
+ | PrimitiveType()
+;
+
+ClassOrInterfaceType =
+  <IDENTIFIER> [ LOOKAHEAD(2) TypeArguments() ]
+;
+
+TypeArguments =
+  < LT > [ ClassOrInterfaceType() ] < GT >
+;
+
+PrimitiveType =
+  < BOOLEAN >
+| < CHAR >
+| < INT >
+;
+
+/*
+ * A lookahead of 2 is required below since "Name" can be followed
+ * by a ".*" when used in the context of an "ImportDeclaration".
+ */
+Name =
+  TypeParameter()
+  ( LOOKAHEAD(2) < DOT > TypeParameter() )*
+;
+
+
+/*
+ * Expression syntax follows.
+ * Only a primary expression is supported: there is no operator syntax, so an
+ * argument or a semantic lookahead is a literal, a name, a call or an index.
+ */
+PrimaryExpression =
+  PrimaryPrefix() ( LOOKAHEAD(2) PrimarySuffix() )*
+;
+
+PrimaryPrefix =
+  Literal()
+| < LPAREN > PrimaryExpression() < RPAREN >
+| Name()
+;
+
+PrimarySuffix =
+  < LBRACKET > PrimaryExpression() < RBRACKET >
+| Arguments()
+;
+
+Literal =
+  < NULL >
+| <INTEGER_LITERAL>
+| <FLOATING_POINT_LITERAL>
+| <CHARACTER_LITERAL>
+| <STRING_LITERAL>
+| BooleanLiteral()
+;
+
+IntegerLiteral() : int = <INTEGER_LITERAL> <? return Integer.parseInt(token.image); ?> ;
+
+BooleanLiteral = < TRUE > | < FALSE > ;
+
+StringLiteral() : String = <STRING_LITERAL> <? return remove_escapes_and_quotes(this.token, this.token.image); ?> ;
+
+/*
+ * Parsing this fills "tokens" with all tokens of the arguments
+ * excluding the parentheses at each end.
+ *
+ * NOTE: this stays an out-parameter rather than returning List<Token>, because a
+ * generic return type is currently emitted as just its last token (">"): see
+ * bnf_production, which records only getToken(0) as the return type.
+ */
+Arguments(List<Token> tokens) =
+  < LPAREN >
+<?
+	var first = getToken(1);
+?>
+  [ PrimaryExpression() ( < COMMA > PrimaryExpression() )* ]
+<?
+	var last = getToken(0);
+?>
+  < RPAREN >
+<?
+	collectTokens(tokens, first, last);
+?>
+;
+
+/*
+ * An action: either the Java code between "<?" and "?>", or a brace block.
+ *
+ * The brace block matters for the empty action "{}", which is how an empty
+ * alternative is written (see the "#BNFParenthesized" branch in JJTree.waggle); it
+ * may only contain nested blocks, since Java code lives in "<? ... ?>".
+ * Parsing fills "tokens" with all tokens of the block, excluding the outer braces.
+ */
+Statement(List<Token> tokens) =
+  < ECODE_DATA > <? tokens.add(getToken(0)); ?> < ECODE_END >
+| < LBRACE >
+  <? var first = getToken(1); ?>
+  ( Statement() )*
+  <? var last = getToken(0); ?>
+  < RBRACE >
+<?
+	collectTokens(tokens, first, last);
+?>
+;
+
+/**********************************************
+ * THE WAGGLE TOKEN SPECIFICATION STARTS HERE *
+ **********************************************/
+
+/* WAGGLE RESERVED WORDS: These are the only tokens in Waggle but not in Java */
+
+TOKEN =
+  < _LOOKAHEAD: "LOOKAHEAD" >
+| < _IGNORE_CASE: "IGNORE_CASE" >
+| < _GRAMMAR: "grammar" >
+| < _OPTIONS: "options" >
+| < _TOKEN: "TOKEN" >
+| < _SPECIAL_TOKEN: "SPECIAL_TOKEN" >
+| < _MORE: "MORE" >
+| < _SKIP: "SKIP" >
+| < _EOF: "EOF" >
+;
+
+/*
+ * The remainder of the tokens are exactly (except for the removal of tokens
+ * as in the Java grammar and must be diff equivalent
+ * (again with the exceptions above) to it.
+ */
+
+/* WHITE SPACE */
+
+SKIP =
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+;
+
+/* COMMENTS */
+
+MORE =
+  "//" : IN_SINGLE_LINE_COMMENT
+| "/*" : IN_MULTI_LINE_COMMENT
+| "<?" : PARSER_CODE
+;
+
+
+SPECIAL_TOKEN <IN_SINGLE_LINE_COMMENT>= <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT ;
+SPECIAL_TOKEN <IN_MULTI_LINE_COMMENT>= <MULTI_LINE_COMMENT: "*/" > : DEFAULT ;
+
+TOKEN <PARSER_CODE>=
+  < ECODE_END: "?>" > : DEFAULT
+| < ECODE_DATA: (~["?"] | "?" ~[">"])+ >
+;
+
+MORE <IN_SINGLE_LINE_COMMENT,IN_MULTI_LINE_COMMENT>= < ~[] > ;
+
+/* JAVA RESERVED WORDS AND LITERALS */
+
+TOKEN =
+  < BOOLEAN: "boolean" >
+| < INT: "int" >
+| < CHAR: "char" >
+| < NULL: "null" >
+| < TRUE: "true" >
+| < FALSE: "false" >
+;
+
+/* JAVA LITERALS */
+
+TOKEN =
+  < INTEGER_LITERAL:
+      <DECIMAL_LITERAL> (["l","L"])?
+    | <HEX_LITERAL> (["l","L"])?
+    | <OCTAL_LITERAL> (["l","L"])?
+  >
+| < #DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* >
+| < #HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+ >
+| < #OCTAL_LITERAL: "0" (["0"-"7"])* >
+| < FLOATING_POINT_LITERAL:
+      <DECIMAL_FLOATING_POINT_LITERAL>
+    | <HEXADECIMAL_FLOATING_POINT_LITERAL>
+  >
+| < #DECIMAL_FLOATING_POINT_LITERAL:
+      (["0"-"9"])+ "." (["0"-"9"])* (<DECIMAL_EXPONENT>)? (["f","F","d","D"])?
+    | "." (["0"-"9"])+ (<DECIMAL_EXPONENT>)? (["f","F","d","D"])?
+    | (["0"-"9"])+ <DECIMAL_EXPONENT> (["f","F","d","D"])?
+    | (["0"-"9"])+ (<DECIMAL_EXPONENT>)? ["f","F","d","D"]
+  >
+| < #DECIMAL_EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+| < #HEXADECIMAL_FLOATING_POINT_LITERAL:
+     "0" ["x", "X"] (["0"-"9","a"-"f","A"-"F"])+ (".")? <HEXADECIMAL_EXPONENT> (["f","F","d","D"])?
+   | "0" ["x", "X"] (["0"-"9","a"-"f","A"-"F"])* "." (["0"-"9","a"-"f","A"-"F"])+ <HEXADECIMAL_EXPONENT> (["f","F","d","D"])?
+  >
+| < #HEXADECIMAL_EXPONENT: ["p","P"] (["+","-"])? (["0"-"9"])+ >
+| < CHARACTER_LITERAL:
+    "'"
+    ( (~["'","\\","\n","\r"])
+      | ("\\"
+        ( ["n","t","b","r","f","\\","'","\""]
+        | ["0"-"7"] ( ["0"-"7"] )?
+        | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+        )
+      )
+    )
+    "'"
+  >
+| < STRING_LITERAL:
+    "\""
+    ( (~["\"","\\","\n","\r"])
+      | ("\\"
+        ( ["n","t","b","r","f","\\","'","\""]
+        | ["0"-"7"] ( ["0"-"7"] )?
+        | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+        )
+      )
+    )*
+    "\""
+  >
+;
+
+/* SEPARATORS */
+
+TOKEN =
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < LBRACKET: "[" >
+| < RBRACKET: "]" >
+| < COMMA: "," >
+| < SEMICOLON: ";" >
+| < DOT: "." >
+;
+
+/* OPERATORS */
+
+TOKEN =
+  < ASSIGN: "=" >
+| < GT: ">" >
+| < LT: "<" >
+| < TILDE: "~" >
+| < HOOK: "?" >
+| < HASH: "#" >
+| < COLON: ":" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < STAR: "*" >
+| < BIT_OR: "|" >
+;
+
+/* IDENTIFIERS */
+
+TOKEN =
+  < IDENTIFIER: <LETTER> (<PART_LETTER>)* >
+| < #LETTER:
+    // Approximates Character.isIdentifierStart. Deliberately over-accepts: this is a
+    // strict superset of the per-script ranges it replaces, so every identifier that
+    // lexed before still lexes. No other token starts with a non-ASCII character.
+    [
+      "$",
+      "A"-"Z",
+      "_",
+      "a"-"z",
+      "\u00a2"-"\uffff"
+    ]
+  >
+| < #PART_LETTER:
+    // Approximates Character.isIdentifierPart, likewise a strict superset. The low
+    // ranges are the ignorable control characters Java counts as identifier parts.
+    [
+      "\u0000"-"\u0008",
+      "\u000e"-"\u001b",
+      "$",
+      "0"-"9",
+      "A"-"Z",
+      "_",
+      "a"-"z",
+      "\u007f"-"\uffff"
+    ]
+  >
+;

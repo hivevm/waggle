@@ -1,4 +1,4 @@
-name: HiveVM CC
+name: HiveVM Waggle
 run-name: Gitea Actions on ${{ forgejo.actor }}
 on:
   push:

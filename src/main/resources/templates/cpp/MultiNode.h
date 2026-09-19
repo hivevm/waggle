@@ -3,8 +3,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC___NODE_TYPE__
-#define JAVACC___NODE_TYPE__
+#ifndef WAGGLE___NODE_TYPE__
+#define WAGGLE___NODE_TYPE__
 
 #include "__NODE_CLASS__.h"
 

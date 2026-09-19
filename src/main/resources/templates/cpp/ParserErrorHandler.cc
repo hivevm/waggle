@@ -5,18 +5,18 @@
 
 #include "ParserErrorHandler.h"
 
-#if (JAVACC_CHAR_TYPE_SIZEOF != 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF != 1)
 #include <codecvt>
 #include <locale>
 #endif
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Token.h"
 
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {
 //@fi
 
-#if (JAVACC_CHAR_TYPE_SIZEOF != 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF != 1)
 using convert_t = std::codecvt_utf8<wchar_t>;
 static std::wstring_convert<convert_t, wchar_t> strconverter;
 
@@ -42,7 +42,7 @@ void ParserErrorHandler::unexpectedToken(const JJString& expectedImage, const JJ
 
 void ParserErrorHandler::parseError(const Token* last, const Token* unexpected, const Latin1 & production) {
 	error_count++;
-#if (JAVACC_CHAR_TYPE_SIZEOF == 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
 	const JJString& work = production;
 #else
 	const JJString& work = to_wstring(production);

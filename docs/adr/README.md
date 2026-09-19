@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory holds the **Architecture Decision Records (ADRs)** for HiveVM CC. An ADR captures a
+This directory holds the **Architecture Decision Records (ADRs)** for HiveVM Waggle. An ADR captures a
 single architecturally significant decision — one that is *costly to reverse* or *constrains future
 choices* — together with its context and consequences.
 
@@ -27,6 +27,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0011](0011-error-handling-contract.md) | Generation reports failure by throwing, never by exiting the JVM | 🟢 Accepted |
 | [0012](0012-lexer-owns-dfa-construction.md) | The lexer stage owns DFA construction; generators only render it | 🟢 Accepted |
 | [0013](0013-break-model-parser-dependency-cycle.md) | Break the `model` ↔ `parser` dependency cycle | 🟢 Accepted |
+| [0014](0014-rename-project-to-waggle.md) | Rename the project from HiveVM CC to HiveVM Waggle | 🟡 Proposed |
 
 ## Process
 

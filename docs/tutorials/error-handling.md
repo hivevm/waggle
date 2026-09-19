@@ -1,7 +1,7 @@
 # Error Handling
 
 Two things can go wrong while reading input: the **token manager** can hit characters that form no
-valid token, and the **parser** can hit a token that does not fit the grammar. HiveVM CC surfaces
+valid token, and the **parser** can hit a token that does not fit the grammar. HiveVM Waggle surfaces
 each as its own type, and lets you recover from parser errors so one mistake need not abort the whole
 parse. (Class names below are for the **Java** target; other targets provide equivalents.)
 
@@ -34,7 +34,7 @@ one pass instead of stopping at the first. The idea is always the same: catch th
 then advance the token stream to a **synchronisation token** (a point where parsing can safely resume,
 such as a statement-ending `;`), and continue.
 
-> HiveVM CC has **no `JAVACODE` productions**. Where JavaCC would use a `JAVACODE` routine for
+> HiveVM Waggle has **no `JAVACODE` productions**. Where JavaCC would use a `JAVACODE` routine for
 > recovery, write an ordinary helper method in the `BASE_PARSER` class and call it from an action, or
 > put the `try/catch` directly in an action.
 

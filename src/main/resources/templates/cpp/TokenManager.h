@@ -3,14 +3,14 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_TOKEN_MANAGER
-#define JAVACC_TOKEN_MANAGER
+#ifndef WAGGLE_TOKEN_MANAGER
+#define WAGGLE_TOKEN_MANAGER
 
 #include <iostream>
 //@if(LIBRARY)
 #include "ImportExport.h"
 //@fi
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Token.h"
 #include "TokenManagerErrorHandler.h"
 

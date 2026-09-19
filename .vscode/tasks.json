@@ -8,12 +8,12 @@
       "label": "H3QLTest",
       "type": "shell",
       "command": "./gradlew",
-      "args": [":test", "--tests", "org.hivevm.cc.H3QLTest"],
+      "args": [":test", "--tests", "org.hivevm.waggle.H3QLTest"],
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "cc [generateParser]",
+      "label": "waggle [generateParser]",
       "type": "shell",
       "command": "./gradlew",
       "args": ["generateParser"],
@@ -21,7 +21,7 @@
       "problemMatcher": []
     },
     {
-      "label": "cc [publishToMavenLocal]",
+      "label": "waggle [publishToMavenLocal]",
       "type": "shell",
       "command": "./gradlew",
       "args": ["publishToMavenLocal"],
@@ -33,7 +33,7 @@
       "label": "H3QLTest (debug)",
       "type": "shell",
       "command": "./gradlew",
-      "args": ["--console=plain", ":test", "--tests", "org.hivevm.cc.H3QLTest", "--debug-jvm"],
+      "args": ["--console=plain", ":test", "--tests", "org.hivevm.waggle.H3QLTest", "--debug-jvm"],
       "isBackground": true,
       "problemMatcher": {
         "owner": "gradle-debug",
@@ -46,9 +46,10 @@
       }
     },
     {
-      // generateParser runs inside Gradle (the org.hivevm.cc plugin, resolved from mavenLocal first),
-      // so the Gradle process itself is debugged; it suspends until a debugger attaches on port 5005.
-      "label": "cc [generateParser] (debug)",
+      // generateParser runs inside Gradle (the bootstrap plugin applied in build.gradle, resolved from
+      // mavenLocal first), so the Gradle process itself is debugged; it suspends until a debugger
+      // attaches on port 5005.
+      "label": "waggle [generateParser] (debug)",
       "type": "shell",
       "command": "./gradlew",
       "args": ["--console=plain", "-Dorg.gradle.debug=true", "--no-daemon", "generateParser"],

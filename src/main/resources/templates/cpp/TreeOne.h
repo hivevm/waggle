@@ -3,8 +3,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_TREE_ONE
-#define JAVACC_TREE_ONE
+#ifndef WAGGLE_TREE_ONE
+#define WAGGLE_TREE_ONE
 
 #include "Node.h"
 //@foreach(NODES)

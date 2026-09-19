@@ -23,8 +23,8 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.api.tasks.options.OptionValues;
 
-import org.hivevm.cc.Language;
-import org.hivevm.cc.ParserBuilder;
+import org.hivevm.waggle.Language;
+import org.hivevm.waggle.ParserBuilder;
 
 /**
  * The {@link ParserGenerator} class.

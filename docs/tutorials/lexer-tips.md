@@ -1,7 +1,7 @@
 # Lexer Tips
 
 A grammar spends most of its runtime in the [token manager](token-manager.md). A few habits keep it
-fast, small, and unambiguous. These tips are adapted to HiveVM CC's lexical syntax (`.lex` files with
+fast, small, and unambiguous. These tips are adapted to HiveVM Waggle's lexical syntax (`.lex` files with
 `TOKEN` / `SKIP` / `SPECIAL_TOKEN` / `MORE`, lexical states, and `[IGNORE_CASE]`).
 
 ## Regular expressions

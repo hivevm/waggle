@@ -1,0 +1,45 @@
+package org.hivevm.waggle;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+/**
+ * Tests for option handling.
+ */
+class WaggleOptionsTest {
+
+    /**
+     * A list-valued option must not blow up.
+     *
+     * <p>{@code setOption} unwrapped a list into its first element, but then cast the <em>original</em>
+     * value to Integer, so a list whose first element is a number threw a ClassCastException.
+     */
+    @Test
+    void listValuedOptionIsAccepted() {
+        var options = new WaggleOptions();
+        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, List.of(3));
+
+        assertEquals(List.of(3), options.get(Waggle.JJPARSER_LOOKAHEAD));
+    }
+
+    /** A non-positive integer is rejected, and the previous value survives. */
+    @Test
+    void nonPositiveIntegerIsIgnored() {
+        var options = new WaggleOptions();
+        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, 0);
+
+        assertEquals(1, options.getLookahead(), "a lookahead of 0 must be ignored");
+    }
+
+    /** A positive integer is taken. */
+    @Test
+    void positiveIntegerIsTaken() {
+        var options = new WaggleOptions();
+        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, 5);
+
+        assertEquals(5, options.getLookahead());
+    }
+}

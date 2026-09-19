@@ -6,7 +6,7 @@
 #ifndef __CPP_DEFINE___VISITOR
 #define __CPP_DEFINE___VISITOR
 
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "__PARSER_NAME__Tree.h"
 
 //@if(CPP_NAMESPACE)

@@ -1,6 +1,7 @@
 plugins {
     id 'com.gradle.plugin-publish' version '2.1.1'
-    id 'org.hivevm.cc' version '1.0.11'
+    // Bootstrap: the published generator regenerates this project's own parser (ADR-0009).
+    id 'org.hivevm.waggle' version '1.0.12'
     id 'java-gradle-plugin'
     id 'maven-publish'
 }
@@ -18,7 +19,7 @@ repositories {
 }
 
 
-version = '1.0.11'
+version = '1.0.12'
 group	= 'org.hivevm'
 
 
@@ -74,26 +75,26 @@ test {
 
 jar {
     manifest {
-        attributes 'Implementation-Title': 'HiveVM Compiler Compiler'
+        attributes 'Implementation-Title': 'HiveVM Waggle'
         attributes 'Implementation-Version': project.version
     }
 
-    exclude('JavaCC.jj')
-    exclude('JJTree.jjt')
+    exclude('Waggle.waggle')
+    exclude('JJTree.waggle')
 }
 
 
 // Configured to publish your plugin to the plugin portal
 gradlePlugin {
   website = 'https://www.hivevm.org'
-  vcsUrl  = 'https://github.com/hivevm/cc.git'
+  vcsUrl  = 'https://github.com/hivevm/waggle.git'
   plugins {
     create("gradle") {
-      id = 'org.hivevm.cc'
-            displayName = 'HiveVM CC'
+      id = 'org.hivevm.waggle'
+            displayName = 'HiveVM Waggle'
             description = 'HiveVM parser generator for Java/C++/Rust'
-            implementationClass = 'org.hivevm.gradle.HiveCCPlugin'
-            tags.set(["hivevm", "compiler-compiler", "parser generator"])
+            implementationClass = 'org.hivevm.gradle.WagglePlugin'
+            tags.set(["hivevm", "waggle", "parser generator"])
         }
     }
 }
@@ -105,25 +106,25 @@ parserProject {
 
   task {
     name       = 'tree'
-    file       = 'src/main/resources/JJTree.jj'
+    file       = 'src/main/resources/JJTree.waggle'
     treeNodes  = [ 'BNF', 'NodeDescriptor' ]
   }
 
   task {
     name       = 'parser'
-    file       = 'src/main/resources/JavaCC.jj'
+    file       = 'src/main/resources/Waggle.waggle'
   }
 
   // task {
     //   name       = 'oql4java'
-    //   output     = '/data/smartIO/develop/parser/parser/src/main/java'
-    //   file       = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
+    //   output     = '/data/hivevm/develop/parser/parser/src/main/java'
+    //   file       = '/data/hivevm/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
     // }
 
     // task {
     //   name       = 'oql4cpp'
     //   target     = 'cpp'
-    //   output     = '/data/smartIO/develop/core-cpp/text/parser'
-    //   file       = '/data/smartIO/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
+    //   output     = '/data/hivevm/develop/core-cpp/text/parser'
+    //   file       = '/data/hivevm/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
     // }
 }

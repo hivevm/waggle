@@ -1,17 +1,17 @@
 # Examples
 
-This tutorial builds a complete HiveVM CC grammar in small steps, each adding one idea. The running
+This tutorial builds a complete HiveVM Waggle grammar in small steps, each adding one idea. The running
 example is the classic *matched braces* language: strings such as `{}` and `{{{}}}` are legal; `{`,
 `}{`, and `{{}` are not.
 
 If you have not seen the syntax before, skim the [README](README.md) difference table first. Every
-grammar here uses HiveVM CC's `grammar Name;` header, `name = … ;` productions, and `<? … ?>` actions.
+grammar here uses HiveVM Waggle's `grammar Name;` header, `name = … ;` productions, and `<? … ?>` actions.
 
 ## Anatomy of a grammar
 
-A HiveVM CC grammar is **one** file:
+A HiveVM Waggle grammar is **one** file:
 
-- a **grammar file** (`.jj`) — the `grammar Name;` line, an optional `options { … }` block, the
+- a **grammar file** (`.waggle`) — the `grammar Name;` line, an optional `options { … }` block, the
   productions, and (usually) the `TOKEN` / `SKIP` / `SPECIAL_TOKEN` / `MORE` definitions;
 - optionally, the token definitions can be moved to a sibling **lexical file** (`.lex`) of the same
   base name, which the generator appends to the grammar during a build.
@@ -154,7 +154,7 @@ Real grammars match more than single characters. Regular expressions use charact
 other named expressions. Private expressions — prefixed with `#` — are building blocks that never
 become tokens of their own.
 
-`Calc.jj` — a small expression grammar that evaluates as it parses:
+`Calc.waggle` — a small expression grammar that evaluates as it parses:
 
 ```ebnf
 grammar Calc;
@@ -214,10 +214,10 @@ than from inside the choice.
 
 ## Step 6 — build a syntax tree
 
-Evaluating during the parse is fine for a calculator, but most tools want a tree. In HiveVM CC tree
+Evaluating during the parse is fine for a calculator, but most tools want a tree. In HiveVM Waggle tree
 building is part of the **same grammar**: annotate a production or an expansion with `#Node`, and the
-node classes and the visitor are generated together with the parser — in one step. There is no `.jjt`
-file, no separate JJTree run, and no intermediate grammar (this is a deliberate departure from
+node classes and the visitor are generated together with the parser — in one step. There is no
+separate tree grammar, no separate JJTree run, and no intermediate grammar (this is a deliberate departure from
 JavaCC — see [ADR-0010](../adr/0010-unified-grammar-and-actual-surface-syntax.md)).
 
 ```ebnf

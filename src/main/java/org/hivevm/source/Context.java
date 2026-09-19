@@ -1,6 +1,6 @@
 package org.hivevm.source;
 
-import org.hivevm.cc.parser.Options;
+import org.hivevm.waggle.parser.Options;
 
 import java.util.function.Function;
 

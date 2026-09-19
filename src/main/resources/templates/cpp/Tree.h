@@ -3,11 +3,11 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_TREE
-#define JAVACC_TREE
+#ifndef WAGGLE_TREE
+#define WAGGLE_TREE
 
 #include <vector>
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Token.h"
 
 //@if(CPP_NAMESPACE)

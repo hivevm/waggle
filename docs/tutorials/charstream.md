@@ -1,7 +1,7 @@
 # The Character Input
 
 Before the [token manager](token-manager.md) can group characters into tokens, something has to feed
-it characters. In HiveVM CC (Java target) that something is a **`Provider`** — a small interface the
+it characters. In HiveVM Waggle (Java target) that something is a **`Provider`** — a small interface the
 generated parser reads from. This page covers the built-in providers, character encodings, and
 Unicode.
 

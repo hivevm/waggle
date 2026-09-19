@@ -4,11 +4,11 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #include "TokenManagerErrorHandler.h"
-#if (JAVACC_CHAR_TYPE_SIZEOF != 1)
+#if (WAGGLE_CHAR_TYPE_SIZEOF != 1)
 #include <codecvt>
 #include <locale>
 #endif
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Token.h"
 #include "ParserErrorHandler.h"
 

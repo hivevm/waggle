@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.gradle.api.Project;
 
-import org.hivevm.cc.Language;
+import org.hivevm.waggle.Language;
 
 public class ParserTask {
 

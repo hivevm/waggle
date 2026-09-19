@@ -3,10 +3,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_TOKEN
-#define JAVACC_TOKEN
+#ifndef WAGGLE_TOKEN
+#define WAGGLE_TOKEN
 
-#include "JavaCC.h"
+#include "Waggle.h"
 
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {

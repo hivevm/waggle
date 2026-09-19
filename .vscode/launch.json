@@ -12,12 +12,12 @@
       "preLaunchTask": "H3QLTest (debug)"
     },
     {
-      "name": "Debug cc [generateParser]",
+      "name": "Debug waggle [generateParser]",
       "type": "java",
       "request": "attach",
       "hostName": "localhost",
       "port": 5005,
-      "preLaunchTask": "cc [generateParser] (debug)"
+      "preLaunchTask": "waggle [generateParser] (debug)"
     }
   ]
 }

@@ -3,12 +3,12 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_TREE_STATE
-#define JAVACC_TREE_STATE
+#ifndef WAGGLE_TREE_STATE
+#define WAGGLE_TREE_STATE
 
 #include <set>
 #include <vector>
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Node.h"
 
 using namespace std;

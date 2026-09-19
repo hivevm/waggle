@@ -3,11 +3,11 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-#ifndef JAVACC_NODE
-#define JAVACC_NODE
+#ifndef WAGGLE_NODE
+#define WAGGLE_NODE
 
 #include <vector>
-#include "JavaCC.h"
+#include "Waggle.h"
 #include "Token.h"
 #include "Tree.h"
 #include "__PARSER_NAME__TreeConstants.h"

@@ -3,8 +3,8 @@
 
 package org.hivevm.source;
 
-import org.hivevm.cc.HiveCCVersion;
-import org.hivevm.cc.parser.Options;
+import org.hivevm.waggle.WaggleVersion;
+import org.hivevm.waggle.parser.Options;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,7 +43,7 @@ public interface SourceProvider {
             if (stream == null) {
                 throw new IOException("Invalid template name: " + path);
             }
-            var title = "HiveVM CC v." + HiveCCVersion.VERSION.toString("0.0");
+            var title = "HiveVM Waggle v." + WaggleVersion.VERSION.toString("0.0");
             var template = new Template(stream.readAllBytes());
             try (var ostream = new FileOutputStream(file)) {
                 template.render(title, ostream, options);

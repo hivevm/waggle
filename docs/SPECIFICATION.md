@@ -1,4 +1,4 @@
-# HiveVM CC — Specification
+# HiveVM Waggle — Specification
 
 > This is the **constitution** of the project: the problem it solves, its goals and non-goals, the
 > vocabulary everyone uses, and the criteria a change is measured against. Authority runs
@@ -10,12 +10,11 @@
 ## 1. Problem
 
 Turning a language grammar into a working parser by hand is error-prone and hard to maintain, and
-existing generators tie the result to a single implementation language. **HiveVM CC** (HiveVM
-Compiler-Compiler) is a *parser generator*: it reads a grammar specification and produces a
-recursive-descent parser, a lexical analyzer (token manager), optional syntax-tree building, and
-grammar documentation.
+existing generators tie the result to a single implementation language. **HiveVM Waggle** is a
+*parser generator*: it reads a grammar specification and produces a recursive-descent parser, a
+lexical analyzer (token manager), optional syntax-tree building, and grammar documentation.
 
-HiveVM CC is a **fork of JavaCC 7.0.13** ([ADR-0003](adr/0003-fork-javacc-as-baseline.md)). It keeps
+HiveVM Waggle is a **fork of JavaCC 7.0.13** ([ADR-0003](adr/0003-fork-javacc-as-baseline.md)). It keeps
 JavaCC's proven conceptual model — `LL(k)` recursive-descent parsing, a token manager with lexical
 states, syntactic and semantic lookahead, tree building and grammar docs — while pursuing two goals
 that JavaCC does not serve: a **more maintainable** codebase and **multiple output languages** from a
@@ -36,7 +35,7 @@ single grammar.
    and semantic lookahead; tree building — expressed in the grammar itself and generated in the same
    pass, without JavaCC's separate JJTree step; grammar documentation (JJDoc); full-Unicode lexing;
    the established generation options (lookahead depth, ambiguity checks, debug tracing, etc.).
-6. **Self-hosting.** HiveVM CC generates its own parser from a grammar written in its own syntax
+6. **Self-hosting.** HiveVM Waggle generates its own parser from a grammar written in its own syntax
    ([ADR-0009](adr/0009-self-hosting-bootstrap.md)).
 
 ## 3. Non-goals
@@ -46,21 +45,21 @@ single grammar.
   and the integration of tree building recorded in
   [ADR-0010](adr/0010-unified-grammar-and-actual-surface-syntax.md)); JavaCC grammars must be
   migrated, not dropped in. Compatibility is at the *concept and feature* level, not source or syntax.
-- **Bottom-up / LR parsing.** HiveVM CC generates top-down parsers only; left recursion is disallowed.
+- **Bottom-up / LR parsing.** HiveVM Waggle generates top-down parsers only; left recursion is disallowed.
 - **A general-purpose CLI as the primary interface.** The Gradle plugin and the `ParserBuilder` API
   are the supported entry points; a standalone fat-jar CLI is not a maintained deliverable (JJDoc
   keeps its own entry point).
 - **Guaranteed feature parity across targets at every moment.** A capability may land in one back end
   before the others; gaps are tracked, not assumed absent.
 - **Runtime dependency in generated parsers.** Generated code should stand on its own target-language
-  toolchain, with no HiveVM CC runtime library required.
+  toolchain, with no HiveVM Waggle runtime library required.
 
 ## 4. Core concepts and pipeline
 
 A grammar is transformed to generated source through a staged pipeline. The front end (stages 1–4) is
 language-independent; only the back end (stage 5) is target-specific.
 
-1. **Input.** A single grammar file (`.jj`; `.jjt` is accepted as an alias and handled identically).
+1. **Input.** A single grammar file (`.waggle`).
    Token definitions live in the grammar file itself, or in an optional sibling lexical file (`.lex`)
    that the driver appends during a build. Tree-node annotations (`#Node`) are part of the grammar, so
    there is **no separate JJTree pre-processing pass and no intermediate grammar** — one grammar is
@@ -85,9 +84,8 @@ The project uses this vocabulary consistently in code, comments, ADRs, and docum
 
 ### Grammar input
 
-- **Grammar file (`.jj`)** — the single grammar: header, productions, and (optionally) the token
-  definitions. Tree-node annotations live here too; `.jjt` is accepted as an alias for the same
-  format and does **not** select a different pipeline.
+- **Grammar file (`.waggle`)** — the single grammar: header, productions, and (optionally) the token
+  definitions. Tree-node annotations live here too; there is no separate tree-grammar format.
 - **Lexical file (`.lex`)** — optional sibling file holding token/regular-expression definitions,
   appended to the grammar during a build; tokens may instead be defined inline in the grammar file.
 - **Header** — `grammar Name;` declares the grammar's name (recorded as `PARSER_NAME`), followed by an
@@ -144,13 +142,13 @@ the historical name of JavaCC's separate pre-processor, not as a stage of this p
 
 ### Tooling
 
-- **Gradle plugin** (`org.hivevm.cc`) — the primary interface: a `parserProject { task { … } }` DSL and
+- **Gradle plugin** (`org.hivevm.waggle`) — the primary interface: a `parserProject { task { … } }` DSL and
   a `generateParser` task.
 - **`ParserBuilder`** — the programmatic fluent API underneath the plugin.
 - **Generation unit / task** — one grammar-to-source generation, with its own target, input, and
   output.
 - **JJDoc** — the grammar-documentation tool.
-- **Bootstrap** — the checked-in generated parser HiveVM CC uses to parse its own grammar syntax.
+- **Bootstrap** — the checked-in generated parser HiveVM Waggle uses to parse its own grammar syntax.
 
 ## 6. Success criteria
 
