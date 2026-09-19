@@ -7,7 +7,7 @@ import org.hivevm.cc.Encoding;
 import org.hivevm.cc.HiveCCOptions;
 import org.hivevm.cc.model.*;
 import org.hivevm.cc.parser.JavaCCData;
-import org.hivevm.cc.parser.RegExprSpec;
+import org.hivevm.cc.model.RegExprSpec;
 
 import java.util.Iterator;
 

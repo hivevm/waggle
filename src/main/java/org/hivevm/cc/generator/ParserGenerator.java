@@ -140,7 +140,8 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         var node_scope = p.getNodeScope();
         if (node_scope != null) {
             var nd = node_scope.getNodeDescriptor();
-            var nodeClass = NodeDescriptor.getNodeClass(nd.getName(), data.options());
+            var nodeClass =
+                    NodeDescriptor.getNodeClass(nd.getName(), data.options().getMulti(), data.options().getNodeClass());
 
             printer.println(" // " + node_scope.getNodeDescriptorText());
             insertOpenNodeCode(node_scope, nodeClass, printer, data.options());
@@ -176,7 +177,8 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         var node_scope = e.getNodeScope();
         if (node_scope != null) {
             var nd = node_scope.getNodeDescriptor();
-            var nodeClass = NodeDescriptor.getNodeClass(nd.getName(), data.options());
+            var nodeClass =
+                    NodeDescriptor.getNodeClass(nd.getName(), data.options().getMulti(), data.options().getNodeClass());
 
             printer.println();
             printer.println("// " + node_scope.getNodeDescriptor().getDescriptor());

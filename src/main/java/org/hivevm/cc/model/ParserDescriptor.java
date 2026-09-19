@@ -1,9 +1,7 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.parser;
-
-import org.hivevm.cc.model.NodeDescriptor;
+package org.hivevm.cc.model;
 
 public class ParserDescriptor implements NodeDescriptor {
 
@@ -32,7 +30,7 @@ public class ParserDescriptor implements NodeDescriptor {
         return this.isGT;
     }
 
-    void setGreaterThan() {
+    public void setGreaterThan() {
         this.isGT = true;
     }
 

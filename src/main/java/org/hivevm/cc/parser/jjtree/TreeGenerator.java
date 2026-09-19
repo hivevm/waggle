@@ -33,7 +33,8 @@ class TreeGenerator {
 
         this.data.addNodeDescriptor(descriptor, options);
 
-        var nodeClass = NodeDescriptor.getNodeClass(descriptor.getName(), options);
+        var nodeClass =
+                NodeDescriptor.getNodeClass(descriptor.getName(), options.getMulti(), options.getNodeClass());
         insertOpenNodeCode(node.node_scope, nodeClass, printer, options);
     }
 

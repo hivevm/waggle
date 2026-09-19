@@ -7,7 +7,7 @@ import org.hivevm.cc.model.*;
 import org.hivevm.cc.parser.JavaCCErrors;
 import org.hivevm.cc.parser.Options;
 import org.hivevm.cc.parser.ParseException;
-import org.hivevm.cc.parser.RegExprSpec;
+import org.hivevm.cc.model.RegExprSpec;
 
 import java.util.ArrayList;
 import java.util.HashMap;

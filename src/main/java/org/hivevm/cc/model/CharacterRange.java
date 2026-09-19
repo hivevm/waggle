@@ -3,8 +3,6 @@
 
 package org.hivevm.cc.model;
 
-import org.hivevm.cc.parser.JavaCCErrors;
-
 /**
  * Describes character range descriptors in a character list.
  */
@@ -18,12 +16,10 @@ public class CharacterRange extends Production {
 
     private char left;
 
+    // An inverted user range (left > right) is caught and reported earlier, in the parser layer
+    // (AbstractJavaCCParser#character_descriptor_assign clamps the right end); ranges built here are
+    // always well-formed, so the model performs no reporting of its own (ADR-0013).
     public CharacterRange(char l, char r) {
-        if (l > r) {
-            JavaCCErrors.semantic_error(this, "Invalid range : \"" + (int) l + "\" - \"" + (int) r
-                    + "\". First character should be less than or equal to the second one in a range.");
-        }
-
         setLeft(l);
         setRight(r);
     }

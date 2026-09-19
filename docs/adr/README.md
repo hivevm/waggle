@@ -26,6 +26,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0010](0010-unified-grammar-and-actual-surface-syntax.md) | Unified grammar — integrated tree building and the actual surface syntax | 🟢 Accepted |
 | [0011](0011-error-handling-contract.md) | Generation reports failure by throwing, never by exiting the JVM | 🟢 Accepted |
 | [0012](0012-lexer-owns-dfa-construction.md) | The lexer stage owns DFA construction; generators only render it | 🟢 Accepted |
+| [0013](0013-break-model-parser-dependency-cycle.md) | Break the `model` ↔ `parser` dependency cycle | 🟢 Accepted |
 
 ## Process
 

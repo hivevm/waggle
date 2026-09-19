@@ -8,7 +8,7 @@ import org.hivevm.cc.model.RExpression;
 import org.hivevm.cc.model.RStringLiteral;
 import org.hivevm.cc.model.TokenKind;
 import org.hivevm.cc.model.TokenProduction;
-import org.hivevm.cc.parser.RegExprSpec;
+import org.hivevm.cc.model.RegExprSpec;
 
 import java.util.ArrayList;
 import java.util.HashMap;

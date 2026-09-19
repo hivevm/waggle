@@ -1,11 +1,9 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package org.hivevm.cc.parser;
+package org.hivevm.cc.model;
 
-import org.hivevm.cc.model.Action;
-import org.hivevm.cc.model.RExpression;
-import org.hivevm.cc.model.TokenProduction;
+import org.hivevm.cc.parser.Token;
 
 /**
  * The object type of entries in the vector "respecs" of class "TokenProduction".
@@ -36,7 +34,7 @@ public class RegExprSpec {
      */
     public Token nsTok;
 
-    RegExprSpec(RExpression rexp, TokenProduction production) {
+    public RegExprSpec(RExpression rexp, TokenProduction production) {
         this.rexp = rexp;
         this.rexp.setTokenProduction(production);
     }

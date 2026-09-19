@@ -17,6 +17,9 @@ import java.util.List;
  * <p>These tests used to assert nothing and to write into the source tree ({@code src/main/generated2},
  * a directory in no source set, so the result was never even compiled). They now assert that the
  * expected sources appear, and they write to a temporary directory.
+ *
+ * <p>The self-hosted parser must emit its own {@code Token} (ADR-0013): the published plugin that
+ * regenerates it in the build always does, so the hand-written code has to agree with that.
  */
 class CCParserTest {
 
@@ -35,7 +38,7 @@ class CCParserTest {
                 .build().parse();
 
         assertGenerated(target, "org/hivevm/cc/parser", "Parser.java", "Lexer.java",
-                "ParserConstants.java");
+                "ParserConstants.java", "Token.java");
     }
 
     @Test
@@ -48,7 +51,7 @@ class CCParserTest {
                 .build().parse();
 
         assertGenerated(target, "org/hivevm/cc/parser/jjtree", "Parser.java", "Lexer.java",
-                "ParserConstants.java");
+                "ParserConstants.java", "Token.java");
     }
 
     private static void assertGenerated(Path target, String pkg, String... names) {

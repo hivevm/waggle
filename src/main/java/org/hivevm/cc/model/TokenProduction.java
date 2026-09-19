@@ -3,7 +3,6 @@
 
 package org.hivevm.cc.model;
 
-import org.hivevm.cc.parser.RegExprSpec;
 import org.hivevm.cc.parser.Token;
 
 import java.util.ArrayList;
