@@ -1,0 +1,23 @@
+{
+  // Debug counterparts of the IntelliJ Gradle run configurations. Each starts its "(debug)" task
+  // from tasks.json, waits until the JVM listens on port 5005, and attaches.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug H3QLTest",
+      "type": "java",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "preLaunchTask": "H3QLTest (debug)"
+    },
+    {
+      "name": "Debug cc [generateParser]",
+      "type": "java",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "preLaunchTask": "cc [generateParser] (debug)"
+    }
+  ]
+}

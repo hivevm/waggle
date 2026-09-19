@@ -5,6 +5,9 @@
   "editor.formatOnSave": true,
   "java.compile.nullAnalysis.mode": "automatic",
   "java.configuration.updateBuildConfiguration": "automatic",
+  // The Java Dev Container image points this at SDKMAN's Java, which it does not install; without a
+  // valid JDK the Gradle extension loads no project and lists no tasks. Use the image's JDK.
+  "java.import.gradle.java.home": "/usr/lib/jvm/msopenjdk-current",
 
   // Manage the *host's* containers from VS Code without mounting the Docker socket into the Dev
   // Container: keep the container-management extension on the host (UI) side even

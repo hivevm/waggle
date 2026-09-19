@@ -1,0 +1,67 @@
+{
+  // Mirrors the IntelliJ Gradle run configurations. Run via "Tasks: Run Task" (or "Tasks: Run Test
+  // Task" for H3QLTest). The "(debug)" variants wait for a debugger on port 5005; start them through
+  // the matching launch configuration in launch.json, which attaches once the JVM is listening.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "H3QLTest",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": [":test", "--tests", "org.hivevm.cc.H3QLTest"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "cc [generateParser]",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["generateParser"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "cc [publishToMavenLocal]",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["publishToMavenLocal"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      // --debug-jvm suspends the test JVM until a debugger attaches on port 5005.
+      "label": "H3QLTest (debug)",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["--console=plain", ":test", "--tests", "org.hivevm.cc.H3QLTest", "--debug-jvm"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "gradle-debug",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": {
+          "activeAtBeginning": true,
+          "beginsPattern": "> Task",
+          "endsPattern": "Listening for transport dt_socket at address: 5005"
+        }
+      }
+    },
+    {
+      // generateParser runs inside Gradle (the org.hivevm.cc plugin, resolved from mavenLocal first),
+      // so the Gradle process itself is debugged; it suspends until a debugger attaches on port 5005.
+      "label": "cc [generateParser] (debug)",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["--console=plain", "-Dorg.gradle.debug=true", "--no-daemon", "generateParser"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "gradle-debug",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": {
+          "activeAtBeginning": true,
+          "beginsPattern": "To honour the JVM settings",
+          "endsPattern": "Listening for transport dt_socket at address: 5005"
+        }
+      }
+    }
+  ]
+}
