@@ -5,8 +5,6 @@ package org.hivevm.waggle;
 
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 
 /**
@@ -57,20 +55,6 @@ public class ParserBuilder {
      */
     public final Parser build() {
         return new Parser(parserFile, language, targetDir, customNodes);
-    }
-
-    /**
-     * Run the parser generator.
-     */
-    public final void interpret(String text) {
-        var options = new WaggleOptions();
-        try {
-            var interpreter = new ParserInterpreter(options);
-            var grammar = new String(Files.readAllBytes(this.parserFile.toPath()));
-            interpreter.runTokenizer(grammar, text);
-        } catch (IOException e) {
-            throw new GenerationException("Failed to read " + this.parserFile, e);
-        }
     }
 
     private static File toFile(File file, String... pathes) {

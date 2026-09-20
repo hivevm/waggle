@@ -23,7 +23,6 @@ import java.util.Set;
 public class JavaCCData implements SemanticRequest, ParserRequest {
 
     private final Options options;
-    private final boolean isGenerated;
     private Action actForEof;
     private String nextStateForEof;
 
@@ -97,10 +96,9 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     /**
      * Constructs an instance of {@link JavaCCData}.
      */
-    public JavaCCData(boolean isGenerated, Options options) {
+    public JavaCCData(Options options) {
         this.options = options;
         this.tokenCount = 0;
-        this.isGenerated = isGenerated;
         this.lexstate_S2I.put("DEFAULT", 0);
         this.lexstate_I2S.put(0, "DEFAULT");
         this.simple_tokens_table.put("DEFAULT", new Hashtable<>());
@@ -132,11 +130,6 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     @Override
     public final String getParserName() {
         return this.options.getParserName();
-    }
-
-    @Override
-    public final boolean isGenerated() {
-        return this.isGenerated;
     }
 
     @Override

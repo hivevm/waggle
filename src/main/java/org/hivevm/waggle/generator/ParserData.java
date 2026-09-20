@@ -72,8 +72,9 @@ public class ParserData {
         return this.request.getParserName();
     }
 
-    public final boolean isGenerated() {
-        return this.request.isGenerated() || this.nodeData.usesTree();
+    /** Whether the grammar builds a tree, i.e. declares at least one node. */
+    public final boolean usesTree() {
+        return this.nodeData.usesTree();
     }
 
     public final int getDepthLimit() {

@@ -17,18 +17,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The {@link Parser} class.
  */
 public class Parser {
-
-    private static final Pattern GENERATED = Pattern.compile("@generated\\(([^)]+)\\)");
 
     private final File file;
 
@@ -87,7 +81,7 @@ public class Parser {
             JavaCCErrors.reInit();
 
             var options = parseContext(arguments);
-            var request = new JavaCCData(Parser.isGenerated(text), options);
+            var request = new JavaCCData(options);
             var parser = new JavaCCParserDefault(new StringProvider(text), options);
             parser.initialize(request);
             parser.javacc_input();
@@ -118,29 +112,6 @@ public class Parser {
         } else {
             System.out.println("Parser generated successfully.");
         }
-    }
-
-    /**
-     * Parses the tool list from the generated string.
-     */
-    private static List<String> readToolNameList(String text) {
-        Matcher matcher = Parser.GENERATED.matcher(text);
-        if (matcher.find())
-            return Arrays.asList(matcher.group(1).split(","));
-        return Collections.emptyList();
-    }
-
-    /**
-     * Returns true if tool name passed is one of the tool names returned by
-     * getToolNames(fileName).
-     */
-    private static boolean isGenerated(String data) {
-        for (var element : Parser.readToolNameList(data)) {
-            if ("JJTree".equals(element)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     protected static WaggleOptions parseContext(List<String> args) {

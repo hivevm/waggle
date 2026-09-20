@@ -128,7 +128,7 @@ public final class JJDocMain extends JJDocGlobals {
             }
         }
 
-        JavaCCData javacc = new JavaCCData(false, options);
+        JavaCCData javacc = new JavaCCData(options);
         try {
             parser.initialize(javacc);
             parser.javacc_input();

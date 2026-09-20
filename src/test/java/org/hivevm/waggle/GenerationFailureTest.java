@@ -79,6 +79,40 @@ class GenerationFailureTest {
         generate(source, dir, Language.JAVA);
     }
 
+    /**
+     * The Rust parser template still carries JavaCC's Java trace runtime — {@code trace_call} and
+     * friends are Java methods on a Java class — and the generator matched it: it wrapped every
+     * production in {@code try}/{@code finally}, which Rust does not have, and escaped the trace
+     * strings with {@code Language.JAVA}, so a non-ASCII production name came out as {@code \\uXXXX},
+     * which is not Rust escape syntax either. None of it could compile, and nothing said so.
+     */
+    @Test
+    void rustRejectsTheDebugOptions(@TempDir Path dir) throws IOException {
+        for (var option : new String[] { "DEBUG_PARSER", "DEBUG_LOOKAHEAD" }) {
+            var source = dir.resolve("Traced.waggle");
+            Files.writeString(source, """
+                    grammar Traced;
+
+                    options {
+                      RUST_MODULE: "traced",
+                      %s: true
+                    }
+
+                    Input = < WORD > <EOF> ;
+
+                    TOKEN = < WORD: (["a"-"z"])+ > ;
+                    """.formatted(option));
+
+            var thrown = assertThrows(GenerationException.class,
+                    () -> generate(source, dir, Language.RUST),
+                    option + " must be refused for the Rust target, not emitted as Java");
+            assertTrue(thrown.getMessage().contains(option),
+                    "the failure should name the option: " + thrown.getMessage());
+
+            generate(source, dir, Language.JAVA);
+        }
+    }
+
     private static void generate(Path source, Path dir) {
         generate(source, dir, Language.JAVA);
     }

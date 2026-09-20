@@ -63,7 +63,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     public final void generate(ParserData data) {
         var options = Template.newContext(data.options());
 
-        options.set(ParserGenerator.JJPARSER_USE_AST, data.isGenerated());
+        options.set(ParserGenerator.JJPARSER_USE_AST, data.usesTree());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
         options.set(ParserGenerator.JJ2_INDEX, data.jj2Index());
         options.set(ParserGenerator.MASK_INDEX, data.maskIndex());

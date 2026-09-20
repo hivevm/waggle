@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.generator.rust;
 
-import org.hivevm.waggle.Encoding;
 import org.hivevm.waggle.GenerationException;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.generator.ParserData;
@@ -48,6 +47,16 @@ class RustParserGenerator extends ParserGenerator {
             // target feature gaps are tracked, not silently produced).
             throw new GenerationException(
                     "DEPTH_LIMIT is not supported for the Rust target.");
+        }
+        if (data.getDebugParser() || data.getDebugLookahead()) {
+            // The trace runtime of templates/rust/parser.rs is still the unported Java one --
+            // trace_call, trace_return, trace_scan and the trace_enabled flag are Java methods on a
+            // Java class. The generator matched it: it wrapped every production in try/finally,
+            // which Rust does not have, and escaped the trace strings as Java. Fail honestly
+            // instead of emitting Rust that cannot compile (SPECIFICATION.md §3: target feature
+            // gaps are tracked, not silently produced).
+            throw new GenerationException(
+                    "DEBUG_PARSER and DEBUG_LOOKAHEAD are not supported for the Rust target.");
         }
 
         options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
@@ -98,24 +107,11 @@ class RustParserGenerator extends ParserGenerator {
         super.generate_phase1_tail(printer);
     }
 
-    /** Wraps the body of a production in the DEBUG_PARSER trace. */
     @Override
     protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String returnType, Consumer<LinePrinter> consumer) {
-        // DEPTH_LIMIT is rejected up front in generate(); the Rust back end never emits guard code.
-        if (data.getDebugParser()) {
-            printer.println();
-            printer.println("    trace_call(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(p), Language.JAVA) + "\");");
-            printer.println("    try {");
-        }
-
+        // DEPTH_LIMIT and DEBUG_PARSER are rejected up front in generate(); the Rust back end emits
+        // neither guard code nor a trace wrapper.
         consumer.accept(printer);
-
-        if (data.getDebugParser()) {
-            printer.println("    } finally {");
-            printer.println("        trace_return(\"" + Encoding.escapeUnicode(
-                    normal_production_as_snake_case(p), Language.JAVA) + "\");");
-            printer.println("    }");
-        }
     }
 
     @Override
@@ -328,18 +324,10 @@ class RustParserGenerator extends ParserGenerator {
 
         printer.println("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {");
 
-        // DEPTH_LIMIT is rejected up front in generate(); the Rust back end never emits guard code.
+        // DEPTH_LIMIT and DEBUG_LOOKAHEAD are rejected up front in generate(); the Rust back end
+        // emits neither guard code nor a trace call, so no expansion is ever traced.
         boolean xsp_declared = false;
         Expansion jj3_expansion = null;
-        if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {
-            printer.print("    ");
-            if (data.getErrorReporting()) {
-                printer.print("if (!jj_rescan) ");
-            }
-            printer.println("trace_call(\"" + Encoding.escapeUnicode(normal_production_as_snake_case(np), Language.JAVA)
-                    + "(LOOKING AHEAD...)\");");
-            jj3_expansion = e;
-        }
 
         buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, e, count, printer);
 
@@ -480,21 +468,14 @@ class RustParserGenerator extends ParserGenerator {
     }
 
 
+    /**
+     * A jj_3 routine ends in a bare {@code true}/{@code false} expression, where the base class
+     * emits a {@code return} statement. DEBUG_LOOKAHEAD is rejected up front in generate(), so no
+     * trace code is ever wrapped around it.
+     */
     @Override
     protected String genReturn(Expansion expansion, boolean value, ParserData data) {
-        String retval = Boolean.toString(value);
-        if (data.getDebugLookahead() && (expansion != null)) {
-            String tracecode =
-                    "trace_return(\"" + Encoding.escapeUnicode(
-                            normal_production_as_snake_case((NormalProduction) expansion.parent()), Language.JAVA)
-                            + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
-            if (data.getErrorReporting()) {
-                tracecode = "if (!jj_rescan) " + tracecode;
-            }
-            return "{ " + tracecode + " return " + retval + "; }";
-        } else {
-            return retval;
-        }
+        return Boolean.toString(value);
     }
 
     @Override

@@ -18,8 +18,6 @@ public interface ParserRequest {
 
     String getParserName();
 
-    boolean isGenerated();
-
     boolean ignoreCase();
 
     int getStateCount();
