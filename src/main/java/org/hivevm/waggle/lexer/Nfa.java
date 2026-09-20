@@ -28,7 +28,7 @@ record Nfa(NfaState start, NfaState end) {
     /**
      * Main NFA construction loop: processes all token productions and builds the NFA transitions.
      */
-    public static void buildLexer(LexerData data, Hashtable<String, List<TokenProduction>> allTpsForState,
+    static void buildLexer(LexerData data, Hashtable<String, List<TokenProduction>> allTpsForState,
                                   List<RExpression> choices) {
         RExpression curRE;
         TokenKind[] kinds = new TokenKind[data.maxOrdinal];
@@ -321,7 +321,7 @@ record Nfa(NfaState start, NfaState end) {
     /**
      * Computes non-ASCII move indices and bit vectors for a single NFA state.
      */
-    public static void getNonAsciiMoves(LexerData data, NfaState state) {
+    static void getNonAsciiMoves(LexerData data, NfaState state) {
         int i = 0, j = 0;
         char hiByte;
         int cnt = 0;

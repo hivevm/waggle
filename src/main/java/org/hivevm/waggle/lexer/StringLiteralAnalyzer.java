@@ -20,7 +20,7 @@ class StringLiteralAnalyzer {
     /**
      * Builds the charPosKind table for a string literal (used for top-level string literals).
      */
-    public static void generateDfa(NfaStateData data, RStringLiteral rstring) {
+    static void generateDfa(NfaStateData data, RStringLiteral rstring) {
         String s;
         int len;
 
@@ -87,7 +87,7 @@ class StringLiteralAnalyzer {
     /**
      * Computes the subString and subStringAtPos arrays for a lexer state.
      */
-    public static void fillSubString(NfaStateData data) {
+    static void fillSubString(NfaStateData data) {
         String image;
         data.subString = new boolean[data.maxStrKind + 1];
         data.subStringAtPos = new boolean[data.maxLen];
@@ -144,7 +144,7 @@ class StringLiteralAnalyzer {
     /**
      * Warns if a choice alternative can never be matched.
      */
-    public static void checkUnmatchability(RChoice choice, LexerData data) {
+    static void checkUnmatchability(RChoice choice, LexerData data) {
         for (RExpression regexp : choice.getChoices()) {
             if (!regexp.isPrivateExp() && (regexp.getOrdinal() > 0)
                     && (regexp.getOrdinal() < choice.getOrdinal())
@@ -165,7 +165,7 @@ class StringLiteralAnalyzer {
     /**
      * Warns about regular expressions that can match the empty string, causing infinite loops.
      */
-    public static void checkEmptyStringMatch(LexerData data) {
+    static void checkEmptyStringMatch(LexerData data) {
         int i, j, k, len;
         boolean[] seen = new boolean[data.maxLexStates];
         boolean[] done = new boolean[data.maxLexStates];
@@ -250,7 +250,7 @@ class StringLiteralAnalyzer {
      * or a catch-all token declared before it wins. The back ends used to diagnose this while they
      * rendered the DFA — after the literal images they quote had already been pruned.
      */
-    public static void checkShadowedLiterals(NfaStateData data) {
+    static void checkShadowedLiterals(NfaStateData data) {
         int maxLongsReqd = (data.getMaxStrKind() / 64) + 1;
         for (int i = 0; i < data.getMaxLen(); i++) {
             Hashtable<String, KindInfo> tab = data.getCharPosKind(i);

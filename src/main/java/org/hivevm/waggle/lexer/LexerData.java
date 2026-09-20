@@ -313,6 +313,11 @@ public class LexerData {
         return this.stateData.get(name);
     }
 
+    /** Whether the bit vector at {@code index} has every bit set. */
+    public final boolean hasAllBitsSet(int index) {
+        return NfaState.AllBitsSet(getAllBitVectors(index));
+    }
+
     public final String getAllBitVectors(int index) {
         return this.allBitVectors.get(index);
     }

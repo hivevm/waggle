@@ -18,7 +18,7 @@ public class DfaBuilder {
     /**
      * Prepares DFA code data for a single lexer state (charPosKind → skip/token tables).
      */
-    public static void getDfaCode(NfaStateData data) {
+    static void getDfaCode(NfaStateData data) {
         if (data.maxLen == 0) {
             return;
         }
@@ -108,7 +108,7 @@ public class DfaBuilder {
     /**
      * Computes NFA move tables for a single lexer state (ASCII + char/range moves).
      */
-    public static void getMoveNfa(NfaStateData data) {
+    static void getMoveNfa(NfaStateData data) {
         int i;
         int[] kindsForStates = null;
 
@@ -560,7 +560,7 @@ public class DfaBuilder {
     // State set helpers
     // -----------------------------------------------------------------------
 
-    public static void reArrange(NfaStateData data) {
+    static void reArrange(NfaStateData data) {
         List<NfaState> v = data.cloneAllStates();
 
         if (data.getAllStateCount() != data.generatedStates()) {
@@ -576,7 +576,7 @@ public class DfaBuilder {
         }
     }
 
-    public static void fixStateSets(NfaStateData data) {
+    static void fixStateSets(NfaStateData data) {
         Hashtable<String, int[]> fixedSets = new Hashtable<>();
         int[] tmp = new int[data.generatedStates()];
         int i;

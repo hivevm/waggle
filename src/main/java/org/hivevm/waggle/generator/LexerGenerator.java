@@ -243,7 +243,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
             return;
         }
 
-        int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+        int[] indices = data.getStateSetIndices(state.next.epsilonMovesString);
         boolean isRange = (indices[0] + 1) != indices[1];
 
         // Whether jjCheckNAddStates is needed at all was decided in stage 4 (DfaBuilder); the
@@ -400,7 +400,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         for (int j = 0; j < state.loByteVec.size(); j += 2) {
             printCanMoveCase(printer, state.loByteVec.get(j));
             int vector = state.loByteVec.get(j + 1);
-            if (NfaState.AllBitsSet(data.getAllBitVectors(vector))) {
+            if (data.hasAllBitsSet(vector)) {
                 printCanMoveReturnTrue(printer);
             } else {
                 printCanMoveReturnBitVector(printer, vector);
@@ -413,8 +413,8 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
             int hiVector = state.nonAsciiMoveIndices[j - 2];
             int loVector = state.nonAsciiMoveIndices[j - 1];
             printCanMoveArm(printer, hiVector, loVector,
-                    !NfaState.AllBitsSet(data.getAllBitVectors(hiVector)),
-                    !NfaState.AllBitsSet(data.getAllBitVectors(loVector)));
+                    !data.hasAllBitsSet(hiVector),
+                    !data.hasAllBitsSet(loVector));
         }
         printCanMoveEnd(printer);
     }
@@ -1759,7 +1759,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         for (i = 0; i < data.getMaxLen(); i++) {
             boolean startNfaNeeded = false;
             tab = data.getCharPosKind(i);
-            var keys = NfaStateData.reArrange(tab);
+            var keys = data.getOrderedCharPosKinds(i);
 
             printMoveStringLiteralDfaSignature(printer, data, i, maxLongsReqd);
 
@@ -2289,11 +2289,11 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
         }
 
         for (var s : data.compositeStateTable.keySet()) {
-            if (!s.equals(stateSetString) && NfaState.Intersect(data, stateSetString, s)) {
+            if (!s.equals(stateSetString) && data.intersects(stateSetString, s)) {
                 int[] other = data.compositeStateTable.get(s);
                 while ((toRet < nameSet.length) && (
                         ((data.getIndexedState(nameSet[toRet]).inNextOf > 1))
-                                || (NfaState.ElemOccurs(nameSet[toRet], other) >= 0))) {
+                                || (data.positionOf(nameSet[toRet], other) >= 0))) {
                     toRet++;
                 }
             }
@@ -2453,7 +2453,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 onlyState = false;
             }
 
-            if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
+            if (!nextIntersects && data.intersects(element.next.epsilonMovesString,
                     state.next.epsilonMovesString)) {
                 nextIntersects = true;
             }
@@ -2473,7 +2473,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
         printer.indent();
 
-        int oneBit = NfaState.OnlyOneBitSet(state.asciiMoves[byteNum]);
+        int oneBit = state.onlyOneAsciiMove(byteNum);
         if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
                 && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
                 && (state.kindToPrint != Integer.MAX_VALUE))) {
@@ -2569,7 +2569,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 continue;
             }
 
-            if (!nextIntersects && NfaState.Intersect(data, temp1.next.epsilonMovesString,
+            if (!nextIntersects && data.intersects(temp1.next.epsilonMovesString,
                     state.next.epsilonMovesString)) {
                 nextIntersects = true;
                 break;
@@ -2578,7 +2578,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
 
         boolean hasIf = false;
         if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-            int oneBit = NfaState.OnlyOneBitSet(state.asciiMoves[byteNum]);
+            int oneBit = state.onlyOneAsciiMove(byteNum);
 
             var cond = (elseNeeded ? "else if " : "if ");
             printIfNoBlock(printer, cond, (oneBit != -1)
@@ -2622,7 +2622,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 continue;
             }
 
-            if (!nextIntersects && NfaState.Intersect(data, temp1.next.epsilonMovesString,
+            if (!nextIntersects && data.intersects(temp1.next.epsilonMovesString,
                     state.next.epsilonMovesString)) {
                 nextIntersects = true;
                 break;
@@ -2661,7 +2661,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> {
                 continue;
             }
 
-            if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
+            if (!nextIntersects && data.intersects(element.next.epsilonMovesString,
                     state.next.epsilonMovesString)) {
                 nextIntersects = true;
             }

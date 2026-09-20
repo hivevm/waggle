@@ -545,7 +545,7 @@ class RustLexerGenerator extends LexerGenerator {
         for (i = 0; i < data.getMaxLen(); i++) {
             boolean startNfaNeeded = false;
             tab = data.getCharPosKind(i);
-            var keys = NfaStateData.reArrange(tab);
+            var keys = data.getOrderedCharPosKinds(i);
 
             printMoveStringLiteralDfaSignature(printer, data, i, maxLongsReqd);
 

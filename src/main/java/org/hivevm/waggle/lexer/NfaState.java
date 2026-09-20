@@ -17,7 +17,7 @@ public class NfaState {
     private final static String ALL_BITS = "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
 
 
-    public static boolean AllBitsSet(String bitVec) {
+    static boolean AllBitsSet(String bitVec) {
         return bitVec.equals(NfaState.ALL_BITS);
     }
 
@@ -646,7 +646,7 @@ public class NfaState {
     }
 
 
-    public static int[] GetStateSetIndicesForUse(NfaStateData data, String arrayString) {
+    static int[] GetStateSetIndicesForUse(NfaStateData data, String arrayString) {
         int[] ret;
         int[] set = data.getNextStates(arrayString);
 
@@ -661,11 +661,16 @@ public class NfaState {
         return ret;
     }
 
-    public static int OnlyOneBitSet(long l) {
+    /** The single ASCII move of {@code byteNum}, or -1 when there is not exactly one. */
+    public final int onlyOneAsciiMove(int byteNum) {
+        return NfaState.OnlyOneBitSet(this.asciiMoves[byteNum]);
+    }
+
+    static int OnlyOneBitSet(long l) {
         return (Long.bitCount(l) == 1) ? Long.numberOfTrailingZeros(l) : -1;
     }
 
-    public static int ElemOccurs(int elem, int[] arr) {
+    static int ElemOccurs(int elem, int[] arr) {
         for (int i = arr.length; i-- > 0; ) {
             if (arr[i] == elem)
                 return i;
@@ -678,7 +683,7 @@ public class NfaState {
         // next.epsilonMovesString = GetStateSetString(newSet);
     }
 
-    public static boolean Intersect(NfaStateData data, String set1, String set2) {
+    static boolean Intersect(NfaStateData data, String set1, String set2) {
         if ((set1 == null) || (set2 == null))
             return false;
 

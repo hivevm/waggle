@@ -186,6 +186,42 @@ public class NfaStateData {
         return this.charPosKind.get(index);
     }
 
+    /**
+     * The keys of {@link #getCharPosKind(int)}, ordered by their first character.
+     *
+     * <p>The order is a property of the finished DFA, so it is settled here rather than recomputed
+     * by each back end while it emits (ADR-0012).
+     */
+    public final String[] getOrderedCharPosKinds(int index) {
+        return NfaStateData.reArrange(this.charPosKind.get(index));
+    }
+
+    /**
+     * Where the state set {@code arrayString} lives in the emitted {@code jjnextStates} table.
+     *
+     * <p>Registering it is stage 4's job ({@code DfaBuilder}); a back end only looks it up. It used
+     * to call the registering method itself while emitting, so the back end could still grow the
+     * table it was in the middle of rendering.
+     */
+    /** Whether the two state sets share a state. A query over the finished DFA. */
+    public final boolean intersects(String set1, String set2) {
+        return NfaState.Intersect(this, set1, set2);
+    }
+
+    /** The position of {@code element} in {@code set}, or -1. */
+    public final int positionOf(int element, int[] set) {
+        return NfaState.ElemOccurs(element, set);
+    }
+
+    public final int[] getStateSetIndices(String arrayString) {
+        var indices = this.global.tableToDump.get(arrayString);
+        if (indices == null) {
+            throw new IllegalStateException(
+                    "state set was never registered by the lexer stage: " + arrayString);
+        }
+        return indices;
+    }
+
     public final int getMaxLenForActive(int index) {
         return this.maxLenForActive[index];
     }
@@ -332,10 +368,10 @@ public class NfaStateData {
 
     /**
      * Returns the keys of {@code tab} ordered by their first character (a stable insertion sort).
-     * A pure ordering helper shared by stage 4 and the stage-5 generators; kept in the lexer layer
-     * so no generator has to reach into {@link DfaBuilder} for it (ADR-0012).
+     * Stage 4 owns the order; back ends read it through {@link #getOrderedCharPosKinds(int)}
+     * (ADR-0012).
      */
-    public static <T> String[] reArrange(Hashtable<String, T> tab) {
+    static <T> String[] reArrange(Hashtable<String, T> tab) {
         String[] ret = new String[tab.size()];
         int cnt = 0;
 
