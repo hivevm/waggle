@@ -33,6 +33,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0017](0017-lexer-emission-by-composition.md) | The lexer back ends compose emitters over a target syntax | 🟡 Proposed |
 | [0018](0018-rendering-is-pure-an-output-sink-writes.md) | Rendering produces text; an output sink writes it | 🟡 Proposed |
 | [0019](0019-package-layout-and-dependency-dag.md) | A package layout that names the stages, and a dependency DAG that is tested | 🟡 Proposed |
+| [0020](0020-interpreted-mode.md) | A grammar can be run without generating code | 🟡 Proposed |
 
 ## Process
 

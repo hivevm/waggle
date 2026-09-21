@@ -3,7 +3,12 @@
 
 package org.hivevm.waggle.api;
 
+import org.hivevm.waggle.lexer.LexerInterpreter;
+
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 
 /**
@@ -56,6 +61,24 @@ public class ParserBuilder {
         return new WaggleCompiler(
                 new GenerationRequest(this.parserFile, this.language, this.targetDir,
                         this.customNodes));
+    }
+
+    /**
+     * Reads {@code text} with this grammar, without generating anything.
+     *
+     * <p>It was removed as dead code -- it was, and its tokenizer looped forever -- and is back as
+     * something that works: {@link ParserInterpreter} runs the pipeline up to the finished
+     * automaton and simulates it, so a grammar can be tried out without a generate-compile-load
+     * cycle.
+     */
+    public final List<LexerInterpreter.Match> interpret(String text) {
+        try {
+            var grammar = Files.readString(this.parserFile.toPath(), StandardCharsets.UTF_8)
+                    .replace("\r\n", "\n").replace('\r', '\n');
+            return new ParserInterpreter().tokenize(grammar, text);
+        } catch (IOException e) {
+            throw new GenerationException("Failed to read " + this.parserFile, e);
+        }
     }
 
     private static File toFile(File file, String... pathes) {
