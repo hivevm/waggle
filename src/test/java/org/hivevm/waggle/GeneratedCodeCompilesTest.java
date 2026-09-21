@@ -1,5 +1,9 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.ParserBuilder;
+
+import org.hivevm.waggle.api.Language;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.io.TempDir;

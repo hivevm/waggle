@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 class JJTreeLayeringTest {
 
     private static final Path JJTREE_DIR =
-            Path.of("src", "main", "java", "org", "hivevm", "waggle", "parser", "jjtree");
+            Path.of("src", "main", "java", "org", "hivevm", "waggle", "jjtree");
 
     private static final Pattern IMPORT = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+);");
 
@@ -44,11 +44,12 @@ class JJTreeLayeringTest {
             "org.hivevm.waggle.diag.",
             "org.hivevm.waggle.model.",
             "org.hivevm.waggle.tree.",
-            "org.hivevm.waggle.parser.jjtree.",
-            "org.hivevm.waggle.Encoding",
-            "org.hivevm.waggle.Language",
-            "org.hivevm.waggle.WaggleOptions",
-            "org.hivevm.waggle.parser.Options");
+            "org.hivevm.waggle.jjtree.",
+            "org.hivevm.waggle.api.Encoding",
+            "org.hivevm.waggle.api.Language",
+            "org.hivevm.waggle.api.Options",
+            "org.hivevm.waggle.api.WaggleOptions",
+            "org.hivevm.waggle.api.Options");
 
     @Test
     void jjtreeDependsOnTheTreeApiAndNotOnABackEnd() throws IOException {

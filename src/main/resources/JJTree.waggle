@@ -7,7 +7,7 @@ options {
   NODE_CLASS: "ASTNode",
   VISITOR: true,
   VISITOR_DATA_TYPE: "ASTWriter",
-  JAVA_PACKAGE: "org.hivevm.waggle.parser.jjtree",
+  JAVA_PACKAGE: "org.hivevm.waggle.jjtree",
   BASE_PARSER: "ASTParser"
 }
 

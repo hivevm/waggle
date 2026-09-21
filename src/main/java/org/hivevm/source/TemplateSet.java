@@ -3,7 +3,7 @@
 
 package org.hivevm.source;
 
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.Options;
 
 import java.io.File;
 import java.util.ArrayList;

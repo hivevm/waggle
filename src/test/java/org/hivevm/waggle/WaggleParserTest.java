@@ -1,5 +1,11 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.Waggle;
+
+import org.hivevm.waggle.api.ParserBuilder;
+
+import org.hivevm.waggle.api.Language;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.io.TempDir;
@@ -37,7 +43,7 @@ class WaggleParserTest {
                 .setParserFile(WaggleParserTest.PARSER_SOURCE, "Waggle.waggle")
                 .build().parse();
 
-        assertGenerated(target, "org/hivevm/waggle/parser", "Parser.java", "Lexer.java",
+        assertGenerated(target, "org/hivevm/waggle/grammar", "Parser.java", "Lexer.java",
                 "ParserConstants.java", "Token.java");
     }
 
@@ -50,7 +56,7 @@ class WaggleParserTest {
                 .setCustomNodes(WaggleParserTest.NODES)
                 .build().parse();
 
-        assertGenerated(target, "org/hivevm/waggle/parser/jjtree", "Parser.java", "Lexer.java",
+        assertGenerated(target, "org/hivevm/waggle/jjtree", "Parser.java", "Lexer.java",
                 "ParserConstants.java", "Token.java");
     }
 

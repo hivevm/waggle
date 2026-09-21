@@ -3,10 +3,10 @@
 
 package org.hivevm.waggle.doc;
 
-import org.hivevm.waggle.Encoding;
-import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.api.Encoding;
+import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.model.*;
-import org.hivevm.waggle.parser.JavaCCData;
+import org.hivevm.waggle.grammar.JavaCCData;
 import org.hivevm.waggle.model.RegExprSpec;
 
 import java.util.Iterator;
@@ -24,7 +24,6 @@ class JJDoc extends JJDocGlobals {
         generator.documentEnd();
         return generator;
     }
-
 
     private static void emitTokenProductions(Generator gen, Iterable<TokenProduction> prods) {
         gen.tokensStart();

@@ -478,7 +478,6 @@ record Nfa(NfaState start, NfaState end) {
         return epsilonMovesString;
     }
 
-
     private static void updateDuplicateNonAsciiMoves(LexerData data, NfaState state) {
         for (int i = 0; i < data.nonAsciiTableForMethod.size(); i++) {
             NfaState tmp = data.nonAsciiTableForMethod.get(i);

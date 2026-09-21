@@ -3,14 +3,15 @@
 
 package org.hivevm.waggle.doc;
 
-import org.hivevm.waggle.GenerationContext;
-import org.hivevm.waggle.WaggleCompiler;
-import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.api.WaggleCompiler;
+
+import org.hivevm.waggle.api.GenerationContext;
+import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.Diagnostics;
-import org.hivevm.waggle.parser.JavaCCData;
-import org.hivevm.waggle.parser.JavaCCParserDefault;
-import org.hivevm.waggle.parser.Parser;
-import org.hivevm.waggle.parser.StreamProvider;
+import org.hivevm.waggle.grammar.JavaCCData;
+import org.hivevm.waggle.grammar.JavaCCParserDefault;
+import org.hivevm.waggle.grammar.Parser;
+import org.hivevm.waggle.grammar.StreamProvider;
 
 import java.io.FileInputStream;
 import java.text.ParseException;

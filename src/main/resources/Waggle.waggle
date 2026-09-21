@@ -1,7 +1,7 @@
 grammar Waggle;
 
 options {
-  JAVA_PACKAGE: "org.hivevm.waggle.parser",
+  JAVA_PACKAGE: "org.hivevm.waggle.grammar",
   JAVA_IMPORTS: "java.util.ArrayList,java.util.List,org.hivevm.waggle.model.*",
   BASE_PARSER: "AbstractJavaCCParser"
 }

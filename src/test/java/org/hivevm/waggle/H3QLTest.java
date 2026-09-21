@@ -1,5 +1,9 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.ParserBuilder;
+
+import org.hivevm.waggle.api.Language;
+
 import java.io.File;
 
 import org.junit.jupiter.api.Disabled;

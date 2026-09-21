@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.lexer;
 
-import org.hivevm.waggle.Encoding;
+import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 import org.hivevm.waggle.model.RChoice;
 import org.hivevm.waggle.model.RExpression;

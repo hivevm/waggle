@@ -65,7 +65,6 @@ public class Template {
         return param;
     }
 
-
     private final String text;
 
     /**

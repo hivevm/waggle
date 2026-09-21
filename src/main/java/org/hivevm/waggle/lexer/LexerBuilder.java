@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.lexer;
 
-import org.hivevm.waggle.ParserRequest;
+import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.model.RChoice;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;

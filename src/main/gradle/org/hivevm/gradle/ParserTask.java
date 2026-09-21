@@ -8,12 +8,11 @@ import java.util.List;
 
 import org.gradle.api.Project;
 
-import org.hivevm.waggle.Language;
+import org.hivevm.waggle.api.Language;
 
 public class ParserTask {
 
     private final Project project;
-
 
     public String   name;
     public Language target;
@@ -22,7 +21,6 @@ public class ParserTask {
 
     public String       output;
     public List<String> treeNodes;
-
 
     @Inject
     public ParserTask(Project project) {

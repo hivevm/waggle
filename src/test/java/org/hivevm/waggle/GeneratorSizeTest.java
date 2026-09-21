@@ -26,7 +26,7 @@ class GeneratorSizeTest {
     private static final int LIMIT = 1000;
 
     private static final Path GENERATOR =
-            Path.of("src", "main", "java", "org", "hivevm", "waggle", "generator");
+            Path.of("src", "main", "java", "org", "hivevm", "waggle", "codegen");
 
     @Test
     void noGeneratorClassExceedsTheLimit() throws IOException {

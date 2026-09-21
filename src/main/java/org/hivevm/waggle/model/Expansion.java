@@ -6,14 +6,17 @@ package org.hivevm.waggle.model;
 /**
  * Describes expansions - entities that may occur on the right hand sides of productions. This is
  * the base class of a bunch of other more specific classes.
+ *
+ * <p>It is the grammar, and nothing a walk over it left behind. The visit marker of the follow-set
+ * computation, the re-entry guard of {@code minimumSize} and the name the parser generator invents
+ * for a lookahead routine used to live here; they belong to the stage that writes them (ADR-0019).
+ * {@code hashCode} is identity again — it was {@code line + column}, which collided for every two
+ * expansions on a diagonal and quietly required positions to be set before use.
  */
 
 public abstract sealed class Expansion extends Production
         permits Action, Choice, Lookahead, NonTerminal, OneOrMore, Sequence, ZeroOrMore, ZeroOrOne,
         NormalProduction, RegularExpression {
-
-    // An internal name for this expansion. This is used to generate parser routines.
-    private String internal_name = "";
 
     /**
      * The parent of this expansion node. In case this is the top level expansion of the production
@@ -24,17 +27,6 @@ public abstract sealed class Expansion extends Production
 
     // The ordinal of this node with respect to its parent.
     private int ordinal;
-
-    /**
-     * To avoid right-recursive loops when calculating follow sets, we use a generation number which
-     * indicates if this expansion was visited by LookaheadWalk.genFollowSet in the same generation.
-     * New generations are obtained by incrementing the static counter below, and the current
-     * generation is stored in the non-static variable below.
-     */
-    private long myGeneration = 0;
-
-    // This flag is used for bookkeeping by the minimumSize method in class ParseEngine.
-    private boolean inMinimumSize = false;
 
     private NodeScope node_scope;
 
@@ -55,46 +47,12 @@ public abstract sealed class Expansion extends Production
         this.ordinal = ordinal;
     }
 
-    public final long generation() {
-        return this.myGeneration;
-    }
-
-    public final void setGeneration(long generation) {
-        this.myGeneration = generation;
-    }
-
-    public final boolean inMinimumSize() {
-        return this.inMinimumSize;
-    }
-
-    public final void setInMinimumSize(boolean inMinimumSize) {
-        this.inMinimumSize = inMinimumSize;
-    }
-
-    public final String internalName() {
-        return this.internal_name;
-    }
-
-    public final void setInternalName(String internal_name) {
-        this.internal_name = internal_name;
-    }
-
     public void setNodeScope(NodeScope node_scope) {
         this.node_scope = node_scope;
     }
 
     public NodeScope getNodeScope() {
         return this.node_scope;
-    }
-
-    /**
-     * A reimplementing of Object.hashCode() to be deterministic. This uses the line and column
-     * fields to generate an arbitrary number - we assume that this method is called only after line
-     * and column are set to their actual values.
-     */
-    @Override
-    public final int hashCode() {
-        return getLine() + getColumn();
     }
 
     @Override

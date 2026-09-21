@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
  * Guards the front-end boundary from ADR-0013: {@code org.hivevm.waggle.model} is the stable,
  * language-independent artifact of the front end and must depend only on the JDK, on
  * {@code org.hivevm.core}, and on itself — never on the parser or any later stage. The one exception
- * is the generated {@code org.hivevm.waggle.parser.Token}, which the model holds for positions and
+ * is the generated {@code org.hivevm.waggle.grammar.Token}, which the model holds for positions and
  * verbatim token chains (ADR-0013). A dependency-free source scan keeps the rest of the
  * {@code model -> parser} cycle from silently returning.
  */
@@ -30,7 +30,7 @@ class ModelLayeringTest {
             Path.of("src", "main", "java", "org", "hivevm", "waggle", "model");
 
     /** The generated token class, the only parser type the model may use (ADR-0013). */
-    private static final String PARSER_TOKEN = "org.hivevm.waggle.parser.Token";
+    private static final String PARSER_TOKEN = "org.hivevm.waggle.grammar.Token";
 
     private static final Pattern IMPORT = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+);");
 

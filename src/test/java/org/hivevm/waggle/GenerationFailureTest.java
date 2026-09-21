@@ -1,5 +1,11 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.ParserBuilder;
+
+import org.hivevm.waggle.api.GenerationException;
+
+import org.hivevm.waggle.api.Language;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

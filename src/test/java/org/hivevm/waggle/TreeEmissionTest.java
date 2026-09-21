@@ -1,11 +1,13 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.Language;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.generator.ExpansionDecorator;
-import org.hivevm.waggle.generator.GeneratorProvider;
+import org.hivevm.waggle.codegen.ExpansionDecorator;
+import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;

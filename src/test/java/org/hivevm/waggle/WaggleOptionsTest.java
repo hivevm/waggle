@@ -1,5 +1,9 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.Waggle;
+
+import org.hivevm.waggle.api.WaggleOptions;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.hivevm.waggle.diag.DiagnosticSink;

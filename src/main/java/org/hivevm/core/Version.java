@@ -50,7 +50,6 @@ public class Version implements Comparable<Version> {
     private static final Pattern MATCH = Pattern.compile("^" + Version.PATTERN + "$");
     private static final Pattern FORMAT = Pattern.compile("(0+)\\.(0+)(?:\\.(0+))?(?:-(0+))?(?:\\+(0+))?");
 
-
     private final int major;
     private final int minor;
     private final int patch;

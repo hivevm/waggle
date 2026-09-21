@@ -35,7 +35,6 @@ class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
     private final Set<String> consumed;
     private final Environment environment;
 
-
     private int indent;
     private boolean newLine;
 

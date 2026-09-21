@@ -11,7 +11,7 @@ import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Nested;
 
-import org.hivevm.waggle.Language;
+import org.hivevm.waggle.api.Language;
 
 public abstract class ParserProject {
 
@@ -22,7 +22,6 @@ public abstract class ParserProject {
     public String file;
 
     public String output;
-
 
     private final ListProperty<ParserTask> tasks;
 

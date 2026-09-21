@@ -1,0 +1,3 @@
+org.hivevm.waggle.codegen.cpp.CppGenerator
+org.hivevm.waggle.codegen.java.JavaGenerator
+org.hivevm.waggle.codegen.rust.RustGenerator

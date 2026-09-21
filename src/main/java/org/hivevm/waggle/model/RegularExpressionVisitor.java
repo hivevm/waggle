@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.model;
 
-
 /**
  * The {@link RegularExpressionVisitor} class.
  */

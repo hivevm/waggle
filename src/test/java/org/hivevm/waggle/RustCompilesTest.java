@@ -1,5 +1,9 @@
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.api.ParserBuilder;
+
+import org.hivevm.waggle.api.Language;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -229,7 +233,7 @@ class RustCompilesTest {
                 .setTargetDir(dir.resolve("rust").toFile());
 
         var failure = org.junit.jupiter.api.Assertions.assertThrows(
-                org.hivevm.waggle.GenerationException.class, () -> builder.build().parse());
+                org.hivevm.waggle.api.GenerationException.class, () -> builder.build().parse());
         org.junit.jupiter.api.Assertions.assertTrue(
                 failure.getMessage() != null && failure.getMessage().contains("DEPTH_LIMIT"),
                 "expected a DEPTH_LIMIT-not-supported message, got: " + failure.getMessage());
@@ -292,7 +296,7 @@ class RustCompilesTest {
                 .setTargetDir(dir.resolve("rust").toFile());
 
         var failure = org.junit.jupiter.api.Assertions.assertThrows(
-                org.hivevm.waggle.GenerationException.class, () -> builder.build().parse());
+                org.hivevm.waggle.api.GenerationException.class, () -> builder.build().parse());
         org.junit.jupiter.api.Assertions.assertTrue(
                 failure.getMessage() != null && failure.getMessage().contains(expected),
                 "expected a " + expected + "-not-supported message, got: " + failure.getMessage());

@@ -4,7 +4,7 @@
 package org.hivevm.waggle.tree;
 
 import org.hivevm.waggle.diag.Diagnostics;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.Options;
 
 import java.util.Set;
 

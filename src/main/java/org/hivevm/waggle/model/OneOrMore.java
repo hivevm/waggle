@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.model;
 
-
 /**
  * Describes one-or-more expansions (e.g., foo+).
  */

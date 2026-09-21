@@ -3,8 +3,8 @@
 
 package org.hivevm.source;
 
-import org.hivevm.waggle.WaggleVersion;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.WaggleVersion;
+import org.hivevm.waggle.api.Options;
 
 import java.io.File;
 import java.io.IOException;

@@ -4,12 +4,11 @@
 package org.hivevm.source;
 
 import org.hivevm.core.Environment;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.Options;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
 
 /**
  * The {@code TemplateOptions} class provides a flexible mechanism to manage key-value options

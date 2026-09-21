@@ -13,7 +13,6 @@ public final class RCharacterList extends RExpression {
 
     private boolean transformed = false;
 
-
     // This is true if a tilde (~) appears before the character list. Otherwise, this is false.
     private boolean negated_list = false;
 
@@ -208,7 +207,6 @@ public final class RCharacterList extends RExpression {
             8096, 8103, 8112, 8113, 8115, 8115, 8131, 8131, 8144, 8145, 8160, 8161, 8165, 8165, 8179,
             8179, 8560, 8575, 9424,
             9449, 65345, 65370, 65371, 0xfffe, 0xffff, 0xffff};
-
 
     public final void ToCaseNeutral() {
         int cnt = this.descriptors.size();
@@ -510,14 +508,12 @@ public final class RCharacterList extends RExpression {
         return this.transformed;
     }
 
-
     /**
      * Gets the {@link #negated_list}.
      */
     public final boolean isNegated_list() {
         return this.negated_list;
     }
-
 
     /**
      * Gets the {@link #descriptors}.
@@ -526,14 +522,12 @@ public final class RCharacterList extends RExpression {
         return this.descriptors;
     }
 
-
     /**
      * Sets the {@link #transformed}.
      */
     public final void setTransformed() {
         this.transformed = true;
     }
-
 
     /**
      * Sets the {@link #negated_list}.

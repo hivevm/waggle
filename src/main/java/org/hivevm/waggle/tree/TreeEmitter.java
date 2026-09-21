@@ -5,7 +5,7 @@ package org.hivevm.waggle.tree;
 
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.model.NodeScope;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.Options;
 
 import java.util.Collection;
 

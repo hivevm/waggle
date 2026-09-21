@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.model;
 
-import org.hivevm.waggle.parser.Token;
+import org.hivevm.waggle.grammar.Token;
 
 public class Production {
 

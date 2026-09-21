@@ -48,7 +48,6 @@ interface Generator {
      */
     void specialTokens(String s);
 
-
     void handleTokenProduction(TokenProduction tp);
 
     /**

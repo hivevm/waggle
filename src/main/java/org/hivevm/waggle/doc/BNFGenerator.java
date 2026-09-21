@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.doc;
 
-import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
@@ -100,7 +100,6 @@ class BNFGenerator implements Generator {
     @Override
     public void specialTokens(String s) {
     }
-
 
     @Override
     public void nonterminalsStart() {

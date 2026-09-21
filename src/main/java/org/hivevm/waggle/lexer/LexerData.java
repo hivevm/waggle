@@ -3,12 +3,12 @@
 
 package org.hivevm.waggle.lexer;
 
-import org.hivevm.waggle.ParserRequest;
+import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.api.Options;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +31,6 @@ public class LexerData {
 
     int curKind;
 
-
     int lohiByteCnt;
     final Map<Integer, long[]> lohiByte;
     final Hashtable<String, Integer> lohiByteTab;
@@ -48,7 +47,6 @@ public class LexerData {
     int lastIndex;
     final Hashtable<String, int[]> tableToDump;
     final List<int[]> orderedStateSet;
-
 
     private final Map<String, NfaStateData> stateData = new HashMap<>();
 
@@ -170,7 +168,6 @@ public class LexerData {
     public final int getLohiByteSize() {
         return this.lohiByte.size();
     }
-
 
     public final List<int[]> getOrderedStateSet() {
         return this.orderedStateSet;

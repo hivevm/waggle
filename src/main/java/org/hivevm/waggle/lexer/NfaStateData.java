@@ -19,18 +19,15 @@ public class NfaStateData {
     private final int lexStateIndex;
     private final String lexStateSuffix;
 
-
     // RString
     int maxLen;
     int maxStrKind;
     boolean[] subString;
     boolean[] subStringAtPos;
 
-
     final int[] maxLenForActive;
     int[][] intermediateKinds;
     int[][] intermediateMatchedPos;
-
 
     public Hashtable<String, long[]>[] statesForPos;
     final List<Hashtable<String, KindInfo>> charPosKind;
@@ -59,7 +56,6 @@ public class NfaStateData {
     // state-set name for every (position, kind) it visits, so the stage-5 generators render it
     // without recomputing — or registering — DFA structure at emit time.
     private final Hashtable<Long, Integer> stateSetForPosKind;
-
 
     NfaStateData(LexerData data, String name) {
         this.global = data;
@@ -233,7 +229,6 @@ public class NfaStateData {
     public final int[][] getIntermediateMatchedPos() {
         return this.intermediateMatchedPos;
     }
-
 
     public final int getMaxLen() {
         return this.maxLen;

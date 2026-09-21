@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.lexer;
 
-
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Vector;
 public class NfaState {
 
     private final static String ALL_BITS = "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
-
 
     static boolean AllBitsSet(String bitVec) {
         return bitVec.equals(NfaState.ALL_BITS);
@@ -591,7 +589,6 @@ public class NfaState {
         return false;
     }
 
-
     private int MoveFrom(char c, List<NfaState> newStates) {
         if (CanMoveUsingChar(c)) {
             for (int i = this.next.epsilonMoves.size(); i-- > 0; ) {
@@ -612,7 +609,6 @@ public class NfaState {
         }
         return retVal;
     }
-
 
     static boolean EqualLoByteVectors(List<Integer> vec1, List<Integer> vec2) {
         if ((vec1 == null) || (vec2 == null))
@@ -644,7 +640,6 @@ public class NfaState {
         }
         return true;
     }
-
 
     static int[] GetStateSetIndicesForUse(NfaStateData data, String arrayString) {
         int[] ret;
