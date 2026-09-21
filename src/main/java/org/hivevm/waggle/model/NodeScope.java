@@ -5,22 +5,21 @@ package org.hivevm.waggle.model;
 
 import java.util.function.Function;
 
+/**
+ * The region of a production that one {@code #Node} descriptor covers, and the number that tells it
+ * apart from the other scopes of the same production.
+ *
+ * <p>It is data: the names a back end gives the scope's locals are the back end's business
+ * (ADR-0016).
+ */
 public class NodeScope {
 
     private final NodeDescriptor node_descriptor;
     private final int scopeNumber;
 
-    private final String closedVar;
-    private final String exceptionVar;
-    private final String nodeVar;
-
     protected NodeScope(NodeConfig config, Function<NodeScope, Integer> scope_number) {
         this.node_descriptor = config.node_descriptor();
-
         this.scopeNumber = scope_number.apply(this);
-        this.nodeVar = constructVariable("n");
-        this.closedVar = constructVariable("c");
-        this.exceptionVar = constructVariable("e");
     }
 
     private NodeScope(BNFProduction p, NodeDescriptor n) {
@@ -37,9 +36,6 @@ public class NodeScope {
         }
 
         this.scopeNumber = p.getNodeScopeNumber(this);
-        this.nodeVar = constructVariable("n");
-        this.closedVar = constructVariable("c");
-        this.exceptionVar = constructVariable("e");
     }
 
     public final NodeDescriptor getNodeDescriptor() {
@@ -54,21 +50,9 @@ public class NodeScope {
         return this.node_descriptor.getDescriptor();
     }
 
-    public final String getClosedVariable() {
-        return this.closedVar;
-    }
-
-    public final String getExceptionVariable() {
-        return this.exceptionVar;
-    }
-
-    public final String getNodeVariable() {
-        return this.nodeVar;
-    }
-
-    private String constructVariable(String id) {
-        String s = "000" + this.scopeNumber;
-        return "jjt" + id + s.substring(s.length() - 3);
+    /** Distinguishes this scope from the other scopes of the same production. */
+    public final int getScopeNumber() {
+        return this.scopeNumber;
     }
 
     public static NodeScope create(BNFProduction p, NodeDescriptor nd) {

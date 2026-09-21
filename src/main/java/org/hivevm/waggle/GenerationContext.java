@@ -30,7 +30,6 @@ public final class GenerationContext {
     public static GenerationContext of(GenerationRequest request, Diagnostics diagnostics) {
         var options = new WaggleOptions();
         options.apply(request);
-        options.validate(diagnostics);
         return new GenerationContext(options, diagnostics);
     }
 

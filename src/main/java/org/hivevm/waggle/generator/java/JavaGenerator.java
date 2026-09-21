@@ -7,9 +7,11 @@ import org.hivevm.waggle.generator.FileGenerator;
 import org.hivevm.waggle.generator.GeneratorName;
 import org.hivevm.waggle.generator.GeneratorProvider;
 import org.hivevm.waggle.generator.LexerGenerator;
-import org.hivevm.waggle.generator.NodeGenerator;
+import org.hivevm.waggle.tree.TreeEmitter;
+import org.hivevm.waggle.generator.java.tree.JavaTreeEmitter;
 import org.hivevm.waggle.generator.ParserGenerator;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -19,8 +21,8 @@ import java.util.Set;
 public class JavaGenerator extends GeneratorProvider {
 
     @Override
-    public final NodeGenerator newNodeGenerator() {
-        return new JavaNodeGenerator();
+    public final Optional<TreeEmitter> treeSupport() {
+        return Optional.of(new JavaTreeEmitter());
     }
 
     @Override

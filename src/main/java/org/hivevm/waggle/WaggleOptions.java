@@ -137,23 +137,6 @@ public class WaggleOptions implements Options {
     }
 
     /**
-     * Check options for consistency
-     */
-    void validate(Diagnostics diagnostics) {
-        if (!getVisitor()) {
-            if (!getVisitorDataType().isEmpty())
-                diagnostics.warning(
-                        "VISITOR_DATA_TYPE option will be ignored since VISITOR is false");
-            if ((!getVisitorReturnType().isEmpty()) && !getVisitorReturnType().equals("Object"))
-                diagnostics.warning(
-                        "VISITOR_RETURN_TYPE option will be ignored since VISITOR is false");
-            if (!getVisitorException().isEmpty())
-                diagnostics.warning(
-                        "VISITOR_EXCEPTION option will be ignored since VISITOR is false");
-        }
-    }
-
-    /**
      * Determine if a given command line argument might be an option flag. Command line options
      * start with a dash&nbsp;(-).
      *

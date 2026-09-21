@@ -16,12 +16,14 @@ import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
 import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.tree.TreeModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The parser model the back ends render: the productions, plus everything {@link ParserPlanner}
@@ -48,20 +50,20 @@ public class ParserData {
     // phase-3 routines deterministically instead of in hash-bucket order (reproducible output).
     final LinkedHashMap<Expansion, Integer> phase3table = new LinkedHashMap<>();
 
-    private final NodeData nodeData;
+    private final Optional<TreeModel> tree;
 
     /**
      * Constructs an instance of {@link ParserData}.
      */
-    ParserData(ParserRequest request) {
+    ParserData(ParserRequest request, Optional<TreeModel> tree) {
         this.request = request;
+        this.tree = tree;
 
         this.jj2index = 0;
         this.lookaheadNeeded = false;
         this.maskVals = new ArrayList<>();
         this.phase2list = new ArrayList<>();
         this.lookaheadPlans = new HashMap<>();
-        this.nodeData = new NodeData();
     }
 
     public final Options options() {
@@ -72,9 +74,14 @@ public class ParserData {
         return this.request.getParserName();
     }
 
-    /** Whether the grammar builds a tree, i.e. declares at least one node. */
+    /** Whether the grammar builds a tree. */
     public final boolean usesTree() {
-        return this.nodeData.usesTree();
+        return this.tree.isPresent();
+    }
+
+    /** The tree this grammar builds, if it builds one. */
+    public final Optional<TreeModel> treeModel() {
+        return this.tree;
     }
 
     public final int getDepthLimit() {
@@ -144,10 +151,6 @@ public class ParserData {
 
     public final boolean getErrorReporting() {
         return options().getErrorReporting();
-    }
-
-    public final NodeData getNodeData() {
-        return this.nodeData;
     }
 
     /** Registers the token mask of a switch and returns its jj_la1 slot. */

@@ -3,9 +3,11 @@
 
 package org.hivevm.waggle.generator;
 
+import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.ParserRequest;
 
 import java.text.ParseException;
+import java.util.Optional;
 
 /**
  * The {@link Generator} class.
@@ -14,7 +16,11 @@ public interface Generator {
 
     void generate(ParserRequest request) throws ParseException;
 
-    NodeGenerator newNodeGenerator();
+    /**
+     * How this back end writes tree code, or nothing when it has no tree support (ADR-0016). A
+     * target without one still generates plain parsers; it only refuses grammars that build a tree.
+     */
+    Optional<TreeEmitter> treeSupport();
 
     LexerGenerator newLexerGenerator();
 

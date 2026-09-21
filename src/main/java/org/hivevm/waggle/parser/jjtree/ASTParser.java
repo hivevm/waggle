@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * The {@link ASTParser} class.
  */
-abstract class ASTParser {
+abstract class ASTParser extends NodeScopeHooks {
 
     private final Map<String, ASTProduction> productions;
 
@@ -48,12 +48,6 @@ abstract class ASTParser {
     }
 
     protected abstract Token getToken(int index);
-
-    protected void jjtreeOpenNodeScope(Node n) throws ParseException {
-    }
-
-    protected void jjtreeCloseNodeScope(Node n) throws ParseException {
-    }
 
     /**
      * Closes the scope of {@code node} early, so that the actions that follow it in the production
@@ -102,7 +96,7 @@ abstract class ASTParser {
         Token t = getToken(1);
         return (t.kind != ParserConstants.BIT_OR) && (t.kind != ParserConstants.COMMA)
                 && (t.kind != ParserConstants.RPAREN) && (t.kind != ParserConstants.RBRACE)
-                && (t.kind != ParserConstants.RBRACKET);
+                && (t.kind != ParserConstants.RBRACKET) && (t.kind != ParserConstants.SEMICOLON);
     }
 
     protected boolean checkEmptyLA(boolean emptyLA, Token token) {

@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.generator.java;
 
+import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.Encoding;
 import org.hivevm.waggle.Waggle;
 import org.hivevm.waggle.Language;
@@ -512,91 +513,5 @@ class JavaParserGenerator extends ParserGenerator {
         printer.println("}");
         printer.outdent();
         printer.println("}");
-    }
-
-
-    @Override
-    public final void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
-        printer.print(nodeClass + " " + ns.getNodeVariable() + " = ");
-        if (options.getNodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.getNodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + ")"
-                    + options.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else {
-            printer.println("new " + nodeClass + "(this, " + "NodeType." + ns.getNodeDescriptor().getNodeId() + ");");
-        }
-
-        printer.println("boolean " + ns.getClosedVariable() + " = true;");
-
-        printer.println(ns.getNodeDescriptor().openNode(ns.getNodeVariable()));
-        if (options.getNodeScopeHook())
-            printer.println("jjtreeOpenNodeScope(" + ns.getNodeVariable() + ");");
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + ".jjtSetFirstToken(getToken(1));");
-        }
-        printer.print("try {");
-    }
-
-    @Override
-    public final void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
-        printer.println(ns.getNodeDescriptor().closeNode(ns.getNodeVariable()));
-        if (!isFinal) {
-            printer.println(ns.getClosedVariable() + " = false;");
-        }
-        if (options.getNodeScopeHook()) {
-            printer.println("if (jjtree.nodeCreated()) {");
-            printer.indent();
-            printer.println("jjtreeCloseNodeScope(" + ns.getNodeVariable() + ");");
-            printer.outdent();
-            printer.println("}");
-        }
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + ".jjtSetLastToken(getToken(0));");
-        }
-    }
-
-    @Override
-    public final void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_names) {
-        printer.println();
-        if (!thrown_names.isEmpty()) {
-            printer.println("} catch (Throwable " + ns.getExceptionVariable() + ") {");
-            printer.indent();
-            printer.println("if (" + ns.getClosedVariable() + ") {");
-            printer.indent();
-            printer.println("jjtree.clearNodeScope(" + ns.getNodeVariable() + ");");
-            printer.println(ns.getClosedVariable() + " = false;");
-            printer.outdent();
-            printer.println("} else {");
-            printer.indent();
-            printer.println("jjtree.popNode();");
-            printer.outdent();
-            printer.println("}");
-
-            for (var thrown : thrown_names) {
-                printer.println("if (" + ns.getExceptionVariable() + " instanceof " + thrown + ") {");
-                printer.indent();
-                printer.println("throw (" + thrown + ")" + ns.getExceptionVariable() + ";");
-                printer.outdent();
-                printer.println("}");
-            }
-            // This is either an Error or an undeclared Exception. If it's an Error then the cast is good,
-            // otherwise we want to force the user to declare it by crashing on the bad cast.
-            printer.println("throw (Error)" + ns.getExceptionVariable() + ";");
-            printer.outdent();
-        }
-
-        printer.println("} finally {");
-        printer.indent();
-        printer.println("if (" + ns.getClosedVariable() + ") {");
-        printer.indent();
-        insertCloseNodeCode(ns, printer, options, true);
-        printer.outdent();
-        printer.println("}");
-        printer.outdent();
-        printer.print("}");
     }
 }

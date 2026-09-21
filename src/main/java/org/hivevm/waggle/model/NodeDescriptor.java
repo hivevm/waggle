@@ -5,6 +5,13 @@ package org.hivevm.waggle.model;
 
 import java.util.Locale;
 
+/**
+ * A {@code #Node} annotation, as data: the node's name, the arity expression in its parentheses and
+ * whether that expression was written with {@code >}.
+ *
+ * <p>How a target spells "open this scope" is the back end's business (ADR-0016). This interface
+ * used to answer it with a Java string, which was also what C++ needed and never what Rust used.
+ */
 public interface NodeDescriptor {
 
     default String getNodeId() {
@@ -21,21 +28,6 @@ public interface NodeDescriptor {
         return getText() == null
                 ? getName()
                 : "#" + getName() + "(" + (isGt() ? ">" : "") + getText() + ")";
-    }
-
-    default String openNode(String nodeVar) {
-        return "jjtree.openNodeScope(" + nodeVar + ");";
-    }
-
-
-    default String closeNode(String nodeVar) {
-        if (getText() == null) {
-            return "jjtree.closeNodeScope(" + nodeVar + ", true);";
-        } else if (isGt()) {
-            return "jjtree.closeNodeScope(" + nodeVar + ", jjtree.nodeArity() >" + getText() + ");";
-        } else {
-            return "jjtree.closeNodeScope(" + nodeVar + ", " + getText() + ");";
-        }
     }
 
     static String getNodeId(String name) {

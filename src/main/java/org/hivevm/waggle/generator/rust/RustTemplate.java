@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-enum RustTemplate implements SourceProvider {
+public enum RustTemplate implements SourceProvider {
 
-    NODE("node"),
+    NODE("tree/node", "node"),
     TOKEN("token"),
     CHAR_STREAM("charstream"),
 
@@ -32,8 +32,8 @@ enum RustTemplate implements SourceProvider {
 
     PARSER_CONSTANTS("parserconstants"),
 
-    TREE_STATE("treestate"),
-    TREE_CONSTANTS("treeconstants");
+    TREE_STATE("tree/treestate", "treestate"),
+    TREE_CONSTANTS("tree/treeconstants", "treeconstants");
 
     private final String name;
     private final String path;
@@ -70,7 +70,7 @@ enum RustTemplate implements SourceProvider {
      * grammar. A generated parser or AST node may not be called any of these, or it would silently
      * overwrite the runtime class.
      */
-    static Set<String> reservedNames() {
+    public static Set<String> reservedNames() {
         return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
                 .collect(Collectors.toSet());
     }

@@ -21,7 +21,10 @@ import org.hivevm.waggle.model.ZeroOrOne;
 import org.hivevm.waggle.parser.ParseException;
 import org.hivevm.waggle.semantic.Semanticize;
 
+import org.hivevm.waggle.tree.TreeModel;
+
 import java.util.ArrayList;
+import java.util.Optional;
 
 class ParserPlanner {
 
@@ -38,12 +41,12 @@ class ParserPlanner {
         return ++this.rIndex;
     }
 
-    final ParserData build(ParserRequest request) throws ParseException {
+    final ParserData build(ParserRequest request, Optional<TreeModel> tree) throws ParseException {
         if (request.diagnostics().hasError()) {
             throw new ParseException();
         }
 
-        ParserData data = new ParserData(request);
+        ParserData data = new ParserData(request, tree);
         for (NormalProduction p : data.getProductions()) {
             if (p instanceof BNFProduction) {
                 buildPhase1(data, p.getExpansion());

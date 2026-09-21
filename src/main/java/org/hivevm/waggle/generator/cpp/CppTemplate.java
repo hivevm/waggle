@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-enum CppTemplate implements SourceProvider {
+public enum CppTemplate implements SourceProvider {
 
     WAGGLE("Waggle"),
 
@@ -49,18 +49,18 @@ enum CppTemplate implements SourceProvider {
     STRINGREADER("StringReader", false),
     STRINGREADER_H("StringReader"),
 
-    NODE("Node", false),
-    NODE_H("Node"),
+    NODE("tree/Node", "Node", false),
+    NODE_H("tree/Node", "Node"),
     /** One file per AST node: the name is the node type, not the template name. */
-    MULTINODE("MultiNode", "%s", false),
-    MULTINODE_H("MultiNode", "%s"),
+    MULTINODE("tree/MultiNode", "%s", false),
+    MULTINODE_H("tree/MultiNode", "%s"),
 
-    TREE("Tree"),
-    TREE_ONE("TreeOne", "%sTree"),
-    TREESTATE("TreeState", false),
-    TREESTATE_H("TreeState"),
-    TREE_CONSTANTS("TreeConstants", "%sTreeConstants"),
-    VISITOR("Visitor", "%sVisitor");
+    TREE("tree/Tree", "Tree"),
+    TREE_ONE("tree/TreeOne", "%sTree"),
+    TREESTATE("tree/TreeState", "TreeState", false),
+    TREESTATE_H("tree/TreeState", "TreeState"),
+    TREE_CONSTANTS("tree/TreeConstants", "%sTreeConstants"),
+    VISITOR("tree/Visitor", "%sVisitor");
 
     private final String name;
     private final String path;
@@ -105,7 +105,7 @@ enum CppTemplate implements SourceProvider {
      * grammar. A generated parser or AST node may not be called any of these, or it would silently
      * overwrite the runtime class.
      */
-    static Set<String> reservedNames() {
+    public static Set<String> reservedNames() {
         return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
                 .collect(Collectors.toSet());
     }

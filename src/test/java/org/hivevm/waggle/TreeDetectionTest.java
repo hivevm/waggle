@@ -3,12 +3,15 @@ package org.hivevm.waggle;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.hivevm.waggle.diag.DiagnosticSink;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Tree building follows from the grammar, not from a marker in its text.
@@ -67,6 +70,52 @@ class TreeDetectionTest {
                 "a grammar with #Node must build a tree");
         assertTrue(Files.isRegularFile(target.resolve("org/example/Node.java")),
                 "the node runtime must be written for a grammar with #Node");
+    }
+
+    /** A tree option the grammar will never use, next to a grammar that builds no tree. */
+    private static final String IGNORED_VISITOR_OPTION = """
+            grammar Plain;
+
+            options {
+              JAVA_PACKAGE: "org.example",
+              VISITOR_DATA_TYPE: "Payload"
+            }
+
+            Input%s = < WORD > <EOF> ;
+
+            TOKEN = < WORD: (["a"-"z"])+ > ;
+            """;
+
+    /**
+     * VISITOR_DATA_TYPE without VISITOR is worth a warning — but only to an author who asked for a
+     * tree. It used to be checked for every grammar, and in fact never at all: the check ran before
+     * the grammar's own options block had been read (ADR-0016).
+     */
+    @Test
+    void treeOptionsAreCheckedOnlyForAGrammarWithATree(@TempDir Path dir) throws IOException {
+        var withoutTree = diagnose(dir.resolve("plain"), "Plain.waggle",
+                TreeDetectionTest.IGNORED_VISITOR_OPTION.formatted(""));
+        assertFalse(withoutTree.collected().stream()
+                        .anyMatch(d -> d.message().contains("VISITOR")),
+                "a grammar that builds no tree must not be told about VISITOR_DATA_TYPE: "
+                        + withoutTree.collected());
+
+        var withTree = diagnose(dir.resolve("noded"), "Plain.waggle",
+                TreeDetectionTest.IGNORED_VISITOR_OPTION.formatted(" #Root"));
+        assertTrue(withTree.collected().stream()
+                        .anyMatch(d -> d.message().contains("VISITOR_DATA_TYPE")),
+                "a grammar that builds a tree must be told: " + withTree.collected());
+    }
+
+    private static Diagnostics diagnose(Path dir, String name, String grammar) throws IOException {
+        Files.createDirectories(dir);
+        var source = dir.resolve(name);
+        Files.writeString(source, grammar);
+
+        var diagnostics = new Diagnostics(DiagnosticSink.SILENT);
+        new WaggleCompiler(new GenerationRequest(source.toFile(), Language.JAVA,
+                dir.resolve("out").toFile(), List.of()), diagnostics).parse();
+        return diagnostics;
     }
 
     private static Path generate(Path dir, String name, String grammar) throws IOException {

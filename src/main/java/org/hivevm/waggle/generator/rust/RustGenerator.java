@@ -9,12 +9,15 @@ import org.hivevm.waggle.generator.FileGenerator;
 import org.hivevm.waggle.generator.GeneratorName;
 import org.hivevm.waggle.generator.GeneratorProvider;
 import org.hivevm.waggle.generator.LexerGenerator;
-import org.hivevm.waggle.generator.NodeData;
-import org.hivevm.waggle.generator.NodeGenerator;
+import org.hivevm.waggle.tree.TreeModel;
+import org.hivevm.waggle.tree.TreeOptions;
+import org.hivevm.waggle.tree.TreeEmitter;
+import org.hivevm.waggle.generator.rust.tree.RustTreeEmitter;
 import org.hivevm.waggle.generator.ParserGenerator;
 import org.hivevm.waggle.parser.Options;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -24,8 +27,8 @@ import java.util.Set;
 public class RustGenerator extends GeneratorProvider {
 
     @Override
-    public final NodeGenerator newNodeGenerator() {
-        return new RustNodeGenerator();
+    public final Optional<TreeEmitter> treeSupport() {
+        return Optional.of(new RustTreeEmitter());
     }
 
     @Override
@@ -59,8 +62,8 @@ public class RustGenerator extends GeneratorProvider {
      * NODE_SCOPE_HOOK, as before. Writing them for every node would overwrite the project's own.
      */
     @Override
-    protected final boolean generatesTreeRuntime(NodeData nodes, Options options) {
-        return !nodes.getNodesToGenerate().isEmpty() || options.getNodeScopeHook();
+    protected final boolean generatesTreeRuntime(TreeModel tree, TreeOptions options) {
+        return !tree.getNodesToGenerate().isEmpty() || options.scopeHook();
     }
 
     @Override

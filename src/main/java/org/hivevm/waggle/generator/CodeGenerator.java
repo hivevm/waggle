@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.generator;
 
+import org.hivevm.waggle.tree.ActionRewriter;
 import org.hivevm.waggle.Encoding;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.model.CodeBlock;
@@ -13,8 +14,6 @@ import org.hivevm.source.LinePrinter;
 
 public abstract class CodeGenerator<D> {
 
-    private static final String JJTREE_BOOL = "$BOOL";
-    private static final String JJTREE_NODE = "$NODE";
 
     private final Language language;
     private int crow, ccol;
@@ -61,7 +60,7 @@ public abstract class CodeGenerator<D> {
     /** Prints the token with the comments before it; {@code $NODE}/{@code $BOOL} refer to {@code ns}. */
     protected final void printToken(Token t, NodeScope ns, LinePrinter printer) {
         var text = specialTokensOf(t) + getStringForTokenOnly(t);
-        printer.print(ns != null ? CodeGenerator.replace(text, ns) : text);
+        printer.print(ns != null ? ActionRewriter.rewrite(text, ns) : text);
     }
 
     /** The special tokens (comments) in front of {@code t}, oldest first, laid out in place. */
@@ -107,11 +106,4 @@ public abstract class CodeGenerator<D> {
         return retval.toString();
     }
 
-    public static boolean can_replace(String image) {
-        return image.contains(CodeGenerator.JJTREE_BOOL) || image.contains(CodeGenerator.JJTREE_NODE);
-    }
-
-    public static String replace(String text, NodeScope scope) {
-        return text.replace(CodeGenerator.JJTREE_BOOL, scope.getClosedVariable()).replace(CodeGenerator.JJTREE_NODE, scope.getNodeVariable());
-    }
 }

@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * resource paths, generating filenames, and creating corresponding {@link File} objects based on
  * user-defined options.
  */
-enum JavaTemplate implements SourceProvider {
+public enum JavaTemplate implements SourceProvider {
 
     LEXER("Lexer"),
     PARSER("Parser"),
@@ -32,13 +32,15 @@ enum JavaTemplate implements SourceProvider {
     STRING_PROVIDER("StringProvider"),
     CHAR_STREAM("JavaCharStream"),
 
-    NODE("Node"),
-    NODESTATE("NodeState"),
-    NODETYPE("NodeType"),
+    // Tree templates live under templates/java/tree/ and are rendered only for a grammar that
+    // builds a tree (ADR-0016). The name -- and therefore the generated file -- is unchanged.
+    NODE("tree/Node", "Node"),
+    NODESTATE("tree/NodeState", "NodeState"),
+    NODETYPE("tree/NodeType", "NodeType"),
 
-    MULTI_NODE("MultiNode", "%s"),
-    MULTI_NODE_VISITOR("NodeVisitor"),
-    MULTI_NODE_DEFAULT_VISITOR("NodeDefaultVisitor"),
+    MULTI_NODE("tree/MultiNode", "%s"),
+    MULTI_NODE_VISITOR("tree/NodeVisitor", "NodeVisitor"),
+    MULTI_NODE_DEFAULT_VISITOR("tree/NodeDefaultVisitor", "NodeDefaultVisitor"),
 
     PARSER_EXCEPTION("ParseException"),
     TOKEN("Token"),
@@ -79,7 +81,7 @@ enum JavaTemplate implements SourceProvider {
      * grammar. A generated parser or AST node may not be called any of these, or it would silently
      * overwrite the runtime class.
      */
-    static Set<String> reservedNames() {
+    public static Set<String> reservedNames() {
         return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
                 .collect(Collectors.toSet());
     }

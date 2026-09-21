@@ -7,9 +7,11 @@ import org.hivevm.waggle.generator.FileGenerator;
 import org.hivevm.waggle.generator.GeneratorName;
 import org.hivevm.waggle.generator.GeneratorProvider;
 import org.hivevm.waggle.generator.LexerGenerator;
-import org.hivevm.waggle.generator.NodeGenerator;
+import org.hivevm.waggle.tree.TreeEmitter;
+import org.hivevm.waggle.generator.cpp.tree.CppTreeEmitter;
 import org.hivevm.waggle.generator.ParserGenerator;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -19,8 +21,8 @@ import java.util.Set;
 public class CppGenerator extends GeneratorProvider {
 
     @Override
-    public final NodeGenerator newNodeGenerator() {
-        return new CppNodeGenerator();
+    public final Optional<TreeEmitter> treeSupport() {
+        return Optional.of(new CppTreeEmitter());
     }
 
     @Override

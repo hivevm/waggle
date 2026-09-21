@@ -3,9 +3,10 @@
 
 package org.hivevm.waggle.parser.jjtree;
 
+import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.Encoding;
 import org.hivevm.waggle.Language;
-import org.hivevm.waggle.generator.CodeGenerator;
+import org.hivevm.waggle.tree.ActionRewriter;
 import org.hivevm.source.LinePrinter;
 import org.jspecify.annotations.NonNull;
 
@@ -105,14 +106,14 @@ class ASTWriter implements LinePrinter, AutoCloseable {
             return;
         }
 
-        if (CodeGenerator.can_replace(token.image)) {
+        if (ActionRewriter.rewrites(token.image)) {
             var text = Encoding.escapeUnicode(node.translateImage(token), this.language);
-            print(CodeGenerator.replace(text, scope));
+            print(ActionRewriter.rewrite(text, scope));
             return;
         }
         if (this.whitingOut) {
             if (token.image.equals(ASTWriter.JJTREE)) {
-                print(scope.getNodeVariable());
+                print(ScopeVariables.node(scope));
                 print(" ");
             } else if (token.image.equals(")")) {
                 print(" ");

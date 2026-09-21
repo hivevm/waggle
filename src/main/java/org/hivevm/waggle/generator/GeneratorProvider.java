@@ -3,12 +3,16 @@
 
 package org.hivevm.waggle.generator;
 
+import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.ParserRequest;
 import org.hivevm.waggle.lexer.LexerBuilder;
-import org.hivevm.waggle.parser.Options;
+import org.hivevm.waggle.tree.TreeAnalyzer;
+import org.hivevm.waggle.tree.TreeModel;
+import org.hivevm.waggle.tree.TreeOptions;
 
 import java.text.ParseException;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 
@@ -42,12 +46,13 @@ public abstract class GeneratorProvider implements Generator {
     }
 
     /**
-     * Whether the tree runtime — the node base, the node constants and the tree state — is written.
-     * Any node needs it, not only NODE_MULTI's node classes: a grammar with "#Name" but without
-     * NODE_MULTI used to reference Node, NodeType and NodeState without generating them.
+     * Whether the tree runtime — the node base, the node constants and the tree state — is written
+     * for a grammar that has a tree. Any node needs it, not only NODE_MULTI's node classes: a
+     * grammar with "#Name" but without NODE_MULTI used to reference Node, NodeType and NodeState
+     * without generating them. A back end may narrow this.
      */
-    protected boolean generatesTreeRuntime(NodeData nodes, Options options) {
-        return nodes.usesTree() || options.getNodeScopeHook();
+    protected boolean generatesTreeRuntime(TreeModel tree, TreeOptions options) {
+        return true;
     }
 
     /**
@@ -57,26 +62,37 @@ public abstract class GeneratorProvider implements Generator {
     public final void generate(ParserRequest request) throws ParseException {
         prepare(request);
 
+        var treeOptions = TreeOptions.from(request.options());
+        var tree = TreeAnalyzer.analyze(request.getNormalProductions(), treeOptions);
+        tree.ifPresent(t -> treeOptions.validate(request.diagnostics()));
+
         var dataLexer = new LexerBuilder().build(request);
-        var dataParser = new ParserPlanner().build(request);
-        var dataNode = dataParser.getNodeData();
+        var dataParser = new ParserPlanner().build(request, tree);
 
-        dataParser.getProductions().forEach(e -> dataNode.parseExpansion(e, request.options()));
+        checkNamesAreFree(request.getParserName(), tree);
 
-        checkNamesAreFree(request.getParserName(), dataNode);
-        if (generatesTreeRuntime(dataNode, dataParser.options())) {
-            newNodeGenerator().generate(request.options(), dataNode);
+        var emitter = tree.isPresent() ? treeSupport() : Optional.<TreeEmitter>empty();
+        if (tree.isPresent() && emitter.isEmpty()) {
+            throw new ParseException("Tree building (#Node) is not supported for this target.", 0);
+        }
+        if (emitter.isPresent() && generatesTreeRuntime(tree.get(), treeOptions)) {
+            emitter.get().emitRuntime(request.options(), tree.get());
         }
 
         newFileGenerator().generate(dataLexer);
         if (!request.diagnostics().hasError()) {
             newLexerGenerator().generate(dataLexer);
-            newParserGenerator().generate(dataParser);
+
+            var parserGenerator = newParserGenerator();
+            parserGenerator.decorateWith(emitter
+                    .<ExpansionDecorator>map(e -> new TreeDecorator(e, request.options()))
+                    .orElse(ExpansionDecorator.NONE));
+            parserGenerator.generate(dataParser);
         }
     }
 
     /** Refuses to generate anything that would overwrite one of the runtime classes. */
-    private void checkNamesAreFree(String parserName, NodeData nodes)
+    private void checkNamesAreFree(String parserName, Optional<TreeModel> tree)
             throws ParseException {
         var reserved = reservedNames();
 
@@ -86,7 +102,7 @@ public abstract class GeneratorProvider implements Generator {
                     + " Reserved: " + reserved.stream().sorted().toList(), 0);
         }
 
-        for (var node : nodes.getNodesToGenerate()) {
+        for (var node : tree.map(TreeModel::getNodesToGenerate).orElse(Set.of())) {
             if (reserved.contains(node)) {
                 throw new ParseException("The AST node '" + node
                         + "' would overwrite the runtime class of the same name."

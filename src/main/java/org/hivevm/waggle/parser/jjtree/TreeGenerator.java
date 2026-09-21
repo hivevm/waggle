@@ -3,8 +3,9 @@
 
 package org.hivevm.waggle.parser.jjtree;
 
-import org.hivevm.waggle.generator.NodeData;
-import org.hivevm.waggle.generator.ParserGenerator;
+import org.hivevm.waggle.tree.TreeModel;
+import org.hivevm.waggle.tree.TreeOptions;
+import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.model.NodeDescriptor;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.parser.Options;
@@ -15,15 +16,15 @@ import java.util.HashSet;
 
 class TreeGenerator {
 
-    private final NodeData data;
-    private final ParserGenerator parser;
+    private final TreeModel data;
+    private final TreeEmitter emitter;
 
-    TreeGenerator(ParserGenerator parser) {
-        this.data = new NodeData();
-        this.parser = parser;
+    TreeGenerator(TreeEmitter emitter) {
+        this.data = new TreeModel();
+        this.emitter = emitter;
     }
 
-    public NodeData getData() {
+    public TreeModel getData() {
         return data;
     }
 
@@ -31,7 +32,7 @@ class TreeGenerator {
         var options = node.jjtOptions();
         var descriptor = node.node_scope.getNodeDescriptor();
 
-        this.data.addNodeDescriptor(descriptor, options);
+        this.data.addNodeDescriptor(descriptor, TreeOptions.from(options));
 
         var nodeClass =
                 NodeDescriptor.getNodeClass(descriptor.getName(), options.getMulti(), options.getNodeClass());
@@ -46,15 +47,15 @@ class TreeGenerator {
     }
 
     private void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
-        this.parser.insertOpenNodeCode(ns, nodeClass, printer, options);
+        this.emitter.openScope(ns, nodeClass, printer, options);
     }
 
     void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
-        this.parser.insertCloseNodeCode(ns, printer, options, isFinal);
+        this.emitter.closeScope(ns, printer, options, isFinal);
     }
 
     private void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_set) {
-        this.parser.insertCatchBlocks(ns, printer, options, thrown_set);
+        this.emitter.catchBlocks(ns, printer, options, thrown_set);
     }
 
     private static void findThrown(ASTNode expansion_unit, Collection<String> thrown_set) {

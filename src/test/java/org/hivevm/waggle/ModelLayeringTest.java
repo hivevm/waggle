@@ -34,6 +34,9 @@ class ModelLayeringTest {
 
     private static final Pattern IMPORT = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+);");
 
+    /** Fragments of generated tree code: the runtime field and the scope variables. */
+    private static final List<String> TREE_CODE = List.of("jjtree.", "jjtn", "jjtc", "jjte");
+
     private static boolean isAllowed(String imported) {
         return imported.startsWith("java.")
                 || imported.startsWith("org.hivevm.core.")
@@ -62,6 +65,34 @@ class ModelLayeringTest {
         assertTrue(violations.isEmpty(),
                 "model must depend only on the JDK, org.hivevm.core, itself and " + ModelLayeringTest.PARSER_TOKEN
                         + " (ADR-0013), but found:\n"
+                        + String.join("\n", violations));
+    }
+
+    /**
+     * Imports were never the only way in. {@code NodeDescriptor.openNode()} returned the string
+     * {@code "jjtree.openNodeScope(…);"} and {@code NodeScope} built the identifier {@code jjtn000},
+     * so the language-independent model emitted target source text without importing anything — and
+     * the text was Java and C++ only, since the Rust back end wrote its own (ADR-0016).
+     */
+    @Test
+    void modelEmitsNoTreeCode() throws IOException {
+        List<String> violations = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MODEL_DIR)) {
+            for (Path file : (Iterable<Path>) files.filter(p -> p.toString().endsWith(".java"))::iterator) {
+                int number = 0;
+                for (String line : Files.readAllLines(file)) {
+                    number++;
+                    for (String forbidden : ModelLayeringTest.TREE_CODE) {
+                        if (line.contains(forbidden)) {
+                            violations.add(MODEL_DIR.relativize(file) + ":" + number + " -> " + forbidden);
+                        }
+                    }
+                }
+            }
+        }
+
+        assertTrue(violations.isEmpty(),
+                "model must not spell out generated tree code (ADR-0016), but found:\n"
                         + String.join("\n", violations));
     }
 }

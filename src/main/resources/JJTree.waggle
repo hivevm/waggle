@@ -19,7 +19,7 @@ javacc_input() #Grammar =
     < _GRAMMAR > <IDENTIFIER> < SEMICOLON >
     [ < _OPTIONS > < LBRACE > option_binding() (< COMMA > option_binding())* < RBRACE > ]
   ) #CompilationUnit(true)
-  (bnf_production()) +
+  ( regular_expr_production() | bnf_production() ) +
   <EOF>
 ;
 
@@ -30,6 +30,35 @@ option_binding() #OptionBinding =
   <? setInputOption(t, this.token); ?>
 ;
 
+/*
+ * The lexical half of the language. The grammar of the grammar used to cover only BNF
+ * productions, so it could not read a grammar that defines its tokens inline -- which is
+ * every grammar this project maintains.
+ */
+regular_expr_production() #REProduction =
+  regexpr_kind()
+  [
+    LOOKAHEAD(2) < LT > < STAR > < GT >
+  | < LT > identifier() ( < COMMA > identifier() )* < GT >
+  ]
+  [ < LBRACKET > < _IGNORE_CASE > < RBRACKET > ]
+  < ASSIGN > regexpr_spec() ( < BIT_OR > regexpr_spec() )*
+  < SEMICOLON >
+;
+
+regexpr_kind =
+  < _TOKEN >
+| < _SPECIAL_TOKEN >
+| < _SKIP >
+| < _MORE >
+;
+
+regexpr_spec() #RESpec =
+  regular_expression()
+  [ Statement() ]
+  [ < COLON > identifier() ]
+;
+
 bnf_production() #BNF =
 <?
 	Token t1;
@@ -38,7 +67,7 @@ bnf_production() #BNF =
 	JJTNodeScope ns;
 	ASTNode eu;
 ?>
-  t1=identifier() [ < LPAREN > FormalParameter() ( < COMMA > FormalParameter() ) * < RPAREN > ]
+  t1=identifier() [ < LPAREN > [ FormalParameter() ( < COMMA > FormalParameter() ) * ] < RPAREN > ]
   [ < COLON > Type() ]
   [ nd=node_descriptor() ]
 <?
@@ -57,7 +86,7 @@ bnf_production() #BNF =
 	$NODE.expansion_unit = eu;
 ?>
   ) #BNFNodeScope
-  < RBRACE > < SEMICOLON >
+  < SEMICOLON >
 <?	$BOOL = closeNodeScope(jjtree, $NODE, true); ?>
   <? addProduction(prod); ?>
 ;
@@ -276,8 +305,16 @@ FormalParameter =
  * Type, name and expression syntax follows.
  */
 Type =
-   LOOKAHEAD(2) TypeParameter()
+   LOOKAHEAD(2) ClassOrInterfaceType()
  | PrimitiveType()
+;
+
+ClassOrInterfaceType =
+  <IDENTIFIER> [ LOOKAHEAD(2) TypeArguments() ]
+;
+
+TypeArguments =
+  < LT > [ ClassOrInterfaceType() ] < GT >
 ;
 
 PrimitiveType =
@@ -297,7 +334,12 @@ Expression() #Expression =
 PrimaryPrefix =
   Literal()
 | < LPAREN > Expression() < RPAREN >
-| TypeParameter()
+| Name()
+;
+
+Name =
+  TypeParameter()
+  ( LOOKAHEAD(2) < DOT > TypeParameter() )*
 ;
 
 PrimarySuffix =

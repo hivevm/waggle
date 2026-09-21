@@ -70,13 +70,18 @@ which a grammar and a target may each do without.
    model's presence.
 3. **Tree options are their own record.** `TreeOptions` carries the `NODE_*` and `VISITOR_*`
    settings and is validated only when a tree is present. The option names in grammars do not change.
-4. **Emission goes through an explicit hook.** `ParserGenerator` calls an `ExpansionDecorator`
-   (`before`, `after`, `onError`), which does nothing when there is no `TreeModel`. Each target that
-   supports trees provides a `TreeEmitter` (`openScope`, `closeScope`, `catchBlocks`, `emitRuntime`)
-   under `generator/<lang>/tree/`, and `Generator` exposes `Optional<TreeEmitter> treeSupport()` —
-   extending the SPI of [ADR-0004](0004-multi-target-code-generation.md) without changing its three
-   sub-generators. The abstract `insert*` methods are removed, and the node, node-state and visitor
-   templates move to `templates/<lang>/tree/`, rendered only when a `TreeModel` is present.
+4. **Emission goes through an explicit hook.** `ParserGenerator` calls an `ExpansionDecorator`,
+   which does nothing when there is no `TreeModel`. It has one method per place the generator
+   actually has — `beforeProduction` and `beforeExpansion`, which differ only in how the node
+   descriptor's comment is laid out — and one `after`; the failure path needs no hook of its own,
+   because the emitted region is a single `try` whose `catch` and `finally` are written together.
+   Each target that supports trees provides a `TreeEmitter` (`openScope`, `closeScope`,
+   `catchBlocks`, `emitRuntime`) under `generator/<lang>/tree/`, and `Generator` exposes
+   `Optional<TreeEmitter> treeSupport()` in place of the mandatory `NodeGenerator`. This narrows the
+   SPI of [ADR-0004](0004-multi-target-code-generation.md): its node sub-generator becomes optional,
+   while the lexer and parser sub-generators are unchanged. The abstract `insert*` methods are
+   removed, and the node, node-state and visitor templates move to `templates/<lang>/tree/`,
+   rendered only when a `TreeModel` is present.
 5. **JJTree is the tested reference consumer.** It depends on `model`, `tree`, `diag`,
    `org.hivevm.source`, `org.hivevm.core` and the JDK — never on `generator`. `CodeGenerator`'s
    `$NODE`/`$BOOL` rewriting moves to `tree.ActionRewriter`; a hand-written `NodeScopeHooks`
@@ -101,12 +106,22 @@ vocabulary, not target syntax, and three copies would be three chances to drift.
 - Moving the templates changes where they live, not what they render, and the bootstrap reads the
   *published* plugin's templates ([ADR-0009](0009-self-hosting-bootstrap.md)) — so the checked-in
   generated parser is unaffected either way.
-- `Generator` gains a method, so every back end is touched; a back end outside this repository would
-  have to implement it. There is no such back end today, and the SPI is explicitly an extension
-  point ([ADR-0004](0004-multi-target-code-generation.md)).
+- `Generator` trades a method for another, so every back end is touched; a back end outside this
+  repository would have to follow. There is no such back end today, and the SPI is explicitly an
+  extension point ([ADR-0004](0004-multi-target-code-generation.md)).
 - Risk: `ExpansionDecorator` is an abstraction added before a second consumer exists. It earns its
   place only because it is what removes tree code from `ParserGenerator`; if it grows hooks that no
-  emitter uses, it has failed and should be inlined again.
+  emitter uses, it has failed and should be inlined again. For that reason it has exactly the
+  methods the generator calls, and no speculative `onError`.
+- Every target this repository ships supports trees, so the empty `treeSupport()` has no exercise
+  beyond the guard that refuses a tree grammar for such a target. The gap is named rather than
+  papered over with a fake target in a test.
+- Running JJTree's path for the first time shows what compiling it never could: the grammar of the
+  grammar language had drifted away from the language the tool accepts, and had to be brought back
+  — optional empty parameter lists, productions terminated by `;` rather than `} ;`, dotted names,
+  generic types, and the whole lexical half (`TOKEN`/`SKIP`/`MORE`/`SPECIAL_TOKEN` productions),
+  which it did not cover at all. The generated jjtree parser therefore changes, which is the one
+  place in this ADR where the output is deliberately not byte-identical.
 
 ## Alternatives considered
 

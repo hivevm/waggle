@@ -9,7 +9,6 @@ import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.Lookahead;
-import org.hivevm.waggle.model.NodeDescriptor;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
@@ -50,6 +49,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     }
 
     private int labelIndex;
+    private ExpansionDecorator decorator = ExpansionDecorator.NONE;
 
     /**
      * Constructs an instance of {@link ParserGenerator}.
@@ -57,6 +57,11 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected ParserGenerator(Language language) {
         super(language);
         this.labelIndex = 0;
+    }
+
+    /** What wraps a node scope, if anything does. Set once per generation. */
+    final void decorateWith(ExpansionDecorator decorator) {
+        this.decorator = decorator;
     }
 
     @Override
@@ -136,26 +141,17 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         var default_return = generate_phase1_head(p, printer, data);
         printer.indent();
 
-        // TreeNodes:
         var node_scope = p.getNodeScope();
         if (node_scope != null) {
-            var nd = node_scope.getNodeDescriptor();
-            var nodeClass =
-                    NodeDescriptor.getNodeClass(nd.getName(), data.options().getMulti(), data.options().getNodeClass());
-
-            printer.println(" // " + node_scope.getNodeDescriptorText());
-            insertOpenNodeCode(node_scope, nodeClass, printer, data.options());
-            printer.indent();
+            this.decorator.beforeProduction(node_scope, printer);
         }
 
         generate_phase1_body(p, printer, data, default_return, w ->
                 generate_phase1_expansion(data, p.getExpansion(), node_scope, printer)
         );
 
-        // TreeNodes:
         if (node_scope != null) {
-            printer.outdent();
-            insertCatchBlocks(node_scope, printer, data.options(), Collections.emptyList());
+            this.decorator.after(node_scope, printer);
         }
 
         generate_phase1_tail(printer);
@@ -173,17 +169,9 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     }
 
     protected final void generate_phase1_expansion(ParserData data, Expansion e, NodeScope ns, LinePrinter printer) {
-        // TreeNodes:
         var node_scope = e.getNodeScope();
         if (node_scope != null) {
-            var nd = node_scope.getNodeDescriptor();
-            var nodeClass =
-                    NodeDescriptor.getNodeClass(nd.getName(), data.options().getMulti(), data.options().getNodeClass());
-
-            printer.println();
-            printer.println("// " + node_scope.getNodeDescriptor().getDescriptor());
-            insertOpenNodeCode(node_scope, nodeClass, printer, data.options());
-            printer.indent();
+            this.decorator.beforeExpansion(node_scope, printer);
         }
         var scope = node_scope != null ? node_scope : ns;
 
@@ -278,10 +266,8 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             }
         }
 
-        // TreeNodes:
         if (node_scope != null) {
-            printer.outdent();
-            insertCatchBlocks(node_scope, printer, data.options(), Collections.emptyList());
+            this.decorator.after(node_scope, printer);
         }
     }
 
@@ -377,10 +363,4 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected abstract void generate_phase2(Expansion e, LinePrinter printer, ParserData data);
 
     protected abstract void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer);
-
-    public abstract void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options);
-
-    public abstract void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal);
-
-    public abstract void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_set);
 }

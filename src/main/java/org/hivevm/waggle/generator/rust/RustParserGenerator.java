@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.generator.rust;
 
+import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.GenerationException;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.generator.ParserData;
@@ -501,76 +502,5 @@ class RustParserGenerator extends ParserGenerator {
         String s = SNAKE_ACRONYM.matcher(name).replaceAll("$1_");
         s = SNAKE_BOUNDARY.matcher(s).replaceAll("$1_$2");
         return s.toLowerCase(Locale.ROOT);
-    }
-
-    @Override
-    public final void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
-        printer.print("let " + ns.getNodeVariable() + " = ");
-        if (options.getNodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.getNodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + ")"
-                    + options.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else {
-            printer.println("new_node(&TreeConstants::" + ns.getNodeDescriptor().getNodeId() + ");");
-        }
-
-        printer.println("let mut " + ns.getClosedVariable() + " = true;");
-
-        printer.println("self.jjtree.open_node_scope(&" + ns.getNodeVariable() + ");");
-        if (options.getNodeScopeHook())
-            printer.println("self.jjtree_open_node_scope(" + ns.getNodeVariable() + ".as_ref());");
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + ".jjtSetFirstToken(getToken(1));");
-        }
-        printer.print("// TRY_CATCH");
-    }
-
-    @Override
-    public final void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
-        printer.println("self.jjtree.close_node_scope_bool(&" + ns.getNodeVariable() + ", true);");
-        if (!isFinal) {
-            printer.println(ns.getClosedVariable() + " = false;");
-        }
-        if (options.getNodeScopeHook()) {
-            printer.println("if self.jjtree.is_node_created() {");
-            printer.println("  self.jjtree_close_node_scope(" + ns.getNodeVariable() + ".as_ref());");
-            printer.println("}");
-        }
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + ".jjtSetLastToken(getToken(0));");
-        }
-    }
-
-    @Override
-    public final void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_names) {
-        if (!thrown_names.isEmpty()) {
-            printer.println("  if try_catch.is_err() {");
-            printer.println("// CATCH " + ns.getExceptionVariable());
-            printer.println("  if " + ns.getClosedVariable() + " {");
-            printer.println("//    self.jjtree.clear_node_scope(" + ns.getNodeVariable() + ".clone());");
-            printer.println("//    " + ns.getClosedVariable() + " = false;");
-            printer.println("  } else {");
-            printer.println("//    self.jjtree.pop_node();");
-            printer.println("  }");
-            // This is either an Error or an undeclared Exception. If it's an Error then the cast is good,
-            // otherwise we want to force the user to declare it by crashing on the bad cast.
-            printer.println("  }");
-        }
-
-        printer.println("    // FINALLY");
-        printer.println("if " + ns.getClosedVariable() + " {");
-        insertCloseNodeCode(ns, printer, options, true);
-        printer.println("}");
-        if (!thrown_names.isEmpty()) {
-            printer.println("    if try_catch.is_err() {");
-            printer.println("        return Err(std::io::Error::new(std::io::ErrorKind::Other, \""
-                    + ns.getExceptionVariable() + "\"));");
-            printer.println("    }");
-        }
-        printer.println("// END TRY_CATCH");
     }
 }

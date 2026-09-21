@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.generator.cpp;
 
+import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.Encoding;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.generator.ParserData;
@@ -484,66 +485,5 @@ class CppParserGenerator extends ParserGenerator {
         printer.println("      xsp = jj_scanpos;");
         printer.println("      if (" + genjj_3Call(nested_e) + ") { jj_scanpos = xsp; break; }");
         printer.println("    }");
-    }
-
-
-
-    @Override
-    public final void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
-        printer.print(nodeClass + " *" + ns.getNodeVariable() + " = ");
-        if (options.getNodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + "*)" + nodeClass + "::jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.getNodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + "*)"
-                    + options.getNodeFactory() + "->jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else {
-            printer.println("new " + nodeClass + "(" + ns.getNodeDescriptor().getNodeId() + ");");
-        }
-
-        printer.println("bool " + ns.getClosedVariable() + " = true;");
-
-        printer.println(ns.getNodeDescriptor().openNode(ns.getNodeVariable()));
-        if (options.getNodeScopeHook())
-            printer.println("jjtreeOpenNodeScope(" + ns.getNodeVariable() + ");");
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + "->jjtSetFirstToken(getToken(1));");
-        }
-        printer.print("try {");
-    }
-
-    @Override
-    public final void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
-        printer.println(ns.getNodeDescriptor().closeNode(ns.getNodeVariable()));
-        if (!isFinal) {
-            printer.println(ns.getClosedVariable() + " = false;");
-        }
-        if (options.getNodeScopeHook()) {
-            printer.println("if (jjtree.nodeCreated()) {");
-            printer.println(" jjtreeCloseNodeScope(" + ns.getNodeVariable() + ");");
-            printer.println("}");
-        }
-
-        if (options.getTrackTokens()) {
-            printer.println(ns.getNodeVariable() + "->jjtSetLastToken(getToken(0));");
-        }
-    }
-
-    @Override
-    public final void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_names) {
-        printer.println("} catch (...) {"); // " + ns.exceptionVar + ") {");
-        printer.println("  if (" + ns.getClosedVariable() + ") {");
-        printer.println("    jjtree.clearNodeScope(" + ns.getNodeVariable() + ");");
-        printer.println("    " + ns.getClosedVariable() + " = false;");
-        printer.println("  } else {");
-        printer.println("    jjtree.popNode();");
-        printer.println("  }");
-
-        printer.println("} {");
-        printer.println("  if (" + ns.getClosedVariable() + ") {");
-        insertCloseNodeCode(ns, printer, options, true);
-        printer.println("  }");
-        printer.print("}");
     }
 }
