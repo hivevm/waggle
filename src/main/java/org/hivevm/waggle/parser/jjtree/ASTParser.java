@@ -4,6 +4,7 @@
 package org.hivevm.waggle.parser.jjtree;
 
 import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.diag.Diagnostics;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,17 +32,17 @@ abstract class ASTParser {
         String image = v.image;
         switch (v.kind) {
             case ParserConstants.INTEGER_LITERAL:
-                getOptions().setOption(o, v, o.image, Integer.valueOf(image));
+                getOptions().setOption(diagnostics(), o, v, o.image, Integer.valueOf(image));
                 break;
 
             case ParserConstants.TRUE:
             case ParserConstants.FALSE:
-                getOptions().setOption(o, v, o.image, Boolean.valueOf(image));
+                getOptions().setOption(diagnostics(), o, v, o.image, Boolean.valueOf(image));
                 break;
 
             default:
-                image = TokenUtils.remove_escapes_and_quotes(v, image);
-                getOptions().setOption(o, v, o.image, image);
+                image = TokenUtils.remove_escapes_and_quotes(diagnostics(), v, image);
+                getOptions().setOption(diagnostics(), o, v, o.image, image);
                 break;
         }
     }
@@ -85,6 +86,11 @@ abstract class ASTParser {
     }
 
     protected WaggleOptions getOptions() {
+        throw new UnsupportedOperationException();
+    }
+
+    /** What this run has to say about the grammar it is reading (ADR-0015). */
+    protected Diagnostics diagnostics() {
         throw new UnsupportedOperationException();
     }
 

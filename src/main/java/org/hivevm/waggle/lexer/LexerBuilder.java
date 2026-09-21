@@ -9,7 +9,6 @@ import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.waggle.model.TokenKind;
 import org.hivevm.waggle.model.TokenProduction;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.model.RegExprSpec;
 
 import java.util.ArrayList;
@@ -23,7 +22,7 @@ import java.util.Locale;
 public class LexerBuilder {
 
     public LexerData build(ParserRequest request) {
-        if (JavaCCErrors.hasError()) {
+        if (request.diagnostics().hasError()) {
             return null;
         }
 
@@ -75,7 +74,7 @@ public class LexerBuilder {
                 RExpression re = respec.rexp;
                 if (!(re instanceof RStringLiteral) && re.getLabel().isEmpty()
                         && (re.getTokenKind() == TokenKind.TOKEN)) {
-                    JavaCCErrors.warning(re,
+                    request.diagnostics().warning(re,
                             "Consider giving this non-string token a label for better error reporting.");
                 }
             }

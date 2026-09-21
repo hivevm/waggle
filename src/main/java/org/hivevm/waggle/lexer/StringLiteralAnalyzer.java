@@ -8,7 +8,6 @@ import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 import org.hivevm.waggle.model.RChoice;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
-import org.hivevm.waggle.parser.JavaCCErrors;
 
 import java.util.Hashtable;
 import java.util.Locale;
@@ -151,11 +150,11 @@ class StringLiteralAnalyzer {
                     && (regexp.getOrdinal() < choice.getOrdinal())
                     && (data.getState(regexp.getOrdinal()) == data.getState(choice.getOrdinal()))) {
                 if (choice.getLabel() != null) {
-                    JavaCCErrors.warning(choice,
+                    data.diagnostics().warning(choice,
                             "Regular Expression choice : " + regexp.getLabel()
                                     + " can never be matched as : " + choice.getLabel());
                 } else {
-                    JavaCCErrors.warning(choice,
+                    data.diagnostics().warning(choice,
                             "Regular Expression choice : " + regexp.getLabel()
                                     + " can never be matched as token of kind : " + choice.getOrdinal());
                 }
@@ -223,7 +222,7 @@ class StringLiteralAnalyzer {
 
             data.hasLoop = true;
             if (len == 0) {
-                JavaCCErrors.warning(data.rexprs[data.initMatch[i]],
+                data.diagnostics().warning(data.rexprs[data.initMatch[i]],
                         "Regular expression"
                                 + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
                                 : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
@@ -231,7 +230,7 @@ class StringLiteralAnalyzer {
                                 + data.getStateName(i)
                                 + ". This can result in an endless loop of " + "empty string matches.");
             } else {
-                JavaCCErrors.warning(data.rexprs[data.initMatch[i]],
+                data.diagnostics().warning(data.rexprs[data.initMatch[i]],
                         "Regular expression"
                                 + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
                                 : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
@@ -279,7 +278,7 @@ class StringLiteralAnalyzer {
 
     private static void warnShadowed(LexerData data, int kind, int matchedAs) {
         RExpression re = data.getRegExp(kind);
-        JavaCCErrors.warning(" \"" + Encoding.escape(data.getImage(kind))
+        data.diagnostics().warning(" \"" + Encoding.escape(data.getImage(kind))
                 + "\" cannot be matched as a string literal token  at line " + re.getLine()
                 + ", column " + re.getColumn() + ". It will be matched as "
                 + StringLiteralAnalyzer.label(data, matchedAs) + ".");

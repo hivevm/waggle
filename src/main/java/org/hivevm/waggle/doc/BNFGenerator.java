@@ -18,42 +18,51 @@ class BNFGenerator implements Generator {
 
     private PrintWriter ostr;
     private final WaggleOptions opts;
+    private final String inputFile;
+    private String outputFile;
     private boolean printing = true;
 
     /**
      * Constructs an instance of {@link BNFGenerator}.
      */
-    public BNFGenerator(WaggleOptions opts) {
+    public BNFGenerator(WaggleOptions opts, String inputFile) {
         this.opts = opts;
+        this.inputFile = inputFile;
+        this.outputFile = "standard output";
+    }
+
+    /** Where this run wrote its documentation. */
+    final String outputFile() {
+        return this.outputFile;
     }
 
     private PrintWriter create_output_stream() {
 
         if (this.opts.getOutputFile().isEmpty()) {
-            if (JJDocGlobals.input_file.equals("standard input")) {
+            if (this.inputFile.equals("standard input")) {
                 return new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
             } else {
                 String ext = ".bnf";
-                int i = JJDocGlobals.input_file.lastIndexOf('.');
+                int i = this.inputFile.lastIndexOf('.');
                 if (i == -1) {
-                    JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
+                    this.outputFile = this.inputFile + ext;
                 } else {
-                    String suffix = JJDocGlobals.input_file.substring(i);
+                    String suffix = this.inputFile.substring(i);
                     if (suffix.equals(ext)) {
-                        JJDocGlobals.output_file = JJDocGlobals.input_file + ext;
+                        this.outputFile = this.inputFile + ext;
                     } else {
-                        JJDocGlobals.output_file = JJDocGlobals.input_file.substring(0, i) + ext;
+                        this.outputFile = this.inputFile.substring(0, i) + ext;
                     }
                 }
             }
         } else {
-            JJDocGlobals.output_file = this.opts.getOutputFile();
+            this.outputFile = this.opts.getOutputFile();
         }
         try {
-            this.ostr = new java.io.PrintWriter(new java.io.FileWriter(JJDocGlobals.output_file));
+            this.ostr = new java.io.PrintWriter(new java.io.FileWriter(this.outputFile));
         } catch (java.io.IOException e) {
             JJDocGlobals
-                    .error("JJDoc: can't open output stream on file " + JJDocGlobals.output_file
+                    .error("JJDoc: can't open output stream on file " + this.outputFile
                             + ".  Using standard output.");
             this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
         }

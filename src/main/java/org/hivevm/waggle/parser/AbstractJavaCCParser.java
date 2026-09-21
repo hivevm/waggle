@@ -5,6 +5,7 @@ package org.hivevm.waggle.parser;
 import org.hivevm.waggle.model.RegExprSpec;
 
 import org.hivevm.waggle.Waggle;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.WaggleOptions;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.BNFProduction;
@@ -53,6 +54,15 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         this.data = data;
     }
 
+    /**
+     * What this generation has to say about the grammar. Grammar actions report through it, so the
+     * generated parser needs it too — which is why it lives on the hand-written base class
+     * (ADR-0015).
+     */
+    protected final Diagnostics diagnostics() {
+        return this.data.diagnostics();
+    }
+
     protected void addproduction(NormalProduction p) {
         this.data.addNormalProduction(p);
     }
@@ -70,7 +80,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         for (int i = 0; i < p.getLexStates().length; i++) {
             for (int j = 0; j < i; j++) {
                 if (p.getLexStates()[i].equals(p.getLexStates()[j])) {
-                    JavaCCErrors.parse_error(p,
+                    diagnostics().error(p,
                             "Multiple occurrence of \"" + p.getLexStates()[i]
                                     + "\" in lexical state list.");
                 }
@@ -202,13 +212,13 @@ abstract class AbstractJavaCCParser implements ParserConstants {
                         }
                     }
                 }
-                JavaCCErrors.parse_error(t,
+                diagnostics().error(t,
                         "Encountered non-hex character '" + ch + "' at position " + index
                                 + " of string "
                                 + "- Unicode escape must have 4 hex digits after it.");
                 return retval.toString();
             }
-            JavaCCErrors.parse_error(t,
+            diagnostics().error(t,
                     "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
             return retval.toString();
         }
@@ -217,7 +227,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
 
     protected char character_descriptor_assign(Token t, String s) {
         if (s.length() != 1) {
-            JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
+            diagnostics().error(t, "String in character list may contain only one character.");
             return ' ';
         } else {
             return s.charAt(0);
@@ -226,10 +236,10 @@ abstract class AbstractJavaCCParser implements ParserConstants {
 
     protected char character_descriptor_assign(Token t, String s, String left) {
         if (s.length() != 1) {
-            JavaCCErrors.parse_error(t, "String in character list may contain only one character.");
+            diagnostics().error(t, "String in character list may contain only one character.");
             return ' ';
         } else if ((left.charAt(0)) > (s.charAt(0))) {
-            JavaCCErrors.parse_error(t, "Right end of character range '" + s
+            diagnostics().error(t, "Right end of character range '" + s
                     + "' has a lower ordinal value than the left end of character range '" + left
                     + "'.");
             return left.charAt(0);
@@ -309,22 +319,22 @@ abstract class AbstractJavaCCParser implements ParserConstants {
     }
 
     protected final void setParserName(Token v) {
-        getOptions().setOption(null, v, Waggle.PARSER_NAME, v.image);
+        getOptions().setOption(diagnostics(), null, v, Waggle.PARSER_NAME, v.image);
     }
 
     protected final void setInputOption(Token o, Token v) {
         switch (v.kind) {
             case ParserConstants.INTEGER_LITERAL:
-                getOptions().setOption(o, v, o.image, Integer.valueOf(v.image));
+                getOptions().setOption(diagnostics(), o, v, o.image, Integer.valueOf(v.image));
                 break;
 
             case ParserConstants.TRUE:
             case ParserConstants.FALSE:
-                getOptions().setOption(o, v, o.image, Boolean.valueOf(v.image));
+                getOptions().setOption(diagnostics(), o, v, o.image, Boolean.valueOf(v.image));
                 break;
 
             default:
-                getOptions().setOption(o, v, o.image, remove_escapes_and_quotes(v, v.image));
+                getOptions().setOption(diagnostics(), o, v, o.image, remove_escapes_and_quotes(v, v.image));
                 break;
         }
     }

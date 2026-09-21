@@ -6,7 +6,6 @@ package org.hivevm.waggle.generator;
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.ParserRequest;
 import org.hivevm.waggle.lexer.LexerBuilder;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.Options;
 
 import java.text.ParseException;
@@ -59,7 +58,7 @@ public abstract class GeneratorProvider implements Generator {
         prepare(request);
 
         var dataLexer = new LexerBuilder().build(request);
-        var dataParser = new ParserBuilder().build(request);
+        var dataParser = new ParserPlanner().build(request);
         var dataNode = dataParser.getNodeData();
 
         dataParser.getProductions().forEach(e -> dataNode.parseExpansion(e, request.options()));
@@ -70,7 +69,7 @@ public abstract class GeneratorProvider implements Generator {
         }
 
         newFileGenerator().generate(dataLexer);
-        if (!JavaCCErrors.hasError()) {
+        if (!request.diagnostics().hasError()) {
             newLexerGenerator().generate(dataLexer);
             newParserGenerator().generate(dataParser);
         }

@@ -18,20 +18,19 @@ import org.hivevm.waggle.model.RegularExpression;
 import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.ParseException;
 import org.hivevm.waggle.semantic.Semanticize;
 
 import java.util.ArrayList;
 
-class ParserBuilder {
+class ParserPlanner {
 
     private int rIndex;
 
     /**
-     * Constructs an instance of {@link ParserBuilder}.
+     * Constructs an instance of {@link ParserPlanner}.
      */
-    public ParserBuilder() {
+    public ParserPlanner() {
         this.rIndex = 0;
     }
 
@@ -40,7 +39,7 @@ class ParserBuilder {
     }
 
     final ParserData build(ParserRequest request) throws ParseException {
-        if (JavaCCErrors.hasError()) {
+        if (request.diagnostics().hasError()) {
             throw new ParseException();
         }
 
@@ -144,7 +143,7 @@ class ParserBuilder {
             } else if ((la.getAmount() == 1) && la.getActionTokens().isEmpty()) {
                 // One token decides — unless the FIRST set runs into a semantic lookahead.
                 firstSet = new boolean[data.getTokenCount()];
-                kind = ParserBuilder.genFirstSet(data, la.getLaExpansion(), firstSet, false)
+                kind = ParserPlanner.genFirstSet(data, la.getLaExpansion(), firstSet, false)
                         ? LookaheadPlan.Kind.SYNTACTIC
                         : LookaheadPlan.Kind.SWITCH;
             } else {
@@ -158,7 +157,7 @@ class ParserBuilder {
                     tokenMask = new int[((data.getTokenCount() - 1) / 32) + 1];
                     casedValues = new boolean[data.getTokenCount()];
                 }
-                tokens = ParserBuilder.caseTokens(firstSet, casedValues, tokenMask);
+                tokens = ParserPlanner.caseTokens(firstSet, casedValues, tokenMask);
                 inSwitch = true;
             } else {
                 if (inSwitch) {
@@ -286,7 +285,7 @@ class ParserBuilder {
                 return;
             }
 
-            e.setInternalName("R_" + ParserBuilder.getProductionName(e) + "_" + nextRIndex());
+            e.setInternalName("R_" + ParserPlanner.getProductionName(e) + "_" + nextRIndex());
         }
 
         Integer count = data.phase3table.get(e);

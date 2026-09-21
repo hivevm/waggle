@@ -12,7 +12,6 @@ import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.Token;
 import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;

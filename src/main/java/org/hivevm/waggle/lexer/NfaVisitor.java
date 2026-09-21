@@ -17,7 +17,6 @@ import org.hivevm.waggle.model.RZeroOrMore;
 import org.hivevm.waggle.model.RZeroOrOne;
 import org.hivevm.waggle.model.RegularExpressionVisitor;
 import org.hivevm.waggle.model.SingleCharacter;
-import org.hivevm.waggle.parser.JavaCCErrors;
 
 /**
  * The {@link NfaVisitor} class.
@@ -55,7 +54,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         }
 
         if ((expr.getDescriptors().isEmpty()) && !expr.isNegated_list()) {
-            JavaCCErrors.semantic_error(this,
+            data.global.diagnostics().error(this,
                     "Empty character set is not allowed as it will not match any character.");
             return new Nfa(data);
         }

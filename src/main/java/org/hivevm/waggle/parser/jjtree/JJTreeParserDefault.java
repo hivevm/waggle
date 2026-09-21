@@ -4,6 +4,7 @@
 package org.hivevm.waggle.parser.jjtree;
 
 import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.diag.Diagnostics;
 
 import java.io.Reader;
 
@@ -13,10 +14,12 @@ import java.io.Reader;
 class JJTreeParserDefault extends Parser {
 
     private final WaggleOptions options;
+    private final Diagnostics diagnostics;
 
-    JJTreeParserDefault(String text, WaggleOptions options) {
+    JJTreeParserDefault(String text, WaggleOptions options, Diagnostics diagnostics) {
         super(new Lexer(new JavaCharStream(new StringProvider(text))));
         this.options = options;
+        this.diagnostics = diagnostics;
     }
 
     /**
@@ -30,6 +33,11 @@ class JJTreeParserDefault extends Parser {
     @Override
     protected final WaggleOptions getOptions() {
         return this.options;
+    }
+
+    @Override
+    protected final Diagnostics diagnostics() {
+        return this.diagnostics;
     }
 
     @Override

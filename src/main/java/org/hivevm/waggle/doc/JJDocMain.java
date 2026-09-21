@@ -3,9 +3,11 @@
 
 package org.hivevm.waggle.doc;
 
+import org.hivevm.waggle.GenerationContext;
+import org.hivevm.waggle.WaggleCompiler;
 import org.hivevm.waggle.WaggleOptions;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.parser.JavaCCData;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.JavaCCParserDefault;
 import org.hivevm.waggle.parser.Parser;
 import org.hivevm.waggle.parser.StreamProvider;
@@ -72,10 +74,11 @@ public final class JJDocMain extends JJDocGlobals {
      * A main program that exercises the parser.
      */
     public static void main(String[] args) throws Exception {
-        JavaCCErrors.reInit();
+        var diagnostics = new Diagnostics();
         WaggleOptions options = new WaggleOptions();
+        String inputFile = "standard input";
 
-        org.hivevm.waggle.Parser.bannerLine("Documentation Generator");
+        WaggleCompiler.bannerLine("Documentation Generator");
 
         Parser parser = null;
         if (args.length == 0) {
@@ -103,8 +106,6 @@ public final class JJDocMain extends JJDocGlobals {
             parser = new JavaCCParserDefault(
                     new StreamProvider(new java.io.DataInputStream(System.in)),
                     options);
-            JJDocGlobals.input_file = "standard input";
-            JJDocGlobals.output_file = "standard output";
         } else {
             JJDocGlobals.info("Reading from file " + args[args.length - 1] + " . . .");
             try {
@@ -116,7 +117,7 @@ public final class JJDocMain extends JJDocGlobals {
                     JJDocGlobals.error(
                             args[args.length - 1] + " is a directory. Please use a valid file name.");
                 }
-                JJDocGlobals.input_file = fp.getName();
+                inputFile = fp.getName();
                 parser = new JavaCCParserDefault(
                         new StreamProvider(new FileInputStream(args[args.length - 1]),
                                 WaggleOptions.getFileEncoding()), options);
@@ -128,33 +129,33 @@ public final class JJDocMain extends JJDocGlobals {
             }
         }
 
-        JavaCCData javacc = new JavaCCData(options);
+        JavaCCData javacc = new JavaCCData(new GenerationContext(options, diagnostics));
         try {
             parser.initialize(javacc);
             parser.javacc_input();
 
-            JJDoc.start(javacc);
+            var generator = JJDoc.start(javacc, inputFile);
 
-            if (!JavaCCErrors.hasError()) {
-                if (!JavaCCErrors.hasWarning()) {
+            if (!diagnostics.hasError()) {
+                if (!diagnostics.hasWarning()) {
                     JJDocGlobals.info(
                             "Grammar documentation generated successfully in "
-                                    + JJDocGlobals.output_file);
+                                    + generator.outputFile());
                 } else {
                     JJDocGlobals.info(
                             "Grammar documentation generated with 0 errors and "
-                                    + JavaCCErrors.get_warning_count() + " warnings.");
+                                    + diagnostics.warningCount() + " warnings.");
                 }
                 System.exit(0);
             } else {
-                JJDocGlobals.error("Detected " + JavaCCErrors.get_error_count() + " errors and "
-                        + JavaCCErrors.get_warning_count() + " warnings.");
-                System.exit((JavaCCErrors.get_error_count() == 0) ? 0 : 1);
+                JJDocGlobals.error("Detected " + diagnostics.errorCount() + " errors and "
+                        + diagnostics.warningCount() + " warnings.");
+                System.exit((diagnostics.errorCount() == 0) ? 0 : 1);
             }
         } catch (ParseException e) {
             JJDocGlobals.error(e.toString());
-            JJDocGlobals.error("Detected " + JavaCCErrors.get_error_count() + " errors and "
-                    + JavaCCErrors.get_warning_count() + " warnings.");
+            JJDocGlobals.error("Detected " + diagnostics.errorCount() + " errors and "
+                    + diagnostics.warningCount() + " warnings.");
             System.exit(1);
         }
     }

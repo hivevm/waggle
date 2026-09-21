@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.parser.JavaCCErrors;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.parser.Options;
 
 import java.util.Arrays;
@@ -16,7 +16,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * A class with static state that stores all option information.
+ * The resolved settings of one generation: the defaults, overridden by what the caller asked for and
+ * by the grammar's own {@code options { … }} block.
  */
 public class WaggleOptions implements Options {
 
@@ -116,18 +117,38 @@ public class WaggleOptions implements Options {
     }
 
     /**
+     * Takes over what the caller asked for, as the values they are.
+     *
+     * <p>Each of these counts as a caller setting, so the grammar's own {@code options { … }} block
+     * is told when it disagrees — exactly as when they arrived as {@code -CODE_GENERATOR=…} strings.
+     */
+    final void apply(GenerationRequest request) {
+        setFromCaller(Waggle.JJPARSER_CODEGENERATOR, request.language().name());
+        setFromCaller(Waggle.JJPARSER_OUTPUT_DIRECTORY,
+                request.outputDirectory().getAbsolutePath());
+        if (!request.customNodes().isEmpty()) {
+            setFromCaller(Waggle.JJTREE_NODE_CUSTOM, String.join(",", request.customNodes()));
+        }
+    }
+
+    private void setFromCaller(String name, Object value) {
+        set(name, value);
+        this.cmdLineSetting.add(name);
+    }
+
+    /**
      * Check options for consistency
      */
-    void validate() {
+    void validate(Diagnostics diagnostics) {
         if (!getVisitor()) {
             if (!getVisitorDataType().isEmpty())
-                JavaCCErrors.warning(
+                diagnostics.warning(
                         "VISITOR_DATA_TYPE option will be ignored since VISITOR is false");
             if ((!getVisitorReturnType().isEmpty()) && !getVisitorReturnType().equals("Object"))
-                JavaCCErrors.warning(
+                diagnostics.warning(
                         "VISITOR_RETURN_TYPE option will be ignored since VISITOR is false");
             if (!getVisitorException().isEmpty())
-                JavaCCErrors.warning(
+                diagnostics.warning(
                         "VISITOR_EXCEPTION option will be ignored since VISITOR is false");
         }
     }
@@ -143,10 +164,11 @@ public class WaggleOptions implements Options {
         return (opt != null) && (opt.length() > 1) && (opt.charAt(0) == '-');
     }
 
-    public final void setOption(Object nameloc, Object valueloc, String name, Object value) {
+    public final void setOption(Diagnostics diagnostics, Object nameloc, Object valueloc,
+            String name, Object value) {
         String nameUpperCase = name.toUpperCase();
         if (!this.optionValues.containsKey(nameUpperCase)) {
-            JavaCCErrors.warning(nameloc,
+            diagnostics.warning(nameloc,
                     "Bad option name \"" + name + "\".  Option setting will be ignored.");
             return;
         }
@@ -164,21 +186,21 @@ public class WaggleOptions implements Options {
             Object element = (value instanceof List<?> list) ? list.getFirst() : value;
 
             if ((element instanceof Integer number) && (number <= 0)) {
-                JavaCCErrors.warning(valueloc,
+                diagnostics.warning(valueloc,
                         "Bad option value \"" + value + "\" for \"" + name
                                 + "\".  Option setting will be ignored.");
                 return;
             }
 
             if (this.inputFileSetting.contains(nameUpperCase)) {
-                JavaCCErrors.warning(nameloc,
+                diagnostics.warning(nameloc,
                         "Duplicate option setting for \"" + name + "\" will be ignored.");
                 return;
             }
 
             if (this.cmdLineSetting.contains(nameUpperCase)) {
                 if (!existingValue.equals(value)) {
-                    JavaCCErrors.warning(nameloc,
+                    diagnostics.warning(nameloc,
                             "Command line setting of \"" + name + "\" modifies option value in file.");
                 }
                 return;

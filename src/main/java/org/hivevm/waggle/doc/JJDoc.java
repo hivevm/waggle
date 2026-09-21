@@ -16,12 +16,13 @@ import java.util.Iterator;
  */
 class JJDoc extends JJDocGlobals {
 
-    static void start(JavaCCData javacc) {
-        JJDocGlobals.generator = JJDocGlobals.getGenerator((WaggleOptions) javacc.options());
-        JJDocGlobals.generator.documentStart();
-        JJDoc.emitTokenProductions(JJDocGlobals.generator, javacc.getTokenProductions());
-        JJDoc.emitNormalProductions(JJDocGlobals.generator, javacc.getNormalProductions());
-        JJDocGlobals.generator.documentEnd();
+    static BNFGenerator start(JavaCCData javacc, String inputFile) {
+        var generator = new BNFGenerator((WaggleOptions) javacc.options(), inputFile);
+        generator.documentStart();
+        JJDoc.emitTokenProductions(generator, javacc.getTokenProductions());
+        JJDoc.emitNormalProductions(generator, javacc.getNormalProductions());
+        generator.documentEnd();
+        return generator;
     }
 
 

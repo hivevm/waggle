@@ -3,26 +3,28 @@
 
 package org.hivevm.waggle.semantic;
 
-import org.hivevm.waggle.parser.JavaCCErrors;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.parser.Options;
 
 /**
- * The {@link SemanticContext} class.
+ * The settings and the diagnostics of the generation being analysed.
  *
- * <p>Errors and warnings are reported through {@link JavaCCErrors}. This class used to keep a second,
- * independent error counter, so a semantic error raised here never reached the verdict the driver
- * based on {@link JavaCCErrors} — generation could report success while it had already failed.
+ * <p>There is one error channel, shared with every other stage (ADR-0011): this class used to keep a
+ * second, independent counter, so a semantic error raised here never reached the driver's verdict and
+ * generation could report success while it had already failed.
  */
 class SemanticContext {
 
     private final Options options;
+    private final Diagnostics diagnostics;
 
-    public SemanticContext(Options options) {
+    public SemanticContext(Options options, Diagnostics diagnostics) {
         this.options = options;
+        this.diagnostics = diagnostics;
     }
 
     final boolean hasErrors() {
-        return JavaCCErrors.hasError();
+        return this.diagnostics.hasError();
     }
 
     public final int getLookahead() {
@@ -46,14 +48,14 @@ class SemanticContext {
     }
 
     final void onSemanticError(Object node, String message) {
-        JavaCCErrors.semantic_error(node, message);
+        this.diagnostics.error(node, message);
     }
 
     final void onWarning(String message) {
-        JavaCCErrors.warning(message);
+        this.diagnostics.warning(message);
     }
 
     final void onWarning(Object node, String message) {
-        JavaCCErrors.warning(node, message);
+        this.diagnostics.warning(node, message);
     }
 }

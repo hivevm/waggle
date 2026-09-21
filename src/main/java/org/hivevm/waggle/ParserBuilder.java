@@ -53,8 +53,10 @@ public class ParserBuilder {
     /**
      * Run the parser generator.
      */
-    public final Parser build() {
-        return new Parser(parserFile, language, targetDir, customNodes);
+    public final WaggleCompiler build() {
+        return new WaggleCompiler(
+                new GenerationRequest(this.parserFile, this.language, this.targetDir,
+                        this.customNodes));
     }
 
     private static File toFile(File file, String... pathes) {

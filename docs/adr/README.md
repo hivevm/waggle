@@ -28,6 +28,8 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0012](0012-lexer-owns-dfa-construction.md) | The lexer stage owns DFA construction; generators only render it | 🟢 Accepted |
 | [0013](0013-break-model-parser-dependency-cycle.md) | Break the `model` ↔ `parser` dependency cycle | 🟢 Accepted |
 | [0014](0014-rename-project-to-waggle.md) | Rename the project from HiveVM CC to HiveVM Waggle | 🟡 Proposed |
+| [0015](0015-diagnostics-and-generation-request.md) | Diagnostics and the generation request are values, not process-global state | 🟡 Proposed |
+| [0016](0016-tree-building-as-an-optional-module.md) | Tree building is an optional module with its own model and emitter | 🟡 Proposed |
 
 ## Process
 

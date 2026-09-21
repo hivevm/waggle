@@ -2,6 +2,8 @@ package org.hivevm.waggle;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.hivevm.waggle.diag.DiagnosticSink;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,7 +22,7 @@ class WaggleOptionsTest {
     @Test
     void listValuedOptionIsAccepted() {
         var options = new WaggleOptions();
-        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, List.of(3));
+        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, List.of(3));
 
         assertEquals(List.of(3), options.get(Waggle.JJPARSER_LOOKAHEAD));
     }
@@ -29,7 +31,7 @@ class WaggleOptionsTest {
     @Test
     void nonPositiveIntegerIsIgnored() {
         var options = new WaggleOptions();
-        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, 0);
+        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, 0);
 
         assertEquals(1, options.getLookahead(), "a lookahead of 0 must be ignored");
     }
@@ -38,8 +40,13 @@ class WaggleOptionsTest {
     @Test
     void positiveIntegerIsTaken() {
         var options = new WaggleOptions();
-        options.setOption(null, null, Waggle.JJPARSER_LOOKAHEAD, 5);
+        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, 5);
 
         assertEquals(5, options.getLookahead());
+    }
+
+    /** Option warnings belong to the caller's diagnostics; tests keep them off the console. */
+    private static Diagnostics diagnostics() {
+        return new Diagnostics(DiagnosticSink.SILENT);
     }
 }

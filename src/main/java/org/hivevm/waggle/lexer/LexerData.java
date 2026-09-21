@@ -4,6 +4,7 @@
 package org.hivevm.waggle.lexer;
 
 import org.hivevm.waggle.ParserRequest;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
@@ -148,6 +149,10 @@ public class LexerData {
 
     public final Options options() {
         return this.request.options();
+    }
+
+    public final Diagnostics diagnostics() {
+        return this.request.diagnostics();
     }
 
     public final String getParserName() {

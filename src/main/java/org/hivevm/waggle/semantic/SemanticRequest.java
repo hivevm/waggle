@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.semantic;
 
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.RExpression;
@@ -15,6 +16,8 @@ import java.util.Set;
  * The {@link SemanticRequest} class.
  */
 public interface SemanticRequest {
+
+    Diagnostics diagnostics();
 
     void unsetTokenCount();
 

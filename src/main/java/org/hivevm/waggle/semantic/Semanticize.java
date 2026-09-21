@@ -4,7 +4,6 @@
 package org.hivevm.waggle.semantic;
 
 import org.hivevm.waggle.model.*;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.Options;
 import org.hivevm.waggle.parser.ParseException;
 import org.hivevm.waggle.model.RegExprSpec;
@@ -102,8 +101,8 @@ public class Semanticize {
     }
 
     public static void semanticize(SemanticRequest request, Options options) throws ParseException {
-        var context = new SemanticContext(options);
-        if (JavaCCErrors.hasError())
+        var context = new SemanticContext(options, request.diagnostics());
+        if (request.diagnostics().hasError())
             throw new ParseException();
 
         if ((context.getLookahead() > 1) && !context.isForceLaCheck() && context.isSanityCheck())

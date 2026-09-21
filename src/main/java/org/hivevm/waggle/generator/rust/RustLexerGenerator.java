@@ -14,7 +14,6 @@ import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.waggle.model.TokenKind;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;

@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle;
 
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.RExpression;
@@ -15,6 +16,8 @@ import org.hivevm.waggle.parser.Options;
 public interface ParserRequest {
 
     Options options();
+
+    Diagnostics diagnostics();
 
     String getParserName();
 

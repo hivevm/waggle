@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The parser model the back ends render: the productions, plus everything {@link ParserBuilder}
+ * The parser model the back ends render: the productions, plus everything {@link ParserPlanner}
  * decides about lookahead — how every choice point is tested ({@link LookaheadPlan}), the token
  * masks of the one-token switches ({@code jj_la1}), the syntactic lookaheads that need a
  * {@code jj_2} routine (phase 2) and the {@code jj_3} routines they call, each with the largest

@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.lexer;
 
-import org.hivevm.waggle.parser.JavaCCErrors;
 
 import java.util.ArrayList;
 import java.util.Enumeration;

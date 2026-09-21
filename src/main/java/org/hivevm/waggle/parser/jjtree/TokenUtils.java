@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.parser.jjtree;
 
-import org.hivevm.waggle.parser.JavaCCErrors;
+import org.hivevm.waggle.diag.Diagnostics;
 
 /**
  * Utilities for manipulating Tokens.
@@ -13,7 +13,7 @@ final class TokenUtils {
     private TokenUtils() {
     }
 
-    static String remove_escapes_and_quotes(Token t, String str) {
+    static String remove_escapes_and_quotes(Diagnostics diagnostics, Token t, String str) {
         StringBuilder retval = new StringBuilder();
         int index = 1;
         char ch, ch1;
@@ -105,12 +105,12 @@ final class TokenUtils {
                         }
                     }
                 }
-                JavaCCErrors.parse_error(t,
+                diagnostics.error(t,
                         "Encountered non-hex character '" + ch + "' at position " + index
                                 + " of string - Unicode escape must have 4 hex digits after it.");
                 return retval.toString();
             }
-            JavaCCErrors.parse_error(t,
+            diagnostics.error(t,
                     "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
             return retval.toString();
         }

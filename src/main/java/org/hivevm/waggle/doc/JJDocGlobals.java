@@ -3,37 +3,14 @@
 
 package org.hivevm.waggle.doc;
 
-import org.hivevm.waggle.WaggleOptions;
-
 /**
- * Global variables for JJDoc.
+ * How JJDoc talks to the user running it.
+ *
+ * <p>This used to hold the input file, the output file and the generator in static fields, which one
+ * run then handed to the next (ADR-0015). They now belong to the {@link BNFGenerator} of a single
+ * run; what is left here has no state at all.
  */
 class JJDocGlobals {
-
-    /**
-     * The name of the input file.
-     */
-    static String input_file;
-    /**
-     * The name of the output file.
-     */
-    static String output_file;
-
-    /**
-     * The Generator to create output with.
-     */
-    static Generator generator;
-
-    /**
-     * The commandline option is either TEXT or not, but the generator might have been set to some
-     * other Generator using the setGenerator method.
-     *
-     * @return the generator configured in options or set by setter.
-     */
-    static Generator getGenerator(WaggleOptions opts) {
-        JJDocGlobals.generator = new BNFGenerator(opts);
-        return JJDocGlobals.generator;
-    }
 
     /**
      * Log informational messages.

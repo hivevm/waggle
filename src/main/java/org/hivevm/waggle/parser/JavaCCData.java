@@ -3,7 +3,9 @@
 
 package org.hivevm.waggle.parser;
 
+import org.hivevm.waggle.GenerationContext;
 import org.hivevm.waggle.ParserRequest;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.RExpression;
@@ -22,7 +24,7 @@ import java.util.Set;
  */
 public class JavaCCData implements SemanticRequest, ParserRequest {
 
-    private final Options options;
+    private final GenerationContext context;
     private Action actForEof;
     private String nextStateForEof;
 
@@ -96,8 +98,8 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     /**
      * Constructs an instance of {@link JavaCCData}.
      */
-    public JavaCCData(Options options) {
-        this.options = options;
+    public JavaCCData(GenerationContext context) {
+        this.context = context;
         this.tokenCount = 0;
         this.lexstate_S2I.put("DEFAULT", 0);
         this.lexstate_I2S.put(0, "DEFAULT");
@@ -106,7 +108,12 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
 
     @Override
     public final Options options() {
-        return this.options;
+        return this.context.options();
+    }
+
+    @Override
+    public final Diagnostics diagnostics() {
+        return this.context.diagnostics();
     }
 
     final void setLexState(String name, int index) {
@@ -129,7 +136,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
 
     @Override
     public final String getParserName() {
-        return this.options.getParserName();
+        return options().getParserName();
     }
 
     @Override

@@ -4,9 +4,9 @@
 package org.hivevm.waggle;
 
 
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.generator.GeneratorProvider;
 import org.hivevm.waggle.parser.JavaCCData;
-import org.hivevm.waggle.parser.JavaCCErrors;
 import org.hivevm.waggle.parser.JavaCCParserDefault;
 import org.hivevm.waggle.parser.StringProvider;
 import org.hivevm.waggle.semantic.Semanticize;
@@ -16,25 +16,30 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * The {@link Parser} class.
+ * Turns one grammar into one set of generated sources.
+ *
+ * <p>Each run owns its {@link GenerationContext} — its options and its {@link Diagnostics} — so two
+ * compilations in the same JVM, in sequence or in parallel, cannot see each other (ADR-0015).
  */
-public class Parser {
+public class WaggleCompiler {
 
-    private final File file;
+    private final GenerationRequest request;
+    private final Diagnostics diagnostics;
 
-    private final Language language;
-    private final File targetDir;
-    private final List<String> customNodes;
+    public WaggleCompiler(GenerationRequest request) {
+        this(request, new Diagnostics());
+    }
 
-    public Parser(File file, Language language, File targetDir, List<String> customNodes) {
-        this.file = file;
-        this.language = language;
-        this.targetDir = targetDir;
-        this.customNodes = customNodes;
+    public WaggleCompiler(GenerationRequest request, Diagnostics diagnostics) {
+        this.request = request;
+        this.diagnostics = diagnostics;
+    }
+
+    /** What this compilation had to say about the grammar. */
+    public final Diagnostics diagnostics() {
+        return this.diagnostics;
     }
 
     /**
@@ -54,96 +59,78 @@ public class Parser {
      * Run the parser generator.
      */
     public final void parse() {
-        var arguments = new ArrayList<String>();
-        arguments.add("-CODE_GENERATOR=" + this.language.name());
-        arguments.add("-OUTPUT_DIRECTORY=" + this.targetDir.getAbsolutePath());
-        if ((this.customNodes != null) && !this.customNodes.isEmpty()) {
-            arguments.add("-NODE_CUSTOM=" + String.join(",", this.customNodes));
-        }
-
-        var filename = this.file.getName();
+        var grammarFile = this.request.grammarFile();
+        var filename = grammarFile.getName();
         // A grammar without an extension used to make lastIndexOf('.') return -1 and throw a bare
         // StringIndexOutOfBoundsException here.
         var dot = filename.lastIndexOf('.');
-        var lexerFile = new File(this.file.getParentFile(),
+        var lexerFile = new File(grammarFile.getParentFile(),
                 (dot < 0 ? filename : filename.substring(0, dot)) + ".lex"
         );
 
         try {
-            var text = Parser.readGrammar(this.file);
+            var text = WaggleCompiler.readGrammar(grammarFile);
 
             if (lexerFile.exists()) {
                 System.out.printf("Reading from file %s ...\n", lexerFile);
-                text += Parser.readGrammar(lexerFile);
+                text += WaggleCompiler.readGrammar(lexerFile);
             }
 
-            Parser.bannerLine("Parser Generator");
-            JavaCCErrors.reInit();
+            WaggleCompiler.bannerLine("Parser Generator");
 
-            var options = parseContext(arguments);
-            var request = new JavaCCData(options);
+            var context = GenerationContext.of(this.request, this.diagnostics);
+            var options = context.options();
+            var data = new JavaCCData(context);
             var parser = new JavaCCParserDefault(new StringProvider(text), options);
-            parser.initialize(request);
+            parser.initialize(data);
             parser.javacc_input();
 
             // Initialize the parser data
-            Parser.createOutputDir(options.getOutputDirectory());
-            Semanticize.semanticize(request, options);
-            options.set(Waggle.PARSER_NAME, request.getParserName());
+            createOutputDir(options.getOutputDirectory());
+            Semanticize.semanticize(data, options);
+            options.set(Waggle.PARSER_NAME, data.getParserName());
             var generator = GeneratorProvider.generatorFor(options.getOutputLanguage());
-            generator.generate(request);
+            generator.generate(data);
         } catch (ParseException | IOException e) {
             // Swallowing this used to let the code fall through to the verdict below, which only
-            // consults the JavaCCErrors counters — untouched by an I/O failure. A missing grammar
-            // therefore printed "Parser generated successfully." and produced nothing.
-            throw new GenerationException("Failed to generate a parser from " + this.file, e);
+            // consults the diagnostics — untouched by an I/O failure. A missing grammar therefore
+            // printed "Parser generated successfully." and produced nothing.
+            throw new GenerationException("Failed to generate a parser from " + grammarFile, e);
         }
 
-        if (JavaCCErrors.hasError()) {
+        if (this.diagnostics.hasError()) {
             throw new GenerationException(
-                    "Failed to generate a parser from " + this.file + ": detected "
-                            + JavaCCErrors.get_error_count() + " error(s) and "
-                            + JavaCCErrors.get_warning_count() + " warning(s)");
+                    "Failed to generate a parser from " + grammarFile + ": detected "
+                            + this.diagnostics.errorCount() + " error(s) and "
+                            + this.diagnostics.warningCount() + " warning(s)");
         }
 
-        if (JavaCCErrors.hasWarning()) {
+        if (this.diagnostics.hasWarning()) {
             System.out.printf("Parser generated with 0 errors and %s warnings.\n",
-                    JavaCCErrors.get_warning_count());
+                    this.diagnostics.warningCount());
         } else {
             System.out.println("Parser generated successfully.");
         }
     }
 
-    protected static WaggleOptions parseContext(List<String> args) {
-        var options = new WaggleOptions();
-        for (var arg : args) {
-            if (!options.isOption(arg)) {
-                throw new GenerationException("Argument '" + arg + "' must be an option setting.");
-            }
-            options.setCmdLineOption(arg);
-        }
-        options.validate();
-        return options;
-    }
-
-    protected static void createOutputDir(File outputDir) {
+    private void createOutputDir(File outputDir) {
         if (!outputDir.exists()) {
-            JavaCCErrors.warning(
+            this.diagnostics.warning(
                     "Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
 
             if (!outputDir.mkdirs()) {
-                JavaCCErrors.semantic_error("Cannot create the output directory : " + outputDir);
+                this.diagnostics.error("Cannot create the output directory : " + outputDir);
                 return;
             }
         }
 
         if (!outputDir.isDirectory()) {
-            JavaCCErrors.semantic_error("\"" + outputDir + " is not a valid output directory.");
+            this.diagnostics.error("\"" + outputDir + " is not a valid output directory.");
             return;
         }
 
         if (!outputDir.canWrite()) {
-            JavaCCErrors.semantic_error(
+            this.diagnostics.error(
                     "Cannot write to the output output directory : \"" + outputDir + "\"");
         }
     }
