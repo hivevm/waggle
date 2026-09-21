@@ -4,7 +4,10 @@
 package org.hivevm.waggle.generator.cpp;
 
 import org.hivevm.waggle.Language;
+import org.hivevm.waggle.generator.GetNextTokenEmitter;
 import org.hivevm.waggle.generator.LexerGenerator;
+import org.hivevm.waggle.generator.NfaMoveEmitter;
+import org.hivevm.waggle.generator.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
@@ -28,6 +31,16 @@ class CppLexerGenerator extends LexerGenerator {
 
     public CppLexerGenerator() {
         super(Language.CPP);
+    }
+
+    @Override
+    protected GetNextTokenEmitter newGetNextTokenEmitter() {
+        return new CppGetNextTokenEmitter(this, this);
+    }
+
+    @Override
+    protected NfaMoveEmitter newNfaMoveEmitter() {
+        return new CppNfaMoveEmitter(this);
     }
 
     @Override
@@ -277,40 +290,40 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printMoveStringLiteralDfa0Signature(LinePrinter printer, NfaStateData data) {
+    public void printMoveStringLiteralDfa0Signature(LinePrinter printer, NfaStateData data) {
         printer.print("int " + data.getParserName() + "TokenManager::jjMoveStringLiteralDfa0"
                 + data.getLexerStateSuffix() + "() {");
     }
 
     @Override
-    protected void printStopAtPosSignature(LinePrinter printer, NfaStateData data) {
+    public void printStopAtPosSignature(LinePrinter printer, NfaStateData data) {
         printer.println("int " + data.getParserName() + "TokenManager::jjStopAtPos(int pos, int kind) {");
     }
 
     @Override
-    protected void printDebugNoMoreMatches(LinePrinter printer) {
+    public void printDebugNoMoreMatches(LinePrinter printer) {
         printer.println("fprintf(debugStream, \"No more string literal token matches are possible.\");");
         printer.println("fprintf(debugStream, \"Currently matched the first %d characters as a \\\"%s\\\" token.\\n\",  (jjmatchedPos + 1),  addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str());");
     }
 
     @Override
-    protected String tokenImages() {
+    public String tokenImages() {
         return "tokenImages";
     }
 
     @Override
-    protected String getSuffix() {
+    public String getSuffix() {
         return "getSuffix";
     }
 
     @Override
-    protected String inputStream() {
+    public String inputStream() {
         return "reader->";
     }
 
     /** C++ puts the lexical actions in a method of their own, and switches inside it. */
     @Override
-    protected void printActionsPrologue(LinePrinter printer, LexerData data, String method,
+    public void printActionsPrologue(LinePrinter printer, LexerData data, String method,
                                         String preamble) {
         printer.print("\nvoid " + data.getParserName() + "TokenManager::" + method);
         printer.println("{");
@@ -322,7 +335,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printActionsEpilogue(LinePrinter printer) {
+    public void printActionsEpilogue(LinePrinter printer) {
         printer.println("      default:");
         printer.println("         break;");
         printer.println("   }");
@@ -330,34 +343,34 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printActionCase(LinePrinter printer, int kind) {
+    public void printActionCase(LinePrinter printer, int kind) {
         printer.println("      case " + kind + " : {");
     }
 
     @Override
-    protected void printActionCaseEnd(LinePrinter printer) {
+    public void printActionCaseEnd(LinePrinter printer) {
         printer.println("       }");
     }
 
     @Override
-    protected void printLoopDetected(LinePrinter printer) {
+    public void printLoopDetected(LinePrinter printer) {
         printer.println("               errorHandler->lexicalError(JJString(\"(\"Error: Bailing out of infinite loop caused by repeated empty string matches \" + \"at line \" + reader->getBeginLine() + \", \" + \"column \" + reader->getBeginColumn() + \".\")), this);");
     }
 
     @Override
-    protected void printMoveStringLiteralDfaHead(LinePrinter printer, NfaStateData data, int i) {
+    public void printMoveStringLiteralDfaHead(LinePrinter printer, NfaStateData data, int i) {
         printer.print("int " + data.getParserName() + "TokenManager::jjMoveStringLiteralDfa" + i
                 + data.getLexerStateSuffix() + "(");
     }
 
     @Override
-    protected String longType() {
+    public String longType() {
         return "unsigned long long";
     }
 
     /** Cpp logs differently. */
     @Override
-    protected void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
+    public void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
         if ((i != 0) && data.global.options().getDebugTokenManager()) {
             printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
             printer.println("    fprintf(debugStream, \"   Currently matched the first %d characters as a \\\"%s\\\" token.\\n\", (jjmatchedPos + 1), addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str());");
@@ -384,28 +397,28 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printReadCharGuardOpen(LinePrinter printer) {
+    public void printReadCharGuardOpen(LinePrinter printer) {
         printer.println("if (reader->endOfInput()) {");
     }
 
     @Override
-    protected void printReadCharAfterGuard(LinePrinter printer) {
+    public void printReadCharAfterGuard(LinePrinter printer) {
         printer.println("   curChar = reader->readChar();");
     }
 
     @Override
-    protected void printDebugCurrentlyMatched(LinePrinter printer) {
+    public void printDebugCurrentlyMatched(LinePrinter printer) {
         printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
         printer.println("    fprintf(debugStream, \"   Currently matched the first %d characters as a \\\"%s\\\" token.\\n\", (jjmatchedPos + 1),  addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str());");
     }
 
     @Override
-    protected void printSwitchOnChar(LinePrinter printer) {
+    public void printSwitchOnChar(LinePrinter printer) {
         printer.println("switch(curChar) {");
     }
 
     @Override
-    protected void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
+    public void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
         printer.println("fprintf(debugStream, "
                         + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
                         + "addUnicodeEscapes(lexStateNames[curLexState]).c_str(), curChar, (int)curChar, "
@@ -413,10 +426,9 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printDebugNoMatchPossible(LinePrinter printer) {
+    public void printDebugNoMatchPossible(LinePrinter printer) {
         printer.println("    fprintf(debugStream, \"   No string literal matches possible.\");");
     }
-
 
     // Used by the CPP code generatror
     private static void printCharArray(LinePrinter printer, String s) {
@@ -434,12 +446,12 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected String toHexString(long value) {
+    public String toHexString(long value) {
         return "0x" + Long.toHexString(value) + "ULL";
     }
 
     @Override
-    protected void printStopStringLiteralDfaSignature(LinePrinter printer, NfaStateData data,
+    public void printStopStringLiteralDfaSignature(LinePrinter printer, NfaStateData data,
                                                       int maxKindsReqd) {
         printer.print("int " + data.global.getParserName() + "TokenManager::jjStopStringLiteralDfa"
                 + data.getLexerStateSuffix() + "(int pos");
@@ -450,7 +462,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printStartNfaSignature(LinePrinter printer, NfaStateData data,
+    public void printStartNfaSignature(LinePrinter printer, NfaStateData data,
                                           int maxKindsReqd) {
         printer.print("int " + data.global.getParserName() + "TokenManager::jjStartNfa"
                 + data.getLexerStateSuffix() + "(int pos");
@@ -461,37 +473,36 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printDebugNoMoreStringLiteralMatches(LinePrinter printer) {
+    public void printDebugNoMoreStringLiteralMatches(LinePrinter printer) {
         printer.println(
                 "fprintf(debugStream, \"   No more string literal token matches are possible.\");");
     }
 
     @Override
-    protected void printLexStateArrayOpen(LinePrinter printer, LexerData data) {
+    public void printLexStateArrayOpen(LinePrinter printer, LexerData data) {
         printer.println();
         printer.println("/** Lex State array. */");
         printer.print("static const int jjnewLexState[] = {");
     }
 
     @Override
-    protected void printBitVectorOpen(LinePrinter printer, LexerData data, String name) {
+    public void printBitVectorOpen(LinePrinter printer, LexerData data, String name) {
         printer.print("static const " + longType() + " " + name + "[] = {");
     }
 
     @Override
-    protected void printNextStatesOpen(LinePrinter printer, LexerData data) {
+    public void printNextStatesOpen(LinePrinter printer, LexerData data) {
         printer.print("static const int jjnextStates[] = {");
     }
 
-
     @Override
-    protected void printMoveNfaSignature(LinePrinter printer, NfaStateData data) {
+    public void printMoveNfaSignature(LinePrinter printer, NfaStateData data) {
         printer.print("int " + data.getParserName() + "TokenManager::jjMoveNfa"
                 + data.getLexerStateSuffix() + "(int startState, int curPos) {");
     }
 
     @Override
-    protected void printMoveNfaMixedPrologue(LinePrinter printer) {
+    public void printMoveNfaMixedPrologue(LinePrinter printer) {
         printer.print("""
                 int strKind = jjmatchedKind;
                 int strPos = jjmatchedPos;
@@ -504,35 +515,12 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printMoveNfaMixedEpilogue(LinePrinter printer) {
-        printer.print("""
-                if (jjmatchedPos > strPos)
-                    return curPos;
-
-                int toRet = MAX(curPos, seenUpto);
-                if (curPos < toRet)
-                    for (i = toRet - MIN(curPos, seenUpto); i-- > 0; ) {
-                        assert(!reader->endOfInput());
-                        curChar = reader->read();
-                    } // UTF8: Support Unicode
-
-                if (jjmatchedPos < strPos) {
-                    jjmatchedKind = strKind;
-                    jjmatchedPos = strPos;
-                } else if (jjmatchedPos == strPos && jjmatchedKind > strKind)
-                    jjmatchedKind = strKind;
-
-                return toRet;
-                """);
-    }
-
-    @Override
-    protected void printForEver(LinePrinter printer) {
+    public void printForEver(LinePrinter printer) {
         printer.println("for (;;) {");
     }
 
     @Override
-    protected void printSwapStateSets(LinePrinter printer, NfaStateData data) {
+    public void printSwapStateSets(LinePrinter printer, NfaStateData data) {
         printer.println("if ((i = jjnewStateCnt), (jjnewStateCnt = startsAt), (i == (startsAt = "
                 + data.generatedStates() + " - startsAt)))");
         printer.indent();
@@ -541,7 +529,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printReadCharOrLeave(LinePrinter printer, NfaStateData data) {
+    public void printReadCharOrLeave(LinePrinter printer, NfaStateData data) {
         printer.println(data.isMixedState()
                 ? "if (reader->endOfInput()) { break; }"
                 : "if (reader->endOfInput()) { return curPos; }");
@@ -549,24 +537,24 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printDebugStartingNfa(LinePrinter printer) {
+    public void printDebugStartingNfa(LinePrinter printer) {
         printer.println("fprintf(debugStream, \"   Starting NFA to match one of : %s\\n\", "
                 + "jjKindsForStateVector(curLexState, jjstateSet, 0, 1).c_str());");
     }
 
     @Override
-    protected void printDebugPossibleLongerMatches(LinePrinter printer) {
+    public void printDebugPossibleLongerMatches(LinePrinter printer) {
         printer.println("fprintf(debugStream, \"   Possible kinds of longer matches : %s\\n\", "
                 + "jjKindsForStateVector(curLexState, jjstateSet, startsAt, i).c_str());");
     }
 
     @Override
-    protected void printEofTokenActions(LinePrinter printer) {
+    public void printEofTokenActions(LinePrinter printer) {
         printer.println("      TokenLexicalActions(matchedToken);");
     }
 
     @Override
-    protected void printGetNextTokenPrologue(LinePrinter printer) {
+    public void printGetNextTokenPrologue(LinePrinter printer) {
         printer.println("return matchedToken;");
         printer.outdent();
         printer.println("}");
@@ -574,85 +562,24 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printImageInit(LinePrinter printer) {
+    public void printImageInit(LinePrinter printer) {
         printer.println("image = jjimage;");
         printer.println("image.clear();");
         printer.println("jjimageLen = 0;");
     }
 
     @Override
-    protected void printEofLoop(LinePrinter printer) {
+    public void printEofLoop(LinePrinter printer) {
         printer.println("for (;;) {");
     }
 
     @Override
-    protected void printSwitchOnLexState(LinePrinter printer) {
+    public void printSwitchOnLexState(LinePrinter printer) {
         printer.println("switch(curLexState) {");
     }
 
     @Override
-    protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        // the backup(0) is there to make the JIT happy
-        printer.println("{");
-        printer.indent();
-        printer.println("reader->backup(0);");
-
-        long lower = data.singlesToSkip(state).asciiMoves[0];
-        long upper = data.singlesToSkip(state).asciiMoves[1];
-        if ((lower != 0L) && (upper != 0L)) {
-            printer.print("while ((curChar < 64 && (" + Long.toHexString(lower)
-                    + " & (1L << curChar)) != 0L) || \n"
-                    + "          (curChar >> 6) == 1 && (" + toHexString(upper)
-                    + " & (1L << (curChar & 077))) != 0L)");
-        } else if (upper == 0L) {
-            printer.print("while (curChar <= " + (int) LexerGenerator.MaxChar(lower)
-                    + " && (" + toHexString(lower) + " & (1L << curChar)) != 0L)");
-        } else if (lower == 0L) {
-            printer.print("while (curChar > 63 && curChar <= "
-                    + (LexerGenerator.MaxChar(upper) + 64) + " && (" + toHexString(upper)
-                    + " & (1L << (curChar & 077))) != 0L)");
-        }
-
-        // the loop body must be braced: it advances curChar, and without the braces only the
-        // end-of-input check would be repeated -- forever
-        printer.println(" {");
-        printer.indent();
-
-        if (data.options().getDebugTokenManager()) {
-            if (data.maxLexStates() > 1) {
-                printer.println("fprintf(debugStream, \"<%s>\" , addUnicodeEscapes(lexStateNames[curLexState]).c_str());");
-            }
-            printer.println("fprintf(debugStream, \"Skipping character : %c(%d)\\n\", curChar, (int)curChar);");
-        }
-
-        printer.println("if (reader->endOfInput()) { goto EOFLoop; }");
-        printer.println("curChar = reader->beginToken();");
-
-        printer.outdent();
-        printer.println("}");
-
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
-        if (hasInitialMatch(data, state)) {
-            if (data.options().getDebugTokenManager()) {
-                printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
-                        + data.initMatch(state) + "]).c_str());");
-            }
-            printer.println("jjmatchedKind = " + data.initMatch(state) + ";");
-            printer.println("jjmatchedPos = -1;");
-            printer.println("curPos = 0;");
-        } else {
-            printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-            printer.println("jjmatchedPos = 0;");
-        }
-    }
-
-    @Override
-    protected void printDebugCurrentCharacter(LinePrinter printer, LexerData data) {
+    public void printDebugCurrentCharacter(LinePrinter printer, LexerData data) {
         printer.println("fprintf(debugStream, "
                 + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
                 + "addUnicodeEscapes(lexStateNames[curLexState]).c_str(), curChar, (int)curChar, "
@@ -660,154 +587,18 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printCanMatchAnyChar(LinePrinter printer, LexerData data, int state) {
-        int kind = data.canMatchAnyChar(state);
-        if (hasInitialMatch(data, state)) {
-            printer.println("if (jjmatchedPos < 0 || (jjmatchedPos == 0 && jjmatchedKind > " + kind
-                    + ")) {");
-        } else {
-            printer.println("if (jjmatchedPos == 0 && jjmatchedKind > " + kind + ") {");
-        }
-        printer.indent();
-
-        if (data.options().getDebugTokenManager()) {
-            printer.println("fprintf(debugStream, \"   Current character matched as a %s token.\\n\", addUnicodeEscapes(tokenImages["
-                    + kind + "]).c_str());");
-        }
-        printer.println("jjmatchedKind = " + kind + ";");
-
-        if (hasInitialMatch(data, state)) {
-            printer.println("jjmatchedPos = 0;");
-        }
-
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected void printBackupBlock(LinePrinter printer, LexerData data) {
-        printer.println("if (jjmatchedPos + 1 < curPos) {");
-        printer.indent();
-
-        if (data.options().getDebugTokenManager()) {
-            printer.println("fprintf(debugStream, "
-                    + "\"   Putting back %d characters into the input stream.\\n\", (curPos - jjmatchedPos - 1));");
-        }
-
-        printer.println("reader->backup(curPos - jjmatchedPos - 1);");
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected void printDebugFoundMatch(LinePrinter printer) {
+    public void printDebugFoundMatch(LinePrinter printer) {
         printer.println("fprintf(debugStream, \"****** FOUND A %d(%s) MATCH (%s) ******\\n\", jjmatchedKind, addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str(), addUnicodeEscapes(reader->getSuffix(jjmatchedPos + 1)).c_str());");
     }
 
     @Override
-    protected void printIfToToken(LinePrinter printer) {
+    public void printIfToToken(LinePrinter printer) {
         printer.println("if ((jjtoToken[jjmatchedKind >> 6] & "
                 + "(1ULL << (jjmatchedKind & 077))) != 0L) {");
     }
 
     @Override
-    protected void printTokenBranch(LinePrinter printer, LexerData data) {
-        printer.println("matchedToken = jjFillToken();");
-
-        if (data.hasSpecial()) {
-            printer.println("matchedToken->specialToken() = specialToken;");
-        }
-        if (data.hasTokenActions()) {
-            printer.println("TokenLexicalActions(matchedToken);");
-        }
-        if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
-        }
-        printer.println("return matchedToken;");
-    }
-
-    @Override
-    protected void printSkipBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMore()) {
-            printer.print("else if ((jjtoSkip[jjmatchedKind >> 6] & (1L << (jjmatchedKind & 077))) != 0L)");
-        } else {
-            printer.print("else");
-        }
-
-        printer.println(" {");
-        printer.indent();
-
-        if (data.hasSpecial()) {
-            printer.println("if ((jjtoSpecial[jjmatchedKind >> 6] & "
-                    + "(1ULL << (jjmatchedKind & 077))) != 0L) {");
-            printer.indent();
-
-            printer.println("matchedToken = jjFillToken();");
-            printer.println("if (specialToken == nullptr)");
-            printer.println("    specialToken = matchedToken;");
-            printer.println("else {");
-            printer.println("    matchedToken->specialToken() = specialToken;");
-            printer.println("    specialToken = (specialToken->next() = matchedToken);");
-            printer.println("}");
-
-            if (data.hasSkipActions()) {
-                printer.println("SkipLexicalActions(matchedToken);");
-            }
-
-            printer.outdent();
-            printer.println("}");
-
-            if (data.hasSkipActions()) {
-                printer.println("else");
-                printer.println("    SkipLexicalActions(nullptr);");
-            }
-        } else if (data.hasSkipActions()) {
-            printer.println("SkipLexicalActions(nullptr);");
-        }
-
-        if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
-        }
-
-        printer.println("goto EOFLoop;");
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected void printMoreBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMoreActions()) {
-            printer.println("MoreLexicalActions();");
-        } else if (data.hasSkipActions() || data.hasTokenActions()) {
-            printer.println("jjimageLen += jjmatchedPos + 1;");
-        }
-
-        if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
-        }
-        printer.println("curPos = 0;");
-        printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-
-        printer.println("if (!reader->endOfInput()) {");
-        printer.println("    curChar = reader->read(); // UTF8: Support Unicode");
-
-        if (data.options().getDebugTokenManager()) {
-            printDebugCurrentCharacter(printer, data);
-        }
-        printer.println("    continue;");
-        printer.println("}");
-    }
-
-    /** The C++ token manager reports the lexical error from its template, not from here. */
-    @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer) {
-    }
-
-    @Override
-    protected void printCharBits(LinePrinter printer, int byteNum) {
+    public void printCharBits(LinePrinter printer, int byteNum) {
         if (byteNum == 0) {
             printer.println("unsigned long long l = 1ULL << curChar;");
             printer.println("(void)l;");
@@ -824,25 +615,25 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printSwitchOnStateSet(LinePrinter printer) {
+    public void printSwitchOnStateSet(LinePrinter printer) {
         printer.println("switch(jjstateSet[--i]) {");
     }
 
     @Override
-    protected void printStartNfaWithStatesSignature(LinePrinter printer, NfaStateData data) {
+    public void printStartNfaWithStatesSignature(LinePrinter printer, NfaStateData data) {
         printer.print("\nint " + data.getParserName() + "TokenManager::jjStartNfaWithStates"
                 + data.getLexerStateSuffix() + "(int pos, int kind, int state)");
         printer.println("{");
     }
 
     @Override
-    protected void printReadCharOrReturn(LinePrinter printer) {
+    public void printReadCharOrReturn(LinePrinter printer) {
         printer.println("if (reader->endOfInput()) { return pos + 1; }");
         printer.println("curChar = reader->read(); // UTF8: Support Unicode");
     }
 
     @Override
-    protected void printCanMoveSignature(LinePrinter printer, LexerData data, NfaState state) {
+    public void printCanMoveSignature(LinePrinter printer, LexerData data, NfaState state) {
         printer.print("\nbool " + data.getParserName() + "TokenManager::jjCanMove_"
                 + state.nonAsciiMethod
                 + "(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2)");
@@ -852,38 +643,38 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printCanMoveEnd(LinePrinter printer) {
+    public void printCanMoveEnd(LinePrinter printer) {
         printer.println("         return false;");
         printer.println("   }");
         printer.println("}");
     }
 
     @Override
-    protected void printCanMoveCase(LinePrinter printer, int hiByte) {
+    public void printCanMoveCase(LinePrinter printer, int hiByte) {
         printer.println("      case " + hiByte + ":");
     }
 
     @Override
-    protected void printCanMoveCaseEnd(LinePrinter printer) {
+    public void printCanMoveCaseEnd(LinePrinter printer) {
     }
 
     @Override
-    protected void printCanMoveDefault(LinePrinter printer) {
+    public void printCanMoveDefault(LinePrinter printer) {
         printer.println("      default:");
     }
 
     @Override
-    protected void printCanMoveReturnBitVector(LinePrinter printer, int vector) {
+    public void printCanMoveReturnBitVector(LinePrinter printer, int vector) {
         printer.println("         return ((jjbitVec" + vector + "[i2] & l2) != 0L);");
     }
 
     @Override
-    protected void printCanMoveReturnTrue(LinePrinter printer) {
+    public void printCanMoveReturnTrue(LinePrinter printer) {
         printer.println("            return true;");
     }
 
     @Override
-    protected void printCanMoveArm(LinePrinter printer, int hiVector, int loVector, boolean testHi,
+    public void printCanMoveArm(LinePrinter printer, int hiVector, int loVector, boolean testHi,
                                    boolean testLo) {
         if (testHi) {
             printer.println("         if ((jjbitVec" + hiVector + "[i1] & l1) != 0L)");
@@ -897,18 +688,18 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected void printTokenImage(LinePrinter printer, String image) {
+    public void printTokenImage(LinePrinter printer, String image) {
         CppLexerGenerator.printCharArray(printer, image);
     }
 
     @Override
-    protected void printStringLiteralImage(LinePrinter printer, RStringLiteral literal,
+    public void printStringLiteralImage(LinePrinter printer, RStringLiteral literal,
                                            boolean isImage) {
         CppLexerGenerator.printCharArray(printer,
                 isImage ? literal.getImage() : "<" + literal.getLabel() + ">");
     }
 
     @Override
-    protected void printImageSeparator(LinePrinter printer, int i, List<RExpression> expressions) {
+    public void printImageSeparator(LinePrinter printer, int i, List<RExpression> expressions) {
     }
 }

@@ -5,6 +5,7 @@ package org.hivevm.waggle.generator.java;
 
 import org.hivevm.waggle.Language;
 import org.hivevm.waggle.generator.LexerGenerator;
+import org.hivevm.waggle.generator.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
@@ -23,7 +24,7 @@ class JavaLexerGenerator extends LexerGenerator {
     @Override
     protected final void generate(LexerData data, Context options) {
         options.set("STATES_FOR_STATE", () -> getStatesForState(data));
-        options.set("KIND_FOR_STATE", () -> getKindForState(data));
+        options.set("KIND_FOR_STATE", () -> getNextToken().getKindForState(data));
         options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data, p));
 
         JavaTemplate.LEXER.render(options);

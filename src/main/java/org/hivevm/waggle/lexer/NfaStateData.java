@@ -396,6 +396,42 @@ public class NfaStateData {
         return ret;
     }
 
+    /**
+     * The state name stage 4 gave this composite state set. A query: unlike
+     * {@link #addCompositeStateSet(String)} it registers nothing, which is what a back end needs
+     * while it renders (ADR-0012). The generator used to carry its own copy of this logic.
+     */
+    public final int compositeStateName(String stateSetString) {
+        Integer stateNameToReturn = this.stateNameForComposite.get(stateSetString);
+
+        if (stateNameToReturn != null) {
+            return stateNameToReturn;
+        }
+
+        int[] nameSet = getNextStates(stateSetString);
+
+        if (nameSet.length == 1) {
+            return nameSet[0];
+        }
+
+        int toRet = 0;
+        while ((toRet < nameSet.length) && ((getIndexedState(nameSet[toRet]).inNextOf > 1))) {
+            toRet++;
+        }
+
+        for (var s : this.compositeStateTable.keySet()) {
+            if (!s.equals(stateSetString) && intersects(stateSetString, s)) {
+                int[] other = this.compositeStateTable.get(s);
+                while ((toRet < nameSet.length) && (
+                        ((getIndexedState(nameSet[toRet]).inNextOf > 1))
+                                || (positionOf(nameSet[toRet], other) >= 0))) {
+                    toRet++;
+                }
+            }
+        }
+        return nameSet[toRet];
+    }
+
     int addCompositeStateSet(String stateSetString) {
         Integer stateNameToReturn;
 
