@@ -3,6 +3,8 @@
 
 package org.hivevm.waggle.parser;
 
+import org.hivevm.source.FileSink;
+import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.Waggle;
 import org.hivevm.core.Environment;
 
@@ -150,6 +152,14 @@ public interface Options extends Environment {
      */
     default File getOutputDirectory() {
         return new File(stringValue(Waggle.JJPARSER_OUTPUT_DIRECTORY));
+    }
+
+    /**
+     * Where the rendered source goes. It sits beside the output directory because it answers the
+     * same question, and a caller that did not choose one writes files (ADR-0018).
+     */
+    default OutputSink outputSink() {
+        return new FileSink();
     }
 
     // TreeOptions

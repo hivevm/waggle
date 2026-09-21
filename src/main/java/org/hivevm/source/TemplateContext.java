@@ -4,6 +4,7 @@
 package org.hivevm.source;
 
 import org.hivevm.core.Environment;
+import org.hivevm.waggle.parser.Options;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,18 @@ class TemplateContext implements Context {
      */
     public TemplateContext(Environment environment) {
         this.environment = environment;
+    }
+
+    /**
+     * Where the rendered source goes. A context wraps the generation's options, so it must pass
+     * the sink on: forgetting to made the lexer and the parser write files while the runtime
+     * classes went to the sink (ADR-0018).
+     */
+    @Override
+    public final OutputSink outputSink() {
+        return (this.environment instanceof Options options)
+                ? options.outputSink()
+                : Context.super.outputSink();
     }
 
     /**

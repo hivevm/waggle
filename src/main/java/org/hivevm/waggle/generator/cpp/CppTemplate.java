@@ -3,110 +3,75 @@
 
 package org.hivevm.waggle.generator.cpp;
 
-import org.hivevm.waggle.parser.Options;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
+import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * Represents a collection of predefined templates for generating C++ code. Each enum constant
- * corresponds to a specific type of template file with an associated name and optional path format
- * for filename generation.
- * <p>
- * Implements the {@link SourceProvider} interface to provide mechanisms for retrieving template
- * resource paths, generating filenames, and creating corresponding {@link File} objects based on
- * user-defined options.
+ * The C++ templates: which resource each is read from, and which file it writes.
+ *
+ * <p>C++ is the only target that writes two files per component, a header and an implementation,
+ * and the only one whose file names derive from the grammar. The extension is part of the name a
+ * template declares, so the set needs no notion of a "file type" (ADR-0018).
  */
-public enum CppTemplate implements SourceProvider {
+public interface CppTemplate {
 
-    WAGGLE("Waggle"),
+    TemplateSet SET = new TemplateSet("cpp", (name, options) ->
+            new File(options.getOutputDirectory(), name));
 
-    LEXER_H("Lexer", "%sTokenManager"),
-    LEXER("Lexer", "%sTokenManager", false),
+    Source WAGGLE = CppTemplate.SET.declare("runtime", "Waggle.h", "Waggle.h");
+    Source READER = CppTemplate.SET.declare("runtime", "Reader.h", "Reader.h");
+    Source STRINGREADER = CppTemplate.SET.declare("runtime", "StringReader.cc", "StringReader.cc");
+    Source STRINGREADER_H = CppTemplate.SET.declare("runtime", "StringReader.h", "StringReader.h");
+    Source TOKEN = CppTemplate.SET.declare("runtime", "Token.cc", "Token.cc");
+    Source TOKEN_H = CppTemplate.SET.declare("runtime", "Token.h", "Token.h");
 
-    PARSER_H("Parser", "%s"),
-    PARSER("Parser", "%s", false),
+    Source LEXER = CppTemplate.SET.declare("lexer", "Lexer.cc", "%sTokenManager.cc");
+    Source LEXER_H = CppTemplate.SET.declare("lexer", "Lexer.h", "%sTokenManager.h");
+    Source TOKENMANAGER = CppTemplate.SET.declare("lexer", "TokenManager.h", "TokenManager.h");
+    Source TOKENNANAGERERROR =
+            CppTemplate.SET.declare("lexer", "TokenManagerError.cc", "TokenManagerError.cc");
+    Source TOKENNANAGERERROR_H =
+            CppTemplate.SET.declare("lexer", "TokenManagerError.h", "TokenManagerError.h");
+    Source TOKENNANAGERHANDLER = CppTemplate.SET.declare("lexer",
+            "TokenManagerErrorHandler.cc", "TokenManagerErrorHandler.cc");
+    Source TOKENNANAGERHANDLER_H = CppTemplate.SET.declare("lexer",
+            "TokenManagerErrorHandler.h", "TokenManagerErrorHandler.h");
 
-    PARSER_CONSTANTS("ParserConstants", "%sConstants"),
+    Source PARSER = CppTemplate.SET.declare("parser", "Parser.cc", "%s.cc");
+    Source PARSER_H = CppTemplate.SET.declare("parser", "Parser.h", "%s.h");
+    Source PARSER_CONSTANTS =
+            CppTemplate.SET.declare("parser", "ParserConstants.h", "%sConstants.h");
+    Source PARSEEXCEPTION = CppTemplate.SET.declare("parser", "ParseException.cc", "ParseException.cc");
+    Source PARSEEXCEPTION_H = CppTemplate.SET.declare("parser", "ParseException.h", "ParseException.h");
+    Source PARSERHANDLER =
+            CppTemplate.SET.declare("parser", "ParserErrorHandler.cc", "ParserErrorHandler.cc");
+    Source PARSERHANDLER_H =
+            CppTemplate.SET.declare("parser", "ParserErrorHandler.h", "ParserErrorHandler.h");
 
-    PARSEEXCEPTION("ParseException", false),
-    PARSEEXCEPTION_H("ParseException"),
-    PARSERHANDLER("ParserErrorHandler", false),
-    PARSERHANDLER_H("ParserErrorHandler"),
-
-    TOKEN("Token", false),
-    TOKEN_H("Token"),
-    TOKENMANAGER("TokenManager"),
-    TOKENNANAGERERROR("TokenManagerError", false),
-    TOKENNANAGERERROR_H("TokenManagerError"),
-    TOKENNANAGERHANDLER("TokenManagerErrorHandler", false),
-    TOKENNANAGERHANDLER_H("TokenManagerErrorHandler"),
-
-    READER("Reader"),
-    STRINGREADER("StringReader", false),
-    STRINGREADER_H("StringReader"),
-
-    NODE("tree/Node", "Node", false),
-    NODE_H("tree/Node", "Node"),
+    Source NODE = CppTemplate.SET.declare("tree", "Node.cc", "Node.cc");
+    Source NODE_H = CppTemplate.SET.declare("tree", "Node.h", "Node.h");
     /** One file per AST node: the name is the node type, not the template name. */
-    MULTINODE("tree/MultiNode", "%s", false),
-    MULTINODE_H("tree/MultiNode", "%s"),
-
-    TREE("tree/Tree", "Tree"),
-    TREE_ONE("tree/TreeOne", "%sTree"),
-    TREESTATE("tree/TreeState", "TreeState", false),
-    TREESTATE_H("tree/TreeState", "TreeState"),
-    TREE_CONSTANTS("tree/TreeConstants", "%sTreeConstants"),
-    VISITOR("tree/Visitor", "%sVisitor");
-
-    private final String name;
-    private final String path;
-    private final String filetype;
-
-    CppTemplate(String name) {
-        this(name, name, true);
-    }
-
-    CppTemplate(String path, String name) {
-        this(path, name, true);
-    }
-
-    CppTemplate(String name, boolean isHeader) {
-        this(name, name, isHeader);
-    }
-
-    CppTemplate(String path, String name, boolean isHeader) {
-        this.name = name;
-        this.path = path;
-        this.filetype = isHeader ? "h" : "cc";
-    }
-
-    @Override
-    public final String getPath() {
-        return this.path + "." + filetype;
-    }
-
-    @Override
-    public final String getType() {
-        return "cpp";
-    }
-
-    @Override
-    public final File getTargetFile(String name, Options options) {
-        var targetName = (name == null ? this.name : String.format(this.name, name)) + "." + filetype;
-        return new File(options.getOutputDirectory(), targetName);
-    }
+    Source MULTINODE = CppTemplate.SET.declare("tree", "MultiNode.cc", "%s.cc");
+    Source MULTINODE_H = CppTemplate.SET.declare("tree", "MultiNode.h", "%s.h");
+    Source TREE = CppTemplate.SET.declare("tree", "Tree.h", "Tree.h");
+    Source TREE_ONE = CppTemplate.SET.declare("tree", "TreeOne.h", "%sTree.h");
+    Source TREESTATE = CppTemplate.SET.declare("tree", "TreeState.cc", "TreeState.cc");
+    Source TREESTATE_H = CppTemplate.SET.declare("tree", "TreeState.h", "TreeState.h");
+    Source TREE_CONSTANTS =
+            CppTemplate.SET.declare("tree", "TreeConstants.h", "%sTreeConstants.h");
+    Source VISITOR = CppTemplate.SET.declare("tree", "Visitor.h", "%sVisitor.h");
 
     /**
-     * The files this back end writes under a name of its own, i.e. one that does not derive from the
-     * grammar. A generated parser or AST node may not be called any of these, or it would silently
-     * overwrite the runtime class.
+     * The names this back end writes under a name of its own. C++ names carry their extension, so a
+     * reserved name is compared without it — a grammar called {@code Tree} would overwrite
+     * {@code Tree.h}.
      */
-    public static Set<String> reservedNames() {
-        return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
-                .collect(Collectors.toSet());
+    static Set<String> reservedNames() {
+        return CppTemplate.SET.reservedNames().stream()
+                .map(n -> n.substring(0, n.lastIndexOf('.')))
+                .collect(java.util.stream.Collectors.toSet());
     }
 }

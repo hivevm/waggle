@@ -4,6 +4,7 @@
 package org.hivevm.waggle;
 
 
+import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.generator.GeneratorProvider;
 import org.hivevm.waggle.parser.JavaCCData;
@@ -27,14 +28,21 @@ public class WaggleCompiler {
 
     private final GenerationRequest request;
     private final Diagnostics diagnostics;
+    private final OutputSink sink;
 
     public WaggleCompiler(GenerationRequest request) {
         this(request, new Diagnostics());
     }
 
     public WaggleCompiler(GenerationRequest request, Diagnostics diagnostics) {
+        this(request, diagnostics, null);
+    }
+
+    /** Compiles into {@code sink}; a {@code null} sink writes files (ADR-0018). */
+    public WaggleCompiler(GenerationRequest request, Diagnostics diagnostics, OutputSink sink) {
         this.request = request;
         this.diagnostics = diagnostics;
+        this.sink = sink;
     }
 
     /** What this compilation had to say about the grammar. */
@@ -78,7 +86,7 @@ public class WaggleCompiler {
 
             WaggleCompiler.bannerLine("Parser Generator");
 
-            var context = GenerationContext.of(this.request, this.diagnostics);
+            var context = GenerationContext.of(this.request, this.diagnostics, this.sink);
             var options = context.options();
             var data = new JavaCCData(context);
             var parser = new JavaCCParserDefault(new StringProvider(text), options);

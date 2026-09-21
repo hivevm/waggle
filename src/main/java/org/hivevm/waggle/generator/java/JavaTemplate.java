@@ -3,86 +3,57 @@
 
 package org.hivevm.waggle.generator.java;
 
-import org.hivevm.waggle.parser.Options;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
+import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * Represents a collection of predefined templates for generating Java code. Each enum constant
- * corresponds to a specific type of template file with an associated name and optional path format
- * for filename generation.
- * <p>
- * Implements the {@link SourceProvider} interface to provide mechanisms for retrieving template
- * resource paths, generating filenames, and creating corresponding {@link File} objects based on
- * user-defined options.
+ * The Java templates: which resource each is read from, and which file it writes.
+ *
+ * <p>Java folds the package into the directory and writes fixed file names, so the grammar's own
+ * name never becomes one (ADR-0018).
  */
-public enum JavaTemplate implements SourceProvider {
+public interface JavaTemplate {
 
-    LEXER("Lexer"),
-    PARSER("Parser"),
-    PARSER_CONSTANTS("ParserConstants"),
-
-    PROVIDER("Provider"),
-    STREAM_PROVIDER("StreamProvider"),
-    STRING_PROVIDER("StringProvider"),
-    CHAR_STREAM("JavaCharStream"),
-
-    // Tree templates live under templates/java/tree/ and are rendered only for a grammar that
-    // builds a tree (ADR-0016). The name -- and therefore the generated file -- is unchanged.
-    NODE("tree/Node", "Node"),
-    NODESTATE("tree/NodeState", "NodeState"),
-    NODETYPE("tree/NodeType", "NodeType"),
-
-    MULTI_NODE("tree/MultiNode", "%s"),
-    MULTI_NODE_VISITOR("tree/NodeVisitor", "NodeVisitor"),
-    MULTI_NODE_DEFAULT_VISITOR("tree/NodeDefaultVisitor", "NodeDefaultVisitor"),
-
-    PARSER_EXCEPTION("ParseException"),
-    TOKEN("Token"),
-    TOKEN_EXCEPTION("TokenException");
-
-    private final String name;
-    private final String path;
-
-    JavaTemplate(String name) {
-        this(name, name);
-    }
-
-    JavaTemplate(String path, String name) {
-        this.name = name;
-        this.path = path + ".java";
-    }
-
-    @Override
-    public final String getPath() {
-        return this.path;
-    }
-
-    @Override
-    public final String getType() {
-        return "java";
-    }
-
-    @Override
-    public final File getTargetFile(String name, Options options) {
+    TemplateSet SET = new TemplateSet("java", (name, options) -> {
         var packagePath = options.getJavaPackageName().replace('.', File.separatorChar);
         var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase(Locale.ROOT));
-        var targetName = (name == null ? this.name : String.format(this.name, name)) + ".java";
-        return new File(targetDir, targetName);
-    }
+        return new File(targetDir, name + ".java");
+    });
 
-    /**
-     * The files this back end writes under a name of its own, i.e. one that does not derive from the
-     * grammar. A generated parser or AST node may not be called any of these, or it would silently
-     * overwrite the runtime class.
-     */
-    public static Set<String> reservedNames() {
-        return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
-                .collect(Collectors.toSet());
+    Source PROVIDER = JavaTemplate.SET.declare("runtime", "Provider.java", "Provider");
+    Source STREAM_PROVIDER =
+            JavaTemplate.SET.declare("runtime", "StreamProvider.java", "StreamProvider");
+    Source STRING_PROVIDER =
+            JavaTemplate.SET.declare("runtime", "StringProvider.java", "StringProvider");
+    Source CHAR_STREAM =
+            JavaTemplate.SET.declare("runtime", "JavaCharStream.java", "JavaCharStream");
+    Source TOKEN = JavaTemplate.SET.declare("runtime", "Token.java", "Token");
+    Source TOKEN_EXCEPTION =
+            JavaTemplate.SET.declare("runtime", "TokenException.java", "TokenException");
+    Source PARSER_EXCEPTION =
+            JavaTemplate.SET.declare("runtime", "ParseException.java", "ParseException");
+
+    Source LEXER = JavaTemplate.SET.declare("lexer", "Lexer.java", "Lexer");
+
+    Source PARSER = JavaTemplate.SET.declare("parser", "Parser.java", "Parser");
+    Source PARSER_CONSTANTS =
+            JavaTemplate.SET.declare("parser", "ParserConstants.java", "ParserConstants");
+
+    Source NODE = JavaTemplate.SET.declare("tree", "Node.java", "Node");
+    Source NODESTATE = JavaTemplate.SET.declare("tree", "NodeState.java", "NodeState");
+    Source NODETYPE = JavaTemplate.SET.declare("tree", "NodeType.java", "NodeType");
+    /** One file per AST node: the name is the node type, not the template name. */
+    Source MULTI_NODE = JavaTemplate.SET.declare("tree", "MultiNode.java", "%s");
+    Source MULTI_NODE_VISITOR =
+            JavaTemplate.SET.declare("tree", "NodeVisitor.java", "NodeVisitor");
+    Source MULTI_NODE_DEFAULT_VISITOR =
+            JavaTemplate.SET.declare("tree", "NodeDefaultVisitor.java", "NodeDefaultVisitor");
+
+    static Set<String> reservedNames() {
+        return JavaTemplate.SET.reservedNames();
     }
 }

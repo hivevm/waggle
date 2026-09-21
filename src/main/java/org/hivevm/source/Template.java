@@ -5,7 +5,6 @@ package org.hivevm.source;
 
 import org.hivevm.core.Environment;
 
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
@@ -84,11 +83,13 @@ public class Template {
     }
 
     /**
-     * Renders the template content using the provided environment and writes the result to the
-     * specified output stream. The method processes template commands and uses a hierarchical
-     * structure to construct and render the output.
+     * Renders the template against {@code environment} and returns the source it produces.
+     *
+     * <p>It opens nothing: where the text goes is the caller's decision, expressed as an
+     * {@link OutputSink} (ADR-0018). The checksum and the option list at the end are part of the
+     * rendered text, not of writing it.
      */
-    public final void render(String title, OutputStream outputStream, Environment environment) {
+    public final String render(String title, Environment environment) {
         var builder = new RendererBuilder(title);
 
         var offset = 0;
@@ -144,9 +145,11 @@ public class Template {
             builder.addText(text.substring(offset));
         }
 
-        try (var writer = TemplateWriter.create(title, outputStream, environment)) {
+        var out = new java.io.ByteArrayOutputStream();
+        try (var writer = TemplateWriter.create(title, out, environment)) {
             builder.build().render(writer, writer);
         }
+        return out.toString(StandardCharsets.UTF_8);
     }
 
     /**

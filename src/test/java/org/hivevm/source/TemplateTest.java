@@ -8,8 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.hivevm.core.Environment;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -37,9 +35,7 @@ class TemplateTest {
     }
 
     private static String render(String template, Map<String, Object> env) {
-        var out = new ByteArrayOutputStream();
-        new Template(template).render("Test", out, new MapEnv(env));
-        return out.toString(StandardCharsets.UTF_8);
+        return new Template(template).render("Test", new MapEnv(env));
     }
 
     // ---------------------------------------------------------------- conditions

@@ -31,6 +31,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0015](0015-diagnostics-and-generation-request.md) | Diagnostics and the generation request are values, not process-global state | 🟡 Proposed |
 | [0016](0016-tree-building-as-an-optional-module.md) | Tree building is an optional module with its own model and emitter | 🟡 Proposed |
 | [0017](0017-lexer-emission-by-composition.md) | The lexer back ends compose emitters over a target syntax | 🟡 Proposed |
+| [0018](0018-rendering-is-pure-an-output-sink-writes.md) | Rendering produces text; an output sink writes it | 🟡 Proposed |
 
 ## Process
 

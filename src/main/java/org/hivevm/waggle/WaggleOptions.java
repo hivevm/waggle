@@ -3,6 +3,8 @@
 
 package org.hivevm.waggle;
 
+import org.hivevm.source.FileSink;
+import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.parser.Options;
 
@@ -88,6 +90,8 @@ public class WaggleOptions implements Options {
      */
     private final Set<String> inputFileSetting;
 
+    private OutputSink outputSink = new FileSink();
+
     // Limit subclassing to derived classes.
     public WaggleOptions() {
         this.optionValues = new HashMap<>();
@@ -122,6 +126,15 @@ public class WaggleOptions implements Options {
      * <p>Each of these counts as a caller setting, so the grammar's own {@code options { … }} block
      * is told when it disagrees — exactly as when they arrived as {@code -CODE_GENERATOR=…} strings.
      */
+    @Override
+    public final OutputSink outputSink() {
+        return this.outputSink;
+    }
+
+    final void setOutputSink(OutputSink sink) {
+        this.outputSink = sink;
+    }
+
     final void apply(GenerationRequest request) {
         setFromCaller(Waggle.JJPARSER_CODEGENERATOR, request.language().name());
         setFromCaller(Waggle.JJPARSER_OUTPUT_DIRECTORY,

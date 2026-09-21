@@ -3,75 +3,39 @@
 
 package org.hivevm.waggle.generator.rust;
 
-import org.hivevm.waggle.parser.Options;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
+import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * Represents a collection of predefined templates for generating Rust code. Each enum constant
- * corresponds to a specific type of template file with an associated name and optional path format
- * for filename generation.
- * <p>
- * Implements the {@link SourceProvider} interface to provide mechanisms for retrieving template
- * resource paths, generating filenames, and creating corresponding {@link File} objects based on
- * user-defined options.
+ * The Rust templates: which resource each is read from, and which file it writes.
+ *
+ * <p>Rust writes everything into a directory named after the grammar, and the file name is the
+ * template's own (ADR-0018).
  */
-public enum RustTemplate implements SourceProvider {
+public interface RustTemplate {
 
-    NODE("tree/node", "node"),
-    TOKEN("token"),
-    CHAR_STREAM("charstream"),
+    TemplateSet SET = new TemplateSet("rust", (name, options) ->
+            new File(new File(options.getOutputDirectory(),
+                    options.getParserName().toLowerCase(Locale.ROOT)), name + ".rs"));
 
-    LEXER("lexer"),
-    PARSER("parser"),
+    Source TOKEN = RustTemplate.SET.declare("runtime", "token.rs", "token");
+    Source CHAR_STREAM = RustTemplate.SET.declare("runtime", "charstream.rs", "charstream");
 
-    PARSER_CONSTANTS("parserconstants"),
+    Source LEXER = RustTemplate.SET.declare("lexer", "lexer.rs", "lexer");
 
-    TREE_STATE("tree/treestate", "treestate"),
-    TREE_CONSTANTS("tree/treeconstants", "treeconstants");
+    Source PARSER = RustTemplate.SET.declare("parser", "parser.rs", "parser");
+    Source PARSER_CONSTANTS =
+            RustTemplate.SET.declare("parser", "parserconstants.rs", "parserconstants");
 
-    private final String name;
-    private final String path;
+    Source NODE = RustTemplate.SET.declare("tree", "node.rs", "node");
+    Source TREE_STATE = RustTemplate.SET.declare("tree", "treestate.rs", "treestate");
+    Source TREE_CONSTANTS = RustTemplate.SET.declare("tree", "treeconstants.rs", "treeconstants");
 
-    RustTemplate(String name) {
-        this(name, name);
-    }
-
-    RustTemplate(String path, String name) {
-        this.name = name;
-        this.path = path + ".rs";
-    }
-
-    @Override
-    public final String getPath() {
-        return this.path;
-    }
-
-    @Override
-    public final String getType() {
-        return "rust";
-    }
-
-    @Override
-    public final File getTargetFile(String name, Options options) {
-        var targetDir = new File(options.getOutputDirectory(),
-                options.getParserName().toLowerCase(Locale.ROOT));
-        var targetName = (name == null ? this.name : String.format(this.name, name)) + ".rs";
-        return new File(targetDir, targetName);
-    }
-
-    /**
-     * The files this back end writes under a name of its own, i.e. one that does not derive from the
-     * grammar. A generated parser or AST node may not be called any of these, or it would silently
-     * overwrite the runtime class.
-     */
-    public static Set<String> reservedNames() {
-        return Arrays.stream(values()).filter(t -> !t.name.contains("%s")).map(t -> t.name)
-                .collect(Collectors.toSet());
+    static Set<String> reservedNames() {
+        return RustTemplate.SET.reservedNames();
     }
 }

@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle;
 
+import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
 
 /**
@@ -28,8 +29,20 @@ public final class GenerationContext {
 
     /** The context of one generation: what the caller asked for, resolved into options. */
     public static GenerationContext of(GenerationRequest request, Diagnostics diagnostics) {
+        return GenerationContext.of(request, diagnostics, null);
+    }
+
+    /**
+     * The context of one generation, writing through {@code sink}. A {@code null} sink means the
+     * default: write files (ADR-0018).
+     */
+    public static GenerationContext of(GenerationRequest request, Diagnostics diagnostics,
+            OutputSink sink) {
         var options = new WaggleOptions();
         options.apply(request);
+        if (sink != null) {
+            options.setOutputSink(sink);
+        }
         return new GenerationContext(options, diagnostics);
     }
 

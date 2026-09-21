@@ -7,7 +7,6 @@ import org.hivevm.waggle.WaggleVersion;
 import org.hivevm.waggle.parser.Options;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
@@ -29,29 +28,28 @@ public interface SourceProvider {
      * Renders a template using the specified options.
      */
     default void render(Options options) {
-        render(options, null);
+        render(options, (String) null);
     }
 
     /**
-     * Renders a template using the specified options and name, generating an output file.
+     * Renders a template using the specified options and name, handing the source to the sink the
+     * generation chose (ADR-0018).
      */
     default void render(Options options, String name) {
+        options.outputSink().write(getTargetFile(name, options), renderToString(options));
+    }
+
+    /** The source this template produces, as text. */
+    default String renderToString(Options options) {
         var path = String.format("/templates/%s/%s", getType(), getPath());
-        var file = getTargetFile(name, options);
-        file.getParentFile().mkdirs();
         try (var stream = SourceProvider.class.getResourceAsStream(path)) {
             if (stream == null) {
                 throw new IOException("Invalid template name: " + path);
             }
             var title = "HiveVM Waggle v." + WaggleVersion.VERSION.toString("0.0");
-            var template = new Template(stream.readAllBytes());
-            try (var ostream = new FileOutputStream(file)) {
-                template.render(title, ostream, options);
-            }
+            return new Template(stream.readAllBytes()).render(title, options);
         } catch (IOException e) {
-            // Was reported three times over — to stderr, to the error counter, and as a bare
-            // "new Error()" with neither message nor cause.
-            throw new TemplateException("Failed to write " + file, e);
+            throw new TemplateException("Failed to render " + path, e);
         }
     }
 }
