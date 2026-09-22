@@ -1,3 +1,9 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// Copyright (c) 2006, Sun Microsystems, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Derived from JavaCC 7.0.12: src/main/resources/templates/cpp/JJTTreeState.cc.template, src/main/resources/templates/cpp/JJTTreeState.h.template
+
 package __JAVA_PACKAGE__;
 
 class NodeState {

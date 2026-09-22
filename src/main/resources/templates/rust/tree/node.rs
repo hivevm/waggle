@@ -1,3 +1,6 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+
 use std::rc::Rc;
 
 use crate::__RUST_MODULE__::treeconstants::TreeConstants;

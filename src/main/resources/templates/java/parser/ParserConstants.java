@@ -1,3 +1,9 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// Copyright (c) 2006, Sun Microsystems, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Derived from JavaCC 7.0.12: test/javaFileGeneration/expected/non-static/ParserConstants.java, test/javaFileGeneration/expected/static/ParserConstants.java
+
 package __JAVA_PACKAGE__;
 
 /**

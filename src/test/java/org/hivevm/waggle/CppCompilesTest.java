@@ -1,3 +1,11 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// Copyright (c) 2006, Sun Microsystems, Inc. All rights reserved.
+// Copyright (c) 2007-2009, Paul Cager. All rights reserved.
+// Copyright 2011 Google Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Derived from JavaCC 7.0.12: src/main/jjtree/JJTree.jjt, src/main/javacc/JavaCC.jj
+
 package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.ParserBuilder;

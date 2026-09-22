@@ -1,3 +1,6 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+
 pub const EOF: i32 = 0;
 
 // RegularExpression Ids

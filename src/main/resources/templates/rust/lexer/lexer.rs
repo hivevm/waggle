@@ -1,3 +1,6 @@
+// Copyright 2024 HiveVM.ORG. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+
 use crate::__RUST_MODULE__::charstream::CharStream;
 use crate::__RUST_MODULE__::token::Token;
 //@if(DEBUG_TOKEN_MANAGER)
