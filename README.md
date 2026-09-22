@@ -86,7 +86,7 @@ parserProject {
 
 * By default, HiveVM Waggle generates an `LL(1)` parser. However, there may be portions of grammar that are not `LL(1)`. HiveVM Waggle offers the capabilities of syntactic and semantic lookahead to resolve shift-shift ambiguities locally at these points. For example, the parser is `LL(k)` only at such points, but remains `LL(1)` everywhere else for better performance. Shift-reduce and reduce-reduce conflicts are not an issue for top-down parsers.
 
-* HiveVM Waggle generates parsers that are 100% pure Java, so there is no runtime dependency on HiveVM Waggle and no special porting effort required to run on different machine platforms.
+* Generated parsers stand on their own target-language toolchain: whichever of Java, C++ or Rust a grammar is emitted to, the result has **no runtime dependency on HiveVM Waggle** and needs no porting effort of its own.
 
 * HiveVM Waggle allows [extended BNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form) specifications - such as `(A)*`, `(A)+` etc - within the lexical and the grammar specifications. Extended BNF relieves the need for left-recursion to some extent. In fact, extended BNF is often easier to read as in `A ::= y(x)*` versus `A ::= Ax|y`.
 
@@ -100,7 +100,11 @@ parserProject {
 
 * Lexical specifications can define tokens to be case-insensitive per token block, with the `[IGNORE_CASE]` modifier (`TOKEN [IGNORE_CASE] = …`). Note that `IGNORE_CASE` is a reserved word and so cannot be used as a key inside `options { … }`.
 
-* Tree building is **part of the grammar itself**: a production or an expansion is annotated with `#Node`, and the tree-node classes and visitor are generated alongside the parser. Unlike JavaCC — where JJTree is a separate pre-processor that rewrites a tree grammar into a plain grammar before the parser generator runs — HiveVM Waggle needs no second step and no intermediate grammar.
+* Tree building is **part of the grammar itself**: a production or an expansion is annotated with `#Node`, and the tree-node classes and visitor are generated alongside the parser. Unlike JavaCC — where JJTree is a separate pre-processor that rewrites a tree grammar into a plain grammar before the parser generator runs — HiveVM Waggle needs no second step and no intermediate grammar. The package `org.hivevm.waggle.jjtree` keeps the name but is not that pre-processor: it holds `JJTree.waggle`, the grammar of the grammar language, which the build regenerates on every run. It is the only grammar in the repository that exercises `#Node`, `NODE_MULTI`, `VISITOR`, `NODE_SCOPE_HOOK` and `BASE_PARSER` end to end, so tree building breaks there first (see its `package-info.java`).
+
+* A grammar can be **run without generating code**: `ParserBuilder.interpret(text)` builds the
+  automaton and simulates it, returning the tokens. It is meant for trying a lexical specification
+  out and for testing one, not as a production parser ([ADR-0020](docs/adr/0020-interpreted-mode.md)).
 
 * HiveVM Waggle also includes JJDoc, a tool that converts grammar files to documentation files, optionally in HTML.
 
@@ -110,7 +114,14 @@ parserProject {
 
 * Using options `DEBUG_PARSER`, `DEBUG_LOOKAHEAD`, and `DEBUG_TOKEN_MANAGER`, users can get in-depth analysis of the parsing and the token processing steps.
 
-* The HiveVM Waggle release includes a wide range of examples including Java and HTML grammars. The examples, along with their documentation, are a great way to get acquainted with HiveVM Waggle.
+* [`docs/tutorials/`](docs/tutorials/) builds a grammar from scratch in six steps and covers lookahead, the token manager and error handling. `JavaGrammars/Java1.1.jj` is kept for reference, but it is a classic JavaCC grammar and would have to be migrated ([ADR-0014](docs/adr/0014-rename-project-to-waggle.md)).
+
+
+## Architecture
+
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is the one-page map: the five pipeline stages, the
+packages and how they may depend on each other, how a back end is put together, and where failures
+go. It links to the [ADR](docs/adr/README.md) behind each choice.
 
 
 ## Known limitations
@@ -125,12 +136,13 @@ to be discovered.
   parser; the tree runtime (`node.rs`, `treestate.rs`, `treeconstants.rs`) is written only with
   `NODE_SCOPE_HOOK`, otherwise the project supplies it.
 
-* **The JJTree pre-processor is dead code.** Most of `org.hivevm.waggle.parser.jjtree` (the JJTree
-  grammar's parser, `JJTreeVisitor`, `TreeGenerator`, `ASTWriter`) is unreachable: its entry point
-  and the file extension that selected it were removed with
-  [ADR-0014](docs/adr/0014-rename-project-to-waggle.md). This is inert rather than harmful — the
-  pipeline has no pre-processing stage by design ([SPECIFICATION §4](docs/SPECIFICATION.md)), and
-  `#Node` tree building runs in the normal pass — but the subsystem is still carried in the tree.
+* **`DEPTH_LIMIT` is not supported for Rust.** The recursion guard the Java and C++ parsers emit has
+  no Rust equivalent in the templates, so a Rust grammar that sets it is rejected rather than
+  generated without a guard it asked for.
+
+* **`DEBUG_PARSER` and `DEBUG_LOOKAHEAD` are not supported for Rust.** The trace runtime the two
+  options switch on is a Java class that was never ported, so a Rust grammar that asks for either is
+  rejected. `DEBUG_TOKEN_MANAGER` does work for Rust.
 
 
 ## Example

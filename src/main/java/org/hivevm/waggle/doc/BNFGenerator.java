@@ -4,6 +4,7 @@
 package org.hivevm.waggle.doc;
 
 import org.hivevm.waggle.api.WaggleOptions;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
@@ -14,10 +15,11 @@ import org.hivevm.waggle.model.TokenProduction;
 
 import java.io.PrintWriter;
 
-class BNFGenerator implements Generator {
+class BNFGenerator implements DocGenerator {
 
     private PrintWriter ostr;
     private final WaggleOptions opts;
+    private final Diagnostics diagnostics;
     private final String inputFile;
     private String outputFile;
     private boolean printing = true;
@@ -25,8 +27,9 @@ class BNFGenerator implements Generator {
     /**
      * Constructs an instance of {@link BNFGenerator}.
      */
-    public BNFGenerator(WaggleOptions opts, String inputFile) {
+    public BNFGenerator(WaggleOptions opts, Diagnostics diagnostics, String inputFile) {
         this.opts = opts;
+        this.diagnostics = diagnostics;
         this.inputFile = inputFile;
         this.outputFile = "standard output";
     }
@@ -61,9 +64,8 @@ class BNFGenerator implements Generator {
         try {
             this.ostr = new java.io.PrintWriter(new java.io.FileWriter(this.outputFile));
         } catch (java.io.IOException e) {
-            JJDocGlobals
-                    .error("JJDoc: can't open output stream on file " + this.outputFile
-                            + ".  Using standard output.");
+            this.diagnostics.warning("JJDoc: can't open output stream on file " + this.outputFile
+                    + ".  Using standard output.");
             this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
         }
 

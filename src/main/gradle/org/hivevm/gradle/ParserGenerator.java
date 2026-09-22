@@ -69,11 +69,6 @@ public abstract class ParserGenerator extends DefaultTask {
                 continue;
             }
             files.add(grammar);
-
-            File lexer = ParserGenerator.lexerFile(grammar);
-            if (lexer.exists()) {
-                files.add(lexer);
-            }
         }
         return files;
     }
@@ -113,14 +108,6 @@ public abstract class ParserGenerator extends DefaultTask {
 
     private ParserProject getConfig() {
         return getProject().getExtensions().findByType(ParserProject.class);
-    }
-
-    /** The sibling "*.lex" of a grammar, which the generator appends when it exists. */
-    private static File lexerFile(File grammar) {
-        String name = grammar.getName();
-        int dot = name.lastIndexOf('.');
-        return new File(grammar.getParentFile(),
-                (dot < 0 ? name : name.substring(0, dot)) + ".lex");
     }
 
     /**

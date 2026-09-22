@@ -26,7 +26,7 @@ class JJTreeParserDefault extends Parser {
      * Parses the {@link Reader} and creates the abstract syntax tree.
      */
     final ASTGrammar parse() throws ParseException {
-        javacc_input();
+        grammar_input();
         return (ASTGrammar) rootNode();
     }
 

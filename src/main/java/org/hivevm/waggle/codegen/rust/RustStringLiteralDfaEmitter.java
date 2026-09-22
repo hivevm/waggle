@@ -5,18 +5,13 @@ package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.source.LinePrinter;
 import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentCharacter;
-import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentlyMatched;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
+
 
 /**
  * Rust's string-literal DFA. It differs from the shared one by more than dialect, so it is an

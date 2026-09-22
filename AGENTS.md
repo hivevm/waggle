@@ -31,6 +31,9 @@ Before any non-trivial work, read:
 1. [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) — the **specification** (problem, goals, core
    concepts, vocabulary, success criteria).
 2. [`docs/adr/`](docs/adr/) — the Architecture Decision Records. **Accepted ADRs are binding**.
+3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the current state in one page: stages, packages,
+   back ends, failure channels. It is a map, not an authority; where it and the two above disagree,
+   they win.
 
 ## 3. ADR rules
 

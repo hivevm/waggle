@@ -3,13 +3,13 @@ grammar Waggle;
 options {
   JAVA_PACKAGE: "org.hivevm.waggle.grammar",
   JAVA_IMPORTS: "java.util.ArrayList,java.util.List,org.hivevm.waggle.model.*",
-  BASE_PARSER: "AbstractJavaCCParser"
+  BASE_PARSER: "AbstractGrammarParser"
 }
 
 /************************************************
  * THE WAGGLE GRAMMAR SPECIFICATION STARTS HERE *
  ************************************************/
-javacc_input =
+grammar_input =
   < _GRAMMAR > <IDENTIFIER> <? setParserName(getToken(0)); ?> < SEMICOLON >
   [ < _OPTIONS > < LBRACE > option_binding() (< COMMA > option_binding())* < RBRACE > ]
   ( ( regular_expr_production() | bnf_production() ) < SEMICOLON > ) +

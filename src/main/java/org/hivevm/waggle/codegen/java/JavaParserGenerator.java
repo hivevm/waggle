@@ -3,28 +3,17 @@
 
 package org.hivevm.waggle.codegen.java;
 
-import org.hivevm.waggle.tree.ScopeVariables;
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.analysis.ParserData;
 import org.hivevm.waggle.codegen.ParserGenerator;
-import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
-import org.hivevm.waggle.model.Lookahead;
-import org.hivevm.waggle.model.NodeScope;
-import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
-import org.hivevm.waggle.model.OneOrMore;
-import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.Sequence;
-import org.hivevm.waggle.model.ZeroOrMore;
-import org.hivevm.waggle.model.ZeroOrOne;
 import org.hivevm.waggle.grammar.Token;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -38,9 +27,9 @@ class JavaParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected final void generate(ParserData data, Context options) {
-        options.add(Waggle.JJPARSER_JAVA_IMPORTS, data.options().get(Waggle.JJPARSER_JAVA_IMPORTS))
-                .set(Waggle.JJPARSER_JAVA_IMPORTS + "_VALUE", i -> i);
+    protected final void generate(ParserData data, OptionsContext options) {
+        options.add(Waggle.JAVA_IMPORTS, data.options().get(Waggle.JAVA_IMPORTS))
+                .set(Waggle.JAVA_IMPORTS + "_VALUE", i -> i);
 
         options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
                 .set("TOKEN_MASKS_LA1_INDEX", i -> i)
@@ -124,184 +113,16 @@ class JavaParserGenerator extends ParserGenerator {
         }
     }
 
-    @Override
-    protected void generate_phase1_regexp(LinePrinter printer) {
-        printer.print("jj_consume_token(");
-    }
 
-    @Override
-    protected void generate_phase1_regexp_end(RExpression re, LinePrinter printer) {
-        printer.print(re.getRhsToken() == null ? ");" : ")." + re.getRhsToken().image + ";");
-    }
 
-    @Override
-    protected final void generate_phase1_choice(LinePrinter printer) {
-        printer.println();
-        printer.println("jj_consume_token(-1);");
-        printer.print("throw new ParseException();");
-    }
 
-    @Override
-    protected final void generate_phase1_nonterminal(NonTerminal non, LinePrinter printer) {
-        printer.print(non.getName());
-        printer.print("(");
-    }
 
-    @Override
-    protected final void generate_phase1_nonterminal_end(LinePrinter printer) {
-        printer.print(");");
-    }
 
-    @Override
-    protected final void generate_phase1_more(int labelIndex, LinePrinter printer) {
-        printer.println("label_" + labelIndex + ":");
-        printer.print("while (true) {");
-        printer.indent();
-    }
 
-    @Override
-    protected final void print_phase1_more_end(int labelIndex, LinePrinter printer, int offset) {
-        if (offset == 1) {
-            printer.print("\nbreak label_" + labelIndex + ";");
-        }
-    }
 
-    @Override
-    protected final void print_lookahead_amount0(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        switch (state) {
-            case NOOPENSTM:
-                printer.print("if (");
-                break;
-            case OPENIF:
-                printer.println();
-                printer.outdent();
-                printer.print("} else if (");
-                break;
-            case OPENSWITCH:
-                printer.println("default: {");
-                printer.indent();
-                if (index >= 0) {
-                    printer.println("jj_la1[" + index + "] = jj_gen;");
-                }
-                printer.print("if (");
-        }
-        setup_token(la.getActionTokens().getFirst());
-        la.getActionTokens().forEach(t -> printToken(t, scope, printer));
-        printTrailingComments(printer, la.getActionTokens().getLast());
-        printer.print(") {");
-        printer.indent();
-        action.accept(printer);
-    }
 
-    @Override
-    protected final void print_lookahead_amount1(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action
-            , boolean cache_tokens, List<String> cases
-    ) {
-        switch (state) {
-            case OPENIF:
-                printer.println();
-                printer.outdent();
-                printer.print("} else {");
-                printer.indent();
-                //$FALL-THROUGH$ Control flows through to next case.
-            case NOOPENSTM:
-                printer.println();
-                printer.print("switch (");
-                if (cache_tokens) {
-                    printer.print("jj_nt.kind");
-                } else {
-                    printer.print("(jj_ntk == -1) ? jj_ntk_f() : jj_ntk");
-                }
-                printer.println(") {");
-                printer.indent();
-            default:
-        }
 
-        for (int i = 0; i < cases.size(); i++) {
-            if (i > 0)
-                printer.println();
-            printer.print("case ");
-            printer.print(cases.get(i));
-            printer.print(":");
-        }
 
-        printer.print(" {");
-        printer.indent();
-        action.accept(printer);
-        printer.println();
-        printer.println("break;");
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected final void print_lookahead(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        switch (state) {
-            case NOOPENSTM:
-                printer.println();
-                printer.print("if (");
-                break;
-            case OPENIF:
-                printer.println();
-                printer.outdent();
-                printer.print("} else if (");
-                break;
-            case OPENSWITCH:
-                printer.println("default: {");
-                printer.indent();
-                if (index >= 0) {
-                    printer.println("jj_la1[" + index + "] = jj_gen;");
-                }
-                printer.print("if (");
-        }
-
-        String amount = Integer.toString(la.getAmount());
-        printer.print("jj_2" + internalName(la.getLaExpansion()) + "(" + amount + ")");
-        if (!la.getActionTokens().isEmpty()) {
-            // In addition, there is also a semantic lookahead. So concatenate
-            // the semantic check with the syntactic one.
-            printer.print(" && (");
-            setup_token(la.getActionTokens().getFirst());
-            la.getActionTokens().forEach(t -> printToken(t, scope, printer));
-            printTrailingComments(printer, la.getActionTokens().getLast());
-            printer.print(")");
-        }
-        printer.print(") {");
-        printer.indent();
-        action.accept(printer);
-    }
-
-    @Override
-    protected final void print_lookahead_tail(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, int indents, int index) {
-        // Generate code for the default case. Note this may not
-        // be the last entry of "actions" if any condition can be
-        // statically determined to be always "true".
-        switch (state) {
-            case NOOPENSTM:
-                action.accept(printer);
-                break;
-            case OPENIF:
-                printer.println();
-                printer.outdent();
-                printer.print("} else {");
-                printer.indent();
-                action.accept(printer);
-                break;
-            case OPENSWITCH:
-                printer.println("default: {");
-                printer.indent();
-                if (index >= 0) {
-                    printer.print("jj_la1[" + index + "] = jj_gen;");
-                }
-                action.accept(printer);
-        }
-
-        for (int i = 0; i < indents; i++) {
-            printer.println();
-            printer.outdent();
-            printer.print("}");
-        }
-    }
 
     protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
         printer.println("private boolean jj_2" + internalName(e) + "(int xla) {");
@@ -359,7 +180,7 @@ class JavaParserGenerator extends ParserGenerator {
             jj3_expansion = e;
         }
 
-        buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, e, count, printer);
+        phase3().emit(data, jj3_expansion, xsp_declared, e, count, printer);
 
         printer.println(genReturn(jj3_expansion, false, data));
         if (data.getDepthLimit() > 0) {
@@ -376,140 +197,4 @@ class JavaParserGenerator extends ParserGenerator {
         printer.println();
     }
 
-    private boolean buildPhase3RoutineRecursive(ParserData data, Expansion jj3_expansion,
-                                                boolean xsp_declared, Expansion e, int count, LinePrinter printer) {
-        if (internalName(e).startsWith("jj_scan_token")) {
-            return xsp_declared;
-        }
-
-        switch (e) {
-            case RExpression e_nrw -> {
-                printer.print("if (jj_scan_token(");
-                if (e_nrw.getLabel().isEmpty()) {
-                    Object label = data.getNameOfToken(e_nrw.getOrdinal());
-                    printer.print((label == null) ? "" + e_nrw.getOrdinal() : "ParserConstants." + label);
-                } else {
-                    printer.print("ParserConstants." + e_nrw.getLabel());
-                }
-                printer.println("))");
-                printer.indent();
-                printer.println(genReturn(jj3_expansion, true, data));
-                printer.outdent();
-            }
-            case NonTerminal e_nrw -> {
-                // All expansions of non-terminals have the "name" fields set. So
-                // there's no need to check it below for "e_nrw" and "ntexp". In
-                // fact, we rely here on the fact that the "name" fields of both these
-                // variables are the same.
-                NormalProduction ntprod = data.getProduction(e_nrw.getName());
-                Expansion ntexp = ntprod.getExpansion();
-                printer.println("if (" + genjj_3Call(ntexp) + ")");
-                printer.indent();
-                printer.println(genReturn(jj3_expansion, true, data));
-                printer.outdent();
-            }
-            case Choice e_nrw -> {
-                Sequence nested_seq;
-                if (e_nrw.getChoices().size() != 1) {
-                    xsp_declared = declareXsp(printer, xsp_declared);
-                    printer.println("xsp = jj_scanpos;");
-                }
-
-                for (int i = 0; i < e_nrw.getChoices().size(); i++) {
-                    nested_seq = (Sequence) e_nrw.getChoices().get(i);
-                    Lookahead la = (Lookahead) nested_seq.getUnits().getFirst();
-                    if (!la.getActionTokens().isEmpty()) {
-                        printer.println("jj_lookingAhead = true;");
-                        printer.print("jj_semLA = ");
-                        setup_token((la.getActionTokens().getFirst()));
-                        for (Token token : la.getActionTokens()) {
-                            printToken(token, printer);
-                        }
-                        printTrailingComments(printer, la.getActionTokens().getLast());
-                        printer.println(";");
-                        printer.println("jj_lookingAhead = false;");
-                    }
-                    printer.print("if (");
-                    if (!la.getActionTokens().isEmpty()) {
-                        printer.print("!jj_semLA || ");
-                    }
-                    if (i != (e_nrw.getChoices().size() - 1)) {
-                        printer.println(genjj_3Call(nested_seq) + ") {");
-                        printer.indent();
-                        printer.println("jj_scanpos = xsp;");
-                    } else {
-                        printer.println(genjj_3Call(nested_seq) + ")");
-                        printer.indent();
-                        printer.println(genReturn(jj3_expansion, true, data));
-                        printer.outdent();
-                    }
-                }
-                for (int i = 1; i < e_nrw.getChoices().size(); i++) {
-                    printer.outdent();
-                    printer.println("}");
-                }
-            }
-            case Sequence e_nrw -> {
-                // We skip the first element in the following iteration since it is the
-                // Lookahead object.
-                int cnt = count;
-                for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                    Expansion eseq = e_nrw.getUnits().get(i);
-                    xsp_declared = buildPhase3RoutineRecursive(data, jj3_expansion, xsp_declared, eseq, cnt, printer);
-                    cnt -= data.minimumSize(eseq);
-                    if (cnt <= 0) {
-                        break;
-                    }
-                }
-            }
-            case OneOrMore e_nrw -> {
-                xsp_declared = declareXsp(printer, xsp_declared);
-                Expansion nested_e = e_nrw.getExpansion();
-                printer.println("if (" + genjj_3Call(nested_e) + ")");
-                printer.indent();
-                printer.println(genReturn(jj3_expansion, true, data));
-                printer.outdent();
-                printScanLoop(printer, nested_e);
-            }
-            case ZeroOrMore e_nrw -> {
-                xsp_declared = declareXsp(printer, xsp_declared);
-                printScanLoop(printer, e_nrw.getExpansion());
-            }
-            case ZeroOrOne e_nrw -> {
-                xsp_declared = declareXsp(printer, xsp_declared);
-                Expansion nested_e = e_nrw.getExpansion();
-                printer.println("xsp = jj_scanpos;");
-                printer.println("if (" + genjj_3Call(nested_e) + ")");
-                printer.indent();
-                printer.println("jj_scanpos = xsp;");
-                printer.outdent();
-            }
-            default -> {
-            }
-        }
-        return xsp_declared;
-    }
-
-    /** Declares the scan position a lookahead backtracks to, once per jj_3 routine. */
-    private static boolean declareXsp(LinePrinter printer, boolean declared) {
-        if (!declared) {
-            printer.println("Token xsp;");
-        }
-        return true;
-    }
-
-    /** Scans {@code nested_e} as often as it matches — the tail of (…)* and (…)+. */
-    private void printScanLoop(LinePrinter printer, Expansion nested_e) {
-        printer.println("while (true) {");
-        printer.indent();
-        printer.println("xsp = jj_scanpos;");
-        printer.println("if (" + genjj_3Call(nested_e) + ") {");
-        printer.indent();
-        printer.println("jj_scanpos = xsp;");
-        printer.println("break;");
-        printer.outdent();
-        printer.println("}");
-        printer.outdent();
-        printer.println("}");
-    }
 }

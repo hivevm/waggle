@@ -11,8 +11,9 @@ import org.hivevm.waggle.model.TokenKind;
 import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.model.RegExprSpec;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 
@@ -26,7 +27,7 @@ public class LexerBuilder {
             return null;
         }
 
-        Hashtable<String, List<TokenProduction>> allTpsForState = new Hashtable<>();
+        Map<String, List<TokenProduction>> allTpsForState = new LinkedHashMap<>();
         LexerData data = buildLexStatesTable(request, allTpsForState);
 
         List<RExpression> choices = new ArrayList<>();
@@ -111,7 +112,7 @@ public class LexerBuilder {
     }
 
     private LexerData buildLexStatesTable(ParserRequest request,
-                                          Hashtable<String, List<TokenProduction>> allTpsForState) {
+                                          Map<String, List<TokenProduction>> allTpsForState) {
         String[] tmpLexStateName = new String[request.getStateCount()];
         int maxOrdinal = 1;
         int maxLexStates = 0;

@@ -10,9 +10,10 @@ import org.hivevm.waggle.model.TokenKind;
 import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.model.RegExprSpec;
 
+import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ record Nfa(NfaState start, NfaState end) {
     /**
      * Main NFA construction loop: processes all token productions and builds the NFA transitions.
      */
-    static void buildLexer(LexerData data, Hashtable<String, List<TokenProduction>> allTpsForState,
+    static void buildLexer(LexerData data, Map<String, List<TokenProduction>> allTpsForState,
                                   List<RExpression> choices) {
         RExpression curRE;
         TokenKind[] kinds = new TokenKind[data.maxOrdinal];
@@ -67,7 +68,7 @@ record Nfa(NfaState start, NfaState end) {
                         continue;
                     }
 
-                    if (!data.options().withoutNoDfa() && (curRE instanceof RStringLiteral)
+                    if (!data.options().getNoDfa() && (curRE instanceof RStringLiteral)
                             && !((RStringLiteral) curRE).getImage().isEmpty()) {
                         StringLiteralAnalyzer.generateDfa(stateData, (RStringLiteral) curRE);
                         if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
@@ -147,7 +148,7 @@ record Nfa(NfaState start, NfaState end) {
             NfaState.ComputeClosures(stateData);
 
             for (int i = 0; i < stateData.getInitialState().epsilonMoves.size(); i++) {
-                stateData.getInitialState().epsilonMoves.elementAt(i).GenerateCode();
+                stateData.getInitialState().epsilonMoves.get(i).GenerateCode();
             }
 
             stateData.hasNFA = (stateData.generatedStates() != 0);
@@ -202,7 +203,7 @@ record Nfa(NfaState start, NfaState end) {
      */
     private static void generateNfaStartStates(NfaStateData data, NfaState initialState) {
         boolean[] seen = new boolean[data.generatedStates()];
-        Hashtable<String, String> stateSets = new Hashtable<>();
+        Map<String, String> stateSets = new LinkedHashMap<>();
         String stateSetString = "";
         int i, j, kind, jjmatchedPos = 0;
         int maxKindsReqd = (data.maxStrKind / 64) + 1;
@@ -210,7 +211,7 @@ record Nfa(NfaState start, NfaState end) {
         List<NfaState> newStates = new ArrayList<>();
         List<NfaState> oldStates = null, jjtmpStates;
 
-        data.statesForPos = new Hashtable[data.maxLen];
+        data.statesForPos = NfaStateData.newStatesForPos(data.maxLen);
         data.intermediateKinds = new int[data.maxStrKind + 1][];
         data.intermediateMatchedPos = new int[data.maxStrKind + 1][];
 

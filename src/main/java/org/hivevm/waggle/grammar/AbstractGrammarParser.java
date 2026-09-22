@@ -22,9 +22,9 @@ import java.util.List;
 /**
  * Utilities.
  */
-abstract class AbstractJavaCCParser implements ParserConstants {
+abstract class AbstractGrammarParser implements ParserConstants {
 
-    private JavaCCData data;
+    private GrammarData data;
     private int nextFreeLexState;
 
     /**
@@ -36,9 +36,9 @@ abstract class AbstractJavaCCParser implements ParserConstants {
     protected int inLocalLA;
 
     /**
-     * Constructs an instance of {@link AbstractJavaCCParser}.
+     * Constructs an instance of {@link AbstractGrammarParser}.
      */
-    protected AbstractJavaCCParser() {
+    protected AbstractGrammarParser() {
         this.nextFreeLexState = 1;
         this.inLocalLA = 0;
     }
@@ -50,7 +50,7 @@ abstract class AbstractJavaCCParser implements ParserConstants {
         throw new UnsupportedOperationException();
     }
 
-    public void initialize(JavaCCData data) {
+    public void initialize(GrammarData data) {
         this.data = data;
     }
 
@@ -192,20 +192,20 @@ abstract class AbstractJavaCCParser implements ParserConstants {
             if (ch == 'u') {
                 index++;
                 ch = str.charAt(index);
-                if (AbstractJavaCCParser.hexchar(ch)) {
-                    ordinal = AbstractJavaCCParser.hexval(ch);
+                if (AbstractGrammarParser.hexchar(ch)) {
+                    ordinal = AbstractGrammarParser.hexval(ch);
                     index++;
                     ch = str.charAt(index);
-                    if (AbstractJavaCCParser.hexchar(ch)) {
-                        ordinal = (ordinal * 16) + AbstractJavaCCParser.hexval(ch);
+                    if (AbstractGrammarParser.hexchar(ch)) {
+                        ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
                         index++;
                         ch = str.charAt(index);
-                        if (AbstractJavaCCParser.hexchar(ch)) {
-                            ordinal = (ordinal * 16) + AbstractJavaCCParser.hexval(ch);
+                        if (AbstractGrammarParser.hexchar(ch)) {
+                            ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
                             index++;
                             ch = str.charAt(index);
-                            if (AbstractJavaCCParser.hexchar(ch)) {
-                                ordinal = (ordinal * 16) + AbstractJavaCCParser.hexval(ch);
+                            if (AbstractGrammarParser.hexchar(ch)) {
+                                ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
                                 index++;
                                 continue;
                             }

@@ -51,7 +51,7 @@ Input =                   // productions
   MatchedBraces() <EOF>
 ;
 
-TOKEN =                   // token definitions (or in a sibling Example.lex)
+TOKEN =                   // token definitions
   < LBRACE: "{" >
 ;
 ```
@@ -77,6 +77,6 @@ parserProject {
 }
 ~~~
 
-The generator reads `Example.waggle` (and, if present, the sibling `Example.lex`) and writes the parser,
+The generator reads `Example.waggle` and writes the parser,
 the token manager, and — if the grammar uses `#Node` — the tree-node classes into the output
 directory. There is no second tool and no intermediate grammar to keep in sync.

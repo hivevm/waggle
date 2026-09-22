@@ -29,14 +29,14 @@ class TreeGenerator {
     }
 
     final void insertOpenNodeCode(ASTNode node, LinePrinter printer) {
-        var options = node.jjtOptions();
+        var tree = TreeOptions.from(node.jjtOptions());
         var descriptor = node.node_scope.getNodeDescriptor();
 
-        this.data.addNodeDescriptor(descriptor, TreeOptions.from(options));
+        this.data.addNodeDescriptor(descriptor, tree);
 
         var nodeClass =
-                NodeDescriptor.getNodeClass(descriptor.getName(), options.getMulti(), options.getNodeClass());
-        insertOpenNodeCode(node.node_scope, nodeClass, printer, options);
+                NodeDescriptor.getNodeClass(descriptor.getName(), tree.multi(), tree.nodeClass());
+        insertOpenNodeCode(node.node_scope, nodeClass, printer, tree);
     }
 
     final void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options,
@@ -46,16 +46,16 @@ class TreeGenerator {
         insertCatchBlocks(ns, printer, options, thrown_names);
     }
 
-    private void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
-        this.emitter.openScope(ns, nodeClass, printer, options);
+    private void insertOpenNodeCode(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions tree) {
+        this.emitter.openScope(ns, nodeClass, printer, tree);
     }
 
     void insertCloseNodeCode(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
-        this.emitter.closeScope(ns, printer, options, isFinal);
+        this.emitter.closeScope(ns, printer, TreeOptions.from(options), isFinal);
     }
 
     private void insertCatchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_set) {
-        this.emitter.catchBlocks(ns, printer, options, thrown_set);
+        this.emitter.catchBlocks(ns, printer, TreeOptions.from(options), thrown_set);
     }
 
     private static void findThrown(ASTNode expansion_unit, Collection<String> thrown_set) {

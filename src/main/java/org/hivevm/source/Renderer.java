@@ -212,8 +212,13 @@ interface Renderer {
          * This method first checks if the name exists in the local `options` map. If it exists, the
          * corresponding value is returned. If the name does not exist in the local map, the method
          * delegates the retrieval to the underlying environment using its `get` method.
+         *
+         * <p>The environment is keyed by name and holds values of no common type (ADR-0005), so what
+         * comes back is an {@code Object} whose type parameter erasure has already discarded. The
+         * {@code instanceof} before each cast is the check; the compiler simply cannot see it.
          */
         @Override
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public final Object get(String name) {
             Object func = environment.get(name);
             if (func instanceof Context.SourceProvider provider)

@@ -14,17 +14,17 @@ import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.api.SemanticRequest;
 
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * The {@link JavaCCData} class.
+ * The {@link GrammarData} class.
  */
-public class JavaCCData implements SemanticRequest, ParserRequest {
+public class GrammarData implements SemanticRequest, ParserRequest {
 
     private final GenerationContext context;
     private Action actForEof;
@@ -40,13 +40,13 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
      * A mapping of lexical state strings to their integer internal representation. Integers are
      * stored as java.lang.Integer's.
      */
-    private final Hashtable<String, Integer> lexstate_S2I = new Hashtable<>();
+    private final Map<String, Integer> lexstate_S2I = new LinkedHashMap<>();
 
     /**
      * A mapping of the internal integer representations of lexical states to their strings.
      * Integers are stored as java.lang.Integer's.
      */
-    private final Hashtable<Integer, String> lexstate_I2S = new Hashtable<>();
+    private final Map<Integer, String> lexstate_I2S = new LinkedHashMap<>();
 
     /**
      * A list of all grammar productions - normal and JAVACODE - in the order they appear in the
@@ -70,8 +70,8 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
      * hashtable. This third level hashtable contains the actual string of the simple token and maps
      * it to its RegularExpression.
      */
-    private final Hashtable<String, Hashtable<String, Hashtable<String, RExpression>>> simple_tokens_table =
-            new Hashtable<>();
+    private final Map<String, Map<String, Map<String, RExpression>>> simple_tokens_table =
+            new LinkedHashMap<>();
 
     /**
      * A symbol table of all grammar productions - normal and JAVACODE. The symbol table is indexed
@@ -97,14 +97,14 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
             new HashMap<>();
 
     /**
-     * Constructs an instance of {@link JavaCCData}.
+     * Constructs an instance of {@link GrammarData}.
      */
-    public JavaCCData(GenerationContext context) {
+    public GrammarData(GenerationContext context) {
         this.context = context;
         this.tokenCount = 0;
         this.lexstate_S2I.put("DEFAULT", 0);
         this.lexstate_I2S.put(0, "DEFAULT");
-        this.simple_tokens_table.put("DEFAULT", new Hashtable<>());
+        this.simple_tokens_table.put("DEFAULT", new LinkedHashMap<>());
     }
 
     @Override
@@ -120,7 +120,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     final void setLexState(String name, int index) {
         this.lexstate_I2S.put(index, name);
         this.lexstate_S2I.put(name, index);
-        this.simple_tokens_table.put(name, new Hashtable<>());
+        this.simple_tokens_table.put(name, new LinkedHashMap<>());
     }
 
     final void addTokenProduction(TokenProduction p) {
@@ -226,7 +226,7 @@ public class JavaCCData implements SemanticRequest, ParserRequest {
     }
 
     @Override
-    public final Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(
+    public final Map<String, Map<String, RExpression>> getSimpleTokenTable(
             String stateName) {
         return this.simple_tokens_table.get(stateName);
     }

@@ -6,15 +6,7 @@ package org.hivevm.waggle.codegen.cpp;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
-import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
 
 /**
  * C++ differs from the shared NFA move loop in one place: how the mixed-state epilogue ends.

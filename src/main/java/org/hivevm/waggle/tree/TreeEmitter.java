@@ -17,11 +17,16 @@ import java.util.Collection;
  * ({@code Generator.treeSupport()}). The three methods around a scope used to be abstract methods on
  * {@code ParserGenerator}, so every back end had to implement them whether or not it could, and the
  * parser generator itself was where tree code was woven in (ADR-0016).
+ *
+ * <p>The scopes are written from {@link TreeOptions}, the typed view of the {@code NODE_*} and
+ * {@code VISITOR_*} settings. {@code emitRuntime} additionally takes the name-keyed {@link Options}
+ * because it renders templates, and reading option keys by name is the template contract
+ * (ADR-0005).
  */
 public interface TreeEmitter {
 
     /** Opens a node scope: declares the node and the flag, and starts the guarded region. */
-    void openScope(NodeScope scope, String nodeClass, LinePrinter printer, Options options);
+    void openScope(NodeScope scope, String nodeClass, LinePrinter printer, TreeOptions options);
 
     /**
      * Closes a node scope.
@@ -29,12 +34,12 @@ public interface TreeEmitter {
      * @param isFinal whether this is the close in the cleanup path, which must not clear the flag
      *                again
      */
-    void closeScope(NodeScope scope, LinePrinter printer, Options options, boolean isFinal);
+    void closeScope(NodeScope scope, LinePrinter printer, TreeOptions options, boolean isFinal);
 
     /** Ends the guarded region: unwinds the scope on failure and closes it on the way out. */
-    void catchBlocks(NodeScope scope, LinePrinter printer, Options options,
+    void catchBlocks(NodeScope scope, LinePrinter printer, TreeOptions options,
             Collection<String> thrown);
 
     /** Writes the tree runtime: the node base, the node constants, the tree state, the visitor. */
-    void emitRuntime(Options options, TreeModel tree);
+    void emitRuntime(Options options, TreeOptions tree, TreeModel model);
 }

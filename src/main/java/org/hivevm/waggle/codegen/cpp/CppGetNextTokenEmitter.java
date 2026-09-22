@@ -8,9 +8,6 @@ import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.model.Action;
-import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.RStringLiteral;
 
 /**
  * How C++ spells {@code getNextToken} (ADR-0017).

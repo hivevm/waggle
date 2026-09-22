@@ -3,15 +3,16 @@
 
 package org.hivevm.waggle.codegen.rust.tree;
 
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.source.LinePrinter;
-import org.hivevm.source.Template;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.codegen.rust.RustTemplate;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
+import org.hivevm.waggle.tree.TreeOptions;
 
 import java.util.Collection;
 
@@ -26,14 +27,14 @@ import java.util.Collection;
 public class RustTreeEmitter implements TreeEmitter {
 
     @Override
-    public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, Options options) {
+    public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
         printer.print("let " + ScopeVariables.node(ns) + " = ");
-        if (options.getNodeFactory().equals("*")) {
+        if (options.nodeFactory().equals("*")) {
             // Old-style multiple-implementations.
             printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.getNodeFactory().isEmpty()) {
+        } else if (!options.nodeFactory().isEmpty()) {
             printer.println("(" + nodeClass + ")"
-                    + options.getNodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
+                    + options.nodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
         } else {
             printer.println("new_node(&TreeConstants::" + ns.getNodeDescriptor().getNodeId() + ");");
         }
@@ -41,34 +42,34 @@ public class RustTreeEmitter implements TreeEmitter {
         printer.println("let mut " + ScopeVariables.closed(ns) + " = true;");
 
         printer.println("self.jjtree.open_node_scope(&" + ScopeVariables.node(ns) + ");");
-        if (options.getNodeScopeHook())
+        if (options.scopeHook())
             printer.println("self.jjtree_open_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
 
-        if (options.getTrackTokens()) {
+        if (options.trackTokens()) {
             printer.println(ScopeVariables.node(ns) + ".jjtSetFirstToken(getToken(1));");
         }
         printer.print("// TRY_CATCH");
     }
 
     @Override
-    public void closeScope(NodeScope ns, LinePrinter printer, Options options, boolean isFinal) {
+    public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
         printer.println("self.jjtree.close_node_scope_bool(&" + ScopeVariables.node(ns) + ", true);");
         if (!isFinal) {
             printer.println(ScopeVariables.closed(ns) + " = false;");
         }
-        if (options.getNodeScopeHook()) {
+        if (options.scopeHook()) {
             printer.println("if self.jjtree.is_node_created() {");
             printer.println("  self.jjtree_close_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
             printer.println("}");
         }
 
-        if (options.getTrackTokens()) {
+        if (options.trackTokens()) {
             printer.println(ScopeVariables.node(ns) + ".jjtSetLastToken(getToken(0));");
         }
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, Options options, Collection<String> thrown_names) {
+    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options, Collection<String> thrown_names) {
         if (!thrown_names.isEmpty()) {
             printer.println("  if try_catch.is_err() {");
             printer.println("// CATCH " + ScopeVariables.exception(ns));
@@ -97,21 +98,21 @@ public class RustTreeEmitter implements TreeEmitter {
     }
 
     @Override
-    public void emitRuntime(Options context, TreeModel data) {
-        rejectUnsupported(context, data);
+    public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
+        rejectUnsupported(tree, data);
 
         RustTemplate.TREE_STATE.render(context);
         generateTreeConstants(context, data);
         RustTemplate.NODE.render(context);
     }
 
-    private static void rejectUnsupported(Options context, TreeModel data) {
-        if (context.getVisitor()) {
+    private static void rejectUnsupported(TreeOptions tree, TreeModel data) {
+        if (tree.visitor()) {
             throw new GenerationException("VISITOR is not supported for the Rust target.");
         }
 
-        var excludes = context.getExcudeNodes();
-        if (context.getBuildNodeFiles()
+        var excludes = tree.customNodes();
+        if (tree.buildNodeFiles()
                 && data.getNodesToGenerate().stream().anyMatch(n -> !excludes.contains(n))) {
             throw new GenerationException("Node classes (NODE_MULTI with BUILD_NODE_FILES) are not "
                     + "supported for the Rust target.");
@@ -119,7 +120,7 @@ public class RustTreeEmitter implements TreeEmitter {
     }
 
     private void generateTreeConstants(Options context, TreeModel data) {
-        var options = Template.newContext(context);
+        var options = OptionsContext.of(context);
         options.add("NODES", data.getNodeIds().size())
                 .set("LABEL", i -> data.getNodeIds().get(i))
                 .set("TITLE", i -> data.getNodeNames().get(i));

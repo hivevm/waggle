@@ -85,8 +85,8 @@ class LookaheadCalc {
         // dbl[i] and dbr[i] are lists of size limited matches for choice i
         // of ch. dbl ignores matches with semantic lookaheads (when force_la_check
         // is false), while dbr ignores semantic lookahead.
-        List<MatchInfo>[] dbl = new ArrayList[ch.getChoices().size()];
-        List<MatchInfo>[] dbr = new ArrayList[ch.getChoices().size()];
+        List<MatchInfo>[] dbl = LookaheadCalc.newMatchLists(ch.getChoices().size());
+        List<MatchInfo>[] dbr = LookaheadCalc.newMatchLists(ch.getChoices().size());
         int[] minLA = new int[ch.getChoices().size() - 1];
         MatchInfo[] overlapInfo = new MatchInfo[ch.getChoices().size() - 1];
         int[] other = new int[ch.getChoices().size() - 1];
@@ -157,19 +157,30 @@ class LookaheadCalc {
     /**
      * Emits the "choice conflict" warning for choice {@code i} overlapping choice {@code other}. The
      * two call sites differed only in the trailing "{@code or more}" hint, passed as {@code amount}.
+     *
+     * <p>The detail lines used to go straight to {@code System.err} while only the first line was
+     * reported as a diagnostic (ADR-0015). A silent sink therefore still printed them, and a caller
+     * reading {@code Diagnostics} afterwards got a warning that named neither the two expansions nor
+     * the prefix they share. The whole warning is one diagnostic now; the rendered text is the same.
      */
     private static void warnChoiceConflict(SemanticContext context, Semanticize data, Choice ch,
                                            int i, int other, MatchInfo overlapInfo, int minLA,
                                            String amount) {
-        context.onWarning("Choice conflict involving two expansions at");
-        System.err.print("         line " + ch.getChoices().get(i).getLine());
-        System.err.print(", column " + ch.getChoices().get(i).getColumn());
-        System.err.print(" and line " + ch.getChoices().get(other).getLine());
-        System.err.print(", column " + ch.getChoices().get(other).getColumn());
-        System.err.println(" respectively.");
-        System.err.println("         A common prefix is: " + LookaheadCalc.image(overlapInfo, data));
-        System.err.println(
-                "         Consider using a lookahead of " + minLA + amount + " for earlier expansion.");
+        context.onWarning("Choice conflict involving two expansions at"
+                + "\n         line " + ch.getChoices().get(i).getLine()
+                + ", column " + ch.getChoices().get(i).getColumn()
+                + " and line " + ch.getChoices().get(other).getLine()
+                + ", column " + ch.getChoices().get(other).getColumn()
+                + " respectively."
+                + "\n         A common prefix is: " + LookaheadCalc.image(overlapInfo, data)
+                + "\n         Consider using a lookahead of " + minLA + amount
+                + " for earlier expansion.");
+    }
+
+    /** An array of match lists, one per choice. Generic array creation needs the cast. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static List<MatchInfo>[] newMatchLists(int length) {
+        return new List[length];
     }
 
     private static boolean explicitLA(Expansion exp) {
@@ -231,28 +242,26 @@ class LookaheadCalc {
             m1 = m;
         }
         if (la > context.getOtherAmbiguityCheck()) {
-            context.onWarning(
-                    "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
-                            + exp.getLine()
-                            + ", column " + exp.getColumn() + ".");
-            System.err.println(
-                    "         Expansion nested within construct and expansion following construct");
-            System.err.println(
-                    "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
-            System.err.println(
-                    "         Consider using a lookahead of " + la + " or more for nested expansion.");
+            LookaheadCalc.warnEbnfConflict(context, data, exp, m1, la, " or more");
         } else if (la > 1) {
-            context.onWarning(
-                    "Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
-                            + exp.getLine()
-                            + ", column " + exp.getColumn() + ".");
-            System.err.println(
-                    "         Expansion nested within construct and expansion following construct");
-            System.err.println(
-                    "         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data));
-            System.err.println(
-                    "         Consider using a lookahead of " + la + " for nested expansion.");
+            LookaheadCalc.warnEbnfConflict(context, data, exp, m1, la, "");
         }
+    }
+
+    /**
+     * Emits the "choice conflict" warning for a repetition whose body and continuation overlap. As
+     * with {@link #warnChoiceConflict}, the two branches differed only in the "{@code or more}"
+     * hint, and the detail lines bypassed the diagnostics channel (ADR-0015).
+     */
+    private static void warnEbnfConflict(SemanticContext context, Semanticize data, Expansion exp,
+                                         MatchInfo m1, int la, String amount) {
+        context.onWarning("Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
+                + exp.getLine()
+                + ", column " + exp.getColumn() + "."
+                + "\n         Expansion nested within construct and expansion following construct"
+                + "\n         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data)
+                + "\n         Consider using a lookahead of " + la + amount
+                + " for nested expansion.");
     }
 
     private static void listAppend(List<MatchInfo> vToAppendTo, List<MatchInfo> vToAppend) {

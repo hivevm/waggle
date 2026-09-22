@@ -3,28 +3,18 @@
 
 package org.hivevm.waggle.codegen;
 
+import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
-import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.waggle.grammar.Token;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
-import org.hivevm.source.Template;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
-import java.util.function.IntConsumer;
-import java.util.function.IntToLongFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * The {@link LexerGenerator} class.
@@ -74,7 +64,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
 
     @Override
     public final void generate(LexerData data) {
-        var options = Template.newContext(data.options());
+        var options = OptionsContext.of(data.options());
         options.add(LexerGenerator.LOHI_BYTES, data.getLohiByte())
                 .set("LOHI_BYTES_INDEX", i -> i)
                 .set("LOHI_BYTES_VALUE", i -> getLohiBytes(data, i));
@@ -117,7 +107,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         generate(data, options);
 
         // Generate Constants
-        options = Template.newContext(data.options());
+        options = OptionsContext.of(data.options());
         options.add("STATES", data.getStateCount())
                 .set("STATES_INDEX", i -> i)
                 .set("STATES_NAME", data::getStateName);
@@ -139,9 +129,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         getConstantsTemplate().render(options, options.getParserName());
     }
 
-    protected abstract SourceProvider getConstantsTemplate();
+    protected abstract SourceProvider<Options> getConstantsTemplate();
 
-    protected abstract void generate(LexerData data, Context context);
+    protected abstract void generate(LexerData data, OptionsContext context);
 
     protected String getNonAsciiMethod(NfaState state) {
         return "" + state.nonAsciiMethod;
@@ -176,7 +166,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         printCanMoveEnd(printer);
     }
 
-    /** The flattened NFA state sets the DFA jumps into, 16 per line. */
     /** The emitters this back end composes; a target may supply its own (ADR-0017). */
     protected StringLiteralDfaEmitter newStringLiteralDfaEmitter() {
         return new StringLiteralDfaEmitter(this);
@@ -239,10 +228,10 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     }
 
     protected final void dump_nfa_and_dfa(NfaStateData stateData, LinePrinter printer) {
-        if (stateData.hasNFA && !stateData.isMixedState())
+        if (stateData.hasNFA() && !stateData.isMixedState())
             stringLiterals().dumpNfaStartStatesCode(printer, stateData, stateData.statesForPos);
         stringLiterals().dumpDfaCode(printer, stateData);
-        if (stateData.hasNFA) {
+        if (stateData.hasNFA()) {
             // ADR-0012: no NFA-state preparation here — stage 4 (DfaBuilder.getMoveNfa, run from
             // LexerBuilder for every hasNFA state) already rearranged the states, populated
             // global.kinds / global.statesForState, and fixed the state sets on these very objects.
@@ -250,6 +239,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         }
     }
 
+    /** The flattened NFA state sets the DFA jumps into, 16 per line. */
     protected final void dumpStateSets(LinePrinter printer, LexerData data) {
         printNextStatesOpen(printer, data);
         printer.indent();

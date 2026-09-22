@@ -9,7 +9,7 @@ import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
 
-import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,7 +45,7 @@ public interface SemanticRequest {
 
     void addOrderedNamedToken(RExpression token);
 
-    Hashtable<String, Hashtable<String, RExpression>> getSimpleTokenTable(String stateName);
+    Map<String, Map<String, RExpression>> getSimpleTokenTable(String stateName);
 
     void setNamesOfToken(RExpression expression);
 }

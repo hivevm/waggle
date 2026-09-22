@@ -4,15 +4,11 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
+
 
 /**
  * Emits the string-literal DFA: one {@code jjMoveStringLiteralDfa} per position, plus the

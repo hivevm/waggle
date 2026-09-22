@@ -1,6 +1,6 @@
 # ADR-0020: A grammar can be run without generating code
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-21
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

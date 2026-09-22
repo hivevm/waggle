@@ -5,7 +5,7 @@ It reads the character input (see [The Character Input](charstream.md)) and grou
 **tokens** — the atomic symbols the productions are written in terms of. This page describes how you
 specify tokens and how the token manager decides what to match.
 
-Lexical rules live in a `.lex` file (or after the productions in a `.waggle`). A rule associates a
+Lexical rules live in the `.waggle` grammar, by convention after the productions. A rule associates a
 **kind** with one or more **regular expressions**.
 
 ## The four token kinds

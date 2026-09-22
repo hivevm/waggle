@@ -12,9 +12,8 @@ grammar here uses HiveVM Waggle's `grammar Name;` header, `name = … ;` product
 A HiveVM Waggle grammar is **one** file:
 
 - a **grammar file** (`.waggle`) — the `grammar Name;` line, an optional `options { … }` block, the
-  productions, and (usually) the `TOKEN` / `SKIP` / `SPECIAL_TOKEN` / `MORE` definitions;
-- optionally, the token definitions can be moved to a sibling **lexical file** (`.lex`) of the same
-  base name, which the generator appends to the grammar during a build.
+  productions, and the `TOKEN` / `SKIP` / `SPECIAL_TOKEN` / `MORE` definitions. That is the whole
+  input: a grammar is one file ([ADR-0025](../adr/0025-one-grammar-file.md)).
 
 `grammar Example;` declares the grammar's name. For the Java target the generated classes are always
 `Parser`, `Lexer` and `ParserConstants`, placed in the package given by `JAVA_PACKAGE` — the grammar
@@ -49,7 +48,7 @@ At this point the grammar refers to two tokens, `LBRACE` and `RBRACE`, but has n
 ## Step 2 — define the tokens and skip whitespace
 
 `SKIP` throws its matches away *between* tokens, so spaces and newlines never reach the parser.
-`TOKEN` names the two brace characters. Append this to the grammar (or put it in `Example.lex`):
+`TOKEN` names the two brace characters. Append this to the grammar:
 
 ```
 SKIP =

@@ -3,8 +3,6 @@
 
 package org.hivevm.source;
 
-import org.hivevm.waggle.api.Options;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,20 +23,20 @@ import java.util.stream.Collectors;
  * <p>A template is addressed by its group — {@code runtime}, {@code lexer}, {@code parser} or
  * {@code tree} — so the directory says what a file is for.
  */
-public final class TemplateSet {
+public final class TemplateSet<C extends RenderContext> {
 
     /** Turns a template's name into the file it writes, which is the target's own business. */
     @FunctionalInterface
-    public interface Naming {
+    public interface Naming<C extends RenderContext> {
 
-        File targetFile(String name, Options options);
+        File targetFile(String name, C context);
     }
 
     private final String type;
-    private final Naming naming;
-    private final List<Source> sources = new ArrayList<>();
+    private final Naming<C> naming;
+    private final List<Source<C>> sources = new ArrayList<>();
 
-    public TemplateSet(String type, Naming naming) {
+    public TemplateSet(String type, Naming<C> naming) {
         this.type = type;
         this.naming = naming;
     }
@@ -50,8 +48,8 @@ public final class TemplateSet {
      * @param resource the file below {@code templates/<type>/<group>/}
      * @param name     the name of the file it writes, or a {@code %s} pattern filled in per call
      */
-    public Source declare(String group, String resource, String name) {
-        var source = new Source(group + "/" + resource, name);
+    public Source<C> declare(String group, String resource, String name) {
+        var source = new Source<>(this, group + "/" + resource, name);
         this.sources.add(source);
         return source;
     }
@@ -62,22 +60,27 @@ public final class TemplateSet {
      * overwrite the runtime class.
      */
     public Set<String> reservedNames() {
-        return this.sources.stream().map(Source::name).filter(n -> !n.contains("%s"))
+        return this.sources.stream().map(Source<C>::name).filter(n -> !n.contains("%s"))
                 .collect(Collectors.toSet());
     }
 
     /** Everything this target can write, in declaration order. */
-    public List<Source> sources() {
+    public List<Source<C>> sources() {
         return Collections.unmodifiableList(this.sources);
     }
 
-    /** One template of this set. */
-    public final class Source implements SourceProvider {
+    /**
+     * One template of this set. A static class holding its set, not an inner one, so that a
+     * declaration reads {@code Source<Options>} rather than {@code TemplateSet<Options>.Source}.
+     */
+    public static final class Source<C extends RenderContext> implements SourceProvider<C> {
 
+        private final TemplateSet<C> set;
         private final String path;
         private final String name;
 
-        private Source(String path, String name) {
+        private Source(TemplateSet<C> set, String path, String name) {
+            this.set = set;
             this.path = path;
             this.name = name;
         }
@@ -93,13 +96,13 @@ public final class TemplateSet {
 
         @Override
         public String getType() {
-            return TemplateSet.this.type;
+            return this.set.type;
         }
 
         @Override
-        public File getTargetFile(String name, Options options) {
-            return TemplateSet.this.naming.targetFile(
-                    name == null ? this.name : String.format(this.name, name), options);
+        public File getTargetFile(String name, C context) {
+            return this.set.naming.targetFile(
+                    name == null ? this.name : String.format(this.name, name), context);
         }
     }
 }

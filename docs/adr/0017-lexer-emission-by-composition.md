@@ -1,6 +1,6 @@
 # ADR-0017: The lexer back ends compose emitters over a target syntax, instead of inheriting one
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-20
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

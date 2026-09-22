@@ -7,7 +7,7 @@ import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.model.NodeDescriptor;
 import org.hivevm.waggle.model.NodeScope;
-import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.tree.TreeOptions;
 
 import java.util.Collections;
 
@@ -18,9 +18,9 @@ import java.util.Collections;
 final class TreeDecorator implements ExpansionDecorator {
 
     private final TreeEmitter emitter;
-    private final Options options;
+    private final TreeOptions options;
 
-    TreeDecorator(TreeEmitter emitter, Options options) {
+    TreeDecorator(TreeEmitter emitter, TreeOptions options) {
         this.emitter = emitter;
         this.options = options;
     }
@@ -46,8 +46,8 @@ final class TreeDecorator implements ExpansionDecorator {
 
     private void open(NodeScope scope, LinePrinter printer) {
         var descriptor = scope.getNodeDescriptor();
-        var nodeClass = NodeDescriptor.getNodeClass(descriptor.getName(), this.options.getMulti(),
-                this.options.getNodeClass());
+        var nodeClass = NodeDescriptor.getNodeClass(descriptor.getName(), this.options.multi(),
+                this.options.nodeClass());
 
         this.emitter.openScope(scope, nodeClass, printer, this.options);
         printer.indent();

@@ -43,7 +43,7 @@ public record ParserOptions(String parserName, File outputDirectory,
         return new ParserOptions(options.getParserName(), options.getOutputDirectory(),
                 options.getLookahead(),
                 options.getChoiceAmbiguityCheck(), options.getOtherAmbiguityCheck(),
-                options.getDepthLimit(), options.withoutNoDfa(), options.getDebugParser(),
+                options.getDepthLimit(), options.getNoDfa(), options.getDebugParser(),
                 options.getDebugLookahead(), options.getDebugTokenManager(),
                 options.getErrorReporting(), options.getIgnoreCase(), options.getSanityCheck(),
                 options.getForceLaCheck(), options.getCacheTokens(), options.getKeepLineColumn());

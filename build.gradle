@@ -36,6 +36,17 @@ allprojects {
 }
 
 
+// Static analysis. "this-escape" is off because the model's constructors register the node with
+// its parent, which is the shape of the AST and not a defect to be silenced case by case.
+//
+// Not -Werror: compileJava also compiles src/main/generated, whose content comes from the
+// published generator rather than from this tree, so a warning there would gate a build nobody
+// here can fix. What this repository writes by hand is held to zero by SourceHygieneTest.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-Xlint:all,-this-escape'
+}
+
+
 dependencies {
     implementation gradleApi()
 

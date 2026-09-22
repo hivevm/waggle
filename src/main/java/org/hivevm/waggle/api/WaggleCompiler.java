@@ -3,15 +3,13 @@
 
 package org.hivevm.waggle.api;
 
-import org.hivevm.waggle.api.WaggleVersion;
 
-import org.hivevm.waggle.api.Waggle;
 
 import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.codegen.GeneratorProvider;
-import org.hivevm.waggle.grammar.JavaCCData;
-import org.hivevm.waggle.grammar.JavaCCParserDefault;
+import org.hivevm.waggle.grammar.GrammarData;
+import org.hivevm.waggle.grammar.GrammarParser;
 import org.hivevm.waggle.grammar.StringProvider;
 import org.hivevm.waggle.analysis.Semanticize;
 
@@ -19,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.ParseException;
+import org.hivevm.waggle.grammar.ParseException;
 
 /**
  * Turns one grammar into one set of generated sources.
@@ -71,30 +69,18 @@ public class WaggleCompiler {
      */
     public final void parse() {
         var grammarFile = this.request.grammarFile();
-        var filename = grammarFile.getName();
-        // A grammar without an extension used to make lastIndexOf('.') return -1 and throw a bare
-        // StringIndexOutOfBoundsException here.
-        var dot = filename.lastIndexOf('.');
-        var lexerFile = new File(grammarFile.getParentFile(),
-                (dot < 0 ? filename : filename.substring(0, dot)) + ".lex"
-        );
 
         try {
             var text = WaggleCompiler.readGrammar(grammarFile);
-
-            if (lexerFile.exists()) {
-                System.out.printf("Reading from file %s ...\n", lexerFile);
-                text += WaggleCompiler.readGrammar(lexerFile);
-            }
 
             WaggleCompiler.bannerLine("Parser Generator");
 
             var context = GenerationContext.of(this.request, this.diagnostics, this.sink);
             var options = context.options();
-            var data = new JavaCCData(context);
-            var parser = new JavaCCParserDefault(new StringProvider(text), options);
+            var data = new GrammarData(context);
+            var parser = new GrammarParser(new StringProvider(text), options);
             parser.initialize(data);
-            parser.javacc_input();
+            parser.grammar_input();
 
             // Initialize the parser data
             createOutputDir(options.getOutputDirectory());
@@ -106,7 +92,17 @@ public class WaggleCompiler {
             // Swallowing this used to let the code fall through to the verdict below, which only
             // consults the diagnostics — untouched by an I/O failure. A missing grammar therefore
             // printed "Parser generated successfully." and produced nothing.
+            //
+            // ParseException is now only the generated parser's own: the grammar did not parse
+            // (ADR-0022). Neither type carries a message of this pipeline's, so the wrapper says
+            // everything, exactly as before.
             throw new GenerationException("Failed to generate a parser from " + grammarFile, e);
+        } catch (GenerationException e) {
+            // A stage refused, and said why. It is already this pipeline's failure type, so the
+            // wrapper only adds which grammar it was about — burying the stage's own message in a
+            // cause would lose the one sentence a caller wants (ADR-0022).
+            throw new GenerationException(
+                    "Failed to generate a parser from " + grammarFile + ": " + e.getMessage(), e);
         }
 
         if (this.diagnostics.hasError()) {

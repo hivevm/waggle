@@ -3,20 +3,20 @@
 
 package org.hivevm.waggle.model;
 
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Describes BNF productions.
  */
-
 public final class BNFProduction extends NormalProduction {
 
     private int nextScope;
-    private final Hashtable<NodeScope, Integer> scopes;
+    private final Map<NodeScope, Integer> scopes;
 
     public BNFProduction() {
         this.nextScope = 0;
-        this.scopes = new Hashtable<>();
+        this.scopes = new LinkedHashMap<>();
     }
 
     int getNodeScopeNumber(NodeScope s) {

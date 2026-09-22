@@ -6,16 +6,12 @@ package org.hivevm.waggle.codegen;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Encoding;
-import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RStringLiteral;
-import org.hivevm.waggle.model.TokenKind;
 
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.function.IntToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;

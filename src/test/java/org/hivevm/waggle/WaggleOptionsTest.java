@@ -26,16 +26,16 @@ class WaggleOptionsTest {
     @Test
     void listValuedOptionIsAccepted() {
         var options = new WaggleOptions();
-        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, List.of(3));
+        options.setOption(diagnostics(), null, null, Waggle.LOOKAHEAD, List.of(3));
 
-        assertEquals(List.of(3), options.get(Waggle.JJPARSER_LOOKAHEAD));
+        assertEquals(List.of(3), options.get(Waggle.LOOKAHEAD));
     }
 
     /** A non-positive integer is rejected, and the previous value survives. */
     @Test
     void nonPositiveIntegerIsIgnored() {
         var options = new WaggleOptions();
-        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, 0);
+        options.setOption(diagnostics(), null, null, Waggle.LOOKAHEAD, 0);
 
         assertEquals(1, options.getLookahead(), "a lookahead of 0 must be ignored");
     }
@@ -44,7 +44,7 @@ class WaggleOptionsTest {
     @Test
     void positiveIntegerIsTaken() {
         var options = new WaggleOptions();
-        options.setOption(diagnostics(), null, null, Waggle.JJPARSER_LOOKAHEAD, 5);
+        options.setOption(diagnostics(), null, null, Waggle.LOOKAHEAD, 5);
 
         assertEquals(5, options.getLookahead());
     }

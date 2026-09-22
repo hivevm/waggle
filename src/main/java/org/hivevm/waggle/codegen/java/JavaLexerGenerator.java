@@ -3,11 +3,11 @@
 
 package org.hivevm.waggle.codegen.java;
 
+import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.LexerGenerator;
-import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
@@ -21,7 +21,7 @@ class JavaLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected final void generate(LexerData data, Context options) {
+    protected final void generate(LexerData data, OptionsContext options) {
         options.set("STATES_FOR_STATE", () -> getStatesForState(data));
         options.set("KIND_FOR_STATE", () -> getNextToken().getKindForState(data));
         options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data, p));
@@ -29,7 +29,7 @@ class JavaLexerGenerator extends LexerGenerator {
         JavaTemplate.LEXER.render(options);
     }
 
-    protected SourceProvider getConstantsTemplate() {
+    protected SourceProvider<Options> getConstantsTemplate() {
         return JavaTemplate.PARSER_CONSTANTS;
     }
 

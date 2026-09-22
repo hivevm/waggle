@@ -4,6 +4,7 @@
 package org.hivevm.waggle.codegen.java;
 
 import org.hivevm.source.TemplateSet;
+import org.hivevm.waggle.api.Options;
 import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
@@ -18,39 +19,39 @@ import java.util.Set;
  */
 public interface JavaTemplate {
 
-    TemplateSet SET = new TemplateSet("java", (name, options) -> {
+    TemplateSet<Options> SET = new TemplateSet<>("java", (name, options) -> {
         var packagePath = options.getJavaPackageName().replace('.', File.separatorChar);
         var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase(Locale.ROOT));
         return new File(targetDir, name + ".java");
     });
 
-    Source PROVIDER = JavaTemplate.SET.declare("runtime", "Provider.java", "Provider");
-    Source STREAM_PROVIDER =
+    Source<Options> PROVIDER = JavaTemplate.SET.declare("runtime", "Provider.java", "Provider");
+    Source<Options> STREAM_PROVIDER =
             JavaTemplate.SET.declare("runtime", "StreamProvider.java", "StreamProvider");
-    Source STRING_PROVIDER =
+    Source<Options> STRING_PROVIDER =
             JavaTemplate.SET.declare("runtime", "StringProvider.java", "StringProvider");
-    Source CHAR_STREAM =
+    Source<Options> CHAR_STREAM =
             JavaTemplate.SET.declare("runtime", "JavaCharStream.java", "JavaCharStream");
-    Source TOKEN = JavaTemplate.SET.declare("runtime", "Token.java", "Token");
-    Source TOKEN_EXCEPTION =
+    Source<Options> TOKEN = JavaTemplate.SET.declare("runtime", "Token.java", "Token");
+    Source<Options> TOKEN_EXCEPTION =
             JavaTemplate.SET.declare("runtime", "TokenException.java", "TokenException");
-    Source PARSER_EXCEPTION =
+    Source<Options> PARSER_EXCEPTION =
             JavaTemplate.SET.declare("runtime", "ParseException.java", "ParseException");
 
-    Source LEXER = JavaTemplate.SET.declare("lexer", "Lexer.java", "Lexer");
+    Source<Options> LEXER = JavaTemplate.SET.declare("lexer", "Lexer.java", "Lexer");
 
-    Source PARSER = JavaTemplate.SET.declare("parser", "Parser.java", "Parser");
-    Source PARSER_CONSTANTS =
+    Source<Options> PARSER = JavaTemplate.SET.declare("parser", "Parser.java", "Parser");
+    Source<Options> PARSER_CONSTANTS =
             JavaTemplate.SET.declare("parser", "ParserConstants.java", "ParserConstants");
 
-    Source NODE = JavaTemplate.SET.declare("tree", "Node.java", "Node");
-    Source NODESTATE = JavaTemplate.SET.declare("tree", "NodeState.java", "NodeState");
-    Source NODETYPE = JavaTemplate.SET.declare("tree", "NodeType.java", "NodeType");
+    Source<Options> NODE = JavaTemplate.SET.declare("tree", "Node.java", "Node");
+    Source<Options> NODESTATE = JavaTemplate.SET.declare("tree", "NodeState.java", "NodeState");
+    Source<Options> NODETYPE = JavaTemplate.SET.declare("tree", "NodeType.java", "NodeType");
     /** One file per AST node: the name is the node type, not the template name. */
-    Source MULTI_NODE = JavaTemplate.SET.declare("tree", "MultiNode.java", "%s");
-    Source MULTI_NODE_VISITOR =
+    Source<Options> MULTI_NODE = JavaTemplate.SET.declare("tree", "MultiNode.java", "%s");
+    Source<Options> MULTI_NODE_VISITOR =
             JavaTemplate.SET.declare("tree", "NodeVisitor.java", "NodeVisitor");
-    Source MULTI_NODE_DEFAULT_VISITOR =
+    Source<Options> MULTI_NODE_DEFAULT_VISITOR =
             JavaTemplate.SET.declare("tree", "NodeDefaultVisitor.java", "NodeDefaultVisitor");
 
     static Set<String> reservedNames() {

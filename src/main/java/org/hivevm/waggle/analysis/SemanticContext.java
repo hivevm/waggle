@@ -27,6 +27,10 @@ class SemanticContext {
         return this.diagnostics.hasError();
     }
 
+    final int errorCount() {
+        return this.diagnostics.errorCount();
+    }
+
     public final int getLookahead() {
         return this.options.lookahead();
     }

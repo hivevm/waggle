@@ -1,6 +1,6 @@
 # ADR-0019: A package layout that names the stages, and a dependency DAG that is tested
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-20
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

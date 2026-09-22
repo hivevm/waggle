@@ -5,8 +5,8 @@ package org.hivevm.waggle.api;
 
 import org.hivevm.waggle.analysis.Semanticize;
 import org.hivevm.waggle.diag.Diagnostics;
-import org.hivevm.waggle.grammar.JavaCCData;
-import org.hivevm.waggle.grammar.JavaCCParserDefault;
+import org.hivevm.waggle.grammar.GrammarData;
+import org.hivevm.waggle.grammar.GrammarParser;
 import org.hivevm.waggle.grammar.StringProvider;
 import org.hivevm.waggle.lexer.LexerBuilder;
 import org.hivevm.waggle.lexer.LexerInterpreter;
@@ -62,14 +62,14 @@ public final class ParserInterpreter {
      */
     private org.hivevm.waggle.lexer.LexerData buildLexer(String grammar) {
         var options = new WaggleOptions();
-        options.set(Waggle.JJPARSER_NO_DFA, Boolean.TRUE);
+        options.set(Waggle.NO_DFA, Boolean.TRUE);
 
         var context = new GenerationContext(options, this.diagnostics);
-        var data = new JavaCCData(context);
+        var data = new GrammarData(context);
         try {
-            var parser = new JavaCCParserDefault(new StringProvider(grammar), options);
+            var parser = new GrammarParser(new StringProvider(grammar), options);
             parser.initialize(data);
-            parser.javacc_input();
+            parser.grammar_input();
             Semanticize.semanticize(data, options);
         } catch (Exception e) {
             throw new GenerationException("Failed to read the grammar: detected "

@@ -3,8 +3,6 @@
 
 package org.hivevm.source;
 
-import org.hivevm.core.Environment;
-import org.hivevm.waggle.api.Options;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,27 +15,31 @@ import java.util.function.Function;
  */
 class TemplateContext implements Context {
 
-    private final Environment environment;
+    private final RenderContext environment;
     private final Map<String, Object> options = new HashMap<>();
 
     /**
      * Constructs a new instance of the {@code TemplateOptions} class with the specified
      * environment.
      */
-    public TemplateContext(Environment environment) {
+    public TemplateContext(RenderContext environment) {
         this.environment = environment;
     }
 
     /**
-     * Where the rendered source goes. A context wraps the generation's options, so it must pass
+     * Where the rendered source goes. A context wraps the caller's own context, so it must pass
      * the sink on: forgetting to made the lexer and the parser write files while the runtime
-     * classes went to the sink (ADR-0018).
+     * classes went to the sink (ADR-0018). It used to find the sink by downcasting to Waggle's
+     * options; the wrapped context now declares it (ADR-0023).
      */
     @Override
     public final OutputSink outputSink() {
-        return (this.environment instanceof Options options)
-                ? options.outputSink()
-                : Context.super.outputSink();
+        return this.environment.outputSink();
+    }
+
+    @Override
+    public final String renderTitle() {
+        return this.environment.renderTitle();
     }
 
     /**

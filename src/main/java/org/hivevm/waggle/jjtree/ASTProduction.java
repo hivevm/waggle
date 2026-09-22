@@ -5,8 +5,9 @@ package org.hivevm.waggle.jjtree;
 
 import org.hivevm.waggle.model.NodeScope;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
 class ASTProduction extends ASTNode {
@@ -15,12 +16,12 @@ class ASTProduction extends ASTNode {
     private int nextNodeScopeNumber;
     private final List<String> throws_list;
 
-    private final Hashtable<NodeScope, Integer> scopes;
+    private final Map<NodeScope, Integer> scopes;
 
     ASTProduction(Parser p, int id) {
         super(p, id);
         this.nextNodeScopeNumber = 0;
-        this.scopes = new Hashtable<>();
+        this.scopes = new LinkedHashMap<>();
         this.throws_list = new ArrayList<>();
     }
 

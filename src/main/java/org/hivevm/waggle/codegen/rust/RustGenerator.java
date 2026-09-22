@@ -49,8 +49,8 @@ public class RustGenerator extends GeneratorProvider {
     @Override
     protected final void prepare(ParserRequest request) {
         var options = request.options();
-        if (options.stringValue(Waggle.JJPARSER_RUST_MODULE).isEmpty()) {
-            options.set(Waggle.JJPARSER_RUST_MODULE,
+        if (options.stringValue(Waggle.RUST_MODULE).isEmpty()) {
+            options.set(Waggle.RUST_MODULE,
                     request.getParserName().toLowerCase(Locale.ROOT));
         }
     }

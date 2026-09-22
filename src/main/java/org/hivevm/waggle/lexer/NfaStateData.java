@@ -3,9 +3,11 @@
 
 package org.hivevm.waggle.lexer;
 
+import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -29,13 +31,31 @@ public class NfaStateData {
     int[][] intermediateKinds;
     int[][] intermediateMatchedPos;
 
+    /**
+     * Deliberately a {@link Hashtable}, for the reason given on {@link #charPosKind}:
+     * {@code StringLiteralDfaEmitter} walks this table's {@code keySet()} and writes one
+     * {@code jjStopStringLiteralDfa} branch per key, so the table's iteration order is the order of
+     * those branches in the generated token manager.
+     */
     public Hashtable<String, long[]>[] statesForPos;
+    /**
+     * Deliberately a {@link Hashtable}. {@link #reArrange} sorts these keys by their first
+     * character only, so keys sharing one inherit the table's own iteration order, and that order
+     * reaches the generated token manager as the order of its {@code jjStopStringLiteralDfa}
+     * branches. A {@code LinkedHashMap} here reorders those branches, which is a change to the
+     * emitted parser - and to the checked-in bootstrap parser (ADR-0009) - not a cleanup.
+     */
     final List<Hashtable<String, KindInfo>> charPosKind;
 
     // NfaState
     boolean done;
     boolean[] mark;
-    public boolean hasNFA;
+    /**
+     * Package-private, not public: the same value was reachable both as this field and through
+     * {@link #hasNFA()}, and the two back ends picked different ones. Stage 4 writes it, back ends
+     * read it through the method (ADR-0012).
+     */
+    boolean hasNFA;
     boolean hasMixed;
     boolean createStartNfa;
 
@@ -45,17 +65,17 @@ public class NfaStateData {
     private final List<NfaState> indexedAllStates;
 
     public int dummyStateIndex;
-    private final Hashtable<String, int[]> allNextStates;
-    public final Hashtable<String, Integer> stateNameForComposite;
-    public final Hashtable<String, int[]> compositeStateTable;
-    public final Hashtable<String, String> stateBlockTable;
-    public final Hashtable<String, int[]> stateSetsToFix;
-    final Hashtable<String, NfaState> equivStatesTable;
+    private final Map<String, int[]> allNextStates;
+    public final Map<String, Integer> stateNameForComposite;
+    public final Map<String, int[]> compositeStateTable;
+    public final Map<String, String> stateBlockTable;
+    public final Map<String, int[]> stateSetsToFix;
+    final Map<String, NfaState> equivStatesTable;
 
     // ADR-0012: finished-model DFA lookup. Stage 4 (DfaBuilder#getDfaCode) records the composite
     // state-set name for every (position, kind) it visits, so the stage-5 generators render it
     // without recomputing — or registering — DFA structure at emit time.
-    private final Hashtable<Long, Integer> stateSetForPosKind;
+    private final Map<Long, Integer> stateSetForPosKind;
 
     NfaStateData(LexerData data, String name) {
         this.global = data;
@@ -86,13 +106,13 @@ public class NfaStateData {
         this.indexedAllStates = new ArrayList<>();
         this.dummyStateIndex = -1;
 
-        this.allNextStates = new Hashtable<>();
-        this.stateNameForComposite = new Hashtable<>();
-        this.compositeStateTable = new Hashtable<>();
-        this.stateBlockTable = new Hashtable<>();
-        this.stateSetsToFix = new Hashtable<>();
-        this.equivStatesTable = new Hashtable<>();
-        this.stateSetForPosKind = new Hashtable<>();
+        this.allNextStates = new LinkedHashMap<>();
+        this.stateNameForComposite = new LinkedHashMap<>();
+        this.compositeStateTable = new LinkedHashMap<>();
+        this.stateBlockTable = new LinkedHashMap<>();
+        this.stateSetsToFix = new LinkedHashMap<>();
+        this.equivStatesTable = new LinkedHashMap<>();
+        this.stateSetForPosKind = new LinkedHashMap<>();
 
         // Do at end
         this.initialState = new NfaState(this);
@@ -192,13 +212,6 @@ public class NfaStateData {
         return NfaStateData.reArrange(this.charPosKind.get(index));
     }
 
-    /**
-     * Where the state set {@code arrayString} lives in the emitted {@code jjnextStates} table.
-     *
-     * <p>Registering it is stage 4's job ({@code DfaBuilder}); a back end only looks it up. It used
-     * to call the registering method itself while emitting, so the back end could still grow the
-     * table it was in the middle of rendering.
-     */
     /** Whether the two state sets share a state. A query over the finished DFA. */
     public final boolean intersects(String set1, String set2) {
         return NfaState.Intersect(this, set1, set2);
@@ -209,6 +222,13 @@ public class NfaStateData {
         return NfaState.ElemOccurs(element, set);
     }
 
+    /**
+     * Where the state set {@code arrayString} lives in the emitted {@code jjnextStates} table.
+     *
+     * <p>Registering it is stage 4's job ({@code DfaBuilder}); a back end only looks it up. It used
+     * to call the registering method itself while emitting, so the back end could still grow the
+     * table it was in the middle of rendering.
+     */
     public final int[] getStateSetIndices(String arrayString) {
         var indices = this.global.tableToDump.get(arrayString);
         if (indices == null) {
@@ -362,11 +382,20 @@ public class NfaStateData {
     }
 
     /**
+     * An array of per-position state-set tables. Generic array creation needs the unchecked cast,
+     * so it is made once here instead of raw at the call site.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static Hashtable<String, long[]>[] newStatesForPos(int length) {
+        return new Hashtable[length];
+    }
+
+    /**
      * Returns the keys of {@code tab} ordered by their first character (a stable insertion sort).
      * Stage 4 owns the order; back ends read it through {@link #getOrderedCharPosKinds(int)}
      * (ADR-0012).
      */
-    static <T> String[] reArrange(Hashtable<String, T> tab) {
+    static <T> String[] reArrange(Map<String, T> tab) {
         String[] ret = new String[tab.size()];
         int cnt = 0;
 

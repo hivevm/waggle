@@ -44,9 +44,9 @@ class TypedOptionsTest {
     void aChangedOptionReachesTheView() {
         var options = TypedOptionsTest.options();
         options.setOption(new Diagnostics(DiagnosticSink.SILENT), null, null,
-                Waggle.JJPARSER_LOOKAHEAD, 3);
+                Waggle.LOOKAHEAD, 3);
         options.setOption(new Diagnostics(DiagnosticSink.SILENT), null, null,
-                Waggle.JJPARSER_DEBUG_PARSER, Boolean.TRUE);
+                Waggle.DEBUG_PARSER, Boolean.TRUE);
 
         var parser = ParserOptions.from(options);
 
@@ -58,9 +58,9 @@ class TypedOptionsTest {
     void theTargetViewReadsTheTargetsOwnSettings() {
         var options = TypedOptionsTest.options();
         var silent = new Diagnostics(DiagnosticSink.SILENT);
-        options.setOption(silent, null, null, Waggle.JJPARSER_JAVA_PACKAGE, "org.example");
-        options.setOption(silent, null, null, Waggle.JJPARSER_RUST_MODULE, "example");
-        options.setOption(silent, null, null, Waggle.JJPARSER_BASE_PARSER, "MyBase");
+        options.setOption(silent, null, null, Waggle.JAVA_PACKAGE, "org.example");
+        options.setOption(silent, null, null, Waggle.RUST_MODULE, "example");
+        options.setOption(silent, null, null, Waggle.BASE_PARSER, "MyBase");
 
         var target = TargetOptions.from(options);
 

@@ -24,12 +24,8 @@ public class NodeScope {
 
     private NodeScope(BNFProduction p, NodeDescriptor n) {
         if (n == null) {
-            String nm = p.getLhs(); // name
-//                if (p.jjtOptions().getNodeDefaultVoid())
-//                    nm = "void";
-            var nd = new ParserDescriptor(/*p.jjtParser(), NodeType.JJTNODEDESCRIPTOR*/);
-            nd.setName(nm);
-//                nd.setFaked();
+            var nd = new ParserDescriptor();
+            nd.setName(p.getLhs());
             this.node_descriptor = nd;
         } else {
             this.node_descriptor = n;

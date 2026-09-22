@@ -32,16 +32,16 @@ public record TargetOptions(Language language, String javaPackage, List<String> 
         return new TargetOptions(options.getOutputLanguage(),
                 options.getJavaPackageName(),
                 TargetOptions.imports(options),
-                options.stringValue(Waggle.JJPARSER_RUST_MODULE),
-                options.stringValue(Waggle.JJPARSER_CPP_NAMESPACE),
-                options.stringValue(Waggle.JJPARSER_CPP_STACK_LIMIT),
-                options.stringValue(Waggle.JJPARSER_BASE_PARSER),
-                options.stringValue(Waggle.JJPARSER_BASE_LEXER));
+                options.stringValue(Waggle.RUST_MODULE),
+                options.stringValue(Waggle.CPP_NAMESPACE),
+                options.stringValue(Waggle.CPP_STACK_LIMIT),
+                options.stringValue(Waggle.BASE_PARSER),
+                options.stringValue(Waggle.BASE_LEXER));
     }
 
     @SuppressWarnings("unchecked")
     private static List<String> imports(WaggleOptions options) {
-        var value = options.get(Waggle.JJPARSER_JAVA_IMPORTS);
+        var value = options.get(Waggle.JAVA_IMPORTS);
         return (value instanceof List<?> list) ? List.copyOf((List<String>) list) : List.of();
     }
 }

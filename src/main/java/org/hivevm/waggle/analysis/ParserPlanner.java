@@ -4,8 +4,8 @@
 package org.hivevm.waggle.analysis;
 
 import org.hivevm.waggle.api.ParserRequest;
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.analysis.ParserData.Phase3Data;
-import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.BNFProduction;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
@@ -18,8 +18,6 @@ import org.hivevm.waggle.model.RegularExpression;
 import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
-import org.hivevm.waggle.grammar.ParseException;
-import org.hivevm.waggle.analysis.Semanticize;
 
 import org.hivevm.waggle.tree.TreeModel;
 
@@ -41,9 +39,10 @@ public class ParserPlanner {
         return ++this.rIndex;
     }
 
-    public final ParserData build(ParserRequest request, Optional<TreeModel> tree) throws ParseException {
+    public final ParserData build(ParserRequest request, Optional<TreeModel> tree) {
         if (request.diagnostics().hasError()) {
-            throw new ParseException();
+            throw new GenerationException("The grammar has " + request.diagnostics().errorCount()
+                    + " error(s); no parser was planned.");
         }
 
         ParserData data = new ParserData(request, tree);

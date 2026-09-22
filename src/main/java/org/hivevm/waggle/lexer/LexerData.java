@@ -10,10 +10,10 @@ import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.api.Options;
 
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +33,7 @@ public class LexerData {
 
     int lohiByteCnt;
     final Map<Integer, long[]> lohiByte;
-    final Hashtable<String, Integer> lohiByteTab;
+    final Map<String, Integer> lohiByteTab;
 
     final List<NfaState> nonAsciiTableForMethod;
     final List<String> allBitVectors;
@@ -45,7 +45,7 @@ public class LexerData {
 
     // public for NFA
     int lastIndex;
-    final Hashtable<String, int[]> tableToDump;
+    final Map<String, int[]> tableToDump;
     final List<int[]> orderedStateSet;
 
     private final Map<String, NfaStateData> stateData = new HashMap<>();
@@ -93,13 +93,13 @@ public class LexerData {
         this.nonAsciiTableForMethod = new ArrayList<>();
         this.lohiByteCnt = 0;
         this.lohiByte = new HashMap<>();
-        this.lohiByteTab = new Hashtable<>();
+        this.lohiByteTab = new LinkedHashMap<>();
         this.allBitVectors = new ArrayList<>();
 
         this.kinds = null;
         this.statesForState = null;
 
-        this.tableToDump = new Hashtable<>();
+        this.tableToDump = new LinkedHashMap<>();
         this.orderedStateSet = new ArrayList<>();
         this.lastIndex = 0;
         this.jjCheckNAddStatesUnaryNeeded = false;

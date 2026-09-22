@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.codegen;
 
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.analysis.LookaheadPlan;
 
 import org.hivevm.waggle.analysis.ParserData;
@@ -22,19 +23,19 @@ import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
 import org.hivevm.waggle.grammar.Token;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
-import org.hivevm.source.Template;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class ParserGenerator extends CodeGenerator<ParserData> {
+
+    private ParserSyntax syntax;
+    private Phase3Emitter phase3;
+    private LookaheadEmitter lookahead;
 
     protected static final String LOOKAHEAD_NEEDED = "LOOKAHEAD_NEEDED";
     protected static final String JJ2_INDEX = "JJ2_INDEX";
@@ -44,8 +45,13 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected static final String TOKEN_MASKS = "TOKEN_MASKS";
     protected static final String JJPARSER_USE_AST = "USE_AST";
 
-    /** What the lookahead checker has opened so far: nothing, an if chain or a switch. */
-    protected enum LookaheadState {
+    /**
+     * What the lookahead checker has opened so far: nothing, an if chain or a switch.
+     *
+     * <p>Public, not protected: it is part of the {@link ParserSyntax} a back end implements, and
+     * the back ends live in their own packages.
+     */
+    public enum LookaheadState {
         NOOPENSTM,
         OPENIF,
         OPENSWITCH
@@ -73,7 +79,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     @Override
     public final void generate(ParserData data) {
         this.plan = data;
-        var options = Template.newContext(data.options());
+        var options = OptionsContext.of(data.options());
 
         options.set(ParserGenerator.JJPARSER_USE_AST, data.usesTree());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
@@ -99,7 +105,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         generate(data, options);
     }
 
-    protected abstract void generate(ParserData data, Context options);
+    protected abstract void generate(ParserData data, OptionsContext options);
 
     protected String getStringIndex(int i) {
         return "" + i;
@@ -136,14 +142,71 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     }
 
     /**
-     * The call to a jj_3 routine (or a raw {@code jj_scan_token...}). Shared by the Java and C++ back
-     * ends; the Rust back end overrides it to snake-case the internal name.
+     * How this target spells a lookahead routine. The Java back end needs none of its own
+     * (ADR-0021).
      */
+    protected ParserSyntax newParserSyntax() {
+        return ParserSyntax.JAVA;
+    }
+
+    /** The spelling this target uses, created once. */
+    protected final ParserSyntax syntax() {
+        if (this.syntax == null) {
+            this.syntax = newParserSyntax();
+        }
+        return this.syntax;
+    }
+
+    /** The lookahead-routine body, shared by every target. */
+    protected final Phase3Emitter phase3() {
+        if (this.phase3 == null) {
+            this.phase3 = new Phase3Emitter(syntax(), this);
+        }
+        return this.phase3;
+    }
+
+    /** The lookahead chain, shared by every target. */
+    protected final LookaheadEmitter lookahead() {
+        if (this.lookahead == null) {
+            this.lookahead = new LookaheadEmitter(syntax(), this);
+        }
+        return this.lookahead;
+    }
+
+    protected final void print_lookahead_amount0(LinePrinter printer, LookaheadState state,
+            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
+        lookahead().semantic(printer, state, action, la, scope, index);
+    }
+
+    protected final void print_lookahead_amount1(LinePrinter printer, LookaheadState state,
+            Consumer<LinePrinter> action, boolean cacheTokens, List<String> cases) {
+        lookahead().oneToken(printer, state, action, cacheTokens, cases);
+    }
+
+    protected final void print_lookahead(LinePrinter printer, LookaheadState state,
+            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
+        lookahead().syntactic(printer, state, action, la, scope, index);
+    }
+
+    protected final void print_lookahead_tail(LinePrinter printer, LookaheadState state,
+            Consumer<LinePrinter> action, int indents, int index) {
+        lookahead().fallback(printer, state, action, indents, index);
+    }
+
+    /** The name a lookahead call uses for the routine of {@code e}; Rust snake-cases it. */
+    protected String lookaheadRoutineName(Expansion e) {
+        return internalName(e);
+    }
+
     /** The name the analysis gave the lookahead routine of {@code e} (ADR-0019). */
     protected final String internalName(Expansion e) {
         return this.plan.internalName(e);
     }
 
+    /**
+     * The call to a jj_3 routine (or a raw {@code jj_scan_token...}). Shared by the Java and C++ back
+     * ends; the Rust back end overrides it to snake-case the internal name.
+     */
     protected String genjj_3Call(Expansion e) {
         var name = internalName(e);
         return name.startsWith("jj_scan_token") ? name : "jj_3" + name + "()";
@@ -197,14 +260,14 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                     printer.print(" = ");
                 }
 
-                generate_phase1_regexp(printer);
+                syntax().consumeToken(printer);
                 if (re.getLabel().isEmpty()) {
                     String label = data.getNameOfToken(re.getOrdinal());
                     printer.print(label != null ? label : "" + re.getOrdinal());
                 } else {
                     printer.print(re.getLabel());
                 }
-                generate_phase1_regexp_end(re, printer);
+                syntax().consumeTokenEnd(re, printer);
             }
             case NonTerminal e_nrw -> {
                 printer.println();
@@ -214,13 +277,13 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                     printTrailingComments(printer, e_nrw.getLhsTokens().getLast());
                     printer.print(" = ");
                 }
-                generate_phase1_nonterminal(e_nrw, printer);
+                syntax().callProduction(e_nrw, printer);
                 if (!e_nrw.getArgumentTokens().isEmpty()) {
                     setup_token(e_nrw.getArgumentTokens().getFirst());
                     e_nrw.getArgumentTokens().forEach(t -> printToken(t, scope, printer));
                     printTrailingComments(printer, e_nrw.getArgumentTokens().getLast());
                 }
-                generate_phase1_nonterminal_end(printer);
+                syntax().callProductionEnd(printer);
             }
             case Action e_nrw -> {
                 printer.println();
@@ -233,7 +296,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             case Choice e_nrw -> {
                 print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e), (p, i) -> {
                     if (i == e_nrw.getChoices().size()) {
-                        generate_phase1_choice(printer);
+                        syntax().noAlternativeMatched(printer);
                     } else {
                         generate_phase1_expansion(data, e_nrw.getChoices().get(i), scope, p);
                     }
@@ -253,26 +316,26 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             case OneOrMore e_nrw -> {
                 printer.println();
                 int labelIndex = nextLabelIndex();
-                generate_phase1_more(labelIndex, printer);
+                syntax().openRepetition(labelIndex, printer);
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
                 print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
-                        (p, i) -> print_phase1_more_end(labelIndex, p, i));
+                        (p, i) -> syntax().breakRepetition(labelIndex, p, i));
                 printer.outdent();
                 printer.println();
                 printer.print("}");
-                generate_phase1_more_end(labelIndex, printer);
+                syntax().closeRepetition(labelIndex, printer);
             }
             case ZeroOrMore e_nrw -> {
                 printer.println();
                 int labelIndex = nextLabelIndex();
-                generate_phase1_more(labelIndex, printer);
+                syntax().openRepetition(labelIndex, printer);
                 print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
-                        (p, i) -> print_phase1_more_end(labelIndex, p, i));
+                        (p, i) -> syntax().breakRepetition(labelIndex, p, i));
                 generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
                 printer.outdent();
                 printer.println();
                 printer.print("}");
-                generate_phase1_more_end(labelIndex, printer);
+                syntax().closeRepetition(labelIndex, printer);
             }
             default -> {
             }
@@ -281,23 +344,6 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         if (node_scope != null) {
             this.decorator.after(node_scope, printer);
         }
-    }
-
-    protected abstract void generate_phase1_regexp(LinePrinter printer);
-
-    protected abstract void generate_phase1_regexp_end(RExpression re, LinePrinter printer);
-
-    protected abstract void generate_phase1_choice(LinePrinter printer);
-
-    protected abstract void generate_phase1_nonterminal(NonTerminal non, LinePrinter printer);
-
-    protected abstract void generate_phase1_nonterminal_end(LinePrinter printer);
-
-    protected abstract void generate_phase1_more(int labelIndex, LinePrinter printer);
-
-    protected abstract void print_phase1_more_end(int labelIndex, LinePrinter printer, int offset);
-
-    protected void generate_phase1_more_end(int labelIndex, LinePrinter printer) {
     }
 
     /**
@@ -363,14 +409,9 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         return data.getErrorReporting() ? mask : -1;
     }
 
-    protected abstract void print_lookahead_amount0(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index);
 
-    protected abstract void print_lookahead_amount1(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action
-            , boolean cache_tokens, List<String> cases);
 
-    protected abstract void print_lookahead(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index);
 
-    protected abstract void print_lookahead_tail(LinePrinter printer, LookaheadState state, Consumer<LinePrinter> action, int indents, int index);
 
     protected abstract void generate_phase2(Expansion e, LinePrinter printer, ParserData data);
 

@@ -8,15 +8,8 @@ import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentCharac
 import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentlyMatched;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
 
 /**
  * Rust's NFA move loop. See {@link RustStringLiteralDfaEmitter} (ADR-0017).

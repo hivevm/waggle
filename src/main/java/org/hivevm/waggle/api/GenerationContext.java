@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.api;
 
-import org.hivevm.waggle.api.WaggleOptions;
 
 import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;

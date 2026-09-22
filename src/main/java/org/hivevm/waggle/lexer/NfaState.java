@@ -4,9 +4,7 @@
 package org.hivevm.waggle.lexer;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * The state of a Non-deterministic Finite Automaton.
@@ -24,14 +22,15 @@ public class NfaState {
     char[] rangeMoves = null;
     public NfaState next = null;
     public NfaState stateForCase;
-    final Vector<NfaState> epsilonMoves = new Vector<>();
+    final List<NfaState> epsilonMoves = new ArrayList<>();
     public String epsilonMovesString;
     private NfaState[] epsilonMoveArray;
 
     private final int id;
     public int stateName = -1;
     int kind = Integer.MAX_VALUE;
-    public int lookingFor;
+    /** Package-private: nothing outside the lexer stage reads it. */
+    int lookingFor;
     public int usefulEpsilonMoves = 0;
     public int inNextOf;
     public int lexState;
@@ -41,7 +40,7 @@ public class NfaState {
     public boolean isComposite = false;
     public int[] compositeStates = null;
     boolean isFinal = false;
-    public final Vector<Integer> loByteVec;
+    public final List<Integer> loByteVec;
     public int[] nonAsciiMoveIndices;
     private int onlyChar = 0;
     private char matchSingleChar;
@@ -53,7 +52,7 @@ public class NfaState {
         this.id = data.addAllState(this);
         this.lexState = data.getStateIndex();
         this.lookingFor = data.global.getCurrentKind();
-        this.loByteVec = new Vector<>();
+        this.loByteVec = new ArrayList<>();
         this.nonAsciiMoveIndices = new int[0];
     }
 
@@ -226,10 +225,10 @@ public class NfaState {
             this.epsilonMoves.get(i).EpsilonClosure(data);
         }
 
-        Enumeration<NfaState> e = this.epsilonMoves.elements();
-
-        while (e.hasMoreElements()) {
-            NfaState tmp = e.nextElement();
+        // Indexed, not iterated: InsertInOrder below grows the very list being walked, which a
+        // for-each would answer with a ConcurrentModificationException.
+        for (int k = 0; k < this.epsilonMoves.size(); k++) {
+            NfaState tmp = this.epsilonMoves.get(k);
 
             for (i = 0; i < tmp.epsilonMoves.size(); i++) {
                 NfaState tmp1 = tmp.epsilonMoves.get(i);
@@ -365,9 +364,6 @@ public class NfaState {
 
             if (tmp != null) {
                 this.stateName = tmp.stateName;
-                // ????
-                // tmp.inNextOf += inNextOf;
-                // ????
                 this.dummy = true;
                 return;
             }
@@ -393,7 +389,7 @@ public class NfaState {
 
         for (NfaState element : data.getAllStates()) {
             element.epsilonMoveArray = new NfaState[element.epsilonMoves.size()];
-            element.epsilonMoves.copyInto(element.epsilonMoveArray);
+            element.epsilonMoves.toArray(element.epsilonMoveArray);
         }
     }
 
@@ -445,7 +441,7 @@ public class NfaState {
                             }
 
                             NfaState.InsertInOrder(equivStates, tmp2);
-                            this.epsilonMoves.removeElementAt(j--);
+                            this.epsilonMoves.remove(j--);
                         }
                     }
                 }
@@ -463,7 +459,7 @@ public class NfaState {
                         data.equivStatesTable.put(tmp, newState);
                     }
 
-                    this.epsilonMoves.removeElementAt(i--);
+                    this.epsilonMoves.remove(i--);
                     this.epsilonMoves.add(newState);
                     equivStates = null;
                     newState = null;
@@ -484,12 +480,12 @@ public class NfaState {
                         }
 
                         newState.MergeMoves(tmp2);
-                        this.epsilonMoves.removeElementAt(j--);
+                        this.epsilonMoves.remove(j--);
                     }
                 }
 
                 if (newState != null) {
-                    this.epsilonMoves.removeElementAt(i--);
+                    this.epsilonMoves.remove(i--);
                     this.epsilonMoves.add(newState);
                     newState = null;
                 }
@@ -505,7 +501,7 @@ public class NfaState {
                 if (this.epsilonMoves.get(i).HasTransitions()) {
                     this.usefulEpsilonMoves++;
                 } else {
-                    this.epsilonMoves.removeElementAt(i--);
+                    this.epsilonMoves.remove(i--);
                 }
             }
         }
@@ -585,7 +581,6 @@ public class NfaState {
             }
         }
 
-        // return (nextForNegatedList != null);
         return false;
     }
 
@@ -675,7 +670,6 @@ public class NfaState {
 
     public final void FixNextStates(int[] newSet) {
         this.next.usefulEpsilonMoves = newSet.length;
-        // next.epsilonMovesString = GetStateSetString(newSet);
     }
 
     static boolean Intersect(NfaStateData data, String set1, String set2) {

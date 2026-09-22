@@ -59,11 +59,10 @@ single grammar.
 A grammar is transformed to generated source through a staged pipeline. The front end (stages 1–4) is
 language-independent; only the back end (stage 5) is target-specific.
 
-1. **Input.** A single grammar file (`.waggle`).
-   Token definitions live in the grammar file itself, or in an optional sibling lexical file (`.lex`)
-   that the driver appends during a build. Tree-node annotations (`#Node`) are part of the grammar, so
-   there is **no separate JJTree pre-processing pass and no intermediate grammar** — one grammar is
-   compiled in one step.
+1. **Input.** A single grammar file (`.waggle`), and nothing else: it carries the header, the
+   productions and the token definitions ([ADR-0025](adr/0025-one-grammar-file.md)). Tree-node
+   annotations (`#Node`) are part of the grammar too, so there is **no separate JJTree
+   pre-processing pass and no intermediate grammar** — one grammar is compiled in one step.
 2. **Parse → model.** The grammar is parsed into a model of productions, expansions, and regular
    expressions; `#Node` annotations become node scopes on that model.
 3. **Semantic analysis (*semanticize*).** Cross-checks and lookahead computation over the model
@@ -75,6 +74,11 @@ language-independent; only the back end (stage 5) is target-specific.
    producing the parser, the token manager (lexer), and, when the grammar uses `#Node`, the tree-node
    classes and visitor.
 
+A grammar can also be **interpreted** instead of generated: the pipeline runs to the finished
+automaton of stage 4 and stops, and the lexical specification is simulated rather than rendered
+([ADR-0020](adr/0020-interpreted-mode.md)). This adds no stage and changes no output; it is a second
+reader of the same model.
+
 Grammar documentation (**JJDoc**) is a separate tool that renders a grammar to human-readable docs
 (e.g. BNF) and does not participate in parser generation.
 
@@ -84,10 +88,9 @@ The project uses this vocabulary consistently in code, comments, ADRs, and docum
 
 ### Grammar input
 
-- **Grammar file (`.waggle`)** — the single grammar: header, productions, and (optionally) the token
-  definitions. Tree-node annotations live here too; there is no separate tree-grammar format.
-- **Lexical file (`.lex`)** — optional sibling file holding token/regular-expression definitions,
-  appended to the grammar during a build; tokens may instead be defined inline in the grammar file.
+- **Grammar file (`.waggle`)** — the whole grammar: header, productions and token definitions.
+  Tree-node annotations live here too; there is no separate tree-grammar format and no separate
+  lexical file ([ADR-0025](adr/0025-one-grammar-file.md)).
 - **Header** — `grammar Name;` declares the grammar's name (recorded as `PARSER_NAME`), followed by an
   optional `options { KEY: value, … }` block (comma-separated; values are strings, integers, or
   booleans). Note that the generated Java classes are named `Parser`/`Lexer`/`ParserConstants`, not

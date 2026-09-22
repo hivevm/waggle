@@ -34,6 +34,9 @@ class PackageDagTest {
     private static final List<String> COMMON =
             List.of("java.", "javax.", "org.jspecify.", "org.hivevm.core.");
 
+    /** The root every inspected package sits under. */
+    private static final String ROOT = "org.hivevm.";
+
     /**
      * What each package may depend on, beyond {@link #COMMON} and itself.
      *
@@ -41,22 +44,32 @@ class PackageDagTest {
      * which it holds for positions and verbatim token chains. {@code grammar} is where that token
      * now lives, so the model names it and nothing else there.
      */
-    private static final Map<String, List<String>> ALLOWED = Map.of(
-            "diag", List.of(W + "model.", W + "grammar.Token"),
-            "model", List.of(W + "grammar.Token"),
-            "lexer", List.of(W + "model.", W + "diag.", W + "api."),
-            "tree", List.of(W + "model.", W + "diag.", W + "api.", "org.hivevm.source."),
-            // ParseException is the generated parser's exception, and the type semantic analysis
-            // fails with. Narrowing that is a change to what analysis throws, not to the layout.
-            "analysis", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.",
-                    W + "grammar.ParseException", "org.hivevm.source."),
-            "jjtree", List.of(W + "model.", W + "diag.", W + "tree.", W + "api.",
-                    W + "grammar.", "org.hivevm.source."),
-            "codegen", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.", W + "lexer.",
-                    W + "analysis.", W + "grammar.", "org.hivevm.source."),
-            "grammar", List.of(W + "model.", W + "diag.", W + "api.", "org.hivevm.source."),
-            "api", List.of(W + "model.", W + "diag.", W + "lexer.", W + "tree.", W + "analysis.",
-                    W + "codegen.", W + "grammar.", "org.hivevm.source."));
+    private static final Map<String, List<String>> ALLOWED = Map.ofEntries(
+            Map.entry(W + "diag", List.of(W + "model.", W + "grammar.Token")),
+            Map.entry(W + "model", List.of(W + "grammar.Token")),
+            Map.entry(W + "lexer", List.of(W + "model.", W + "diag.", W + "api.")),
+            Map.entry(W + "tree",
+                    List.of(W + "model.", W + "diag.", W + "api.", "org.hivevm.source.")),
+            Map.entry(W + "analysis", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.",
+                    "org.hivevm.source.")),
+            Map.entry(W + "jjtree", List.of(W + "model.", W + "diag.", W + "tree.", W + "api.",
+                    W + "grammar.", "org.hivevm.source.")),
+            Map.entry(W + "codegen", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.",
+                    W + "lexer.", W + "analysis.", W + "grammar.", "org.hivevm.source.")),
+            Map.entry(W + "grammar",
+                    List.of(W + "model.", W + "diag.", W + "api.", "org.hivevm.source.")),
+            Map.entry(W + "api", List.of(W + "model.", W + "diag.", W + "lexer.", W + "tree.",
+                    W + "analysis.", W + "codegen.", W + "grammar.", "org.hivevm.source.")),
+            Map.entry(W + "doc", List.of(W + "model.", W + "diag.", W + "api.", W + "grammar.",
+                    "org.hivevm.source.")),
+
+            // The three packages outside org.hivevm.waggle. The template engine is the leaf
+            // ADR-0005 described: it may not name Waggle at all. It used to import
+            // org.hivevm.waggle.api.Options, closing a cycle that no entry below could catch,
+            // because the map was keyed by Waggle package and the walk followed its keys
+            // (ADR-0023).
+            Map.entry("org.hivevm.source", List.of()),
+            Map.entry("org.hivevm.core", List.of()));
 
     private static final Pattern IMPORT = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+);");
 
@@ -99,11 +112,11 @@ class PackageDagTest {
         var inspected = 0;
 
         for (var entry : PackageDagTest.ALLOWED.entrySet()) {
-            var dir = PackageDagTest.SOURCES.resolve(Path.of("org", "hivevm", "waggle",
-                    entry.getKey()));
+            var dir = PackageDagTest.SOURCES.resolve(
+                    Path.of("", entry.getKey().split("\\.")));
             assertTrue(Files.isDirectory(dir), "no such package: " + dir);
 
-            var own = W + entry.getKey() + ".";
+            var own = entry.getKey() + ".";
             try (Stream<Path> files = Files.walk(dir)) {
                 for (Path file : (Iterable<Path>) files.filter(
                         p -> p.toString().endsWith(".java"))::iterator) {
@@ -130,5 +143,36 @@ class PackageDagTest {
         assertTrue(violations.isEmpty(),
                 "the pipeline's dependency graph is a DAG (ADR-0019), but found:\n"
                         + String.join("\n", violations));
+    }
+
+    /**
+     * Every package under {@code src/main/java} is in the graph.
+     *
+     * <p>Without this, a package joins the tree unconstrained: {@code org.hivevm.source} was never
+     * inspected, so the back edge that made the graph cyclic was invisible to the test that states
+     * it (ADR-0023).
+     */
+    @Test
+    void everyPackageIsInTheGraph() throws IOException {
+        var missing = new ArrayList<String>();
+        try (Stream<Path> dirs = Files.walk(PackageDagTest.SOURCES)) {
+            for (Path dir : (Iterable<Path>) dirs.filter(Files::isDirectory)::iterator) {
+                try (Stream<Path> files = Files.list(dir)) {
+                    if (files.noneMatch(f -> f.toString().endsWith(".java"))) {
+                        continue;
+                    }
+                }
+                var pkg = PackageDagTest.SOURCES.relativize(dir).toString()
+                        .replace(java.io.File.separatorChar, '.');
+                // A key covers its sub-packages: codegen states the rule for its back ends.
+                if (PackageDagTest.ALLOWED.keySet().stream()
+                        .noneMatch(k -> pkg.equals(k) || pkg.startsWith(k + "."))) {
+                    missing.add(pkg);
+                }
+            }
+        }
+        assertTrue(missing.isEmpty(),
+                "these packages are not in the dependency graph (ADR-0023):\n"
+                        + String.join("\n", missing));
     }
 }

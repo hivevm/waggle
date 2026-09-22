@@ -3,18 +3,23 @@
 
 package org.hivevm.waggle.codegen;
 
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.ParserRequest;
 
-import java.text.ParseException;
 import java.util.Optional;
 
 /**
- * The {@link Generator} class.
+ * One target's back end: everything needed to render a parsed and analysed grammar as source.
  */
 public interface Generator {
 
-    void generate(ParserRequest request) throws ParseException;
+    /**
+     * Renders the grammar. A back end that cannot generate what the grammar asks for throws
+     * {@link GenerationException} (ADR-0011, ADR-0022) rather than reporting a diagnostic and
+     * returning; the exception is unchecked, so this method declares no {@code throws}.
+     */
+    void generate(ParserRequest request);
 
     /**
      * How this back end writes tree code, or nothing when it has no tree support (ADR-0016). A

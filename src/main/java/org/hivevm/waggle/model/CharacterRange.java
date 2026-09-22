@@ -17,7 +17,7 @@ public class CharacterRange extends Production {
     private char left;
 
     // An inverted user range (left > right) is caught and reported earlier, in the parser layer
-    // (AbstractJavaCCParser#character_descriptor_assign clamps the right end); ranges built here are
+    // (AbstractGrammarParser#character_descriptor_assign clamps the right end); ranges built here are
     // always well-formed, so the model performs no reporting of its own (ADR-0013).
     public CharacterRange(char l, char r) {
         setLeft(l);

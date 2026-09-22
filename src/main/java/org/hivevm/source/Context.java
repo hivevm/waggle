@@ -1,10 +1,8 @@
 package org.hivevm.source;
 
-import org.hivevm.waggle.api.Options;
-
 import java.util.function.Function;
 
-public interface Context extends Options {
+public interface Context extends RenderContext {
 
     void set(String name, Object value);
 

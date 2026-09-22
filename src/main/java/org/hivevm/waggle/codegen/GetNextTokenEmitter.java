@@ -10,7 +10,6 @@ import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.waggle.grammar.Token;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.IntToLongFunction;

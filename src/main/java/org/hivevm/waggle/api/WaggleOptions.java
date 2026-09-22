@@ -3,14 +3,11 @@
 
 package org.hivevm.waggle.api;
 
-import org.hivevm.waggle.api.GenerationRequest;
 
-import org.hivevm.waggle.api.Language;
 
 import org.hivevm.source.FileSink;
 import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
-import org.hivevm.waggle.api.Options;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,38 +33,38 @@ public class WaggleOptions implements Options {
     static {
         TreeSet<OptionInfo> temp = new TreeSet<>();
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_LOOKAHEAD, 1));
+        temp.add(new OptionInfo(Waggle.LOOKAHEAD, 1));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_CHOICE_AMBIGUITY_CHECK, 2));
-        temp.add(new OptionInfo(Waggle.JJPARSER_OTHER_AMBIGUITY_CHECK, 1));
-        temp.add(new OptionInfo(Waggle.JJPARSER_NO_DFA, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_DEBUG_PARSER, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.CHOICE_AMBIGUITY_CHECK, 2));
+        temp.add(new OptionInfo(Waggle.OTHER_AMBIGUITY_CHECK, 1));
+        temp.add(new OptionInfo(Waggle.NO_DFA, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.DEBUG_PARSER, Boolean.FALSE));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_DEBUG_LOOKAHEAD, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_DEBUG_TOKEN_MANAGER, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_ERROR_REPORTING, Boolean.TRUE));
+        temp.add(new OptionInfo(Waggle.DEBUG_LOOKAHEAD, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.DEBUG_TOKEN_MANAGER, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.ERROR_REPORTING, Boolean.TRUE));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_IGNORE_CASE, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_SANITY_CHECK, Boolean.TRUE));
+        temp.add(new OptionInfo(Waggle.IGNORE_CASE, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.SANITY_CHECK, Boolean.TRUE));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_FORCE_LA_CHECK, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_CACHE_TOKENS, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.JJPARSER_KEEP_LINE_COLUMN, Boolean.TRUE));
+        temp.add(new OptionInfo(Waggle.FORCE_LA_CHECK, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.CACHE_TOKENS, Boolean.FALSE));
+        temp.add(new OptionInfo(Waggle.KEEP_LINE_COLUMN, Boolean.TRUE));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_OUTPUT_DIRECTORY, "."));
-        temp.add(new OptionInfo(Waggle.JJPARSER_CODEGENERATOR, WaggleOptions.OUTPUT_LANGUAGE_JAVA));
-        temp.add(new OptionInfo(Waggle.JJPARSER_DEPTH_LIMIT, 0));
+        temp.add(new OptionInfo(Waggle.OUTPUT_DIRECTORY, "."));
+        temp.add(new OptionInfo(Waggle.CODE_GENERATOR, WaggleOptions.OUTPUT_LANGUAGE_JAVA));
+        temp.add(new OptionInfo(Waggle.DEPTH_LIMIT, 0));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_BASE_PARSER, ""));
-        temp.add(new OptionInfo(Waggle.JJPARSER_BASE_LEXER, ""));
+        temp.add(new OptionInfo(Waggle.BASE_PARSER, ""));
+        temp.add(new OptionInfo(Waggle.BASE_LEXER, ""));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_JAVA_PACKAGE, ""));
-        temp.add(new OptionInfo(Waggle.JJPARSER_JAVA_IMPORTS, ""));
+        temp.add(new OptionInfo(Waggle.JAVA_PACKAGE, ""));
+        temp.add(new OptionInfo(Waggle.JAVA_IMPORTS, ""));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_RUST_MODULE, ""));
+        temp.add(new OptionInfo(Waggle.RUST_MODULE, ""));
 
-        temp.add(new OptionInfo(Waggle.JJPARSER_CPP_NAMESPACE, ""));
-        temp.add(new OptionInfo(Waggle.JJPARSER_CPP_STACK_LIMIT, ""));
+        temp.add(new OptionInfo(Waggle.CPP_NAMESPACE, ""));
+        temp.add(new OptionInfo(Waggle.CPP_STACK_LIMIT, ""));
 
         userOptions = Collections.unmodifiableSet(temp);
     }
@@ -106,20 +103,20 @@ public class WaggleOptions implements Options {
 
         // Got from TreeOptions
         set(Waggle.PARSER_NAME, "");
-        set(Waggle.JJTREE_MULTI, Boolean.FALSE);
-        set(Waggle.JJTREE_NODE_DEFAULT_VOID, Boolean.FALSE);
-        set(Waggle.JJTREE_NODE_SCOPE_HOOK, Boolean.FALSE);
-        set(Waggle.JJTREE_BUILD_NODE_FILES, Boolean.TRUE);
-        set(Waggle.JJTREE_VISITOR, Boolean.FALSE);
-        set(Waggle.JJTREE_TRACK_TOKENS, Boolean.FALSE);
-        set(Waggle.JJTREE_NODE_EXTENDS, "");
-        set(Waggle.JJTREE_NODE_CLASS, "");
-        set(Waggle.JJTREE_NODE_FACTORY, "");
-        set(Waggle.JJTREE_NODE_CUSTOM, "");
-        set(Waggle.JJTREE_OUTPUT_FILE, "");
-        set(Waggle.JJTREE_VISITOR_DATA_TYPE, "");
-        set(Waggle.JJTREE_VISITOR_RETURN_TYPE, "Object");
-        set(Waggle.JJTREE_VISITOR_EXCEPTION, "");
+        set(Waggle.NODE_MULTI, Boolean.FALSE);
+        set(Waggle.NODE_DEFAULT_VOID, Boolean.FALSE);
+        set(Waggle.NODE_SCOPE_HOOK, Boolean.FALSE);
+        set(Waggle.BUILD_NODE_FILES, Boolean.TRUE);
+        set(Waggle.VISITOR, Boolean.FALSE);
+        set(Waggle.TRACK_TOKENS, Boolean.FALSE);
+        set(Waggle.NODE_EXTENDS, "");
+        set(Waggle.NODE_CLASS, "");
+        set(Waggle.NODE_FACTORY, "");
+        set(Waggle.NODE_CUSTOM, "");
+        set(Waggle.OUTPUT_FILE, "");
+        set(Waggle.VISITOR_DATA_TYPE, "");
+        set(Waggle.VISITOR_RETURN_TYPE, "Object");
+        set(Waggle.VISITOR_EXCEPTION, "");
     }
 
     /**
@@ -138,11 +135,11 @@ public class WaggleOptions implements Options {
     }
 
     public final void apply(GenerationRequest request) {
-        setFromCaller(Waggle.JJPARSER_CODEGENERATOR, request.language().name());
-        setFromCaller(Waggle.JJPARSER_OUTPUT_DIRECTORY,
+        setFromCaller(Waggle.CODE_GENERATOR, request.language().name());
+        setFromCaller(Waggle.OUTPUT_DIRECTORY,
                 request.outputDirectory().getAbsolutePath());
         if (!request.customNodes().isEmpty()) {
-            setFromCaller(Waggle.JJTREE_NODE_CUSTOM, String.join(",", request.customNodes()));
+            setFromCaller(Waggle.NODE_CUSTOM, String.join(",", request.customNodes()));
         }
     }
 
@@ -171,7 +168,7 @@ public class WaggleOptions implements Options {
             return;
         }
 
-        if (name.equalsIgnoreCase(Waggle.JJTREE_NODE_FACTORY) && (value.getClass()
+        if (name.equalsIgnoreCase(Waggle.NODE_FACTORY) && (value.getClass()
                 == Boolean.class)) {
             value = ((Boolean) value) ? "*" : "";
         }
@@ -212,8 +209,12 @@ public class WaggleOptions implements Options {
     /**
      * Process a single command-line option. The option is parsed and stored in the optionValues
      * map.
+     *
+     * <p>The complaints below used to go to {@code System.out} while {@link #setOption}, the path
+     * taken for the grammar's own {@code options} block, reported the same kinds of complaint to
+     * {@link Diagnostics}. One option set now has one channel (ADR-0015).
      */
-    public final void setCmdLineOption(String arg) {
+    public final void setCmdLineOption(Diagnostics diagnostics, String arg) {
         final String s;
 
         if (arg.charAt(0) == '-') {
@@ -246,7 +247,7 @@ public class WaggleOptions implements Options {
                 Val = Boolean.FALSE;
                 name = name.substring(2);
             } else {
-                System.out.println("Warning: Bad option \"" + arg + "\" will be ignored.");
+                diagnostics.warning("Bad option \"" + arg + "\" will be ignored.");
                 return;
             }
         } else {
@@ -259,8 +260,8 @@ public class WaggleOptions implements Options {
                 try {
                     int i = Integer.parseInt(s.substring(index + 1));
                     if (i <= 0) {
-                        System.out.println(
-                                "Warning: Bad option value in \"" + arg + "\" will be ignored.");
+                        diagnostics.warning(
+                                "Bad option value in \"" + arg + "\" will be ignored.");
                         return;
                     }
                     Val = i;
@@ -277,17 +278,17 @@ public class WaggleOptions implements Options {
         }
 
         if (!this.optionValues.containsKey(name)) {
-            System.out.println("Warning: Bad option \"" + arg + "\" will be ignored.");
+            diagnostics.warning("Bad option \"" + arg + "\" will be ignored.");
             return;
         }
         Object valOrig = this.optionValues.get(name);
         if (Val.getClass() != valOrig.getClass()) {
-            System.out.println("Warning: Bad option value in \"" + arg + "\" will be ignored.");
+            diagnostics.warning("Bad option value in \"" + arg + "\" will be ignored.");
             return;
         }
         if (this.cmdLineSetting.contains(name)) {
-            System.out.println(
-                    "Warning: Duplicate option setting \"" + arg + "\" will be ignored.");
+            diagnostics.warning(
+                    "Duplicate option setting \"" + arg + "\" will be ignored.");
             return;
         }
 
@@ -299,7 +300,7 @@ public class WaggleOptions implements Options {
      * @return the output language. default java
      */
     public final Language getOutputLanguage() {
-        String language = (String) this.optionValues.get(Waggle.JJPARSER_CODEGENERATOR);
+        String language = (String) this.optionValues.get(Waggle.CODE_GENERATOR);
         if (language.equalsIgnoreCase(WaggleOptions.OUTPUT_LANGUAGE_CPP))
             return Language.CPP;
         if (language.equalsIgnoreCase(WaggleOptions.OUTPUT_LANGUAGE_RUST))
@@ -342,8 +343,8 @@ public class WaggleOptions implements Options {
     @Override
     public void set(String name, Object value) {
         if (Waggle.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
-            set(Waggle.JJPARSER_CPP_DEFINE, text.toUpperCase());
-        } else if (Waggle.JJPARSER_JAVA_IMPORTS.equalsIgnoreCase(name)) {
+            set(Waggle.CPP_DEFINE, text.toUpperCase());
+        } else if (Waggle.JAVA_IMPORTS.equalsIgnoreCase(name)) {
             value = ((value instanceof String text) && !text.isEmpty())
                     ? Arrays.asList(text.split(","))
                     : Collections.emptyList();

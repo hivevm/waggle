@@ -4,15 +4,10 @@
 package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.source.LinePrinter;
-import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentCharacter;
-import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentlyMatched;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.model.Action;
-import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.RStringLiteral;
 
 /**
  * How Rust spells {@code getNextToken} (ADR-0017).

@@ -5,10 +5,11 @@ package org.hivevm.waggle.lexer;
 
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * Computes DFA/NFA move tables and prepares the code-generation data structures.
@@ -577,7 +578,7 @@ public class DfaBuilder {
     }
 
     static void fixStateSets(NfaStateData data) {
-        Hashtable<String, int[]> fixedSets = new Hashtable<>();
+        Map<String, int[]> fixedSets = new LinkedHashMap<>();
         int[] tmp = new int[data.generatedStates()];
         int i;
 
@@ -649,13 +650,11 @@ public class DfaBuilder {
         singlesToSkip[data.getStateIndex()].kind = kind;
     }
 
-    private static Vector<List<NfaState>> partitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
+    private static List<List<NfaState>> partitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
         int[] cardinalities = new int[states.length];
-        Vector<NfaState> original = new Vector<>();
-        Vector<List<NfaState>> partition = new Vector<>();
+        List<NfaState> original = new ArrayList<>();
+        List<List<NfaState>> partition = new ArrayList<>();
         NfaState tmp;
-
-        original.setSize(states.length);
         int cnt = 0;
         for (int i = 0; i < states.length; i++) {
             tmp = data.getAllState(states[i]);
@@ -675,16 +674,14 @@ public class DfaBuilder {
                 }
 
                 cardinalities[j] = p;
-                original.insertElementAt(tmp, j);
+                original.add(j, tmp);
                 cnt++;
             }
         }
 
-        original.setSize(cnt);
-
         while (!original.isEmpty()) {
             tmp = original.getFirst();
-            original.removeElement(tmp);
+            original.remove(tmp);
 
             long bitVec = tmp.asciiMoves[byteNum];
             List<NfaState> subSet = new ArrayList<>();
@@ -696,7 +693,7 @@ public class DfaBuilder {
                 if ((tmp1.asciiMoves[byteNum] & bitVec) == 0L) {
                     bitVec |= tmp1.asciiMoves[byteNum];
                     subSet.add(tmp1);
-                    original.removeElementAt(j--);
+                    original.remove(j--);
                 }
             }
 

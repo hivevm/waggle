@@ -37,7 +37,7 @@ public record TreeOptions(boolean multi, boolean defaultVoid, boolean scopeHook,
     public static TreeOptions from(Options options) {
         return new TreeOptions(options.getMulti(), options.getNodeDefaultVoid(),
                 options.getNodeScopeHook(), options.getTrackTokens(), options.getBuildNodeFiles(),
-                options.getNodeClass(), options.getNodeFactory(), options.getExcudeNodes(),
+                options.getNodeClass(), options.getNodeFactory(), options.getExcludeNodes(),
                 options.getVisitor(), options.getVisitorDataType(), options.getVisitorReturnType(),
                 options.getVisitorException());
     }

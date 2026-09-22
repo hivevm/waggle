@@ -6,6 +6,7 @@ package org.hivevm.waggle.codegen;
 import org.hivevm.waggle.analysis.ParserPlanner;
 
 import org.hivevm.waggle.tree.TreeEmitter;
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.lexer.LexerBuilder;
@@ -13,7 +14,6 @@ import org.hivevm.waggle.tree.TreeAnalyzer;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.text.ParseException;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -61,7 +61,7 @@ public abstract class GeneratorProvider implements Generator {
      * Generates the parser files.
      */
     @Override
-    public final void generate(ParserRequest request) throws ParseException {
+    public final void generate(ParserRequest request) {
         prepare(request);
 
         var treeOptions = TreeOptions.from(request.options());
@@ -75,10 +75,11 @@ public abstract class GeneratorProvider implements Generator {
 
         var emitter = tree.isPresent() ? treeSupport() : Optional.<TreeEmitter>empty();
         if (tree.isPresent() && emitter.isEmpty()) {
-            throw new ParseException("Tree building (#Node) is not supported for this target.", 0);
+            throw new GenerationException(
+                    "Tree building (#Node) is not supported for this target.");
         }
         if (emitter.isPresent() && generatesTreeRuntime(tree.get(), treeOptions)) {
-            emitter.get().emitRuntime(request.options(), tree.get());
+            emitter.get().emitRuntime(request.options(), treeOptions, tree.get());
         }
 
         newFileGenerator().generate(dataLexer);
@@ -87,28 +88,27 @@ public abstract class GeneratorProvider implements Generator {
 
             var parserGenerator = newParserGenerator();
             parserGenerator.decorateWith(emitter
-                    .<ExpansionDecorator>map(e -> new TreeDecorator(e, request.options()))
+                    .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions))
                     .orElse(ExpansionDecorator.NONE));
             parserGenerator.generate(dataParser);
         }
     }
 
     /** Refuses to generate anything that would overwrite one of the runtime classes. */
-    private void checkNamesAreFree(String parserName, Optional<TreeModel> tree)
-            throws ParseException {
+    private void checkNamesAreFree(String parserName, Optional<TreeModel> tree) {
         var reserved = reservedNames();
 
         if (parserNameIsFileName() && reserved.contains(parserName)) {
-            throw new ParseException("The grammar may not be named '" + parserName
+            throw new GenerationException("The grammar may not be named '" + parserName
                     + "': the generated parser would overwrite the runtime class of the same name."
-                    + " Reserved: " + reserved.stream().sorted().toList(), 0);
+                    + " Reserved: " + reserved.stream().sorted().toList());
         }
 
         for (var node : tree.map(TreeModel::getNodesToGenerate).orElse(Set.of())) {
             if (reserved.contains(node)) {
-                throw new ParseException("The AST node '" + node
+                throw new GenerationException("The AST node '" + node
                         + "' would overwrite the runtime class of the same name."
-                        + " Reserved: " + reserved.stream().sorted().toList(), 0);
+                        + " Reserved: " + reserved.stream().sorted().toList());
             }
         }
     }

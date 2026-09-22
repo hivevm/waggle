@@ -1,6 +1,6 @@
 # ADR-0018: Rendering produces text; an output sink writes it
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-20
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

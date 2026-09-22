@@ -1,6 +1,6 @@
 # ADR-0015: Diagnostics and the generation request are values, not process-global state
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-20
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

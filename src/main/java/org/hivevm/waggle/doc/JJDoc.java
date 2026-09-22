@@ -4,9 +4,10 @@
 package org.hivevm.waggle.doc;
 
 import org.hivevm.waggle.api.Encoding;
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.model.*;
-import org.hivevm.waggle.grammar.JavaCCData;
+import org.hivevm.waggle.grammar.GrammarData;
 import org.hivevm.waggle.model.RegExprSpec;
 
 import java.util.Iterator;
@@ -14,10 +15,11 @@ import java.util.Iterator;
 /**
  * The main entry point for JJDoc.
  */
-class JJDoc extends JJDocGlobals {
+class JJDoc {
 
-    static BNFGenerator start(JavaCCData javacc, String inputFile) {
-        var generator = new BNFGenerator((WaggleOptions) javacc.options(), inputFile);
+    static BNFGenerator start(GrammarData javacc, String inputFile) {
+        var generator = new BNFGenerator((WaggleOptions) javacc.options(), javacc.diagnostics(),
+                inputFile);
         generator.documentStart();
         JJDoc.emitTokenProductions(generator, javacc.getTokenProductions());
         JJDoc.emitNormalProductions(generator, javacc.getNormalProductions());
@@ -25,7 +27,7 @@ class JJDoc extends JJDocGlobals {
         return generator;
     }
 
-    private static void emitTokenProductions(Generator gen, Iterable<TokenProduction> prods) {
+    private static void emitTokenProductions(DocGenerator gen, Iterable<TokenProduction> prods) {
         gen.tokensStart();
         for (TokenProduction tp : prods) {
             gen.handleTokenProduction(tp);
@@ -72,7 +74,7 @@ class JJDoc extends JJDocGlobals {
         return token.toString();
     }
 
-    private static void emitNormalProductions(Generator gen, Iterable<NormalProduction> prods) {
+    private static void emitNormalProductions(DocGenerator gen, Iterable<NormalProduction> prods) {
         gen.nonterminalsStart();
         for (NormalProduction np : prods) {
             if (np instanceof BNFProduction) {
@@ -96,8 +98,7 @@ class JJDoc extends JJDocGlobals {
         gen.nonterminalsEnd();
     }
 
-    private static void emitExpansionTree(Expansion exp, Generator gen) {
-        // gen.text("[->" + exp.getClass().getName() + "]");
+    private static void emitExpansionTree(Expansion exp, DocGenerator gen) {
         switch (exp) {
             case Action action -> JJDoc.emitExpansionAction();
             case Choice choice -> JJDoc.emitExpansionChoice(choice, gen);
@@ -109,15 +110,15 @@ class JJDoc extends JJDocGlobals {
             case Sequence sequence -> JJDoc.emitExpansionSequence(sequence, gen);
             case ZeroOrMore zeroOrMore -> JJDoc.emitExpansionZeroOrMore(zeroOrMore, gen);
             case ZeroOrOne zeroOrOne -> JJDoc.emitExpansionZeroOrOne(zeroOrOne, gen);
-            case null, default -> JJDocGlobals.error("Oops: Unknown expansion type.");
+            case null, default ->
+                    throw new GenerationException("Unknown expansion type: " + exp);
         }
-        // gen.text("[<-" + exp.getClass().getName() + "]");
     }
 
     private static void emitExpansionAction() {
     }
 
-    private static void emitExpansionChoice(Choice c, Generator gen) {
+    private static void emitExpansionChoice(Choice c, DocGenerator gen) {
         for (Iterator<Expansion> it = c.getChoices().iterator(); it.hasNext(); ) {
             Expansion e = it.next();
             JJDoc.emitExpansionTree(e, gen);
@@ -130,19 +131,19 @@ class JJDoc extends JJDocGlobals {
     private static void emitExpansionLookahead() {
     }
 
-    private static void emitExpansionNonTerminal(NonTerminal nt, Generator gen) {
+    private static void emitExpansionNonTerminal(NonTerminal nt, DocGenerator gen) {
         gen.nonTerminalStart(nt);
         gen.text(nt.getName());
         gen.nonTerminalEnd(nt);
     }
 
-    private static void emitExpansionOneOrMore(OneOrMore o, Generator gen) {
+    private static void emitExpansionOneOrMore(OneOrMore o, DocGenerator gen) {
         gen.text("( ");
         JJDoc.emitExpansionTree(o.getExpansion(), gen);
         gen.text(" )+");
     }
 
-    private static void emitExpansionRegularExpression(RExpression r, Generator gen) {
+    private static void emitExpansionRegularExpression(RExpression r, DocGenerator gen) {
         String reRendered = JJDoc.emitRE(r);
         if (!reRendered.isEmpty()) {
             gen.reStart(r);
@@ -151,7 +152,7 @@ class JJDoc extends JJDocGlobals {
         }
     }
 
-    private static void emitExpansionSequence(Sequence s, Generator gen) {
+    private static void emitExpansionSequence(Sequence s, DocGenerator gen) {
         boolean firstUnit = true;
         for (Expansion e : s.getUnits()) {
             if ((e instanceof Lookahead) || (e instanceof Action)) {
@@ -172,13 +173,13 @@ class JJDoc extends JJDocGlobals {
         }
     }
 
-    private static void emitExpansionZeroOrMore(ZeroOrMore z, Generator gen) {
+    private static void emitExpansionZeroOrMore(ZeroOrMore z, DocGenerator gen) {
         gen.text("( ");
         JJDoc.emitExpansionTree(z.getExpansion(), gen);
         gen.text(" )*");
     }
 
-    private static void emitExpansionZeroOrOne(ZeroOrOne z, Generator gen) {
+    private static void emitExpansionZeroOrOne(ZeroOrOne z, DocGenerator gen) {
         gen.text("( ");
         JJDoc.emitExpansionTree(z.getExpansion(), gen);
         gen.text(" )?");
@@ -226,7 +227,8 @@ class JJDoc extends JJDocGlobals {
                         returnString.append(Encoding.escape(new String(s)));
                         returnString.append("\"");
                     } else {
-                        JJDocGlobals.error("Oops: unknown character list element type.");
+                        throw new GenerationException(
+                                "Unknown character list element type: " + o);
                     }
                     if (it.hasNext())
                         returnString.append(",");
@@ -289,7 +291,7 @@ class JJDoc extends JJDocGlobals {
                 }
                 returnString.append("}");
             }
-            default -> JJDocGlobals.error("Oops: Unknown regular expression type.");
+            default -> throw new GenerationException("Unknown regular expression type: " + re);
         }
         if (needBrackets) {
             returnString.append(">");

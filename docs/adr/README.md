@@ -27,13 +27,19 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0011](0011-error-handling-contract.md) | Generation reports failure by throwing, never by exiting the JVM | 🟢 Accepted |
 | [0012](0012-lexer-owns-dfa-construction.md) | The lexer stage owns DFA construction; generators only render it | 🟢 Accepted |
 | [0013](0013-break-model-parser-dependency-cycle.md) | Break the `model` ↔ `parser` dependency cycle | 🟢 Accepted |
-| [0014](0014-rename-project-to-waggle.md) | Rename the project from HiveVM CC to HiveVM Waggle | 🟡 Proposed |
-| [0015](0015-diagnostics-and-generation-request.md) | Diagnostics and the generation request are values, not process-global state | 🟡 Proposed |
-| [0016](0016-tree-building-as-an-optional-module.md) | Tree building is an optional module with its own model and emitter | 🟡 Proposed |
-| [0017](0017-lexer-emission-by-composition.md) | The lexer back ends compose emitters over a target syntax | 🟡 Proposed |
-| [0018](0018-rendering-is-pure-an-output-sink-writes.md) | Rendering produces text; an output sink writes it | 🟡 Proposed |
-| [0019](0019-package-layout-and-dependency-dag.md) | A package layout that names the stages, and a dependency DAG that is tested | 🟡 Proposed |
-| [0020](0020-interpreted-mode.md) | A grammar can be run without generating code | 🟡 Proposed |
+| [0014](0014-rename-project-to-waggle.md) | Rename the project from HiveVM CC to HiveVM Waggle | 🟢 Accepted |
+| [0015](0015-diagnostics-and-generation-request.md) | Diagnostics and the generation request are values, not process-global state | 🟢 Accepted |
+| [0016](0016-tree-building-as-an-optional-module.md) | Tree building is an optional module with its own model and emitter | 🟢 Accepted |
+| [0017](0017-lexer-emission-by-composition.md) | The lexer back ends compose emitters over a target syntax | 🟢 Accepted |
+| [0018](0018-rendering-is-pure-an-output-sink-writes.md) | Rendering produces text; an output sink writes it | 🟢 Accepted |
+| [0019](0019-package-layout-and-dependency-dag.md) | A package layout that names the stages, and a dependency DAG that is tested | 🟢 Accepted |
+| [0020](0020-interpreted-mode.md) | A grammar can be run without generating code | 🟢 Accepted |
+| [0021](0021-parser-emission-by-composition.md) | The parser back ends compose over a target syntax | 🟢 Accepted |
+| [0022](0022-generation-failure-type.md) | Generation fails with `GenerationException`, not the generated parser's exception | 🟢 Accepted |
+| [0023](0023-template-engine-independent-of-waggle.md) | The template engine does not depend on Waggle, and the tested DAG covers every package | 🟢 Accepted |
+| [0024](0024-javacc-heritage-vocabulary.md) | Rename the JavaCC-era names that stay inside the generator | 🟢 Accepted |
+| [0025](0025-one-grammar-file.md) | A grammar is one file; the sibling `.lex` is removed | 🟢 Accepted |
+| [0026](0026-one-dependency-graph.md) | One dependency graph, stated once and tested over the whole tree | 🟡 Proposed |
 
 ## Process
 

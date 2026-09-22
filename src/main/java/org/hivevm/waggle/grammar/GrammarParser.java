@@ -6,13 +6,13 @@ package org.hivevm.waggle.grammar;
 import org.hivevm.waggle.api.WaggleOptions;
 
 /**
- * The {@link JavaCCParserDefault} class.
+ * The {@link GrammarParser} class.
  */
-public class JavaCCParserDefault extends Parser {
+public class GrammarParser extends Parser {
 
     private final WaggleOptions options;
 
-    public JavaCCParserDefault(Provider stream, WaggleOptions options) {
+    public GrammarParser(Provider stream, WaggleOptions options) {
         super(stream);
         this.options = options;
     }

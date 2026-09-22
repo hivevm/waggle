@@ -10,12 +10,15 @@ import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
 
 /**
- * A report generator for a grammar.
+ * A report sink for a grammar: JJDoc walks the model and calls this to write the document.
+ *
+ * <p>Named DocGenerator, not Generator, because {@code codegen.Generator} is the back-end SPI and
+ * the two met in stack traces and imports under one name.
  *
  * @author timp
  * @since 11-Dec-2006
  */
-interface Generator {
+interface DocGenerator {
 
     /**
      * Output string with entity substitution for brackets and ampersands.

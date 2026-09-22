@@ -3,28 +3,23 @@
 
 package org.hivevm.waggle.codegen.rust;
 
+import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
-import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
-import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.RStringLiteral;
-import org.hivevm.waggle.model.TokenKind;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentCharacter;
 import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentlyMatched;
 import org.hivevm.source.SourceProvider;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 
@@ -53,7 +48,7 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected final void generate(LexerData data, Context options) {
+    protected final void generate(LexerData data, OptionsContext options) {
         // A jjbitVec is a 256-bit map over the low byte: always four u64. This used to be the
         // number of vectors, which is a different thing entirely and only ever matched by accident.
         options.set("LOHI_BYTES_LENGTH", 4);
@@ -223,7 +218,7 @@ class RustLexerGenerator extends LexerGenerator {
         return "_" + state.nonAsciiMethod;
     }
 
-    protected SourceProvider getConstantsTemplate() {
+    protected SourceProvider<Options> getConstantsTemplate() {
         return RustTemplate.PARSER_CONSTANTS;
     }
 

@@ -1,6 +1,6 @@
 # ADR-0016: Tree building is an optional module with its own model and emitter
 
-- **Status:** 🟡 Proposed
+- **Status:** 🟢 Accepted
 - **Date:** 2026-09-20
 - **Deciders:** HiveVM Waggle maintainers
 - **Supersedes:** —

@@ -4,15 +4,11 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * Emits the NFA move loop: {@code jjMoveNfa} and the ASCII and non-ASCII move code for single
@@ -706,13 +702,11 @@ public class NfaMoveEmitter {
         this.syntax.printDefaultAndEndLoop(printer, true);
     }
 
-    protected Vector<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
+    protected List<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
         var cardinalities = new int[states.length];
-        var original = new Vector<NfaState>();
-        var partition = new Vector<List<NfaState>>();
+        var original = new ArrayList<NfaState>();
+        var partition = new ArrayList<List<NfaState>>();
         NfaState tmp;
-
-        original.setSize(states.length);
         int cnt = 0;
         for (int i = 0; i < states.length; i++) {
             tmp = data.getAllState(states[i]);
@@ -732,16 +726,14 @@ public class NfaMoveEmitter {
                 }
 
                 cardinalities[j] = p;
-                original.insertElementAt(tmp, j);
+                original.add(j, tmp);
                 cnt++;
             }
         }
 
-        original.setSize(cnt);
-
         while (!original.isEmpty()) {
             tmp = original.getFirst();
-            original.removeElement(tmp);
+            original.remove(tmp);
 
             long bitVec = tmp.asciiMoves[byteNum];
             List<NfaState> subSet = new ArrayList<>();
@@ -753,7 +745,7 @@ public class NfaMoveEmitter {
                 if ((tmp1.asciiMoves[byteNum] & bitVec) == 0L) {
                     bitVec |= tmp1.asciiMoves[byteNum];
                     subSet.add(tmp1);
-                    original.removeElementAt(j--);
+                    original.remove(j--);
                 }
             }
 

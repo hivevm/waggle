@@ -3,25 +3,21 @@
 
 package org.hivevm.waggle.codegen.cpp;
 
+import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
-import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
-import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
-import org.hivevm.waggle.model.TokenKind;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -44,7 +40,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected final void generate(LexerData data, Context options) {
+    protected final void generate(LexerData data, OptionsContext options) {
         options.add("STATE_NAMES_AS_CHARS", data.getStateCount())
                 .set("STATE_NAMES_AS_CHARS_INDEX", i -> i)
                 .set("STATE_NAMES_AS_CHARS_CHARS", (i, w) -> CppLexerGenerator.getTextAsChars(data.getStateName(i), w));
@@ -61,7 +57,7 @@ class CppLexerGenerator extends LexerGenerator {
         CppTemplate.LEXER_H.render(options, data.getParserName());
     }
 
-    protected SourceProvider getConstantsTemplate() {
+    protected SourceProvider<Options> getConstantsTemplate() {
         return CppTemplate.PARSER_CONSTANTS;
     }
 

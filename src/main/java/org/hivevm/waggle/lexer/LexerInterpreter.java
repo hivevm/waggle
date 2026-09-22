@@ -41,6 +41,8 @@ public final class LexerInterpreter {
     /** Why the lexer stopped before the end of the input. */
     public static final class LexerError extends RuntimeException {
 
+        private static final long serialVersionUID = 1L;
+
         private final int offset;
 
         LexerError(String message, int offset) {

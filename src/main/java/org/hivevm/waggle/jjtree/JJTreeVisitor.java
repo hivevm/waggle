@@ -87,7 +87,6 @@ public class JJTreeVisitor extends NodeDefaultVisitor {
         }
 
         String indent = getIndentation(node.expansion_unit);
-        // tryExpansionUnit0(node.node_scope, io, indent, node.expansion_unit);
         node.expansion_unit.jjtAccept(this, writer);
         writer.println();
         writer.println("};");

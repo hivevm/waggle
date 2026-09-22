@@ -8,67 +8,83 @@ import org.hivevm.waggle.api.WaggleCompiler;
 import org.hivevm.waggle.api.GenerationContext;
 import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.Diagnostics;
-import org.hivevm.waggle.grammar.JavaCCData;
-import org.hivevm.waggle.grammar.JavaCCParserDefault;
+import org.hivevm.waggle.grammar.GrammarData;
+import org.hivevm.waggle.grammar.GrammarParser;
 import org.hivevm.waggle.grammar.Parser;
 import org.hivevm.waggle.grammar.StreamProvider;
 
 import java.io.FileInputStream;
-import java.text.ParseException;
+import org.hivevm.waggle.grammar.ParseException;
 
 /**
- * Main class.
+ * The command line of JJDoc: it reads the arguments, runs one documentation pass and reports the
+ * verdict.
+ *
+ * <p>The two printing methods below were {@code JJDocGlobals}, a class this one and {@link JJDoc}
+ * both extended purely to reach its statics. What belongs on a command line — the help text, the
+ * progress notes, the closing verdict — lives here now; what is about the grammar goes to
+ * {@link Diagnostics} like every other stage's does (ADR-0015).
  */
-public final class JJDocMain extends JJDocGlobals {
+public final class JJDocMain {
 
     private JJDocMain() {
     }
 
+    /** Writes a note about the run itself to standard output. */
+    private static void info(String message) {
+        System.out.println(message);
+    }
+
+    /** Writes a failure of the run itself to standard error. */
+    private static void error(String message) {
+        System.err.println(message);
+    }
+
     private static void help_message() {
-        JJDocGlobals.info("");
-        JJDocGlobals.info("    jjdoc option-settings - (to read from standard input)");
-        JJDocGlobals.info("OR");
-        JJDocGlobals.info("    jjdoc option-settings inputfile (to read from a file)");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("WHERE");
-        JJDocGlobals.info("    \"option-settings\" is a sequence of settings separated by spaces.");
-        JJDocGlobals.info("");
+        JJDocMain.info("");
+        JJDocMain.info("    jjdoc option-settings - (to read from standard input)");
+        JJDocMain.info("OR");
+        JJDocMain.info("    jjdoc option-settings inputfile (to read from a file)");
+        JJDocMain.info("");
+        JJDocMain.info("WHERE");
+        JJDocMain.info("    \"option-settings\" is a sequence of settings separated by spaces.");
+        JJDocMain.info("");
 
-        JJDocGlobals.info("Each option setting must be of one of the following forms:");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("    -optionname=value (e.g., -TEXT=false)");
-        JJDocGlobals.info("    -optionname:value (e.g., -TEXT:false)");
-        JJDocGlobals.info("    -optionname       (equivalent to -optionname=true.  e.g., -TEXT)");
-        JJDocGlobals.info("    -NOoptionname     (equivalent to -optionname=false. e.g., -NOTEXT)");
-        JJDocGlobals.info("");
-        JJDocGlobals.info(
+        JJDocMain.info("Each option setting must be of one of the following forms:");
+        JJDocMain.info("");
+        JJDocMain.info("    -optionname=value (e.g., -TEXT=false)");
+        JJDocMain.info("    -optionname:value (e.g., -TEXT:false)");
+        JJDocMain.info("    -optionname       (equivalent to -optionname=true.  e.g., -TEXT)");
+        JJDocMain.info("    -NOoptionname     (equivalent to -optionname=false. e.g., -NOTEXT)");
+        JJDocMain.info("");
+        JJDocMain.info(
                 "Option settings are not case-sensitive, so one can say \"-nOtExT\" instead");
-        JJDocGlobals.info(
+        JJDocMain.info(
                 "of \"-NOTEXT\".  Option values must be appropriate for the corresponding");
-        JJDocGlobals.info("option, and must be either an integer, boolean or string value.");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("The string valued options are:");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("    OUTPUT_FILE");
-        JJDocGlobals.info("    CSS");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("The boolean valued options are:");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("    ONE_TABLE              (default true)");
-        JJDocGlobals.info("    TEXT                   (default false)");
-        JJDocGlobals.info("    BNF                    (default false)");
-        JJDocGlobals.info("");
+        JJDocMain.info("option, and must be either an integer, boolean or string value.");
+        JJDocMain.info("");
+        JJDocMain.info("The string valued options are:");
+        JJDocMain.info("");
+        JJDocMain.info("    OUTPUT_FILE");
+        JJDocMain.info("    CSS");
+        JJDocMain.info("");
+        JJDocMain.info("The boolean valued options are:");
+        JJDocMain.info("");
+        JJDocMain.info("    ONE_TABLE              (default true)");
+        JJDocMain.info("    TEXT                   (default false)");
+        JJDocMain.info("    BNF                    (default false)");
+        JJDocMain.info("");
 
-        JJDocGlobals.info("");
-        JJDocGlobals.info("EXAMPLES:");
-        JJDocGlobals.info("    jjdoc -ONE_TABLE=false mygrammar.waggle");
-        JJDocGlobals.info("    jjdoc - < mygrammar.waggle");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("ABOUT JJDoc:");
-        JJDocGlobals.info("    JJDoc generates JavaDoc documentation from JavaCC grammar files.");
-        JJDocGlobals.info("");
-        JJDocGlobals.info("    For more information, see the online JJDoc documentation at");
-        JJDocGlobals.info("    https://javacc.dev.java.net/doc/JJDoc.html");
+        JJDocMain.info("");
+        JJDocMain.info("EXAMPLES:");
+        JJDocMain.info("    jjdoc -ONE_TABLE=false mygrammar.waggle");
+        JJDocMain.info("    jjdoc - < mygrammar.waggle");
+        JJDocMain.info("");
+        JJDocMain.info("ABOUT JJDoc:");
+        JJDocMain.info("    JJDoc generates JavaDoc documentation from JavaCC grammar files.");
+        JJDocMain.info("");
+        JJDocMain.info("    For more information, see the online JJDoc documentation at");
+        JJDocMain.info("    https://javacc.dev.java.net/doc/JJDoc.html");
     }
 
     /**
@@ -86,76 +102,76 @@ public final class JJDocMain extends JJDocGlobals {
             JJDocMain.help_message();
             System.exit(1);
         } else {
-            JJDocGlobals.info("(type \"jjdoc\" with no arguments for help)");
+            JJDocMain.info("(type \"jjdoc\" with no arguments for help)");
         }
 
         if (options.isOption(args[args.length - 1])) {
-            JJDocGlobals.error(
+            JJDocMain.error(
                     "Last argument \"" + args[args.length - 1] + "\" is not a filename or \"-\".  ");
             System.exit(1);
         }
         for (int arg = 0; arg < (args.length - 1); arg++) {
             if (!options.isOption(args[arg])) {
-                JJDocGlobals.error("Argument \"" + args[arg] + "\" must be an option setting.  ");
+                JJDocMain.error("Argument \"" + args[arg] + "\" must be an option setting.  ");
                 System.exit(1);
             }
-            options.setCmdLineOption(args[arg]);
+            options.setCmdLineOption(diagnostics, args[arg]);
         }
 
         if (args[args.length - 1].equals("-")) {
-            JJDocGlobals.info("Reading from standard input . . .");
-            parser = new JavaCCParserDefault(
+            JJDocMain.info("Reading from standard input . . .");
+            parser = new GrammarParser(
                     new StreamProvider(new java.io.DataInputStream(System.in)),
                     options);
         } else {
-            JJDocGlobals.info("Reading from file " + args[args.length - 1] + " . . .");
+            JJDocMain.info("Reading from file " + args[args.length - 1] + " . . .");
             try {
                 java.io.File fp = new java.io.File(args[args.length - 1]);
                 if (!fp.exists()) {
-                    JJDocGlobals.error("File " + args[args.length - 1] + " not found.");
+                    JJDocMain.error("File " + args[args.length - 1] + " not found.");
                 }
                 if (fp.isDirectory()) {
-                    JJDocGlobals.error(
+                    JJDocMain.error(
                             args[args.length - 1] + " is a directory. Please use a valid file name.");
                 }
                 inputFile = fp.getName();
-                parser = new JavaCCParserDefault(
+                parser = new GrammarParser(
                         new StreamProvider(new FileInputStream(args[args.length - 1]),
                                 WaggleOptions.getFileEncoding()), options);
             } catch (SecurityException se) {
-                JJDocGlobals.error(
+                JJDocMain.error(
                         "Security violation while trying to open " + args[args.length - 1]);
             } catch (java.io.FileNotFoundException e) {
-                JJDocGlobals.error("File " + args[args.length - 1] + " not found.");
+                JJDocMain.error("File " + args[args.length - 1] + " not found.");
             }
         }
 
-        JavaCCData javacc = new JavaCCData(new GenerationContext(options, diagnostics));
+        GrammarData javacc = new GrammarData(new GenerationContext(options, diagnostics));
         try {
             parser.initialize(javacc);
-            parser.javacc_input();
+            parser.grammar_input();
 
             var generator = JJDoc.start(javacc, inputFile);
 
             if (!diagnostics.hasError()) {
                 if (!diagnostics.hasWarning()) {
-                    JJDocGlobals.info(
+                    JJDocMain.info(
                             "Grammar documentation generated successfully in "
                                     + generator.outputFile());
                 } else {
-                    JJDocGlobals.info(
+                    JJDocMain.info(
                             "Grammar documentation generated with 0 errors and "
                                     + diagnostics.warningCount() + " warnings.");
                 }
                 System.exit(0);
             } else {
-                JJDocGlobals.error("Detected " + diagnostics.errorCount() + " errors and "
+                JJDocMain.error("Detected " + diagnostics.errorCount() + " errors and "
                         + diagnostics.warningCount() + " warnings.");
                 System.exit((diagnostics.errorCount() == 0) ? 0 : 1);
             }
         } catch (ParseException e) {
-            JJDocGlobals.error(e.toString());
-            JJDocGlobals.error("Detected " + diagnostics.errorCount() + " errors and "
+            JJDocMain.error(e.toString());
+            JJDocMain.error("Detected " + diagnostics.errorCount() + " errors and "
                     + diagnostics.warningCount() + " warnings.");
             System.exit(1);
         }

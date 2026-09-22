@@ -8,7 +8,6 @@ import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
-import org.hivevm.waggle.api.Options;
 
 /**
  * The {@link ParserRequest} class.

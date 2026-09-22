@@ -88,6 +88,7 @@ public class Template {
      * {@link OutputSink} (ADR-0018). The checksum and the option list at the end are part of the
      * rendered text, not of writing it.
      */
+    @SuppressWarnings("fallthrough")
     public final String render(String title, Environment environment) {
         var builder = new RendererBuilder(title);
 
@@ -115,8 +116,11 @@ public class Template {
                     builder.addCase(param);
                     break;
 
+                // //@if pushes two renderers - the match and the list of its first case -
+                // so closing one pops twice, which is //@end's single pop plus one.
                 case FI:
                     builder.pop();
+                    // fall through
                 case END:
                     builder.pop();
                     break;
@@ -152,11 +156,11 @@ public class Template {
     }
 
     /**
-     * Creates a new instance of {@link Context} using the provided {@link Environment}. The
+     * Creates a new instance of {@link Context} using the provided {@link RenderContext}. The
      * returned context is designed to manage key-value pairs and interact with the given
      * environment.
      */
-    public static Context newContext(Environment environment) {
+    public static Context newContext(RenderContext environment) {
         return new TemplateContext(environment);
     }
 }

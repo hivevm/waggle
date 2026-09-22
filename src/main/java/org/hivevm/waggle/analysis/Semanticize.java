@@ -5,15 +5,15 @@ package org.hivevm.waggle.analysis;
 
 import org.hivevm.waggle.api.SemanticRequest;
 import org.hivevm.waggle.model.*;
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.ParserOptions;
-import org.hivevm.waggle.grammar.ParseException;
 import org.hivevm.waggle.model.RegExprSpec;
 
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -114,10 +114,11 @@ public class Semanticize {
         return this.rexps_of_tokens.get(index);
     }
 
-    public static void semanticize(SemanticRequest request, Options options) throws ParseException {
+    public static void semanticize(SemanticRequest request, Options options) {
         var context = new SemanticContext(ParserOptions.from(options), request.diagnostics());
         if (request.diagnostics().hasError())
-            throw new ParseException();
+            throw new GenerationException("The grammar has " + request.diagnostics().errorCount()
+                    + " error(s) from parsing; semantic analysis did not run.");
 
         if ((context.getLookahead() > 1) && !context.isForceLaCheck() && context.isSanityCheck())
             context.onWarning(
@@ -131,7 +132,7 @@ public class Semanticize {
      * The semantic phases, in order. Each was an inline block of the one 333-line method this
      * replaces; the order between them is significant, so they stay a straight sequence.
      */
-    private void run() throws ParseException {
+    private void run() {
         liftLookaheadsToChoices();
         buildProductionTable();
         checkNonTerminalsAreDefined();
@@ -147,7 +148,8 @@ public class Semanticize {
         removePreparedItems();
 
         if (this.context.hasErrors())
-            throw new ParseException();
+            throw new GenerationException("Semantic analysis found " + this.context.errorCount()
+                    + " error(s) in the grammar.");
 
         computeEmptyPossible();
 
@@ -163,7 +165,8 @@ public class Semanticize {
         }
 
         if (this.context.hasErrors())
-            throw new ParseException();
+            throw new GenerationException("Semantic analysis found " + this.context.errorCount()
+                    + " error(s) in the grammar.");
     }
 
     /**
@@ -210,7 +213,6 @@ public class Semanticize {
                     this.context.onSemanticError(res.nsTok,
                             "Lexical state \"" + res.nextState + "\" has not been defined.");
                 if (res.rexp instanceof REndOfFile) {
-                    // this.context.onSemanticError(res.rexp, "Badly placed <EOF>.");
                     if (tp.getLexStates() != null)
                         this.context.onSemanticError(res.rexp,
                                 "EOF action/state change must be specified for all states, "
@@ -282,7 +284,7 @@ public class Semanticize {
                     tokenProduction.setLexState(stateName, i++);
                 }
             }
-            Hashtable<String, Hashtable<String, RExpression>>[] table = new Hashtable[tokenProduction.getLexStates().length];
+            var table = Semanticize.newTokenTables(tokenProduction.getLexStates().length);
             for (int i = 0; i < tokenProduction.getLexStates().length; i++) {
                 table[i] = this.request.getSimpleTokenTable(tokenProduction.getLexStates()[i]);
             }
@@ -291,13 +293,13 @@ public class Semanticize {
                     // This loop performs the checks and actions with respect to each lexical state.
                     for (int i = 0; i < table.length; i++) {
                         // Get table of all case variants of "sl.image" into table2.
-                        Hashtable<String, RExpression> table2 = table[i].get(sl.getImage().toUpperCase());
+                        Map<String, RExpression> table2 = table[i].get(sl.getImage().toUpperCase());
                         if (table2 == null) {
                             // There are no case variants of "sl.image" earlier than the current one.
                             // So go ahead and insert this item.
                             if (sl.getOrdinal() == 0)
                                 sl.setOrdinal(this.request.addTokenCount());
-                            table2 = new Hashtable<>();
+                            table2 = new LinkedHashMap<>();
                             table2.put(sl.getImage(), sl);
                             table[i].put(sl.getImage().toUpperCase(), table2);
                         } else if (this.hasIgnoreCase(table2,
@@ -512,9 +514,15 @@ public class Semanticize {
         };
     }
 
+    /** The per-lexical-state token tables of one token production; see {@code newStatesForPos}. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Map<String, Map<String, RExpression>>[] newTokenTables(int length) {
+        return new Map[length];
+    }
+
     // Checks to see if the "str" is superseded by another equal (except case) string
     // in table.
-    private boolean hasIgnoreCase(Hashtable<String, RExpression> table, String str) {
+    private boolean hasIgnoreCase(Map<String, RExpression> table, String str) {
         var rexp = table.get(str);
         if ((rexp != null) && !rexp.isIgnoreCase())
             return false;

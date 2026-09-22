@@ -459,7 +459,6 @@ public final class RCharacterList extends RExpression {
                     continue;
                 }
 
-                // System.out.println("lastRemoved : " + (int)lastRemoved + "; char : " + (int)c);
                 newDescriptors.add(
                         new CharacterRange((char) (lastRemoved + 1), (char) ((lastRemoved = c) - 1)));
             } else {
@@ -476,7 +475,6 @@ public final class RCharacterList extends RExpression {
             }
         }
 
-        // System.out.println("lastRem : " + (int)lastRemoved);
         if (lastRemoved < (char) 0xffff) {
             newDescriptors.add(new CharacterRange((char) (lastRemoved + 1), (char) 0xffff));
         }

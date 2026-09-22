@@ -1,6 +1,6 @@
 # ADR-0014: Rename the project from HiveVM CC to HiveVM Waggle
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-19
 - **Deciders:** Markus Brigl
 - **Supersedes:** [ADR-0006](0006-gradle-plugin-interface.md) in part — only the plugin id
@@ -113,6 +113,11 @@ Explicitly **out of scope** (unchanged):
   grammar — but without the old "Tree Builder" banner; nothing else about its output changes.
 - The rest of the JJTree pre-processor (`JJTreeParserDefault`, `JJTreeVisitor`, `TreeGenerator`,
   `ASTWriter`) stays dead code, as the README already records; removing it is separate work.
+  *(Settled otherwise since: [ADR-0016](0016-tree-building-as-an-optional-module.md) decision 5 and
+  [ADR-0019](0019-package-layout-and-dependency-dag.md) make `jjtree` the **tested reference
+  consumer** of tree building — the build regenerates it from `JJTree.waggle` on every run and two
+  tests exercise it, so it is not removed and it is not dead. This bullet records what was expected
+  in September 2026, not what was decided.)*
 - Consumers of `org.hivevm.cc` are stranded on the last `cc` release. The release notes of the first
   `waggle` release must state the migration (plugin id, packages, `Waggle.h`/`WAGGLE_*`).
 - ADRs 0001–0013 use the old name; readers must know that "HiveVM CC" and "HiveVM Waggle" are the same
