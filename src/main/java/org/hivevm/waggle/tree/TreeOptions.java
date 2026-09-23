@@ -20,6 +20,7 @@ import java.util.Set;
  * node and will never see a visitor (ADR-0016). The option names in grammars are unchanged; this is
  * only where they are read and when they are checked.
  *
+ * @param useAst          {@code USE_AST}: the grammar builds a tree at all (ADR-0028)
  * @param multi           {@code NODE_MULTI}: a distinct node class per rule
  * @param defaultVoid     {@code NODE_DEFAULT_VOID}: rules without a descriptor produce no node
  * @param scopeHook       {@code NODE_SCOPE_HOOK}: the parser calls open/close hooks
@@ -33,13 +34,13 @@ import java.util.Set;
  * @param visitorReturn   {@code VISITOR_RETURN_TYPE}
  * @param visitorException {@code VISITOR_EXCEPTION}
  */
-public record TreeOptions(boolean multi, boolean defaultVoid, boolean scopeHook, boolean trackTokens,
+public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, boolean scopeHook, boolean trackTokens,
                           boolean buildNodeFiles, String nodeClass, String nodeFactory,
                           Set<String> customNodes, boolean visitor, String visitorDataType,
                           String visitorReturn, String visitorException) {
 
     public static TreeOptions from(Options options) {
-        return new TreeOptions(options.getMulti(), options.getNodeDefaultVoid(),
+        return new TreeOptions(options.getUseAst(), options.getMulti(), options.getNodeDefaultVoid(),
                 options.getNodeScopeHook(), options.getTrackTokens(), options.getBuildNodeFiles(),
                 options.getNodeClass(), options.getNodeFactory(), options.getExcludeNodes(),
                 options.getVisitor(), options.getVisitorDataType(), options.getVisitorReturnType(),

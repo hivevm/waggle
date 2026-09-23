@@ -71,7 +71,7 @@ language-independent; only the back end (stage 5) is target-specific.
    token manager, per lexical state.
 5. **Code generation.** A target back end, selected via the `CODE_GENERATOR` option and resolved
    through a service-provider interface, renders the model into source using per-language templates —
-   producing the parser, the token manager (lexer), and, when the grammar uses `#Node`, the tree-node
+   producing the parser, the token manager (lexer), and, when the grammar sets `USE_AST` and uses `#Node`, the tree-node
    classes and visitor.
 
 A grammar can also be **interpreted** instead of generated: the pipeline runs to the finished

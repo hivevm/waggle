@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.tree;
 
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.NodeScope;
@@ -26,15 +27,27 @@ public interface TreeAnalyzer {
     /**
      * The tree of a grammar, or nothing.
      *
-     * <p>Nothing means the grammar declares no {@code #Node} and does not ask for the scope hooks —
-     * then no tree runtime, no node classes and no visitor are written, and the parser has no tree
-     * state to thread through.
+     * <p>Nothing means the grammar does not set {@code USE_AST}, or declares no {@code #Node} and
+     * does not ask for the scope hooks — then no tree runtime, no node classes and no visitor are
+     * written, and the parser has no tree state to thread through. Node descriptors in a grammar
+     * without {@code USE_AST} are ignored with a warning (ADR-0028). The tree options are checked
+     * only when a tree is built.
      */
-    static Optional<TreeModel> analyze(Iterable<NormalProduction> productions, TreeOptions options) {
+    static Optional<TreeModel> analyze(Iterable<NormalProduction> productions, TreeOptions options,
+                                       Diagnostics diagnostics) {
         var model = new TreeModel();
         productions.forEach(p -> TreeAnalyzer.collect(model, p, options));
 
-        return (model.isEmpty() && !options.scopeHook()) ? Optional.empty() : Optional.of(model);
+        if (model.isEmpty() && !options.scopeHook()) {
+            return Optional.empty();
+        }
+        if (!options.useAst()) {
+            diagnostics.warning("Node descriptors and NODE_SCOPE_HOOK will be ignored since USE_AST"
+                    + " is false; no tree is built");
+            return Optional.empty();
+        }
+        options.validate(diagnostics);
+        return Optional.of(model);
     }
 
     /**

@@ -15,6 +15,7 @@ public interface Waggle {
 
     String PARSER_NAME = "PARSER_NAME";
 
+    String USE_AST = "USE_AST";
     String NODE_MULTI = "NODE_MULTI";
     String NODE_TYPE = "NODE_TYPE";
     String NODE_EXTENDS = "NODE_EXTENDS";

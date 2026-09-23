@@ -11,6 +11,7 @@ import org.hivevm.waggle.api.GenerationRequest;
 
 import org.hivevm.waggle.api.Language;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +26,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Tree building follows from the grammar, not from a marker in its text.
+ * Tree building follows from the grammar's options, not from a marker in its text: a tree is built
+ * only when {@code USE_AST} is set and the grammar declares a {@code #Node} (ADR-0028).
  *
  * <p>The driver used to scan the grammar for an {@code @generated(JJTree)} comment — the stamp
  * JavaCC's JJTree pre-processor left on the intermediate grammar it wrote. There is no such
@@ -50,11 +52,12 @@ class TreeDetectionTest {
             TOKEN = < WORD: (["a"-"z"])+ > ;
             """;
 
-    /** The same grammar with a node descriptor, so tree building is genuinely requested. */
+    /** The same grammar with a node descriptor and USE_AST, so tree building is requested. */
     private static final String WITH_NODE = """
             grammar Noded;
 
             options {
+              USE_AST: true,
               JAVA_PACKAGE: "org.example"
             }
 
@@ -74,13 +77,33 @@ class TreeDetectionTest {
     }
 
     @Test
-    void aNodeDescriptorSwitchesOnTreeBuilding(@TempDir Path dir) throws IOException {
+    void aNodeDescriptorWithUseAstSwitchesOnTreeBuilding(@TempDir Path dir) throws IOException {
         var target = generate(dir, "Noded.waggle", TreeDetectionTest.WITH_NODE);
 
         assertTrue(Files.readString(target.resolve("org/example/Parser.java")).contains("jjtree"),
-                "a grammar with #Node must build a tree");
+                "a grammar with #Node and USE_AST must build a tree");
         assertTrue(Files.isRegularFile(target.resolve("org/example/Node.java")),
-                "the node runtime must be written for a grammar with #Node");
+                "the node runtime must be written for a grammar with #Node and USE_AST");
+    }
+
+    /**
+     * A node descriptor alone does not build a tree: without USE_AST it is ignored, and the author
+     * is told once, so a grammar can carry its annotations before it opts in (ADR-0028).
+     */
+    @Test
+    void withoutUseAstNodeDescriptorsAreIgnored(@TempDir Path dir) throws IOException {
+        var grammar = TreeDetectionTest.WITH_NODE.replace("  USE_AST: true,\n", "");
+        var target = generate(dir, "Noded.waggle", grammar);
+
+        assertFalse(Files.readString(target.resolve("org/example/Parser.java")).contains("jjtree"),
+                "a grammar without USE_AST must not build a tree");
+        assertFalse(Files.isRegularFile(target.resolve("org/example/Node.java")),
+                "no node runtime may be written for a grammar without USE_AST");
+
+        var diagnostics = diagnose(dir.resolve("diag"), "Noded.waggle", grammar);
+        assertEquals(1, diagnostics.collected().stream()
+                        .filter(d -> d.message().contains("USE_AST")).count(),
+                "the ignored node descriptors must be reported once: " + diagnostics.collected());
     }
 
     /** A tree option the grammar will never use, next to a grammar that builds no tree. */
@@ -88,6 +111,7 @@ class TreeDetectionTest {
             grammar Plain;
 
             options {
+              USE_AST: true,
               JAVA_PACKAGE: "org.example",
               VISITOR_DATA_TYPE: "Payload"
             }

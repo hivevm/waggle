@@ -174,6 +174,13 @@ public interface Options extends RenderContext {
     // TreeOptions
 
     /**
+     * Whether the grammar builds a tree at all (ADR-0028).
+     */
+    default boolean getUseAst() {
+        return booleanValue(Waggle.USE_AST);
+    }
+
+    /**
      * Find the multi value.
      */
     default boolean getMulti() {

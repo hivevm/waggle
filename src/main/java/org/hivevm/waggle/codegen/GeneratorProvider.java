@@ -65,8 +65,8 @@ public abstract class GeneratorProvider implements Generator {
         prepare(request);
 
         var treeOptions = TreeOptions.from(request.options());
-        var tree = TreeAnalyzer.analyze(request.getNormalProductions(), treeOptions);
-        tree.ifPresent(t -> treeOptions.validate(request.diagnostics()));
+        var tree = TreeAnalyzer.analyze(request.getNormalProductions(), treeOptions,
+                request.diagnostics());
 
         var dataLexer = new LexerBuilder().build(request);
         var dataParser = new ParserPlanner().build(request, tree);

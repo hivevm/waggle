@@ -8,6 +8,13 @@
 grammar Waggle;
 
 options {
+  USE_AST: false,
+//  NODE_MULTI: true,
+//  NODE_DEFAULT_VOID: true,
+//  NODE_SCOPE_HOOK: true,
+//  NODE_CLASS: "ASTNode",
+//  VISITOR: true,
+//  VISITOR_DATA_TYPE: "ASTWriter",
   JAVA_PACKAGE: "org.hivevm.waggle.grammar",
   JAVA_IMPORTS: "java.util.ArrayList,java.util.List,org.hivevm.waggle.model.*",
   BASE_PARSER: "AbstractGrammarParser"
@@ -16,42 +23,22 @@ options {
 /************************************************
  * THE WAGGLE GRAMMAR SPECIFICATION STARTS HERE *
  ************************************************/
-grammar_input =
+grammar_input #Grammar =
+  (
   < _GRAMMAR > <IDENTIFIER> <? setParserName(getToken(0)); ?> < SEMICOLON >
   [ < _OPTIONS > < LBRACE > option_binding() (< COMMA > option_binding())* < RBRACE > ]
+  ) #CompilationUnit(true)
   ( ( regular_expr_production() | bnf_production() ) < SEMICOLON > ) +
   <EOF>
 ;
 
-option_binding =
+option_binding #OptionBinding =
   <? Token t = getToken(1); ?>
   <IDENTIFIER> < COLON > ( IntegerLiteral() | BooleanLiteral() | StringLiteral() )
   <? setInputOption(t, getToken(0)); ?>
 ;
 
-bnf_production =
-<?
-	var t = getToken(1);
-	String name;
-	Expansion e;
-	var p = new BNFProduction();
-	p.setFirstToken(t);
-	p.setLocation(t);
-	p.setThrowsList(new ArrayList<>());
-?>
-  name=identifier() <? p.setLhs(name); ?>
-  [ < LPAREN > [ FormalParameters(p.getParameterListTokens()) ] < RPAREN > ]
-  [ < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ]
-  [ node_descriptor(p, p) ]
-  < ASSIGN >
-  e=expansion_choices(p)
-<?
-	production_addexpansion(p, e);
-	addproduction(p);
-?>
-;
-
-regular_expr_production =
+regular_expr_production #REProduction =
 <?
 	List<String> states;
 	var t = getToken(1);
@@ -87,7 +74,7 @@ regexpr_kind(TokenProduction p) =
 | < _MORE > <? p.setKind(TokenKind.MORE); ?>
 ;
 
-regexpr_spec(TokenProduction p) =
+regexpr_spec(TokenProduction p) #RESpec =
 <?
 	RExpression re;
 	var a = new Action();
@@ -117,7 +104,31 @@ regexpr_spec(TokenProduction p) =
 ?>
 ;
 
-expansion_choices(BNFProduction p) : Expansion =
+bnf_production #BNF =
+<?
+	var t = getToken(1);
+	String name;
+	Expansion e;
+	var p = new BNFProduction();
+	p.setFirstToken(t);
+	p.setLocation(t);
+	p.setThrowsList(new ArrayList<>());
+?>
+  name=identifier() <? p.setLhs(name); ?>
+  [ < LPAREN > [ FormalParameters(p.getParameterListTokens()) ] < RPAREN > ]
+  [ < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ]
+  [ node_descriptor(p, p) ] #BNFDeclaration
+  < ASSIGN >
+  (
+  e=expansion_choices(p)
+<?
+	production_addexpansion(p, e);
+	addproduction(p);
+?>
+  ) #BNFNodeScope
+;
+
+expansion_choices(BNFProduction p) : Expansion #BNFChoice(> 1) =
 <?
 	Expansion e;
 	var choices = new ArrayList<Expansion>();
@@ -129,7 +140,7 @@ expansion_choices(BNFProduction p) : Expansion =
 ?>
 ;
 
-expansion(BNFProduction p) : Expansion =
+expansion(BNFProduction p) : Expansion #BNFSequence(> 1) =
 <?
 	Expansion exp = null;
 	var t = getToken(1);
@@ -142,22 +153,24 @@ expansion(BNFProduction p) : Expansion =
 	la.setExplicit(false);
 ?>
   ( LOOKAHEAD(1)
-    t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
+  ( t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
 <?
 	if (inLocalLA != 0 && la.getAmount() != 0)
 		diagnostics().warning(t, "Only semantic lookahead specifications within other lookahead specifications is considered.  Syntactic lookahead is ignored.");
 ?>
-  )?
+  ) #BNFLookahead )?
 <?
 	seq.getUnits().add(la);
 ?>
   ( LOOKAHEAD(0, { notTailOfExpansionUnit() } )
+    (
     exp=expansion_unit(p)
 <?
 	seq.getUnits().add(exp);
 	exp.setParent(seq, seq.getUnits().size() - 1);
 ?>
     [ node_descriptor(exp, p) ]
+    ) #BNFExpansionScope(> 1)
   )+
 <?
 	if (la.getLaExpansion() == null)
@@ -234,7 +247,7 @@ expansion_unit(BNFProduction p) : Expansion =
    * We give this priority over primary expressions which use LOOKAHEAD as the
    * name of its identifier.
    */
-  t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN >
+  ( t=< _LOOKAHEAD > < LPAREN > la=local_lookahead(p) < RPAREN > ) #BNFLookahead
 <?
 	// Now set the la_expansion field of la with a dummy
 	// expansion (we use EOF).
@@ -265,24 +278,20 @@ expansion_unit(BNFProduction p) : Expansion =
 	t = getToken(1);
 	act.setLocation(t);
 ?>
-  Statement(act.getActionTokens())
+  Statement(act.getActionTokens()) #BNFAction
 <?
 	if (inLocalLA != 0)
 		diagnostics().warning(t, "Action within lookahead specification will be ignored.");
 	e = act;
 ?>
-| t=< LBRACKET > e=expansion_choices(p) < RBRACKET >
+| ( t=< LBRACKET > e=expansion_choices(p) < RBRACKET > ) #BNFZeroOrOne
 <?
 	e = new ZeroOrOne(e);
 	e.setLocation(t);
 ?>
 |
-  LOOKAHEAD(
-    identifier()
-  | StringLiteral()
-  | < LT >
-  | PrimaryExpression() < ASSIGN >
-  )
+  LOOKAHEAD( identifier() | StringLiteral() | < LT > | PrimaryExpression() < ASSIGN > )
+(
   [
     LOOKAHEAD(PrimaryExpression() < ASSIGN >)
 <?
@@ -317,13 +326,14 @@ expansion_unit(BNFProduction p) : Expansion =
 	  e = re;
 ?>
 	[ < DOT > t=<IDENTIFIER> <? re.setRhsToken(t); ?> ]
-  )
+  ) #BNFNonTerminal
+) #BNFAssignment(> 1)
 |
   t=< LPAREN > e=expansion_choices(p) < RPAREN >
   (
-     < PLUS > <? e = new OneOrMore(e); e.setLocation(t); ?>
-   | < STAR > <? e = new ZeroOrMore(e); e.setLocation(t); ?>
-   | < HOOK > <? e = new ZeroOrOne(e); e.setLocation(t); ?>
+     < PLUS > <? e = new OneOrMore(e); e.setLocation(t); ?> #BNFOneOrMore(1)
+   | < STAR > <? e = new ZeroOrMore(e); e.setLocation(t); ?> #BNFZeroOrMore(1)
+   | < HOOK > <? e = new ZeroOrOne(e); e.setLocation(t); ?> #BNFZeroOrOne(1)
   )?
 )
 <?
@@ -340,7 +350,7 @@ regular_expression() : RExpression =
 	var t = getToken(1);
 ?>
 (
-  image=StringLiteral()
+  image=StringLiteral() #REStringLiteral
 <?
 	re = new RStringLiteral(image);
 	re.setLocation(t);
@@ -358,7 +368,7 @@ regular_expression() : RExpression =
     ]
     image=identifier() < COLON >
   ]
-  re=complex_regular_expression_choices() < GT >
+  re=complex_regular_expression_choices() < GT > #RENamed
 <?
 	if (re instanceof RJustName m) {
 		var seq = new RSequence();
@@ -370,12 +380,12 @@ regular_expression() : RExpression =
 	re.setLocation(t);
 ?>
 | LOOKAHEAD(2)
-  < LT > image=identifier() < GT >
+  ( < LT > image=identifier() < GT > ) #REReference
 <?
 	re = new RJustName(image);
 	re.setLocation(t);
 ?>
-| < LT > < _EOF > < GT >
+| ( < LT > < _EOF > < GT > ) #REEOF
 <?
 	ef = new REndOfFile();
 	ef.setLocation(t);
@@ -388,7 +398,7 @@ regular_expression() : RExpression =
 ?>
 ;
 
-complex_regular_expression_choices() : RExpression =
+complex_regular_expression_choices() : RExpression #REChoice(> 1) =
 <?
 	RExpression re;
 	var choices = new ArrayList<RExpression>();
@@ -400,7 +410,7 @@ complex_regular_expression_choices() : RExpression =
 ?>
 ;
 
-complex_regular_expression() : RExpression =
+complex_regular_expression() : RExpression #RESequence(> 1) =
 <?
 	RExpression re;
 	var units = new ArrayList<RExpression>();
@@ -420,36 +430,36 @@ complex_regular_expression_unit() : RExpression =
 	boolean hasMax = false;
 ?>
 (
-  image=StringLiteral()
+  image=StringLiteral() #REStringLiteral
 <?
 	re = new RStringLiteral(image);
 	re.setLocation(t);
 ?>
-| < LT > image=identifier() < GT >
+| ( < LT > image=identifier() < GT > ) #REReference
 <?
 	re = new RJustName(image);
 	re.setLocation(t);
 ?>
 | re=character_list()
 | < LPAREN > re=complex_regular_expression_choices() < RPAREN >
-  (  < PLUS >
+  (  < PLUS > #REOneOrMore(1)
 <?
 	re = new ROneOrMore(re);
 	re.setLocation(t);
 ?>
-   | < STAR >
+   | < STAR > #REZeroOrMore(1)
 <?
 	re = new RZeroOrMore(re);
 	re.setLocation(t);
 ?>
-   | < HOOK >
+   | < HOOK > #REZeroOrOne(1)
 <?
 	re = new RZeroOrOne(re);
 	re.setLocation(t);
 ?>
    | < LBRACE > r1 = IntegerLiteral()
       [ < COMMA > <? hasMax = true; ?> [ r2 = IntegerLiteral() ] ]
-     < RBRACE >
+     < RBRACE > #RRepetitionRange(1)
 <?
 	re = new RRepetitionRange(re, r1, r2, hasMax);
 	re.setLocation(t);
@@ -461,7 +471,7 @@ complex_regular_expression_unit() : RExpression =
 ?>
 ;
 
-character_list() : RExpression =
+character_list() : RExpression #RECharList =
 <?
 	var p = new RCharacterList();
 	var t = getToken(1);
@@ -485,7 +495,7 @@ character_list() : RExpression =
 ?>
 ;
 
-character_descriptor() : Production =
+character_descriptor() : Production #CharDescriptor =
 <?
 	String imageL, imageR;
 	Production d;
@@ -519,7 +529,7 @@ identifier() : String =
  * THE JJTREE PRODUCTIONS START HERE       *
  **********************************************/
 
-node_descriptor(Expansion exp, BNFProduction p) =
+node_descriptor(Expansion exp, BNFProduction p) #NodeDescriptor =
 <?
 	Token t;
 	var nd = new ParserDescriptor();
@@ -624,7 +634,7 @@ Name =
  * Only a primary expression is supported: there is no operator syntax, so an
  * argument or a semantic lookahead is a literal, a name, a call or an index.
  */
-PrimaryExpression =
+PrimaryExpression #Expression =
   PrimaryPrefix() ( LOOKAHEAD(2) PrimarySuffix() )*
 ;
 

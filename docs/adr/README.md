@@ -40,6 +40,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0024](0024-javacc-heritage-vocabulary.md) | Rename the JavaCC-era names that stay inside the generator | 🟢 Accepted |
 | [0025](0025-one-grammar-file.md) | A grammar is one file; the sibling `.lex` is removed | 🟢 Accepted |
 | [0026](0026-one-dependency-graph.md) | One dependency graph, stated once and tested over the whole tree | 🟡 Proposed |
+| [0028](0028-tree-building-is-opted-into-with-use-ast.md) | Tree building is opted into with `USE_AST` | 🟡 Proposed |
 
 ## Process
 

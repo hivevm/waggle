@@ -107,6 +107,7 @@ public class WaggleOptions implements Options {
 
         // Got from TreeOptions
         set(Waggle.PARSER_NAME, "");
+        set(Waggle.USE_AST, Boolean.TRUE);
         set(Waggle.NODE_MULTI, Boolean.FALSE);
         set(Waggle.NODE_DEFAULT_VOID, Boolean.FALSE);
         set(Waggle.NODE_SCOPE_HOOK, Boolean.FALSE);

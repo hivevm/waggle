@@ -71,6 +71,7 @@ class GeneratedCodeCompilesTest {
             grammar TreeDefaults;
 
             options {
+              USE_AST: true,
               JAVA_PACKAGE: "org.example",
               NODE_MULTI: true,
               NODE_DEFAULT_VOID: true,
@@ -183,6 +184,7 @@ class GeneratedCodeCompilesTest {
             grammar SingleNode;
 
             options {
+              USE_AST: true,
               JAVA_PACKAGE: "org.example"
             }
 
