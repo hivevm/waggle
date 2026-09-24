@@ -84,11 +84,7 @@ public class Phase3Emitter {
                     var semanticLookahead = !la.getActionTokens().isEmpty();
                     if (semanticLookahead) {
                         this.syntax.beginSemanticLookahead(printer);
-                        this.parser.setup_token(la.getActionTokens().getFirst());
-                        for (var token : la.getActionTokens()) {
-                            this.parser.printToken(token, printer);
-                        }
-                        this.parser.printTrailingComments(printer, la.getActionTokens().getLast());
+                        this.parser.printTokens(la.getActionTokens(), null, printer);
                         this.syntax.endSemanticLookahead(printer);
                     }
                     this.syntax.choiceAlternative(printer, this.parser.genjj_3Call(nested_seq),

@@ -40,7 +40,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
         printer.println("boolean " + ScopeVariables.closed(ns) + " = true;");
 
-        printer.println(openNodeScope(ns));
+        printer.println(ScopeVariables.openCall(ns));
         if (options.scopeHook())
             printer.println("jjtreeOpenNodeScope(" + ScopeVariables.node(ns) + ");");
 
@@ -52,7 +52,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
     @Override
     public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
-        printer.println(closeNodeScope(ns));
+        printer.println(ScopeVariables.closeCall(ns));
         if (!isFinal) {
             printer.println(ScopeVariables.closed(ns) + " = false;");
         }
@@ -172,7 +172,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
         var options = OptionsContext.of(context);
         options.set(Waggle.VISITOR_RETURN_TYPE_VOID, tree.visitorReturn().equals("void"));
-        options.set(Waggle.NODE_CLASS, JavaTreeEmitter.nodeClass(tree));
+        options.set(Waggle.NODE_CLASS, tree.nodeBaseClass());
         options.set(Waggle.VISITOR_DATA_TYPE, JavaTreeEmitter.visitorDataType(tree));
 
         var excludes = tree.customNodes();
@@ -190,11 +190,6 @@ public class JavaTreeEmitter implements TreeEmitter {
      * The base class the generated node classes extend. Defaults to the generated {@code Node}, so
      * that a grammar which does not supply a NODE_CLASS still yields compilable node classes.
      */
-    private static String nodeClass(TreeOptions tree) {
-        var nodeClass = tree.nodeClass();
-        return nodeClass.isEmpty() ? "Node" : nodeClass.trim();
-    }
-
     /**
      * The type of the payload passed through {@code jjtAccept}. Defaults to {@code Object}, so that
      * VISITOR without an explicit VISITOR_DATA_TYPE still yields a typed parameter.
@@ -228,21 +223,5 @@ public class JavaTreeEmitter implements TreeEmitter {
             case "char" -> " '\u0000'";
             default -> " null";
         };
-    }
-    /** The tree-runtime call that opens a node scope. */
-    private static String openNodeScope(NodeScope ns) {
-        return "jjtree.openNodeScope(" + ScopeVariables.node(ns) + ");";
-    }
-
-    /** The tree-runtime call that closes a node scope, under the descriptor's arity condition. */
-    private static String closeNodeScope(NodeScope ns) {
-        var node = ScopeVariables.node(ns);
-        var descriptor = ns.getNodeDescriptor();
-        if (descriptor.getText() == null) {
-            return "jjtree.closeNodeScope(" + node + ", true);";
-        }
-        return descriptor.isGt()
-                ? "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + descriptor.getText() + ");"
-                : "jjtree.closeNodeScope(" + node + ", " + descriptor.getText() + ");";
     }
 }

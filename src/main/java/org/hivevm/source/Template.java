@@ -67,6 +67,9 @@ public class Template {
 
     private final String text;
 
+    /** The parsed template; it depends on the text alone, so it is built once (see render). */
+    private volatile Renderer renderer;
+
     /**
      * Constructs a new instance of the Template class using the provided byte array.
      */
@@ -88,8 +91,25 @@ public class Template {
      * {@link OutputSink} (ADR-0018). The checksum and the option list at the end are part of the
      * rendered text, not of writing it.
      */
-    @SuppressWarnings("fallthrough")
     public final String render(String title, Environment environment) {
+        var parsed = this.renderer;
+        if (parsed == null) {
+            this.renderer = parsed = parse(title);
+        }
+
+        var out = new java.io.ByteArrayOutputStream();
+        try (var writer = TemplateWriter.create(title, out, environment)) {
+            parsed.render(writer, writer);
+        }
+        return out.toString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Builds the renderer tree. It used to be rebuilt on every call, so a template rendered once
+     * per node type was re-parsed each time.
+     */
+    @SuppressWarnings("fallthrough")
+    private Renderer parse(String title) {
         var builder = new RendererBuilder(title);
 
         var offset = 0;
@@ -147,12 +167,7 @@ public class Template {
         if (offset < text.length()) {
             builder.addText(text.substring(offset));
         }
-
-        var out = new java.io.ByteArrayOutputStream();
-        try (var writer = TemplateWriter.create(title, out, environment)) {
-            builder.build().render(writer, writer);
-        }
-        return out.toString(StandardCharsets.UTF_8);
+        return builder.build();
     }
 
     /**

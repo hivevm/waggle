@@ -51,14 +51,6 @@ public abstract sealed class RExpression extends RegularExpression
      */
     private TokenProduction tokenProduction = null;
 
-    /**
-     * The following variable is used to maintain state information for the loop determination
-     * algorithm: It is initialized to 0, and set to -1 if this node has been visited in a pre-order
-     * walk, and then it is set to 1 if the pre-order walk of the whole graph from this node has
-     * been traversed. i.e., -1 indicates partially processed, and 1 indicates fully processed.
-     */
-    private int walkStatus = 0;
-
     public final String getLabel() {
         return this.label;
     }
@@ -101,14 +93,6 @@ public abstract sealed class RExpression extends RegularExpression
 
     public final void setOrdinal(int ordinal) {
         this.ordinal = ordinal;
-    }
-
-    public final int getWalkStatus() {
-        return this.walkStatus;
-    }
-
-    public final void setWalkStatus(int walkStatus) {
-        this.walkStatus = walkStatus;
     }
 
     public final TokenKind getTokenKind() {

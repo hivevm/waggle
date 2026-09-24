@@ -34,6 +34,23 @@ public interface ScopeVariables {
         return ScopeVariables.name("e", scope);
     }
 
+    /** The tree-runtime call that opens the scope; the same in every target that builds trees. */
+    static String openCall(NodeScope scope) {
+        return "jjtree.openNodeScope(" + ScopeVariables.node(scope) + ");";
+    }
+
+    /** The tree-runtime call that closes the scope, under the descriptor's arity condition. */
+    static String closeCall(NodeScope scope) {
+        var node = ScopeVariables.node(scope);
+        var descriptor = scope.getNodeDescriptor();
+        if (descriptor.getText() == null) {
+            return "jjtree.closeNodeScope(" + node + ", true);";
+        }
+        return descriptor.isGt()
+                ? "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + descriptor.getText() + ");"
+                : "jjtree.closeNodeScope(" + node + ", " + descriptor.getText() + ");";
+    }
+
     private static String name(String id, NodeScope scope) {
         var s = "000" + scope.getScopeNumber();
         return "jjt" + id + s.substring(s.length() - 3);

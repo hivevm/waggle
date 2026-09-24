@@ -58,6 +58,11 @@ public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, bo
                 options.stringValue(Waggle.VISITOR_EXCEPTION));
     }
 
+    /** The class the generated nodes extend: {@code NODE_CLASS}, or {@code Node} when unset. */
+    public String nodeBaseClass() {
+        return this.nodeClass.isEmpty() ? "Node" : this.nodeClass.trim();
+    }
+
     /** The node classes the grammar author supplies, so generation skips them. */
     private static Set<String> customNodes(String names) {
         if ((names == null) || names.isEmpty()) {

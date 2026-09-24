@@ -119,6 +119,17 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         return ++this.labelIndex;
     }
 
+    /**
+     * Prints grammar-supplied tokens verbatim, with the comments around them; {@code $NODE} and
+     * {@code $BOOL} in them refer to {@code scope}, when there is one. This sequence used to be
+     * spelled out at every place that copies tokens into the parser.
+     */
+    protected final void printTokens(List<Token> tokens, NodeScope scope, LinePrinter printer) {
+        setup_token(tokens.getFirst());
+        tokens.forEach(t -> printToken(t, scope, printer));
+        printTrailingComments(printer, tokens.getLast());
+    }
+
     protected final void printTrailingComments(LinePrinter printer, Token t) {
         if (t.next != null) {
             printLeadingComments(printer, t.next);
@@ -258,9 +269,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             case RExpression re -> {
                 printer.println();
                 if (!re.getLhsTokens().isEmpty()) {
-                    setup_token(re.getLhsTokens().getFirst());
-                    re.getLhsTokens().forEach(t -> printToken(t, scope, printer));
-                    printTrailingComments(printer, re.getLhsTokens().getLast());
+                    printTokens(re.getLhsTokens(), scope, printer);
                     printer.print(" = ");
                 }
 
@@ -276,25 +285,19 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             case NonTerminal e_nrw -> {
                 printer.println();
                 if (!e_nrw.getLhsTokens().isEmpty()) {
-                    setup_token((e_nrw.getLhsTokens().getFirst()));
-                    e_nrw.getLhsTokens().forEach(t -> printToken(t, scope, printer));
-                    printTrailingComments(printer, e_nrw.getLhsTokens().getLast());
+                    printTokens(e_nrw.getLhsTokens(), scope, printer);
                     printer.print(" = ");
                 }
                 syntax().callProduction(e_nrw, printer);
                 if (!e_nrw.getArgumentTokens().isEmpty()) {
-                    setup_token(e_nrw.getArgumentTokens().getFirst());
-                    e_nrw.getArgumentTokens().forEach(t -> printToken(t, scope, printer));
-                    printTrailingComments(printer, e_nrw.getArgumentTokens().getLast());
+                    printTokens(e_nrw.getArgumentTokens(), scope, printer);
                 }
                 syntax().callProductionEnd(printer);
             }
             case Action e_nrw -> {
                 printer.println();
                 if (!e_nrw.getActionTokens().isEmpty()) {
-                    setup_token(e_nrw.getActionTokens().getFirst());
-                    e_nrw.getActionTokens().forEach(t -> printToken(t, scope, printer));
-                    printTrailingComments(printer, e_nrw.getActionTokens().getLast());
+                    printTokens(e_nrw.getActionTokens(), scope, printer);
                 }
             }
             case Choice e_nrw -> {

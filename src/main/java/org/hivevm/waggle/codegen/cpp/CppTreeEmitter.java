@@ -43,7 +43,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
         printer.println("bool " + ScopeVariables.closed(ns) + " = true;");
 
-        printer.println(openNodeScope(ns));
+        printer.println(ScopeVariables.openCall(ns));
         if (options.scopeHook())
             printer.println("jjtreeOpenNodeScope(" + ScopeVariables.node(ns) + ");");
 
@@ -55,7 +55,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
     @Override
     public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
-        printer.println(closeNodeScope(ns));
+        printer.println(ScopeVariables.closeCall(ns));
         if (!isFinal) {
             printer.println(ScopeVariables.closed(ns) + " = false;");
         }
@@ -87,22 +87,6 @@ public class CppTreeEmitter implements TreeEmitter {
         printer.print("}");
     }
 
-    /** The tree-runtime call that opens a node scope. */
-    private static String openNodeScope(NodeScope ns) {
-        return "jjtree.openNodeScope(" + ScopeVariables.node(ns) + ");";
-    }
-
-    /** The tree-runtime call that closes a node scope, under the descriptor's arity condition. */
-    private static String closeNodeScope(NodeScope ns) {
-        var node = ScopeVariables.node(ns);
-        var descriptor = ns.getNodeDescriptor();
-        if (descriptor.getText() == null) {
-            return "jjtree.closeNodeScope(" + node + ", true);";
-        }
-        return descriptor.isGt()
-                ? "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + descriptor.getText() + ");"
-                : "jjtree.closeNodeScope(" + node + ", " + descriptor.getText() + ");";
-    }
 
     @Override
     public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
@@ -190,7 +174,7 @@ public class CppTreeEmitter implements TreeEmitter {
             var options = OptionsContext.of(context);
             CppTreeEmitter.applyVisitorTypes(options, tree);
             options.set(Waggle.NODE_TYPE, nodeType);
-            options.set(Waggle.NODE_CLASS, CppTreeEmitter.nodeClass(tree));
+            options.set(Waggle.NODE_CLASS, tree.nodeBaseClass());
 
             CppTemplate.MULTINODE_H.render(options, nodeType);
             CppTemplate.MULTINODE.render(options, nodeType);
@@ -201,11 +185,6 @@ public class CppTreeEmitter implements TreeEmitter {
      * The base class the generated node classes extend. Defaults to the generated {@code Node}, so
      * that a grammar which does not supply a NODE_CLASS still yields compilable node classes.
      */
-    private static String nodeClass(TreeOptions tree) {
-        var nodeClass = tree.nodeClass();
-        return nodeClass.isEmpty() ? "Node" : nodeClass.trim();
-    }
-
     private void generateNodeInterface(Options context, TreeOptions tree) {
         var optionMap = OptionsContext.of(context);
         CppTreeEmitter.applyVisitorTypes(optionMap, tree);

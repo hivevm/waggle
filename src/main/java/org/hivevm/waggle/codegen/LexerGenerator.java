@@ -19,6 +19,7 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
 import java.util.ArrayList;
+import java.util.function.BiFunction;
 
 /**
  * The {@link LexerGenerator} class.
@@ -193,6 +194,36 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     /** Whether {@code jjStopAtPos} has already been declared for this rendering. */
     protected final boolean isStopAtPosDumped() {
         return stringLiterals().isStopAtPosDumped();
+    }
+
+    /**
+     * Prints the literal-image table: one entry per token kind, {@code null} for a kind without a
+     * literal. A new line starts where a line would pass 80 columns, and a missing image counts as
+     * six. Java and C++ each carried this loop, and the dead tail of JavaCC's version with it.
+     *
+     * @param linePerEntry whether every entry ends its own line, as the C++ declarations do
+     * @param entry        the text of the entry for a token kind and its image
+     */
+    protected static void printLiteralImages(LexerData data, LinePrinter printer,
+                                             boolean linePerEntry,
+                                             BiFunction<Integer, String, String> entry) {
+        int charCnt = 0;
+        for (int kind = 0; kind < data.getImageCount(); kind++) {
+            var image = data.getImage(kind);
+            var text = entry.apply(kind, image);
+            boolean wrap = (image == null) ? ((charCnt += 6) > 80)
+                    : ((charCnt += text.length()) >= 80);
+            if (wrap) {
+                printer.println();
+                charCnt = 0;
+            }
+
+            if (linePerEntry) {
+                printer.println(text);
+            } else {
+                printer.print(text);
+            }
+        }
     }
 
     /** Resets the once-only {@code jjStopAtPos} emission between two renderings. */

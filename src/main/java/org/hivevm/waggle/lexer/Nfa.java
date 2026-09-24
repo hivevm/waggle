@@ -329,12 +329,12 @@ record Nfa(NfaState start, NfaState end) {
         int i = 0, j = 0;
         char hiByte;
         int cnt = 0;
-        long[][] loBytes = new long[256][4];
-
         if (((state.charMoves == null) || (state.charMoves[0] == 0))
                 && ((state.rangeMoves == null) || (state.rangeMoves[0] == 0))) {
             return;
         }
+
+        long[][] loBytes = new long[256][4];
 
         if (state.charMoves != null) {
             for (i = 0; i < state.charMoves.length; i++) {
@@ -424,9 +424,7 @@ record Nfa(NfaState start, NfaState end) {
         System.arraycopy(tmpIndices, 0, state.nonAsciiMoveIndices, 0, cnt);
 
         for (i = 0; i < 256; i++) {
-            if (done[i]) {
-                loBytes[i] = null;
-            } else {
+            if (!done[i]) {
                 state.loByteVec.add(i);
                 state.loByteVec.add(internBitVector(data,
                         new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]}));
@@ -435,22 +433,17 @@ record Nfa(NfaState start, NfaState end) {
         updateDuplicateNonAsciiMoves(data, state);
     }
 
-    /**
-     * Formats a four-word lo/hi byte vector as its {@code {0x..L, ..}} source string and interns it
-     * in the shared bit-vector tables, returning its index. Previously this format-and-intern block
-     * was written out three times inside {@link #getNonAsciiMoves}.
-     */
+    /** Interns a four-word lo/hi byte vector in the shared bit-vector tables and returns its index. */
     private static int internBitVector(LexerData data, long[] vec) {
-        String tmp = "{\n   0x" + Long.toHexString(vec[0]) + "L, " + "0x" + Long.toHexString(vec[1])
-                + "L, " + "0x" + Long.toHexString(vec[2]) + "L, " + "0x" + Long.toHexString(vec[3])
-                + "L\n};";
-        Integer ind = data.lohiByteTab.get(tmp);
+        var key = new BitVector(vec);
+        Integer ind = data.lohiByteTab.get(key);
         if (ind == null) {
-            data.allBitVectors.add(tmp);
-            if (!NfaState.AllBitsSet(tmp)) {
-                data.lohiByte.put(data.lohiByteCnt, vec);
+            ind = data.lohiByteTab.size();
+            data.allBitsSet.add(key.allBitsSet());
+            if (!key.allBitsSet()) {
+                data.lohiByte.put(ind, vec);
             }
-            data.lohiByteTab.put(tmp, ind = data.lohiByteCnt++);
+            data.lohiByteTab.put(key, ind);
         }
         return ind;
     }

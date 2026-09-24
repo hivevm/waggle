@@ -68,11 +68,7 @@ class CppParserGenerator extends ParserGenerator {
         printTrailingComments(printer, t);
         printer.print(" " + data.getParserName() + "::" + p.getLhs() + "(");
         if (!p.getParameterListTokens().isEmpty()) {
-            setup_token((p.getParameterListTokens().getFirst()));
-            for (Token token : p.getParameterListTokens()) {
-                printToken(token, printer);
-            }
-            printTrailingComments(printer, p.getParameterListTokens().getLast());
+            printTokens(p.getParameterListTokens(), null, printer);
         }
         printer.print(")");
 

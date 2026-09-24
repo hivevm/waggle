@@ -41,21 +41,6 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
     // This boolean flag is true if this production can expand to empty.
     private boolean emptyPossible = false;
 
-    /**
-     * All non-terminals this one can expand to without consuming any token. Was a hand-grown array
-     * plus a public "leIndex" length field, resized by hand at the single call site.
-     */
-    private final List<NormalProduction> leftExpansions = new ArrayList<>();
-
-    /**
-     * The following variable is used to maintain state information for the left-recursion
-     * determination algorithm: It is initialized to 0, and set to -1 if this node has been visited
-     * in a pre-order walk, and then it is set to 1 if the pre-order walk of the whole graph from
-     * this node has been traversed. i.e., -1 indicates partially processed, and 1 indicates fully
-     * processed.
-     */
-    private int walkStatus = 0;
-
     // The first token from the input stream that represents this production.
     private Token firstToken;
 
@@ -146,27 +131,6 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
      */
     public boolean isEmptyPossible() {
         return this.emptyPossible;
-    }
-
-    /**
-     * @return the leftExpansions
-     */
-    public List<NormalProduction> getLeftExpansions() {
-        return this.leftExpansions;
-    }
-
-    /**
-     * @param walkStatus the walkStatus to set
-     */
-    public void setWalkStatus(int walkStatus) {
-        this.walkStatus = walkStatus;
-    }
-
-    /**
-     * @return the walkStatus
-     */
-    public int getWalkStatus() {
-        return this.walkStatus;
     }
 
     /**

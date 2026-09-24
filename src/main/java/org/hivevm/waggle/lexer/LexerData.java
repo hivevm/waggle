@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The {@link LexerData} provides the request data for the lexer generator.
@@ -32,12 +33,13 @@ public class LexerData {
 
     int curKind;
 
-    int lohiByteCnt;
+    // Every distinct bit vector gets an index; the ones not all set are also emitted as tables,
+    // in index order.
     final Map<Integer, long[]> lohiByte;
-    final Map<String, Integer> lohiByteTab;
+    final Map<BitVector, Integer> lohiByteTab;
 
     final List<NfaState> nonAsciiTableForMethod;
-    final List<String> allBitVectors;
+    final List<Boolean> allBitsSet;
     int[][] kinds;
     int[][][] statesForState;
 
@@ -91,10 +93,9 @@ public class LexerData {
 
         this.curKind = 0;
         this.nonAsciiTableForMethod = new ArrayList<>();
-        this.lohiByteCnt = 0;
-        this.lohiByte = new HashMap<>();
-        this.lohiByteTab = new LinkedHashMap<>();
-        this.allBitVectors = new ArrayList<>();
+        this.lohiByte = new TreeMap<>();
+        this.lohiByteTab = new HashMap<>();
+        this.allBitsSet = new ArrayList<>();
 
         this.kinds = null;
         this.statesForState = null;
@@ -318,11 +319,7 @@ public class LexerData {
 
     /** Whether the bit vector at {@code index} has every bit set. */
     public final boolean hasAllBitsSet(int index) {
-        return NfaState.AllBitsSet(getAllBitVectors(index));
-    }
-
-    public final String getAllBitVectors(int index) {
-        return this.allBitVectors.get(index);
+        return this.allBitsSet.get(index);
     }
 
     public final int[][] getKinds() {

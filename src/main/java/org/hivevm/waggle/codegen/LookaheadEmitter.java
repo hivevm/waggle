@@ -85,8 +85,6 @@ public class LookaheadEmitter {
     }
 
     private void writeActionTokens(LinePrinter printer, Lookahead la, NodeScope scope) {
-        this.parser.setup_token(la.getActionTokens().getFirst());
-        la.getActionTokens().forEach(t -> this.parser.printToken(t, scope, printer));
-        this.parser.printTrailingComments(printer, la.getActionTokens().getLast());
+        this.parser.printTokens(la.getActionTokens(), scope, printer);
     }
 }

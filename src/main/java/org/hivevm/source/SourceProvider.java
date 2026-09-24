@@ -4,7 +4,6 @@
 package org.hivevm.source;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * Represents a provider for retrieving and rendering templates.
@@ -39,13 +38,6 @@ public interface SourceProvider<C extends RenderContext> {
     /** The source this template produces, as text. */
     default String renderToString(C context) {
         var path = String.format("/templates/%s/%s", getType(), getPath());
-        try (var stream = SourceProvider.class.getResourceAsStream(path)) {
-            if (stream == null) {
-                throw new IOException("Invalid template name: " + path);
-            }
-            return new Template(stream.readAllBytes()).render(context.renderTitle(), context);
-        } catch (IOException e) {
-            throw new TemplateException("Failed to render " + path, e);
-        }
+        return TemplateCache.get(path).render(context.renderTitle(), context);
     }
 }

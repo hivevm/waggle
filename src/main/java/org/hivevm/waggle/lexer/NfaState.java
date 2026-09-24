@@ -15,12 +15,6 @@ import java.util.List;
  */
 public class NfaState {
 
-    private final static String ALL_BITS = "{\n   0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL, 0xffffffffffffffffL\n};";
-
-    static boolean AllBitsSet(String bitVec) {
-        return bitVec.equals(NfaState.ALL_BITS);
-    }
-
     public final long[] asciiMoves = new long[2];
     char[] charMoves = null;
     char[] rangeMoves = null;

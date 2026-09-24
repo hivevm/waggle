@@ -161,56 +161,23 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     private void DumpStrLiteralImages(LinePrinter printer, LexerData data) {
-        // For C++
-        String image;
-        int i;
-        int charCnt = 0;
-
-        int literalCount = 0;
-
         if (data.getImageCount() <= 0) {
             printer.println("static const JJString jjstrLiteralImages[] = {};");
             return;
         }
-        for (i = 0; i < data.getImageCount(); i++) {
-            if ((image = data.getImage(i)) == null) {
-                if ((charCnt += 6) > 80) {
-                    printer.println();
-                    charCnt = 0;
+
+        LexerGenerator.printLiteralImages(data, printer, true, (kind, image) -> {
+            var toPrint = new StringBuilder("static JJChar jjstrLiteralChars_" + kind + "[] = {");
+            if (image != null) {
+                for (int j = 0; j < image.length(); j++) {
+                    toPrint.append("0x").append(Integer.toHexString(image.charAt(j))).append(", ");
                 }
-
-                printer.println("static JJChar jjstrLiteralChars_" + literalCount++ + "[] = {0};");
-                continue;
             }
+            return toPrint.append("0};").toString(); // the terminating null char
+        });
 
-            String toPrint = "static JJChar jjstrLiteralChars_" + literalCount++ + "[] = {";
-            for (int j = 0; j < image.length(); j++) {
-                String hexVal = Integer.toHexString(image.charAt(j));
-                toPrint += "0x" + hexVal + ", ";
-            }
-
-            // Null char
-            toPrint += "0};";
-
-            if ((charCnt += toPrint.length()) >= 80) {
-                printer.println();
-                charCnt = 0;
-            }
-
-            printer.println(toPrint);
-        }
-
-        while (++i < data.maxOrdinal()) {
-            if ((charCnt += 6) > 80) {
-                printer.println();
-                charCnt = 0;
-            }
-
-            printer.println("static JJChar jjstrLiteralChars_" + literalCount++ + "[] = {0};");
-        }
-        // Generate the array here.
         printer.println("static const JJString " + "jjstrLiteralImages[] = {");
-        for (int j = 0; j < literalCount; j++) {
+        for (int j = 0; j < data.getImageCount(); j++) {
             printer.println("jjstrLiteralChars_" + j + ", ");
         }
         printer.println("};");

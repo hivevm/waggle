@@ -74,11 +74,7 @@ class RustParserGenerator extends ParserGenerator {
         printer.print(normal_production_as_snake_case(p) + "(");
         printer.print("&mut self");
         if (!p.getParameterListTokens().isEmpty()) {
-            setup_token((p.getParameterListTokens().getFirst()));
-            for (Token token : p.getParameterListTokens()) {
-                printToken(token, printer);
-            }
-            printTrailingComments(printer, p.getParameterListTokens().getLast());
+            printTokens(p.getParameterListTokens(), null, printer);
         }
         printer.print(") -> Result<(), std::io::Error> /* throws ParseException */");
 

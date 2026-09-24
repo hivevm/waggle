@@ -17,8 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Semanticize {
 
@@ -36,6 +38,26 @@ public class Semanticize {
      * (ADR-0019).
      */
     private final Map<Expansion, Long> visited = new IdentityHashMap<>();
+
+    /**
+     * Where the loop checks stand with a production or a regular expression. A missing entry means
+     * not yet visited. This used to be an int in the model -- 0, -1, -2 and 1 -- and mixing it up
+     * with the token ordinal broke the regular-expression loop check.
+     */
+    private enum Walk {
+        /** On the path currently being walked. */
+        ON_PATH,
+        /** On the path, and the start of the loop that was just found there. */
+        LOOP_START,
+        /** Fully walked. */
+        DONE
+    }
+
+    private final Map<Object, Walk> walk = new IdentityHashMap<>();
+
+    /** Per production, the productions it can reach without consuming a token, in the order found. */
+    private final Map<NormalProduction, Set<NormalProduction>> leftExpansions =
+            new IdentityHashMap<>();
 
     private ArrayList<MatchInfo> sizeLimitedMatches;
     private final List<List<RegExprSpec>> removeList;
@@ -457,7 +479,7 @@ public class Semanticize {
      */
     private void checkLeftRecursion() {
         for (var production : this.request.getNormalProductions()) {
-            if (production.getWalkStatus() == 0) {
+            if (!this.walk.containsKey(production)) {
                 prodWalk(production);
             }
         }
@@ -468,17 +490,17 @@ public class Semanticize {
         for (var tokenProduction : this.request.getTokenProductions()) {
             for (RegExprSpec respec : tokenProduction.getRespecs()) {
                 var rexp = respec.rexp;
-                if (rexp.getWalkStatus() != 0) {
+                if (this.walk.containsKey(rexp)) {
                     continue;
                 }
 
-                rexp.setWalkStatus(-1);
+                this.walk.put(rexp, Walk.ON_PATH);
                 if (rexpWalk(rexp)) {
                     this.loopString = "..." + rexp.getLabel() + "... --> " + this.loopString;
                     this.context.onSemanticError(rexp,
                             "Loop in regular expression detected: \"" + this.loopString + "\"");
                 }
-                rexp.setWalkStatus(1);
+                this.walk.put(rexp, Walk.DONE);
             }
         }
     }
@@ -538,13 +560,13 @@ public class Semanticize {
         return false;
     }
 
-    /** Records, in prod.leftExpansions, the non-terminals "exp" can reach without consuming a token. */
+    /** Records the non-terminals "exp" can reach from "prod" without consuming a token. */
     private void addLeftMost(NormalProduction prod, Expansion exp) {
         switch (exp) {
             case NonTerminal nonTerminal -> {
                 var target = nonTerminal.getProd();
-                if (!prod.getLeftExpansions().contains(target)) {
-                    prod.getLeftExpansions().add(target);
+                if (this.leftExpansions.computeIfAbsent(prod, p -> new LinkedHashSet<>())
+                        .add(target)) {
                 }
             }
 
@@ -576,12 +598,13 @@ public class Semanticize {
     // and returns false otherwise.
     /**
      * Ends the walk of a production in which a left-recursion loop was found. The loop is reported
-     * only at the production that opened it (walk status -2); elsewhere it is handed back up so the
-     * caller can extend the loop string. Both call sites in {@link #prodWalk} held this verbatim.
+     * only at the production that opened it ({@link Walk#LOOP_START}); elsewhere it is handed back
+     * up so the caller can extend the loop string. Both call sites in {@link #prodWalk} held this
+     * verbatim.
      */
     private boolean unravel(NormalProduction prod) {
-        boolean isLoopOwner = prod.getWalkStatus() == -2;
-        prod.setWalkStatus(1);
+        boolean isLoopOwner = this.walk.get(prod) == Walk.LOOP_START;
+        this.walk.put(prod, Walk.DONE);
         if (isLoopOwner) {
             this.context.onSemanticError(prod,
                     "Left recursion detected: \"" + this.loopString + "\"");
@@ -591,20 +614,20 @@ public class Semanticize {
     }
 
     private boolean prodWalk(NormalProduction prod) {
-        prod.setWalkStatus(-1);
-        for (var leftExpansion : prod.getLeftExpansions()) {
-            if (leftExpansion.getWalkStatus() == -1) {
-                leftExpansion.setWalkStatus(-2);
+        this.walk.put(prod, Walk.ON_PATH);
+        for (var leftExpansion : this.leftExpansions.getOrDefault(prod, Set.of())) {
+            if (this.walk.get(leftExpansion) == Walk.ON_PATH) {
+                this.walk.put(leftExpansion, Walk.LOOP_START);
                 this.loopString = prod.getLhs() + "... --> " + leftExpansion.getLhs() + "...";
                 return unravel(prod);
             }
 
-            if ((leftExpansion.getWalkStatus() == 0) && prodWalk(leftExpansion)) {
+            if (!this.walk.containsKey(leftExpansion) && prodWalk(leftExpansion)) {
                 this.loopString = prod.getLhs() + "... --> " + this.loopString;
                 return unravel(prod);
             }
         }
-        prod.setWalkStatus(1);
+        this.walk.put(prod, Walk.DONE);
         return false;
     }
 
@@ -636,25 +659,25 @@ public class Semanticize {
     private boolean rexpWalkJustName(RJustName justName) {
         var referenced = justName.getRegexpr();
 
-        if (referenced.getWalkStatus() == -1) {
-            referenced.setWalkStatus(-2);
+        if (this.walk.get(referenced) == Walk.ON_PATH) {
+            this.walk.put(referenced, Walk.LOOP_START);
             this.loopString = "..." + referenced.getLabel() + "...";
             return true;
         }
 
-        if (referenced.getWalkStatus() != 0) {
+        if (this.walk.containsKey(referenced)) {
             return false;
         }
 
-        referenced.setWalkStatus(-1);
+        this.walk.put(referenced, Walk.ON_PATH);
         if (!rexpWalk(referenced)) {
-            referenced.setWalkStatus(1);
+            this.walk.put(referenced, Walk.DONE);
             return false;
         }
 
         this.loopString = "..." + referenced.getLabel() + "... --> " + this.loopString;
-        boolean isLoopOwner = referenced.getWalkStatus() == -2;
-        referenced.setWalkStatus(1);
+        boolean isLoopOwner = this.walk.get(referenced) == Walk.LOOP_START;
+        this.walk.put(referenced, Walk.DONE);
         if (isLoopOwner) {
             this.context.onSemanticError(referenced,
                     "Loop in regular expression detected: \"" + this.loopString + "\"");

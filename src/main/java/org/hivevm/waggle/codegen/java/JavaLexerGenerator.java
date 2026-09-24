@@ -38,56 +38,25 @@ class JavaLexerGenerator extends LexerGenerator {
     }
 
     private static void dump_literal_images(LexerData data, LinePrinter printer) {
-        if (data.getImageCount() <= 0) {
-            return;
-        }
-
-        String image;
-        int i;
-        int charCnt = 0;
-
-        for (i = 0; i < data.getImageCount(); i++) {
-            if ((image = data.getImage(i)) == null) {
-                if ((charCnt += 6) > 80) {
-                    printer.println();
-                    charCnt = 0;
-                }
-
-                printer.print("null, ");
-                continue;
+        LexerGenerator.printLiteralImages(data, printer, false, (kind, image) -> {
+            if (image == null) {
+                return "null, ";
             }
 
-            String toPrint = "\"";
+            var toPrint = new StringBuilder("\"");
             for (int j = 0; j < image.length(); j++) {
                 if (image.charAt(j) <= 0xff) {
-                    toPrint += ("\\" + Integer.toOctalString(image.charAt(j)));
+                    toPrint.append("\\").append(Integer.toOctalString(image.charAt(j)));
                 } else {
                     String hexVal = Integer.toHexString(image.charAt(j));
                     if (hexVal.length() == 3) {
                         hexVal = "0" + hexVal;
                     }
-                    toPrint += ("\\u" + hexVal);
+                    toPrint.append("\\u").append(hexVal);
                 }
             }
-
-            toPrint += ("\", ");
-
-            if ((charCnt += toPrint.length()) >= 80) {
-                printer.println();
-                charCnt = 0;
-            }
-
-            printer.print(toPrint);
-        }
-
-        while (++i < data.maxOrdinal()) {
-            if ((charCnt += 6) > 80) {
-                printer.println();
-                charCnt = 0;
-            }
-
-            printer.print("null, ");
-        }
+            return toPrint.append("\", ").toString();
+        });
     }
 
 }
