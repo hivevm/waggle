@@ -19,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -151,7 +152,7 @@ class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
     public void close() {
         writer.flush();
         writer.printf("\n// Checksum=%s (Do not edit this line!)\n", HexFormat.of()
-                .formatHex(this.stream.getMessageDigest().digest()).toUpperCase());
+                .formatHex(this.stream.getMessageDigest().digest()).toUpperCase(Locale.ROOT));
         if (!this.consumed.isEmpty()) {
             writer.printf("// Options: %s\n", this.consumed.stream()
                     .filter(n -> !n.contains(".")).sorted()

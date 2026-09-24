@@ -167,4 +167,19 @@ class InterpreterTest {
         assertEquals(matches.get(0).kind(), matches.get(1).kind(), "'a' is taken by ANY");
         assertTrue(matches.get(2).kind() > matches.get(0).kind(), "the longer WORD still wins");
     }
+
+    /**
+     * The interpreter walks the NFA only, so it turns NO_DFA on. A grammar that turned it off
+     * again sent its keywords to the string-literal DFA, which the interpreter never reaches.
+     */
+    @Test
+    void aGrammarCannotTurnTheInterpretersNfaOff() {
+        var grammar = GRAMMAR.replace("grammar Calc;\n",
+                "grammar Calc;\n\noptions {\n  NO_DFA: false\n}\n");
+        var matches = new ParserInterpreter(new Diagnostics(DiagnosticSink.SILENT))
+                .tokenize(grammar, "a+1");
+
+        assertEquals(List.of("a", "+", "1"), matches.stream()
+                .map(LexerInterpreter.Match::image).toList());
+    }
 }

@@ -68,7 +68,8 @@ public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, bo
         if ((names == null) || names.isEmpty()) {
             return Set.of();
         }
-        return Arrays.stream(names.split(",")).map(n -> "AST" + n).collect(Collectors.toSet());
+        return Arrays.stream(names.split(",")).map(String::trim).filter(n -> !n.isEmpty())
+                .map(n -> "AST" + n).collect(Collectors.toSet());
     }
 
     /**

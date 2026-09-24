@@ -436,6 +436,40 @@ public class DfaBuilder {
         return data.stateNameForComposite.get(stateSetString);
     }
 
+    /**
+     * Registers the composite state sets {@code jjStopStringLiteralDfa} returns: when the
+     * string-literal DFA gives up after position i, the NFA resumes in the set recorded for i. A
+     * set that is not registered is never marked composite, so the move code has no case for it
+     * and the NFA continues from one member state only. Runs before {@link #getDfaCode}, which is
+     * the order JavaCC registered them in.
+     */
+    static void registerStopStateSets(NfaStateData data) {
+        if (!data.hasNFA || data.isMixedState() || (data.maxStrKind == 0)) {
+            return;
+        }
+
+        int maxKindsReqd = (data.maxStrKind / 64) + 1;
+        for (int i = 0; i < (data.maxLen - 1); i++) {
+            if (data.statesForPos[i] == null) {
+                continue;
+            }
+            for (var entry : data.statesForPos[i].entrySet()) {
+                long[] actives = entry.getValue();
+                boolean anyActive = false;
+                for (int j = 0; j < maxKindsReqd; j++) {
+                    anyActive |= (actives[j] != 0L);
+                }
+
+                String s = entry.getKey();
+                s = s.substring(s.indexOf(", ") + 2);
+                s = s.substring(s.indexOf(", ") + 2);
+                if (anyActive && !s.equals("null;")) {
+                    data.addCompositeStateSet(s);
+                }
+            }
+        }
+    }
+
     private static int getStateSetForKind(NfaStateData data, int pos, int kind) {
         if (data.isMixedState() || (data.generatedStates() == 0)) {
             return -1;

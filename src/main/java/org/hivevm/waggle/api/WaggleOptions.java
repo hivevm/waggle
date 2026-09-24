@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -173,7 +174,7 @@ public class WaggleOptions implements Options {
 
     public final void setOption(Diagnostics diagnostics, Object nameloc, Object valueloc,
             String name, Object value) {
-        String nameUpperCase = name.toUpperCase();
+        String nameUpperCase = name.toUpperCase(Locale.ROOT);
         if (!this.optionValues.containsKey(nameUpperCase)) {
             diagnostics.warning(nameloc,
                     "Bad option name \"" + name + "\".  Option setting will be ignored.");
@@ -264,7 +265,7 @@ public class WaggleOptions implements Options {
             index = Math.min(index1, index2);
 
         if (index < 0) {
-            name = s.toUpperCase();
+            name = s.toUpperCase(Locale.ROOT);
             if (this.optionValues.containsKey(name)) {
                 Val = Boolean.TRUE;
             } else if ((name.length() > 2) && (name.charAt(0) == 'N') && (name.charAt(1) == 'O')) {
@@ -275,7 +276,7 @@ public class WaggleOptions implements Options {
                 return;
             }
         } else {
-            name = s.substring(0, index).toUpperCase();
+            name = s.substring(0, index).toUpperCase(Locale.ROOT);
             if (s.substring(index + 1).equalsIgnoreCase("TRUE")) {
                 Val = Boolean.TRUE;
             } else if (s.substring(index + 1).equalsIgnoreCase("FALSE")) {
@@ -363,7 +364,7 @@ public class WaggleOptions implements Options {
     @Override
     public void set(String name, Object value) {
         if (Waggle.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
-            set(Waggle.CPP_DEFINE, text.toUpperCase());
+            set(Waggle.CPP_DEFINE, text.toUpperCase(Locale.ROOT));
         } else if (Waggle.JAVA_IMPORTS.equalsIgnoreCase(name)) {
             value = ((value instanceof String text) && !text.isEmpty())
                     ? Arrays.asList(text.split(","))

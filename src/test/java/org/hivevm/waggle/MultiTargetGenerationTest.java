@@ -123,6 +123,28 @@ class MultiTargetGenerationTest {
         }
     }
 
+    /**
+     * A token that can match the empty string needs the loop guard, three arrays with one entry
+     * per lexical state. Rust initialised them as {@code [0, N]}, a two-element array.
+     */
+    @Test
+    void rustLoopGuardArraysHaveOneEntryPerState(@TempDir Path dir) throws IOException {
+        var target = generate(Language.RUST, dir, """
+                grammar Example;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> )* <EOF> ;
+
+                TOKEN = < WORD: (["a"-"z"])* > ;
+                """);
+        var lexer = Files.readString(target.resolve("example").resolve("lexer.rs"));
+        assertTrue(lexer.contains("jjbeenHere: [false; 1]"), "no loop guard of one entry per state");
+        assertTrue(!lexer.contains("[false, "), "an array literal where a repeat is meant");
+    }
+
     /** The same grammar, but with the token-manager trace switched on. */
     private static final String GRAMMAR_DEBUG = MultiTargetGenerationTest.GRAMMAR.replace(
             "  JAVA_PACKAGE: \"org.example\"",

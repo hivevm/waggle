@@ -222,11 +222,6 @@ public class NfaStateData {
         return NfaState.Intersect(this, set1, set2);
     }
 
-    /** The position of {@code element} in {@code set}, or -1. */
-    public final int positionOf(int element, int[] set) {
-        return NfaState.ElemOccurs(element, set);
-    }
-
     /**
      * Where the state set {@code arrayString} lives in the emitted {@code jjnextStates} table.
      *
@@ -428,37 +423,15 @@ public class NfaStateData {
     /**
      * The state name stage 4 gave this composite state set. A query: unlike
      * {@link #addCompositeStateSet(String)} it registers nothing, which is what a back end needs
-     * while it renders (ADR-0012). The generator used to carry its own copy of this logic.
+     * while it renders (ADR-0012). Every set a back end asks for was registered in stage 4.
      */
     public final int compositeStateName(String stateSetString) {
-        Integer stateNameToReturn = this.stateNameForComposite.get(stateSetString);
-
-        if (stateNameToReturn != null) {
-            return stateNameToReturn;
+        Integer stateName = this.stateNameForComposite.get(stateSetString);
+        if (stateName == null) {
+            throw new IllegalStateException(
+                    "The state set was not registered in stage 4: " + stateSetString);
         }
-
-        int[] nameSet = getNextStates(stateSetString);
-
-        if (nameSet.length == 1) {
-            return nameSet[0];
-        }
-
-        int toRet = 0;
-        while ((toRet < nameSet.length) && ((getIndexedState(nameSet[toRet]).inNextOf > 1))) {
-            toRet++;
-        }
-
-        for (var s : this.compositeStateTable.keySet()) {
-            if (!s.equals(stateSetString) && intersects(stateSetString, s)) {
-                int[] other = this.compositeStateTable.get(s);
-                while ((toRet < nameSet.length) && (
-                        ((getIndexedState(nameSet[toRet]).inNextOf > 1))
-                                || (positionOf(nameSet[toRet], other) >= 0))) {
-                    toRet++;
-                }
-            }
-        }
-        return nameSet[toRet];
+        return stateName;
     }
 
     int addCompositeStateSet(String stateSetString) {

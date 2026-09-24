@@ -12,7 +12,11 @@ import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.DiagnosticSink;
 import org.hivevm.waggle.diag.Diagnostics;
+import org.hivevm.waggle.tree.TreeOptions;
 import org.junit.jupiter.api.Test;
+
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * The typed views read the option map, and read it right (ADR-0019).
@@ -51,5 +55,31 @@ class TypedOptionsTest {
 
         assertEquals(3, parser.lookahead());
         assertTrue(parser.debugParser());
+    }
+
+    /** A list written with spaces after its commas names the same nodes as one without. */
+    @Test
+    void customNodeNamesAreTrimmed() {
+        var options = TypedOptionsTest.options();
+        options.setOption(new Diagnostics(DiagnosticSink.SILENT), null, null,
+                Waggle.NODE_CUSTOM, "Foo, Bar ,");
+
+        assertEquals(Set.of("ASTFoo", "ASTBar"), TreeOptions.from(options).customNodes());
+    }
+
+    /** Option names are case-insensitive in every locale: "keep_line_column" is KEEP_LINE_COLUMN. */
+    @Test
+    void optionNamesDoNotDependOnTheDefaultLocale() {
+        var saved = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            var options = TypedOptionsTest.options();
+            options.setOption(new Diagnostics(DiagnosticSink.SILENT), null, null,
+                    "keep_line_column", Boolean.FALSE);
+
+            assertFalse(ParserOptions.from(options).keepLineColumn());
+        } finally {
+            Locale.setDefault(saved);
+        }
     }
 }

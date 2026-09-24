@@ -78,9 +78,9 @@ impl<'a> Lexer<'a> {
 			cur_char: 0,
 			input_stream: CharStream::new(text),
 //@if(HAS_LOOP)
-			jjemptyLineNo: [0, __MAX_LEX_STATES__],
-			jjemptyColNo: [0, __MAX_LEX_STATES__],
-			jjbeenHere: [false, __MAX_LEX_STATES__],
+			jjemptyLineNo: [0; __MAX_LEX_STATES__],
+			jjemptyColNo: [0; __MAX_LEX_STATES__],
+			jjbeenHere: [false; __MAX_LEX_STATES__],
 //@fi
 		}
 	}
@@ -101,9 +101,9 @@ impl<'a> Lexer<'a> {
 			cur_char: 0,
 			input_stream: CharStream::new(text),
 //@if(HAS_LOOP)
-			jjemptyLineNo: [0, __MAX_LEX_STATES__],
-			jjemptyColNo: [0, __MAX_LEX_STATES__],
-			jjbeenHere: [false, __MAX_LEX_STATES__],
+			jjemptyLineNo: [0; __MAX_LEX_STATES__],
+			jjemptyColNo: [0; __MAX_LEX_STATES__],
+			jjbeenHere: [false; __MAX_LEX_STATES__],
 //@fi
 		};
 		lexer.re_init_rounds();

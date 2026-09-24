@@ -6,6 +6,7 @@ package org.hivevm.source;
 import org.hivevm.core.Environment;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -38,7 +39,7 @@ public class Template {
         try {
             return Function.valueOf(name);
         } catch (IllegalArgumentException e) {
-            throw new TemplateException(template + ": unknown directive '//@" + name.toLowerCase()
+            throw new TemplateException(template + ": unknown directive '//@" + name.toLowerCase(Locale.ROOT)
                     + "' — known are: if, elif, else, fi, foreach, end, invoke");
         }
     }
@@ -61,7 +62,7 @@ public class Template {
     private static String require(String template, String name, String param) {
         if (param == null) {
             throw new TemplateException(
-                    template + ": //@" + name.toLowerCase() + " requires a parameter");
+                    template + ": //@" + name.toLowerCase(Locale.ROOT) + " requires a parameter");
         }
         return param;
     }
@@ -122,7 +123,7 @@ public class Template {
             offset = matcher.end();
 
             var isFunc = matcher.group(4) == null;
-            var func = isFunc ? matcher.group(2).toUpperCase() : "VAR";
+            var func = isFunc ? matcher.group(2).toUpperCase(Locale.ROOT) : "VAR";
             var param = matcher.group(isFunc ? 3 : 4);
             switch (Template.parse(title, func)) {
                 case IF:

@@ -58,18 +58,18 @@ public final class ParserInterpreter {
      *
      * <p>NO_DFA is on: the string-literal DFA and the NFA are two renderings of one specification,
      * and with it on the whole specification lands in the NFA, which is the one the interpreter
-     * walks. It changes what the automaton is built as, never what it accepts.
+     * walks. It changes what the automaton is built as, never what it accepts. It is set after
+     * the grammar is read, so that a grammar's own {@code NO_DFA: false} cannot turn it off.
      */
     private org.hivevm.waggle.lexer.LexerData buildLexer(String grammar) {
         var options = new WaggleOptions();
-        options.set(Waggle.NO_DFA, Boolean.TRUE);
-
         var context = new GenerationContext(options, this.diagnostics);
         var data = new GrammarData(context);
         try {
             var parser = new GrammarParser(new StringProvider(grammar), options);
             parser.initialize(data);
             parser.grammar_input();
+            options.set(Waggle.NO_DFA, Boolean.TRUE);
             Semanticize.semanticize(data, options);
         } catch (Exception e) {
             throw new GenerationException("Failed to read the grammar: detected "

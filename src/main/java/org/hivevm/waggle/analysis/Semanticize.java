@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -314,7 +315,7 @@ public class Semanticize {
                     // This loop performs the checks and actions with respect to each lexical state.
                     for (int i = 0; i < table.length; i++) {
                         // Get table of all case variants of "sl.image" into table2.
-                        Map<String, RExpression> table2 = table[i].get(sl.getImage().toUpperCase());
+                        Map<String, RExpression> table2 = table[i].get(sl.getImage().toUpperCase(Locale.ROOT));
                         if (table2 == null) {
                             // There are no case variants of "sl.image" earlier than the current one.
                             // So go ahead and insert this item.
@@ -322,7 +323,7 @@ public class Semanticize {
                                 sl.setOrdinal(this.request.addTokenCount());
                             table2 = new LinkedHashMap<>();
                             table2.put(sl.getImage(), sl);
-                            table[i].put(sl.getImage().toUpperCase(), table2);
+                            table[i].put(sl.getImage().toUpperCase(Locale.ROOT), table2);
                         } else if (this.hasIgnoreCase(table2,
                                 sl.getImage())) { // hasIgnoreCase
                             // sets
