@@ -1,7 +1,7 @@
 plugins {
     id 'com.gradle.plugin-publish' version '2.1.1'
     // Bootstrap: the published generator regenerates this project's own parser (ADR-0009).
-    id 'org.hivevm.waggle' version '1.0.12'
+    id 'org.hivevm.waggle' version '1.0.13'
     id 'java-gradle-plugin'
     id 'maven-publish'
 }
@@ -19,7 +19,7 @@ repositories {
 }
 
 
-version = '1.0.12'
+version = '1.0.13'
 group	= 'org.hivevm'
 
 
