@@ -22,6 +22,9 @@ import org.hivevm.waggle.model.RZeroOrOne;
 import org.hivevm.waggle.model.RegularExpressionVisitor;
 import org.hivevm.waggle.model.SingleCharacter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The {@link NfaVisitor} class.
  */
@@ -43,38 +46,45 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return this.ignoreCase;
     }
 
-    @Override
-    public Nfa visit(RCharacterList expr, NfaStateData data) {
-        if (!expr.isTransformed()) {
-            if (data.ignoreCase() || isIgnoreCase()) {
-                expr.ToCaseNeutral();
-                expr.SortDescriptors();
-            }
-
-            if (expr.isNegated_list())
-                expr.RemoveNegation(); // This also sorts the list
-            else
-                expr.SortDescriptors();
+    /**
+     * The characters {@code expr} matches, as a list that is not negated: case-folded first, when
+     * case is ignored, then complemented. The other order folds the complement, which matches the
+     * excluded character in its other case. Works on a copy; the grammar's list stays as written.
+     */
+    private RCharacterList matched(RCharacterList expr, NfaStateData data) {
+        RCharacterList list = expr.copy();
+        if (data.ignoreCase() || isIgnoreCase()) {
+            list.ToCaseNeutral();
+            list.SortDescriptors();
         }
 
-        if ((expr.getDescriptors().isEmpty()) && !expr.isNegated_list()) {
+        if (list.isNegated_list())
+            list.RemoveNegation(); // This also sorts the list
+        else
+            list.SortDescriptors();
+        return list;
+    }
+
+    @Override
+    public Nfa visit(RCharacterList expr, NfaStateData data) {
+        RCharacterList list = matched(expr, data);
+        if (list.getDescriptors().isEmpty()) {
             data.global.diagnostics().error(expr,
                     "Empty character set is not allowed as it will not match any character.");
             return new Nfa(data);
         }
 
-        expr.setTransformed();
         Nfa retVal = new Nfa(data);
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();
         int i;
 
-        for (i = 0; i < expr.getDescriptors().size(); i++) {
-            if (expr.getDescriptors().get(i) instanceof SingleCharacter) {
-                startState.AddChar(((SingleCharacter) expr.getDescriptors().get(i)).getChar());
+        for (i = 0; i < list.getDescriptors().size(); i++) {
+            if (list.getDescriptors().get(i) instanceof SingleCharacter) {
+                startState.AddChar(((SingleCharacter) list.getDescriptors().get(i)).getChar());
             } else // if (descriptors.get(i) instanceof CharacterRange)
             {
-                CharacterRange cr = (CharacterRange) expr.getDescriptors().get(i);
+                CharacterRange cr = (CharacterRange) list.getDescriptors().get(i);
 
                 if (cr.getLeft() == cr.getRight())
                     startState.AddChar(cr.getLeft());
@@ -90,22 +100,75 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
 
     @Override
     public Nfa visit(RChoice expr, NfaStateData data) {
-        expr.CompressCharLists();
+        List<RExpression> choices = compressed(expr, data);
 
-        if (expr.getChoices().size() == 1)
-            return expr.getChoices().getFirst().accept(this, data);
+        if (choices.size() == 1)
+            return choices.getFirst().accept(this, data);
 
         Nfa retVal = new Nfa(data);
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();
 
-        for (RExpression element : expr.getChoices()) {
+        for (RExpression element : choices) {
             Nfa temp = element.accept(this, data);
             startState.AddMove(temp.start());
             temp.end().AddMove(finalState);
         }
 
         return retVal;
+    }
+
+    /**
+     * The alternatives of {@code expr} with nested choices unrolled and every character list and
+     * one-character literal merged into one list, which gives the NFA one state for them. This
+     * used to rewrite the grammar's own choice (RChoice.CompressCharLists), so the unmatchability
+     * check that runs afterwards saw the merged list instead of the alternatives it names.
+     */
+    private List<RExpression> compressed(RChoice expr, NfaStateData data) {
+        List<RExpression> choices = new ArrayList<>(expr.getChoices());
+
+        // Unroll nested choices; their alternatives go to the end, last first.
+        for (int i = 0; i < choices.size(); i++) {
+            RExpression curRE = choices.get(i);
+            while (curRE instanceof RJustName name) {
+                curRE = name.getRegexpr();
+            }
+            if (curRE instanceof RChoice nested) {
+                choices.remove(i--);
+                for (int j = nested.getChoices().size(); j-- > 0; ) {
+                    choices.add(nested.getChoices().get(j));
+                }
+            }
+        }
+
+        RCharacterList merged = null;
+        for (int i = 0; i < choices.size(); i++) {
+            RExpression curRE = choices.get(i);
+            while (curRE instanceof RJustName name) {
+                curRE = name.getRegexpr();
+            }
+
+            List<Object> descriptors;
+            if ((curRE instanceof RStringLiteral literal) && (literal.getImage().length() == 1)) {
+                descriptors = List.of(new SingleCharacter(literal.getImage().charAt(0)));
+            } else if (curRE instanceof RCharacterList list) {
+                descriptors = list.isNegated_list() ? matched(list, data).getDescriptors()
+                        : list.copy().getDescriptors();
+            } else {
+                continue;
+            }
+
+            if (merged == null) {
+                merged = new RCharacterList();
+                choices.set(i, merged);
+            } else {
+                choices.remove(i--);
+            }
+            for (int j = descriptors.size(); j-- > 0; ) {
+                merged.getDescriptors().add(descriptors.get(j));
+            }
+        }
+        return choices;
     }
 
     @Override

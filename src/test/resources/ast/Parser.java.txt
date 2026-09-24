@@ -381,8 +381,9 @@ public class Parser
             switch ((jj_ntk == -1) ? jj_ntk_f() : jj_ntk) {
                 case COLON: {
                     jj_consume_token(COLON);
+                    var type = getToken(1);
                     Type();
-                    p.setReturnTypeToken(getToken(0));
+                    p.setReturnTypeToken(typeToken(type, getToken(0)));
                     break;
                 }
                 default: {
@@ -1769,7 +1770,7 @@ public class Parser
 
     public final int IntegerLiteral() throws ParseException {
         jj_consume_token(INTEGER_LITERAL);
-        return Integer.parseInt(token.image);
+        return integerValue(token);
     }
 
     public final void BooleanLiteral() throws ParseException {

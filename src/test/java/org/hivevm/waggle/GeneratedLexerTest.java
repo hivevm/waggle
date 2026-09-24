@@ -17,6 +17,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 import java.io.File;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -100,16 +101,79 @@ class GeneratedLexerTest {
                 lexer.tokens("-> -= -- - =="));
     }
 
+    /**
+     * A negated list in a choice, with case ignored: the lists of a choice are merged into one,
+     * and the negation used to be removed before the case was folded, so folding the complement
+     * put the excluded "a" back in as the other case of "A".
+     */
+    @Test
+    void anIgnoredCaseDoesNotUndoANegation(@TempDir Path dir) throws Exception {
+        var lexer = compile(dir, "Neg.waggle", """
+                grammar Neg;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <X> )* <EOF> ;
+
+                TOKEN [IGNORE_CASE] = < X: ( "xy" | ~["a"] ) > ;
+                """);
+        assertEquals(List.of("<X>:b", "<X>:XY", "error"), lexer.tokens("bXYa"));
+        assertEquals(List.of("error"), lexer.tokens("A"));
+    }
+
+    /**
+     * A private list used by a case-sensitive and a case-insensitive token. Building the automaton
+     * rewrote the list itself, so whichever token came first decided the case for both.
+     */
+    @Test
+    void aSharedListKeepsTheCaseOfEachToken(@TempDir Path dir) throws Exception {
+        for (var order : List.of(List.of("SENSITIVE", "IGNORED"), List.of("IGNORED", "SENSITIVE"))) {
+            var productions = order.stream().map(p -> p.equals("SENSITIVE")
+                    ? "TOKEN = < X: <L> \"1\" > ;"
+                    : "TOKEN [IGNORE_CASE] = < Y: <L> \"2\" > ;").toList();
+            var lexer = compile(dir.resolve(String.join("-", order)), "Shared.waggle", """
+                    grammar Shared;
+
+                    options {
+                      JAVA_PACKAGE: "org.example"
+                    }
+
+                    Input = ( <X> | <Y> )* <EOF> ;
+
+                    TOKEN = < #L: ["a"-"c"] > ;
+                    %s
+                    %s
+                    """.formatted(productions.get(0), productions.get(1)));
+
+            assertEquals(List.of("<X>:a1", "<Y>:A2", "<Y>:b2"), lexer.tokens("a1A2b2"), order.toString());
+            assertEquals(List.of("error"), lexer.tokens("A1"), order.toString());
+        }
+    }
+
     /** A compiled lexer, loaded in its own class loader. */
     private record GeneratedLexer(Constructor<?> lexer, Constructor<?> stream,
                                   Constructor<?> provider, Method next, String[] images) {
 
-        /** The tokens up to end of input, each as {@code tokenImage:image}. */
+        /**
+         * The tokens up to end of input, each as {@code tokenImage:image}, and {@code error} for a
+         * lexical error, which ends the list.
+         */
         List<String> tokens(String input) throws Exception {
             var tokens = new ArrayList<String>();
             var manager = this.lexer.newInstance(this.stream.newInstance(this.provider.newInstance(input)));
             while (true) {
-                var token = this.next.invoke(manager);
+                Object token;
+                try {
+                    token = this.next.invoke(manager);
+                } catch (InvocationTargetException e) {
+                    if (!e.getCause().getClass().getSimpleName().equals("TokenException")) {
+                        throw e;
+                    }
+                    tokens.add("error");
+                    return tokens;
+                }
                 int kind = token.getClass().getField("kind").getInt(token);
                 if (kind == 0) {
                     return tokens;
@@ -120,6 +184,7 @@ class GeneratedLexerTest {
     }
 
     private static GeneratedLexer compile(Path dir, String name, String grammar) throws Exception {
+        Files.createDirectories(dir);
         var source = dir.resolve(name);
         Files.writeString(source, grammar);
 

@@ -122,6 +122,20 @@ class OptionMatrixCompilesTest {
         }
     }
 
+    /**
+     * A generic return type. Only its last token was kept, so {@code List<String>} came out as
+     * {@code public final > name()}.
+     */
+    @org.junit.jupiter.api.Test
+    void aGenericReturnTypeIsKeptWhole(@TempDir Path dir) throws Exception {
+        var grammar = GRAMMAR.replace("  JAVA_PACKAGE: \"org.example\"",
+                        "  JAVA_PACKAGE: \"org.example\",\n  JAVA_IMPORTS: \"java.util.*\"")
+                .replace("pair #Pair =\n  <NAME> <COLON> value(1)\n;",
+                        "pair : List<String> #Pair =\n  <NAME> <COLON> value(1) <? return new ArrayList<>(); ?>\n;");
+        assertTrue(grammar.contains("List<String>"), grammar);
+        GeneratedCodeCompilesTest.assertGeneratedSourceCompiles(dir, "Matrix.waggle", grammar);
+    }
+
     static Stream<Language> languages() {
         return Stream.of(Language.JAVA, Language.CPP);
     }

@@ -14,8 +14,6 @@ import java.util.List;
  */
 public final class RCharacterList extends RExpression {
 
-    private boolean transformed = false;
-
     // This is true if a tilde (~) appears before the character list. Otherwise, this is false.
     private boolean negated_list = false;
 
@@ -496,17 +494,28 @@ public final class RCharacterList extends RExpression {
         setOrdinal(Integer.MAX_VALUE);
     }
 
+    /**
+     * A copy with copies of its descriptors, for the lexer to transform. The transformations
+     * rewrite the list in place, and {@link #SortDescriptors()} also moves the bounds of its
+     * ranges, so the lexer used to rewrite the grammar's own list: whoever came first decided the
+     * case sensitivity of every later token that shares it.
+     */
+    public RCharacterList copy() {
+        var copy = new RCharacterList();
+        copy.negated_list = this.negated_list;
+        copy.setLocation(this);
+        for (Object descriptor : this.descriptors) {
+            copy.descriptors.add((descriptor instanceof CharacterRange range)
+                    ? new CharacterRange(range.getLeft(), range.getRight())
+                    : new SingleCharacter(((SingleCharacter) descriptor).getChar()));
+        }
+        return copy;
+    }
+
     @Override
     public boolean CanMatchAnyChar() {
         // Return true only if it is ~[]
         return this.negated_list && ((this.descriptors == null) || (this.descriptors.isEmpty()));
-    }
-
-    /**
-     * Gets the {@link #transformed}.
-     */
-    public final boolean isTransformed() {
-        return this.transformed;
     }
 
     /**
@@ -521,13 +530,6 @@ public final class RCharacterList extends RExpression {
      */
     public final List<Object> getDescriptors() {
         return this.descriptors;
-    }
-
-    /**
-     * Sets the {@link #transformed}.
-     */
-    public final void setTransformed() {
-        this.transformed = true;
     }
 
     /**

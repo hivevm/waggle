@@ -153,7 +153,7 @@ class StringLiteralAnalyzer {
             if (!regexp.isPrivateExp() && (regexp.getOrdinal() > 0)
                     && (regexp.getOrdinal() < choice.getOrdinal())
                     && (data.getState(regexp.getOrdinal()) == data.getState(choice.getOrdinal()))) {
-                if (choice.getLabel() != null) {
+                if (!choice.getLabel().isEmpty()) { // the label is "" when there is none
                     data.diagnostics().warning(choice,
                             "Regular Expression choice : " + regexp.getLabel()
                                     + " can never be matched as : " + choice.getLabel());

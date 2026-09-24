@@ -137,6 +137,59 @@ class GrammarDiagnosticsTest {
         assertFalse(warning.message().contains("<token of kind 0>"), warning.message());
     }
 
+    /**
+     * An alternative that names an earlier token can never match as the later one. The check ran
+     * on the choice after building the automaton had merged its character lists, so a named list
+     * or one-character literal had already disappeared into the merge and nothing was reported.
+     */
+    @Test
+    void aNamedListInAChoiceCanNeverBeMatched() throws IOException {
+        var diagnostics = generate("""
+                TOKEN =
+                  < A: ["0"-"9"] >
+                | < B: <A> | "xy" >
+                ;
+                """);
+
+        assertTrue(diagnostics.collected().stream().anyMatch(d -> d.message()
+                        .contains("choice : A can never be matched as : B")),
+                diagnostics.collected().toString());
+    }
+
+    /** An integer is read as Java reads it; "0x2" used to fail with a NumberFormatException. */
+    @Test
+    void anIntegerMayBeWrittenInHexadecimal() throws IOException {
+        var diagnostics = new Diagnostics(DiagnosticSink.SILENT);
+        compileOrExplain(diagnostics, INTEGERS.formatted("0x2"));
+        assertEquals(List.of(), errors(diagnostics));
+    }
+
+    /** An integer that does not fit is an error at its position, not a bare exception. */
+    @Test
+    void anIntegerTooLargeIsReportedWhereItIsWritten() throws IOException {
+        var diagnostics = new Diagnostics(DiagnosticSink.SILENT);
+        assertThrows(GenerationException.class,
+                () -> compile(diagnostics, INTEGERS.formatted("99999999999")));
+
+        var error = errors(diagnostics).stream()
+                .filter(d -> d.message().contains("99999999999")).findFirst()
+                .orElseThrow(() -> new AssertionError(diagnostics.collected().toString()));
+        assertTrue(error.hasPosition(), error.toString());
+    }
+
+    /** A choice that needs a lookahead of two; its amount is filled in. */
+    private static final String INTEGERS = """
+            grammar Example;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input = ( LOOKAHEAD(%s) <A> <B> | <A> <C> ) <EOF> ;
+
+            TOKEN = < A: "a" > | < B: "b" > | < C: "c" > ;
+            """;
+
     private static List<Diagnostic> errors(Diagnostics diagnostics) {
         return diagnostics.collected().stream().filter(d -> d.severity() == Severity.ERROR).toList();
     }

@@ -115,7 +115,7 @@ bnf_production #BNF =
 ?>
   name=identifier() <? p.setLhs(name); ?>
   [ < LPAREN > [ FormalParameters(p.getParameterListTokens()) ] < RPAREN > ]
-  [ < COLON > Type() <? p.setReturnTypeToken(getToken(0)); ?> ]
+  [ < COLON > <? var type = getToken(1); ?> Type() <? p.setReturnTypeToken(typeToken(type, getToken(0))); ?> ]
   [ node_descriptor(p, p) ] #BNFDeclaration
   < ASSIGN >
   (
@@ -657,7 +657,7 @@ Literal =
 | BooleanLiteral()
 ;
 
-IntegerLiteral() : int = <INTEGER_LITERAL> <? return Integer.parseInt(token.image); ?> ;
+IntegerLiteral() : int = <INTEGER_LITERAL> <? return integerValue(token); ?> ;
 
 BooleanLiteral = < TRUE > | < FALSE > ;
 

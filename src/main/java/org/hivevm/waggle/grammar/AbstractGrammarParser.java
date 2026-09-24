@@ -285,6 +285,47 @@ abstract class AbstractGrammarParser implements ParserConstants {
     }
 
     /**
+     * The value of an integer literal, read as Java reads it: {@code 0x10} is 16, {@code 010} is 8
+     * and an {@code L} suffix is allowed. Integer.parseInt accepted only the decimal form the token
+     * also admits, and failed on the others without a position.
+     */
+    protected final int integerValue(Token token) {
+        String text = token.image;
+        if (text.endsWith("l") || text.endsWith("L")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        try {
+            return Integer.decode(text);
+        } catch (NumberFormatException e) {
+            diagnostics().error(token, "The number " + token.image + " is too large for an int.");
+            return 0;
+        }
+    }
+
+    /**
+     * The tokens from {@code first} to {@code last} as one token, for a return type: the type
+     * {@code List<Foo>} is four tokens, and only the last of them, {@code >}, used to be kept. The
+     * images are joined as written, with one space where there was white space between them.
+     */
+    protected static Token typeToken(Token first, Token last) {
+        var image = new StringBuilder(first.image);
+        for (Token t = first; t != last; t = t.next) {
+            Token next = t.next;
+            if ((next.beginLine != t.endLine) || (next.beginColumn > t.endColumn + 1)) {
+                image.append(' ');
+            }
+            image.append(next.image);
+        }
+
+        var type = new Token(last.kind, image.toString());
+        type.beginLine = first.beginLine;
+        type.beginColumn = first.beginColumn;
+        type.endLine = last.endLine;
+        type.endColumn = last.endColumn;
+        return type;
+    }
+
+    /**
      * Parses an argument list whose tokens are not needed by the caller.
      */
     protected void Arguments() throws ParseException {
