@@ -89,6 +89,40 @@ class MultiTargetGenerationTest {
                 "the Rust parser struct has no jj_ntk field, but the code assigns to it");
     }
 
+    /**
+     * The lexer takes a keyword's image from this table. It was filled with JavaCC's octal escapes
+     * in a form Rust does not know -- {@code "if"} came out as {@code "0o151;0o146;"} -- which
+     * compiled, so only the images of the tokens were wrong.
+     */
+    @Test
+    void rustLiteralImagesAreTheLiterals(@TempDir Path dir) throws IOException {
+        var target = generate(Language.RUST, dir, """
+                grammar Example;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <IF> | <QUOTE> | <BACKSLASH> | <UMLAUT> | <EMOJI> )* <EOF> ;
+
+                TOKEN =
+                  < IF: "if" >
+                | < QUOTE: "\\"" >
+                | < BACKSLASH: "\\\\" >
+                | < UMLAUT: "\u00e4" >
+                | < EMOJI: "\\uD83D\\uDE00" >
+                ;
+                """);
+        var lexer = Files.readString(target.resolve("example").resolve("lexer.rs"));
+        var table = lexer.substring(lexer.indexOf("JJSTR_LITERAL_IMAGES"));
+        table = table.substring(0, table.indexOf("];"));
+
+        for (var image : List.of("\"if\",", "\"\\\"\",", "\"\\\\\",", "\"\\u{e4}\",",
+                "\"\\u{1f600}\",")) {
+            assertTrue(table.contains(image), image + " is missing from " + table);
+        }
+    }
+
     /** The same grammar, but with the token-manager trace switched on. */
     private static final String GRAMMAR_DEBUG = MultiTargetGenerationTest.GRAMMAR.replace(
             "  JAVA_PACKAGE: \"org.example\"",

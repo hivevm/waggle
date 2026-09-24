@@ -13,6 +13,7 @@ import org.hivevm.waggle.api.ParserBuilder;
 import org.hivevm.waggle.api.Language;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.Test;
@@ -148,6 +149,42 @@ class CppCompilesTest {
     @Test
     void nodesWithoutNodeMultiCompile(@TempDir Path dir) throws IOException, InterruptedException {
         assertCompiles(GeneratedCodeCompilesTest.NODES_WITHOUT_NODE_MULTI, dir);
+    }
+
+    /**
+     * Skipped single characters on both sides of 64 are tested with two bit masks, and the lower one
+     * was printed without its {@code 0x}: C++ read it as a decimal number and skipped other
+     * characters than the grammar said.
+     */
+    @Test
+    void theSkipMasksAreHexadecimal(@TempDir Path dir) throws IOException, InterruptedException {
+        assertCompiles("""
+                grammar Skip;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> )* <EOF> ;
+
+                SKIP = " " | "~" ;
+
+                TOKEN = < WORD: (["a"-"z"])+ > ;
+                """, dir);
+
+        String lexer;
+        try (Stream<Path> paths = Files.walk(dir.resolve("cpp"))) {
+            lexer = paths.filter(p -> p.toString().endsWith(".cc")).map(p -> {
+                try {
+                    return Files.readString(p);
+                } catch (IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            }).filter(text -> text.contains("while ((curChar < 64 && (")).findFirst()
+                    .orElseThrow(() -> new AssertionError("no two-mask skip loop was generated"));
+        }
+        assertTrue(lexer.contains("while ((curChar < 64 && (0x100000000ULL & (1L << curChar))"),
+                lexer.lines().filter(l -> l.contains("curChar < 64")).toList().toString());
     }
 
     private static void assertCompiles(String grammar, Path dir)

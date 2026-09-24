@@ -119,4 +119,52 @@ class InterpreterTest {
         assertTrue(matches.get(1).kind() < matches.get(2).kind(),
                 "NUMBER is declared before IDENT");
     }
+
+    /**
+     * A catch-all token ({@code ~[]}) never enters the NFA; the generated lexer applies it after the
+     * automaton. The interpreter used to walk the NFA only and failed where the generated lexer
+     * matched.
+     */
+    @Test
+    void aCatchAllTokenMatchesWhatNothingElseDoes() {
+        var grammar = """
+                grammar Any;
+
+                Input = ( <WORD> | <ANY> )* <EOF> ;
+
+                TOKEN =
+                  < WORD: (["a"-"z"])+ >
+                | < ANY: ~[] >
+                ;
+                """;
+        var matches = new ParserInterpreter(new Diagnostics(DiagnosticSink.SILENT))
+                .tokenize(grammar, "ab?c");
+
+        assertEquals(List.of("ab", "?", "c"), matches.stream()
+                .map(LexerInterpreter.Match::image).toList());
+        assertEquals(matches.get(0).kind(), matches.get(2).kind(), "a longer or earlier WORD wins");
+        assertTrue(matches.get(1).kind() > matches.get(0).kind(), "'?' is only matched by ANY");
+    }
+
+    /** Declared first, the catch-all wins every one-character tie, as it does in generated code. */
+    @Test
+    void anEarlierCatchAllWinsAOneCharacterTie() {
+        var grammar = """
+                grammar Any;
+
+                Input = ( <ANY> | <WORD> )* <EOF> ;
+
+                TOKEN =
+                  < ANY: ~[] >
+                | < WORD: (["a"-"z"])+ >
+                ;
+                """;
+        var matches = new ParserInterpreter(new Diagnostics(DiagnosticSink.SILENT))
+                .tokenize(grammar, "a bc");
+
+        assertEquals(List.of("a", " ", "bc"), matches.stream()
+                .map(LexerInterpreter.Match::image).toList());
+        assertEquals(matches.get(0).kind(), matches.get(1).kind(), "'a' is taken by ANY");
+        assertTrue(matches.get(2).kind() > matches.get(0).kind(), "the longer WORD still wins");
+    }
 }

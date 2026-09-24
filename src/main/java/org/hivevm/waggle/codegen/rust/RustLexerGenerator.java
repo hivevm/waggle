@@ -56,10 +56,9 @@ class RustLexerGenerator extends LexerGenerator {
         // A jjbitVec is a 256-bit map over the low byte: always four u64. This used to be the
         // number of vectors, which is a different thing entirely and only ever matched by accident.
         options.set("LOHI_BYTES_LENGTH", 4);
-        options.add("LITERAL_IMAGES", RustLexerGenerator.getStrLiteralImageList(data))
-                .set("LITERAL_IMAGE_NAME", s -> s);
-        options.set("LITERAL_IMAGES_LENGTH",
-                RustLexerGenerator.getStrLiteralImageList(data).size());
+        var images = RustLexerGenerator.getStrLiteralImageList(data);
+        options.add("LITERAL_IMAGES", images).set("LITERAL_IMAGE_NAME", s -> s);
+        options.set("LITERAL_IMAGES_LENGTH", images.size());
         options.set("STATES_FOR_STATE", () -> getStatesForState(data));
         options.set("KIND_FOR_STATE", () -> getNextToken().getKindForState(data));
         options.set("STATE_NAMES_LENGTH", data.getStateNames().size());
@@ -226,53 +225,35 @@ class RustLexerGenerator extends LexerGenerator {
         return RustTemplate.PARSER_CONSTANTS;
     }
 
+    /**
+     * The literal image of each token kind, as the content of a Rust string literal; {@code null}
+     * where a kind has none, which the template renders as the empty string.
+     *
+     * <p>This used to write JavaCC's octal escapes in a form Rust does not know, so {@code "if"}
+     * came out as {@code "0o151;0o146;"} -- which compiled, and became the image of every keyword.
+     */
     private static List<String> getStrLiteralImageList(LexerData data) {
         var list = new ArrayList<String>();
-        if (data.getImageCount() <= 0) {
-            return list;
-        }
-
-        String image;
-        int i;
-        int charCnt = 0;
-
-        for (i = 0; i < data.getImageCount(); i++) {
-            if ((image = data.getImage(i)) == null) {
-                if ((charCnt += 6) > 80) {
-                    charCnt = 0;
-                }
-
-                list.add(null);
-                continue;
-            }
-
-            String toPrint = "";
-            for (int j = 0; j < image.length(); j++) {
-                if (image.charAt(j) <= 0xff) {
-                    toPrint += ("0o" + Integer.toOctalString(image.charAt(j))) + ";";
-                } else {
-                    String hexVal = Integer.toHexString(image.charAt(j));
-                    if (hexVal.length() == 3) {
-                        hexVal = "0x" + hexVal + ";";
-                    }
-                    toPrint += ("\\u" + hexVal);
-                }
-            }
-
-            if ((charCnt += toPrint.length()) >= 80) {
-                charCnt = 0;
-            }
-
-            list.add(toPrint);
-        }
-
-        while (++i < data.maxOrdinal()) {
-            if ((charCnt += 6) > 80) {
-                charCnt = 0;
-            }
-            list.add(null);
+        for (int i = 0; i < data.getImageCount(); i++) {
+            var image = data.getImage(i);
+            list.add((image == null) ? null : RustLexerGenerator.toRustStringContent(image));
         }
         return list;
+    }
+
+    private static String toRustStringContent(String image) {
+        // Code points, not chars: Rust has no escape for half a surrogate pair.
+        var text = new StringBuilder();
+        image.codePoints().forEach(c -> {
+            if ((c == '"') || (c == '\\')) {
+                text.append('\\').appendCodePoint(c);
+            } else if ((c >= 0x20) && (c < 0x7f)) {
+                text.appendCodePoint(c);
+            } else {
+                text.append("\\u{").append(Integer.toHexString(c)).append('}');
+            }
+        });
+        return text.toString();
     }
 
     @Override

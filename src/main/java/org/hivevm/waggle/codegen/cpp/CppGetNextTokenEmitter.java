@@ -32,7 +32,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         long lower = data.singlesToSkip(state).asciiMoves[0];
         long upper = data.singlesToSkip(state).asciiMoves[1];
         if ((lower != 0L) && (upper != 0L)) {
-            printer.print("while ((curChar < 64 && (" + Long.toHexString(lower)
+            printer.print("while ((curChar < 64 && (" + this.syntax.toHexString(lower)
                     + " & (1L << curChar)) != 0L) || \n"
                     + "          (curChar >> 6) == 1 && (" + this.syntax.toHexString(upper)
                     + " & (1L << (curChar & 077))) != 0L)");

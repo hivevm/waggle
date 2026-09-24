@@ -642,18 +642,18 @@ public class Semanticize {
             return true;
         }
 
-        if (referenced.getOrdinal() != 0) {
+        if (referenced.getWalkStatus() != 0) {
             return false;
         }
 
-        referenced.setOrdinal(-1);
+        referenced.setWalkStatus(-1);
         if (!rexpWalk(referenced)) {
             referenced.setWalkStatus(1);
             return false;
         }
 
         this.loopString = "..." + referenced.getLabel() + "... --> " + this.loopString;
-        boolean isLoopOwner = referenced.getOrdinal() == -2;
+        boolean isLoopOwner = referenced.getWalkStatus() == -2;
         referenced.setWalkStatus(1);
         if (isLoopOwner) {
             this.context.onSemanticError(referenced,

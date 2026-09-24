@@ -58,7 +58,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         }
 
         if ((expr.getDescriptors().isEmpty()) && !expr.isNegated_list()) {
-            data.global.diagnostics().error(this,
+            data.global.diagnostics().error(expr,
                     "Empty character set is not allowed as it will not match any character.");
             return new Nfa(data);
         }

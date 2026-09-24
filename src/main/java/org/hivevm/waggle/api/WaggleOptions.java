@@ -164,6 +164,13 @@ public class WaggleOptions implements Options {
         return (opt != null) && (opt.length() > 1) && (opt.charAt(0) == '-');
     }
 
+    private static String typeName(Class<?> type) {
+        if (type == Boolean.class) {
+            return "true or false";
+        }
+        return (type == Integer.class) ? "a number" : "a string";
+    }
+
     public final void setOption(Diagnostics diagnostics, Object nameloc, Object valueloc,
             String name, Object value) {
         String nameUpperCase = name.toUpperCase();
@@ -184,6 +191,18 @@ public class WaggleOptions implements Options {
             // the unwrapped element threw a ClassCastException for exactly that case; the flag was
             // also named for the opposite of what it tests.
             Object element = (value instanceof List<?> list) ? list.getFirst() : value;
+
+            // The default fixes the option's type. Without this check a mistyped value was stored
+            // as written and failed much later, as a ClassCastException without a grammar position.
+            // A list is written as one comma-separated string and split by set().
+            var expected = (existingValue instanceof List<?>) ? String.class : existingValue.getClass();
+            if (!(value instanceof List<?>) && (value.getClass() != expected)) {
+                diagnostics.warning(valueloc,
+                        "Bad option value \"" + value + "\" for \"" + name + "\": expected "
+                                + WaggleOptions.typeName(expected)
+                                + ".  Option setting will be ignored.");
+                return;
+            }
 
             if ((element instanceof Integer number) && (number <= 0)) {
                 diagnostics.warning(valueloc,

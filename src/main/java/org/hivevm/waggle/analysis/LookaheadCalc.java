@@ -77,7 +77,7 @@ class LookaheadCalc {
                 else if ((re.getLabel() != null) && !re.getLabel().isEmpty())
                     ret.append(" <").append(re.getLabel()).append(">");
                 else
-                    ret.append(" <token of kind ").append(i).append(">");
+                    ret.append(" <token of kind ").append(m.match()[i]).append(">");
             }
         }
         return (m.firstFreeLoc() == 0) ? "" : ret.substring(1);

@@ -12,12 +12,19 @@ import org.hivevm.waggle.api.Language;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.hivevm.source.OutputSink;
+import org.hivevm.waggle.api.GenerationRequest;
+import org.hivevm.waggle.api.WaggleCompiler;
+import org.hivevm.waggle.diag.DiagnosticSink;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * A failed generation must be reported to the caller (ADR-0011).
@@ -120,6 +127,37 @@ class GenerationFailureTest {
 
             generate(source, dir, Language.JAVA);
         }
+    }
+
+    /**
+     * Only a parse error, an I/O error and a stage's own refusal were wrapped; anything else a stage
+     * threw -- here a sink that cannot write -- escaped as whatever it was, without the grammar.
+     */
+    @Test
+    void aFailureOutsideTheStagesIsAGenerationFailure(@TempDir Path dir) throws IOException {
+        var source = dir.resolve("Example.waggle");
+        Files.writeString(source, """
+                grammar Example;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = < WORD > <EOF> ;
+
+                TOKEN = < WORD: (["a"-"z"])+ > ;
+                """);
+        OutputSink failing = (file, content) -> {
+            throw new UncheckedIOException(new IOException("disk full"));
+        };
+
+        var thrown = assertThrows(GenerationException.class,
+                () -> new WaggleCompiler(
+                        new GenerationRequest(source.toFile(), Language.JAVA,
+                                dir.resolve("out").toFile(), List.of()),
+                        new Diagnostics(DiagnosticSink.SILENT), failing).parse());
+        assertTrue(thrown.getMessage().contains("Example.waggle"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("disk full"), thrown.getMessage());
     }
 
     private static void generate(Path source, Path dir) {

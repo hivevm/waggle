@@ -137,6 +137,14 @@ public final class LexerInterpreter {
             }
         }
 
+        // A catch-all token (~[]) is not part of the NFA: the generated lexer applies it after the
+        // automaton, as a one-character match that wins over nothing or over a later declaration.
+        var anyChar = this.data.canMatchAnyChar(state);
+        if ((anyChar != -1) && ((matchedEnd < 0) || ((matchedEnd == (pos + 1)) && (matchedKind > anyChar)))) {
+            matchedKind = anyChar;
+            matchedEnd = pos + 1;
+        }
+
         return (matchedEnd < 0) ? null
                 : new Match(matchedKind, input.substring(pos, matchedEnd), pos, matchedEnd, null);
     }

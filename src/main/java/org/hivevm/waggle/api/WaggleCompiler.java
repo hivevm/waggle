@@ -106,6 +106,12 @@ public class WaggleCompiler {
             // cause would lose the one sentence a caller wants (ADR-0022).
             throw new GenerationException(
                     "Failed to generate a parser from " + grammarFile + ": " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            // Anything else that escapes a stage -- a template that does not render, a sink that
+            // cannot write, an option of the wrong type -- is still a failed generation, and the
+            // caller catches one type for that (ADR-0011, ADR-0022).
+            throw new GenerationException(
+                    "Failed to generate a parser from " + grammarFile + ": " + e, e);
         }
 
         if (this.diagnostics.hasError()) {
