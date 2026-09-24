@@ -101,4 +101,4 @@ the largest test.
 | `SourceHygieneTest` | no unused and no own-package imports under `src/main/java` |
 | `GeneratorSizeTest` | no class under `codegen` above 1000 lines — `LexerGenerator` was 3064 |
 | `MultiTargetGenerationTest` | every target generating, and its debug output referring to things that exist |
-| `JJTreeAstTest` | the tree features, end to end, against a golden file |
+| `AstTest` | tree building on Waggle.waggle, end to end: node classes, a golden parser, and compilation |

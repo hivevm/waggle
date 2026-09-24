@@ -87,12 +87,12 @@ class TreeDetectionTest {
     }
 
     /**
-     * A node descriptor alone does not build a tree: without USE_AST it is ignored, and the author
+     * With USE_AST: false a node descriptor does not build a tree: it is ignored, and the author
      * is told once, so a grammar can carry its annotations before it opts in (ADR-0028).
      */
     @Test
     void withoutUseAstNodeDescriptorsAreIgnored(@TempDir Path dir) throws IOException {
-        var grammar = TreeDetectionTest.WITH_NODE.replace("  USE_AST: true,\n", "");
+        var grammar = TreeDetectionTest.WITH_NODE.replace("USE_AST: true", "USE_AST: false");
         var target = generate(dir, "Noded.waggle", grammar);
 
         assertFalse(Files.readString(target.resolve("org/example/Parser.java")).contains("jjtree"),
