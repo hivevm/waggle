@@ -10,8 +10,6 @@ package org.hivevm.waggle.lexer;
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
 import java.util.Hashtable;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -122,15 +120,12 @@ public class DfaBuilder {
             data.global.statesForState = new int[data.global.maxLexStates][][];
         }
 
+        // After this, allStates holds exactly the indexed states of this lexical state: each one
+        // was named because it had transitions, and dummies and unnamed states are left out.
         reArrange(data);
 
         for (i = 0; i < data.getAllStateCount(); i++) {
             NfaState temp = data.getAllState(i);
-
-            if ((temp.lexState != data.getStateIndex()) || !temp.HasTransitions() || temp.dummy || (
-                    temp.stateName == -1)) {
-                continue;
-            }
 
             if (kindsForStates == null) {
                 kindsForStates = new int[data.generatedStates()];
@@ -149,10 +144,6 @@ public class DfaBuilder {
             if (state >= data.generatedStates()) {
                 data.global.statesForState[data.getStateIndex()][state] = data.getNextStates(s);
             }
-        }
-
-        if (!data.stateSetsToFix.isEmpty()) {
-            fixStateSets(data);
         }
 
         data.global.kinds[data.getStateIndex()] = kindsForStates;
@@ -177,23 +168,7 @@ public class DfaBuilder {
         }
 
         for (NfaState element : data.getAllStates()) {
-            if (dumped[element.stateName] || (element.lexState != data.getStateIndex())
-                    || !element.HasTransitions() || element.dummy
-                    || (element.stateName == -1)) {
-                continue;
-            }
-
-            if (element.stateForCase != null) {
-                if ((element.inNextOf == 1) || dumped[element.stateForCase.stateName]) {
-                    continue;
-                }
-                getNoBreak(data, element.stateForCase, byteNum, dumped);
-                if (element.asciiMoves[byteNum] == 0L) {
-                    continue;
-                }
-            }
-
-            if (element.asciiMoves[byteNum] == 0L) {
+            if (dumped[element.stateName] || (element.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
 
@@ -214,8 +189,6 @@ public class DfaBuilder {
         NfaState toBePrinted = null;
         int neededStates = 0;
         NfaState tmp;
-        NfaState stateForCase = null;
-        boolean stateBlock = (data.stateBlockTable.get(key) != null);
 
         for (i = 0; i < nameSet.length; i++) {
             tmp = data.getAllState(nameSet[i]);
@@ -229,18 +202,6 @@ public class DfaBuilder {
             } else {
                 dumped[tmp.stateName] = true;
             }
-
-            if (tmp.stateForCase != null) {
-                if (stateForCase != null) {
-                    throw new IllegalStateException(
-                            "Two NFA states of the same composite state claim stateForCase");
-                }
-                stateForCase = tmp.stateForCase;
-            }
-        }
-
-        if (stateForCase != null) {
-            getNoBreak(data, stateForCase, byteNum, dumped);
         }
 
         if (neededStates == 0) {
@@ -259,15 +220,9 @@ public class DfaBuilder {
             dumped[keyState] = true;
         }
 
-        for (i = 0; i < partition.size(); i++) {
-            List<NfaState> subSet = partition.get(i);
-
+        for (List<NfaState> subSet : partition) {
             for (NfaState element : subSet) {
-                tmp = element;
-                if (stateBlock) {
-                    dumped[tmp.stateName] = true;
-                }
-                getAsciiMoveForCompositeState(data, tmp, byteNum);
+                getAsciiMoveForCompositeState(data, element, byteNum);
             }
         }
     }
@@ -275,16 +230,11 @@ public class DfaBuilder {
     private static void getAsciiMove(NfaStateData data, NfaState state, int byteNum,
                                      boolean[] dumped) {
         boolean nextIntersects = state.selfLoop() && state.isComposite;
-        boolean onlyState = true;
 
         for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (element.stateName == -1) || element.dummy || (state.stateName
+            if ((state == element) || (state.stateName
                     == element.stateName) || (element.asciiMoves[byteNum] == 0L)) {
                 continue;
-            }
-
-            if (onlyState && ((state.asciiMoves[byteNum] & element.asciiMoves[byteNum]) != 0L)) {
-                onlyState = false;
             }
 
             if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
@@ -302,28 +252,7 @@ public class DfaBuilder {
             }
         }
 
-        if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
-                && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
-                && (state.kindToPrint != Integer.MAX_VALUE))) {
-            return;
-        }
-
-        if ((state.next != null) && (state.next.usefulEpsilonMoves > 0)) {
-            if (state.next.usefulEpsilonMoves == 1) {
-            } else if ((state.next.usefulEpsilonMoves == 2) && nextIntersects) {
-            } else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
-                boolean notTwo = ((indices[0] + 1) != indices[1]);
-
-                if (nextIntersects) {
-                    if (notTwo) {
-                        data.global.jjCheckNAddStatesDualNeeded = true;
-                    } else {
-                        data.global.jjCheckNAddStatesUnaryNeeded = true;
-                    }
-                }
-            }
-        }
+        registerNextStateSet(data, state, nextIntersects);
     }
 
     private static void getAsciiMoveForCompositeState(NfaStateData data, NfaState state,
@@ -331,7 +260,7 @@ public class DfaBuilder {
         boolean nextIntersects = state.selfLoop();
 
         for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
+            if ((state == temp1) || (state.stateName
                     == temp1.stateName) || (temp1.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
@@ -343,21 +272,7 @@ public class DfaBuilder {
             }
         }
 
-        if ((state.next != null) && (state.next.usefulEpsilonMoves > 0)) {
-            if (state.next.usefulEpsilonMoves == 1) {
-            } else if ((state.next.usefulEpsilonMoves == 2) && nextIntersects) {
-            } else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
-                boolean notTwo = ((indices[0] + 1) != indices[1]);
-                if (nextIntersects) {
-                    if (notTwo) {
-                        data.global.jjCheckNAddStatesDualNeeded = true;
-                    } else {
-                        data.global.jjCheckNAddStatesUnaryNeeded = true;
-                    }
-                }
-            }
-        }
+        registerNextStateSet(data, state, nextIntersects);
     }
 
     // -----------------------------------------------------------------------
@@ -374,22 +289,7 @@ public class DfaBuilder {
 
         for (i = 0; i < data.getAllStateCount(); i++) {
             NfaState temp = data.getAllState(i);
-            if ((temp.stateName == -1) || dumped[temp.stateName] || (temp.lexState
-                    != data.getStateIndex()) || !temp.HasTransitions() || temp.dummy) {
-                continue;
-            }
-
-            if (temp.stateForCase != null) {
-                if ((temp.inNextOf == 1) || dumped[temp.stateForCase.stateName]) {
-                    continue;
-                }
-                getNoBreak(data, temp.stateForCase, -1, dumped);
-                if (temp.nonAsciiMethod == -1) {
-                    continue;
-                }
-            }
-
-            if (temp.nonAsciiMethod == -1) {
+            if (dumped[temp.stateName] || (temp.nonAsciiMethod == -1)) {
                 continue;
             }
 
@@ -410,8 +310,6 @@ public class DfaBuilder {
         NfaState toBePrinted = null;
         int neededStates = 0;
         NfaState tmp;
-        NfaState stateForCase = null;
-        boolean stateBlock = (data.stateBlockTable.get(key) != null);
 
         for (i = 0; i < nameSet.length; i++) {
             tmp = data.getAllState(nameSet[i]);
@@ -425,18 +323,6 @@ public class DfaBuilder {
             } else {
                 dumped[tmp.stateName] = true;
             }
-
-            if (tmp.stateForCase != null) {
-                if (stateForCase != null) {
-                    throw new IllegalStateException(
-                            "Two NFA states of the same composite state claim stateForCase");
-                }
-                stateForCase = tmp.stateForCase;
-            }
-        }
-
-        if (stateForCase != null) {
-            getNoBreak(data, stateForCase, -1, dumped);
         }
 
         if (neededStates == 0) {
@@ -458,9 +344,6 @@ public class DfaBuilder {
             tmp = data.getAllState(nameSet[i]);
 
             if (tmp.nonAsciiMethod != -1) {
-                if (stateBlock) {
-                    dumped[tmp.stateName] = true;
-                }
                 getNonAsciiMoveForCompositeState(data, tmp);
             }
         }
@@ -469,7 +352,7 @@ public class DfaBuilder {
     private static void getNonAsciiMoveForCompositeState(NfaStateData data, NfaState state) {
         boolean nextIntersects = state.selfLoop();
         for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
+            if ((state == temp1) || (state.stateName
                     == temp1.stateName) || (temp1.nonAsciiMethod == -1)) {
                 continue;
             }
@@ -481,28 +364,14 @@ public class DfaBuilder {
             }
         }
 
-        if ((state.next != null) && (state.next.usefulEpsilonMoves > 0)) {
-            if (state.next.usefulEpsilonMoves == 1) {
-            } else if ((state.next.usefulEpsilonMoves == 2) && nextIntersects) {
-            } else {
-                int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
-                boolean notTwo = ((indices[0] + 1) != indices[1]);
-                if (nextIntersects) {
-                    if (notTwo) {
-                        data.global.jjCheckNAddStatesDualNeeded = true;
-                    } else {
-                        data.global.jjCheckNAddStatesUnaryNeeded = true;
-                    }
-                }
-            }
-        }
+        registerNextStateSet(data, state, nextIntersects);
     }
 
     private static void getNonAsciiMove(NfaStateData data, NfaState state, boolean[] dumped) {
         boolean nextIntersects = state.selfLoop() && state.isComposite;
 
         for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (element.stateName == -1) || element.dummy || (state.stateName
+            if ((state == element) || (state.stateName
                     == element.stateName) || (element.nonAsciiMethod == -1)) {
                 continue;
             }
@@ -522,42 +391,30 @@ public class DfaBuilder {
             }
         }
 
+        registerNextStateSet(data, state, nextIntersects);
+    }
+
+    /**
+     * Registers the state set a move leads to, and notes which jjCheckNAddStates variant the
+     * generated lexer needs for it. The registration order is the order of {@code jjnextStates}.
+     */
+    private static void registerNextStateSet(NfaStateData data, NfaState state,
+                                             boolean nextIntersects) {
         if ((state.next == null) || (state.next.usefulEpsilonMoves <= 0)) {
             return;
         }
-
-        if (state.next.usefulEpsilonMoves == 1) {
-        } else if ((state.next.usefulEpsilonMoves == 2) && nextIntersects) {
-        } else {
-            int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
-            boolean notTwo = ((indices[0] + 1) != indices[1]);
-
-            if (nextIntersects) {
-                if (notTwo) {
-                    data.global.jjCheckNAddStatesDualNeeded = true;
-                } else {
-                    data.global.jjCheckNAddStatesUnaryNeeded = true;
-                }
-            }
-        }
-    }
-
-    private static void getNoBreak(NfaStateData data, NfaState state, int byteNum,
-                                   boolean[] dumped) {
-        if (state.inNextOf != 1) {
-            throw new IllegalStateException(
-                    "getNoBreak expects a state that occurs in exactly one next-state set, but "
-                            + "inNextOf = " + state.inNextOf);
+        int useful = state.next.usefulEpsilonMoves;
+        if ((useful == 1) || ((useful == 2) && nextIntersects)) {
+            return;
         }
 
-        dumped[state.stateName] = true;
-
-        if (byteNum >= 0) {
-            if (state.asciiMoves[byteNum] != 0L) {
-                getAsciiMoveForCompositeState(data, state, byteNum);
+        int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
+        if (nextIntersects) {
+            if ((indices[0] + 1) != indices[1]) {
+                data.global.jjCheckNAddStatesDualNeeded = true;
+            } else {
+                data.global.jjCheckNAddStatesUnaryNeeded = true;
             }
-        } else if (state.nonAsciiMethod != -1) {
-            getNonAsciiMoveForCompositeState(data, state);
         }
     }
 
@@ -577,42 +434,6 @@ public class DfaBuilder {
         for (NfaState tmp : v) {
             if ((tmp.stateName != -1) && !tmp.dummy) {
                 data.setAllState(tmp.stateName, tmp);
-            }
-        }
-    }
-
-    static void fixStateSets(NfaStateData data) {
-        Map<String, int[]> fixedSets = new LinkedHashMap<>();
-        int[] tmp = new int[data.generatedStates()];
-        int i;
-
-        for (var entry : data.stateSetsToFix.entrySet()) {
-            String s = entry.getKey();
-            int[] toFix = entry.getValue();
-            int cnt = 0;
-
-            for (i = 0; i < toFix.length; i++) {
-                if (toFix[i] != -1) {
-                    tmp[cnt++] = toFix[i];
-                }
-            }
-
-            int[] fixed = new int[cnt];
-            System.arraycopy(tmp, 0, fixed, 0, cnt);
-            fixedSets.put(s, fixed);
-            data.setNextStates(s, fixed);
-        }
-
-        for (i = 0; i < data.getAllStateCount(); i++) {
-            NfaState tmpState = data.getAllState(i);
-            int[] newSet;
-
-            if ((tmpState.next == null) || (tmpState.next.usefulEpsilonMoves == 0)) {
-                continue;
-            }
-
-            if ((newSet = fixedSets.get(tmpState.next.epsilonMovesString)) != null) {
-                tmpState.FixNextStates(newSet);
             }
         }
     }

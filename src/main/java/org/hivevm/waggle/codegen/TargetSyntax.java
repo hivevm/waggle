@@ -501,7 +501,7 @@ public interface TargetSyntax {
      * pure dialect method.
      */
     default void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
-        if ((i != 0) && data.global.options().getDebugTokenManager()) {
+        if ((i != 0) && data.global.getDebugTokenManager()) {
             printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
             printer.println("    debugStream.println(\"   Currently matched the first \" + " + "(jjmatchedPos + 1) + \" characters as a \" + " + tokenImages() + "[jjmatchedKind] + \" token.\");");
             printer.println("    debugStream.println(\"   Possible string literal matches : { \"");
@@ -790,11 +790,6 @@ public interface TargetSyntax {
     default void printDebugPossibleLongerMatches(LinePrinter printer) {
         printer.println("debugStream.println(\"   Possible kinds of longer matches : \" + "
                 + "jjKindsForStateVector(curLexState, jjstateSet, startsAt, i));");
-    }
-
-    /** A case that opens its own body right away. */
-    default void print_case(LinePrinter printer, String case_value) {
-        printer.println("case " + case_value + ": {");
     }
 
     /** Declares the bit masks the NFA state tests the current character against. */

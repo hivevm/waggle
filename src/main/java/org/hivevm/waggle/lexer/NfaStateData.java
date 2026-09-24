@@ -72,8 +72,6 @@ public class NfaStateData {
     private final Map<String, int[]> allNextStates;
     public final Map<String, Integer> stateNameForComposite;
     public final Map<String, int[]> compositeStateTable;
-    public final Map<String, String> stateBlockTable;
-    public final Map<String, int[]> stateSetsToFix;
     final Map<String, NfaState> equivStatesTable;
 
     // ADR-0012: finished-model DFA lookup. Stage 4 (DfaBuilder#getDfaCode) records the composite
@@ -113,8 +111,6 @@ public class NfaStateData {
         this.allNextStates = new LinkedHashMap<>();
         this.stateNameForComposite = new LinkedHashMap<>();
         this.compositeStateTable = new LinkedHashMap<>();
-        this.stateBlockTable = new LinkedHashMap<>();
-        this.stateSetsToFix = new LinkedHashMap<>();
         this.equivStatesTable = new LinkedHashMap<>();
         this.stateSetForPosKind = new LinkedHashMap<>();
 

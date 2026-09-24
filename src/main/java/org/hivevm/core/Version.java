@@ -3,6 +3,7 @@
 
 package org.hivevm.core;
 
+import java.math.BigInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,18 +105,49 @@ public class Version implements Comparable<Version> {
     }
 
     /**
-     * Compares this {@link Version} with the specified {@link Version} for order.
+     * Compares this {@link Version} with the specified {@link Version} for order, by semantic
+     * version precedence: the lower version sorts first, a missing patch counts as 0, a pre-release
+     * sorts before its release, and the build metadata is ignored.
+     *
+     * <p>The order used to be reversed -- a newer version compared as smaller -- and the
+     * pre-release was not looked at.
      */
     @Override
     public int compareTo(Version other) {
-        if (getMajor() != other.getMajor()) { // Major version
-            return getMajor() > other.getMajor() ? -1 : 1;
-        } else if (getMinor() != other.getMinor()) { // Minor version
-            return getMinor() > other.getMinor() ? -1 : 1;
-        } else if (getPatch() != other.getPatch()) { // Patch version
-            return getPatch() > other.getPatch() ? -1 : 1;
+        int result = Integer.compare(getMajor(), other.getMajor());
+        if (result == 0) {
+            result = Integer.compare(getMinor(), other.getMinor());
         }
-        return 0;
+        if (result == 0) {
+            result = Integer.compare(Math.max(getPatch(), 0), Math.max(other.getPatch(), 0));
+        }
+        return (result != 0) ? result : Version.comparePreRelease(getName(), other.getName());
+    }
+
+    /** Pre-release precedence per semver 2.0.0 section 11.4; none sorts after any. */
+    private static int comparePreRelease(String a, String b) {
+        if ((a == null) || (b == null)) {
+            return (a == b) ? 0 : ((a == null) ? 1 : -1);
+        }
+
+        String[] left = a.split("\\.");
+        String[] right = b.split("\\.");
+        for (int i = 0; (i < left.length) && (i < right.length); i++) {
+            boolean leftNumeric = left[i].chars().allMatch(Character::isDigit);
+            boolean rightNumeric = right[i].chars().allMatch(Character::isDigit);
+            int result;
+            if (leftNumeric && rightNumeric) {
+                result = new BigInteger(left[i]).compareTo(new BigInteger(right[i]));
+            } else if (leftNumeric != rightNumeric) {
+                result = leftNumeric ? -1 : 1;
+            } else {
+                result = left[i].compareTo(right[i]);
+            }
+            if (result != 0) {
+                return result;
+            }
+        }
+        return Integer.compare(left.length, right.length);
     }
 
     /**

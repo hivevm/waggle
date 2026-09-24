@@ -61,7 +61,7 @@ public class GetNextTokenEmitter {
                     + "L & (1L << (curChar & 077))) != 0L)");
         }
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println(" {");
             printer.indent();
             printer.println("debugStream.println("
@@ -71,7 +71,7 @@ public class GetNextTokenEmitter {
 
         printer.println("curChar = input_stream.BeginToken();");
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.outdent();
             printer.println("}");
         }
@@ -83,7 +83,7 @@ public class GetNextTokenEmitter {
     /** A lexical state can start out having matched the empty string. */
     protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
         if (hasInitialMatch(data, state)) {
-            if (data.options().getDebugTokenManager()) {
+            if (data.getDebugTokenManager()) {
                 printer.println("debugStream.println(\"   Matched the empty string as \" + " + this.syntax.tokenImages() + "["
                         + data.initMatch(state) + "] + \" token.\");");
             }
@@ -112,7 +112,7 @@ public class GetNextTokenEmitter {
         }
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("debugStream.println(\"Current character matched as a \" + " + this.syntax.tokenImages() + "["
                     + kind + "] + \" token.\");");
         }
@@ -131,7 +131,7 @@ public class GetNextTokenEmitter {
         printer.println("if (jjmatchedPos + 1 < curPos) {");
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("debugStream.println("
                     + "\"   Putting back \" + (curPos - jjmatchedPos - 1) + \" characters into the input stream.\");");
         }
@@ -240,7 +240,7 @@ public class GetNextTokenEmitter {
         printer.indent();
         printer.println("curChar = input_stream.readChar();");
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("debugStream.println("
                     + (data.maxLexStates() > 1 ? "\"<\" + lexStateNames[curLexState] + \">\" + " : "")
                     + "\"Current character : \" + "
@@ -287,7 +287,7 @@ public class GetNextTokenEmitter {
      * fall back to the NFA, then dispatch the matched kind to TOKEN, SKIP/SPECIAL_TOKEN or MORE.
      */
     public void dumpGetNextToken(LinePrinter printer, LexerData data) {
-        boolean debug = data.options().getDebugTokenManager();
+        boolean debug = data.getDebugTokenManager();
         boolean notPlainToken = data.hasSkip() || data.hasMore() || data.hasSpecial();
 
         if (data.hasEof()) {
@@ -430,7 +430,7 @@ public class GetNextTokenEmitter {
 
     protected void printActionToken(LinePrinter printer, Action action) {
         for (Token token : action.getActionTokens()) {
-            this.tokens.printTokenPublic(token, printer);
+            this.tokens.printToken(token, printer);
         }
     }
 
@@ -460,8 +460,8 @@ public class GetNextTokenEmitter {
 
             if (hasAction) {
                 imageUpdate.accept(i);
-                this.tokens.setupTokenPublic(act.getActionTokens().getFirst());
-                this.tokens.resetColumnPublic();
+                this.tokens.setup_token(act.getActionTokens().getFirst());
+                this.tokens.reset_column();
                 printActionToken(printer, act);
                 printer.println();
             }

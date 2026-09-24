@@ -68,7 +68,7 @@ public class StringLiteralDfaEmitter {
                 printEofBailout(printer, data, i, maxLongsReqd);
             }
 
-            if ((i != 0) && data.global.options().getDebugTokenManager()) {
+            if ((i != 0) && data.global.getDebugTokenManager()) {
                 this.syntax.printDebugCurrentCharacter(printer, data);
             }
 
@@ -223,7 +223,7 @@ public class StringLiteralDfaEmitter {
             this.syntax.printDefaultCaseOpen(printer);
             printer.indent();
 
-            if (data.global.options().getDebugTokenManager()) {
+            if (data.global.getDebugTokenManager()) {
                 this.syntax.printDebugNoMatchPossible(printer);
             }
 
@@ -297,7 +297,7 @@ public class StringLiteralDfaEmitter {
         this.syntax.printStopStringLiteralDfaSignature(printer, data, maxKindsReqd);
         printer.indent();
 
-        if (data.global.options().getDebugTokenManager()) {
+        if (data.global.getDebugTokenManager()) {
             this.syntax.printDebugNoMoreStringLiteralMatches(printer);
         }
 
@@ -558,7 +558,7 @@ public class StringLiteralDfaEmitter {
             else
                 printer.println(this.syntax.longZero() + ");");
 
-            if (data.global.options().getDebugTokenManager()) {
+            if (data.global.getDebugTokenManager()) {
                 this.syntax.printDebugCurrentlyMatched(printer);
             }
             printer.println("return " + i + ";");
@@ -597,7 +597,7 @@ public class StringLiteralDfaEmitter {
             printer.println(this.syntax.matchedKind() + " = kind;");
             printer.println(this.syntax.matchedPos() + " = pos;");
 
-            if (data.global.options().getDebugTokenManager()) {
+            if (data.global.getDebugTokenManager()) {
                 this.syntax.printDebugNoMoreMatches(printer);
             }
 
@@ -615,7 +615,7 @@ public class StringLiteralDfaEmitter {
      * a longer match, so hand it the state it left off in.
      */
     protected void DumpStartWithStates(LinePrinter printer, NfaStateData data) {
-        boolean debug = data.global.options().getDebugTokenManager();
+        boolean debug = data.global.getDebugTokenManager();
 
         this.syntax.printStartNfaWithStatesSignature(printer, data);
         printer.indent();

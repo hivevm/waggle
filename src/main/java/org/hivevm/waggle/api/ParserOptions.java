@@ -41,11 +41,19 @@ public record ParserOptions(String parserName, File outputDirectory,
 
     public static ParserOptions from(Options options) {
         return new ParserOptions(options.getParserName(), options.getOutputDirectory(),
-                options.getLookahead(),
-                options.getChoiceAmbiguityCheck(), options.getOtherAmbiguityCheck(),
-                options.getDepthLimit(), options.getNoDfa(), options.getDebugParser(),
-                options.getDebugLookahead(), options.getDebugTokenManager(),
-                options.getErrorReporting(), options.getIgnoreCase(), options.getSanityCheck(),
-                options.getForceLaCheck(), options.getCacheTokens(), options.getKeepLineColumn());
+                options.intValue(Waggle.LOOKAHEAD),
+                options.intValue(Waggle.CHOICE_AMBIGUITY_CHECK),
+                options.intValue(Waggle.OTHER_AMBIGUITY_CHECK),
+                options.intValue(Waggle.DEPTH_LIMIT),
+                options.booleanValue(Waggle.NO_DFA),
+                options.booleanValue(Waggle.DEBUG_PARSER),
+                options.booleanValue(Waggle.DEBUG_LOOKAHEAD),
+                options.booleanValue(Waggle.DEBUG_TOKEN_MANAGER),
+                options.booleanValue(Waggle.ERROR_REPORTING),
+                options.booleanValue(Waggle.IGNORE_CASE),
+                options.booleanValue(Waggle.SANITY_CHECK),
+                options.booleanValue(Waggle.FORCE_LA_CHECK),
+                options.booleanValue(Waggle.CACHE_TOKENS),
+                options.booleanValue(Waggle.KEEP_LINE_COLUMN));
     }
 }

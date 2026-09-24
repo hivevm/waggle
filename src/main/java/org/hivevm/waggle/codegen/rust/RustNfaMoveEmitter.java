@@ -58,7 +58,7 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
         printer.println("let mut i: usize = 1;");
         printer.println("self.jjstate_set[0] = start_state;");
 
-        if (data.global.options().getDebugTokenManager()) {
+        if (data.global.getDebugTokenManager()) {
             printer.println("eprintln!(\"   Starting NFA to match one of : {}\", "
                     + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
                     + "&self.jjstate_set, 0, 1));");
@@ -98,7 +98,7 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
         printer.println("}");
         printer.println("cur_pos += 1;");
 
-        if (data.global.options().getDebugTokenManager()) {
+        if (data.global.getDebugTokenManager()) {
             printer.println("if self.jjmatched_kind != 0 && self.jjmatched_kind != 0x"
                     + Integer.toHexString(Integer.MAX_VALUE) + " {");
             printCurrentlyMatched(printer, "   ");
@@ -115,7 +115,7 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
             printer.println("    return cur_pos;");
         printer.println("}");
 
-        if (data.global.options().getDebugTokenManager()) {
+        if (data.global.getDebugTokenManager()) {
             printer.println("eprintln!(\"   Possible kinds of longer matches : {}\", "
                     + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
                     + "&self.jjstate_set, starts_at, i));");
@@ -130,7 +130,7 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
         printer.println("}");
         printer.println("self.cur_char = u32::from(result.unwrap());");
 
-        if (data.global.options().getDebugTokenManager()) {
+        if (data.global.getDebugTokenManager()) {
             printCurrentCharacter(printer, data.global.maxLexStates() > 1);
         }
         printer.outdent();

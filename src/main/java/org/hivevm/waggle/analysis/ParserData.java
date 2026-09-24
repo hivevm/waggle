@@ -88,11 +88,6 @@ public class ParserData {
         return this.request.options();
     }
 
-    /** The settings this plan was made under, as values (ADR-0019). */
-    public final ParserOptions parserOptions() {
-        return this.parserOptions;
-    }
-
     public final String getParserName() {
         return this.request.getParserName();
     }
@@ -100,11 +95,6 @@ public class ParserData {
     /** Whether the grammar builds a tree. */
     public final boolean usesTree() {
         return this.tree.isPresent();
-    }
-
-    /** The tree this grammar builds, if it builds one. */
-    public final Optional<TreeModel> treeModel() {
-        return this.tree;
     }
 
     public final int getDepthLimit() {

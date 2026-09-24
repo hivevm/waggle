@@ -7,6 +7,7 @@
 package org.hivevm.waggle.grammar;
 
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.Waggle;
 
 import org.hivevm.waggle.api.GenerationContext;
 import org.hivevm.waggle.api.ParserRequest;
@@ -39,20 +40,11 @@ public class GrammarData implements SemanticRequest, ParserRequest {
      */
     private int tokenCount;
 
-    /**
-     * A mapping of lexical state strings to their integer internal representation. Integers are
-     * stored as java.lang.Integer's.
-     */
+    /** The lexical states by name, each with its index, in the order they were declared. */
     private final Map<String, Integer> lexstate_S2I = new LinkedHashMap<>();
 
     /**
-     * A mapping of the internal integer representations of lexical states to their strings.
-     * Integers are stored as java.lang.Integer's.
-     */
-    private final Map<Integer, String> lexstate_I2S = new LinkedHashMap<>();
-
-    /**
-     * A list of all grammar productions - normal and JAVACODE - in the order they appear in the
+     * A list of all grammar productions in the order they appear in the
      * input file. Each entry here will be a subclass of "NormalProduction".
      */
     private final List<NormalProduction> bnfproductions =
@@ -77,7 +69,7 @@ public class GrammarData implements SemanticRequest, ParserRequest {
             new LinkedHashMap<>();
 
     /**
-     * A symbol table of all grammar productions - normal and JAVACODE. The symbol table is indexed
+     * A symbol table of all grammar productions. The symbol table is indexed
      * by the name of the left hand side non-terminal. Its contents are of type "NormalProduction".
      */
     private final Map<String, NormalProduction> production_table =
@@ -106,7 +98,6 @@ public class GrammarData implements SemanticRequest, ParserRequest {
         this.context = context;
         this.tokenCount = 0;
         this.lexstate_S2I.put("DEFAULT", 0);
-        this.lexstate_I2S.put(0, "DEFAULT");
         this.simple_tokens_table.put("DEFAULT", new LinkedHashMap<>());
     }
 
@@ -121,7 +112,6 @@ public class GrammarData implements SemanticRequest, ParserRequest {
     }
 
     final void setLexState(String name, int index) {
-        this.lexstate_I2S.put(index, name);
         this.lexstate_S2I.put(name, index);
         this.simple_tokens_table.put(name, new LinkedHashMap<>());
     }
@@ -134,8 +124,8 @@ public class GrammarData implements SemanticRequest, ParserRequest {
         this.bnfproductions.add(p);
     }
 
-    final boolean hasLexState(String name) {
-        return (this.lexstate_S2I.get(name) == null);
+    final boolean isNewLexState(String name) {
+        return !this.lexstate_S2I.containsKey(name);
     }
 
     @Override
@@ -145,7 +135,7 @@ public class GrammarData implements SemanticRequest, ParserRequest {
 
     @Override
     public final boolean ignoreCase() {
-        return options().getIgnoreCase();
+        return options().booleanValue(Waggle.IGNORE_CASE);
     }
 
     @Override
@@ -180,7 +170,7 @@ public class GrammarData implements SemanticRequest, ParserRequest {
 
     @Override
     public final int getStateCount() {
-        return this.lexstate_I2S.size();
+        return this.lexstate_S2I.size();
     }
 
     @Override

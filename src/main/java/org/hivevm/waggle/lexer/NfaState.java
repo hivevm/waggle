@@ -25,10 +25,8 @@ public class NfaState {
     char[] charMoves = null;
     char[] rangeMoves = null;
     public NfaState next = null;
-    public NfaState stateForCase;
     final List<NfaState> epsilonMoves = new ArrayList<>();
     public String epsilonMovesString;
-    private NfaState[] epsilonMoveArray;
 
     private final int id;
     public int stateName = -1;
@@ -390,11 +388,6 @@ public class NfaState {
             if (!tmp.closureDone)
                 tmp.OptimizeEpsilonMoves(data, false);
         }
-
-        for (NfaState element : data.getAllStates()) {
-            element.epsilonMoveArray = new NfaState[element.epsilonMoves.size()];
-            element.epsilonMoves.toArray(element.epsilonMoveArray);
-        }
     }
 
     private void OptimizeEpsilonMoves(NfaStateData data, boolean optReqd) {
@@ -670,10 +663,6 @@ public class NfaState {
                 return i;
         }
         return -1;
-    }
-
-    public final void FixNextStates(int[] newSet) {
-        this.next.usefulEpsilonMoves = newSet.length;
     }
 
     static boolean Intersect(NfaStateData data, String set1, String set2) {

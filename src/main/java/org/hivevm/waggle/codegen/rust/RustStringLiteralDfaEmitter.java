@@ -156,7 +156,7 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
                 printEofBailout(printer, data, i, maxLongsReqd);
             }
 
-            if ((i != 0) && data.global.options().getDebugTokenManager()) {
+            if ((i != 0) && data.global.getDebugTokenManager()) {
                 printCurrentCharacter(printer, data.global.maxLexStates() > 1);
             }
 
@@ -311,7 +311,7 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
             this.syntax.printDefaultCaseOpen(printer);
             printer.indent();
 
-            if (data.global.options().getDebugTokenManager()) {
+            if (data.global.getDebugTokenManager()) {
                 printer.println("eprintln!(\"No string literal matches possible.\");");
             }
 

@@ -15,7 +15,6 @@ import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
 import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
@@ -31,10 +30,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
 
     private static final String HAS_LOOP = "HAS_LOOP";
     private static final String HAS_SKIP = "HAS_SKIP";
-    private static final String HAS_MORE = "HAS_MORE";
     private static final String HAS_SPECIAL = "HAS_SPECIAL";
 
-    private static final String HAS_MOPRE_ACTIONS = "HAS_MORE_ACTIONS";
+    private static final String HAS_MORE_ACTIONS = "HAS_MORE_ACTIONS";
     private static final String HAS_SKIP_ACTIONS = "HAS_SKIP_ACTIONS";
     private static final String HAS_TOKEN_ACTIONS = "HAS_TOKEN_ACTIONS";
     private static final String HAS_EMPTY_MATCH = "HAS_EMPTY_MATCH";
@@ -47,25 +45,9 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     private static final String DUAL_NEED = "CHECK_NADD_STATES_DUAL_NEEDED";
     private static final String UNARY_NEED = "CHECK_NADD_STATES_UNARY_NEEDED";
 
-    // jjStopAtPos is shared by all lexical states and must be emitted once per rendered file. It is
-    // state of this rendering, so it lives here — it used to be a flag on the lexer model.
-    private boolean stopAtPosDumped;
-
     protected LexerGenerator(Language language) {
         super(language);
     }
-
-    // ---------------------------------------------------------------- dialect
-    // How a target spells the moves into the next NFA state set. The defaults are the Java/C++ form;
-    // Rust overrides them. These used to be "if (__IS_RUST__) … else …" inside the emitter itself,
-    // four times over.
-
-    // The pieces a condition is built from. Only the spelling differs per target, so they are the
-    // dialect; the emitters below just compose them.
-
-    // A switch over states. Java and C++ write each label out as it arrives and let the cases fall
-    // into one body; Rust has to join them into a single match arm, so it collects them first. Both
-    // shapes are driven from the same call sites through these three hooks.
 
     @Override
     public final void generate(LexerData data) {
@@ -78,11 +60,10 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
                 .set("NON_ASCII_TABLE_METHOD", (s, w) -> dumpNonAsciiMoveMethod(data, s, w));
 
         options.set(LexerGenerator.HAS_SKIP, data.hasSkip());
-        options.set(LexerGenerator.HAS_MORE, data.hasMore());
         options.set(LexerGenerator.HAS_LOOP, data.hasLoop());
         options.set(LexerGenerator.HAS_SPECIAL, data.hasSpecial());
 
-        options.set(LexerGenerator.HAS_MOPRE_ACTIONS, data.hasMoreActions());
+        options.set(LexerGenerator.HAS_MORE_ACTIONS, data.hasMoreActions());
         options.set(LexerGenerator.HAS_SKIP_ACTIONS, data.hasSkipActions());
         options.set(LexerGenerator.HAS_TOKEN_ACTIONS, data.hasTokenActions());
         options.set(LexerGenerator.HAS_EMPTY_MATCH, data.hasEmptyMatch());
@@ -217,19 +198,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     /** Resets the once-only {@code jjStopAtPos} emission between two renderings. */
     protected final void setStopAtPosDumped(boolean dumped) {
         stringLiterals().setStopAtPosDumped(dumped);
-    }
-
-    /** The emitters print grammar actions verbatim, which needs the generator's token state. */
-    final void printTokenPublic(Token token, LinePrinter printer) {
-        printToken(token, printer);
-    }
-
-    final void setupTokenPublic(Token token) {
-        setup_token(token);
-    }
-
-    final void resetColumnPublic() {
-        reset_column();
     }
 
     protected final void dump_nfa_and_dfa(NfaStateData stateData, LinePrinter printer) {

@@ -6,6 +6,7 @@
 
 package org.hivevm.waggle.doc;
 
+import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Expansion;
@@ -44,7 +45,7 @@ class BNFGenerator implements DocGenerator {
 
     private PrintWriter create_output_stream() {
 
-        if (this.opts.getOutputFile().isEmpty()) {
+        if (this.opts.stringValue(Waggle.OUTPUT_FILE).isEmpty()) {
             if (this.inputFile.equals("standard input")) {
                 return new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
             } else {
@@ -62,7 +63,7 @@ class BNFGenerator implements DocGenerator {
                 }
             }
         } else {
-            this.outputFile = this.opts.getOutputFile();
+            this.outputFile = this.opts.stringValue(Waggle.OUTPUT_FILE);
         }
         try {
             this.ostr = new java.io.PrintWriter(new java.io.FileWriter(this.outputFile));

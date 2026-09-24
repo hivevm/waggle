@@ -32,7 +32,7 @@ public class NfaMoveEmitter {
 
     /** Emits {@code jjMoveNfa}, the interpreter loop of the generated NFA. */
     protected void dumpMoveNfa(LinePrinter printer, NfaStateData data) {
-        boolean debug = data.global.options().getDebugTokenManager();
+        boolean debug = data.global.getDebugTokenManager();
         String noKind = "0x" + Integer.toHexString(Integer.MAX_VALUE);
 
         printer.println();
@@ -256,8 +256,6 @@ public class NfaMoveEmitter {
         NfaState toBePrinted = null;
         int neededStates = 0;
         NfaState tmp;
-        NfaState stateForCase = null;
-        boolean stateBlock = (data.stateBlockTable.get(key) != null);
 
         for (i = 0; i < nameSet.length; i++) {
             tmp = data.getAllState(nameSet[i]);
@@ -271,36 +269,16 @@ public class NfaMoveEmitter {
             } else {
                 dumped[tmp.stateName] = true;
             }
-
-            if (tmp.stateForCase != null) {
-                if (stateForCase != null) {
-                    throw new IllegalStateException(
-                            "Two NFA states of the same composite state claim stateForCase");
-                }
-
-                stateForCase = tmp.stateForCase;
-            }
-        }
-
-        var toPrint = false;
-        if (stateForCase != null) {
-            toPrint = print_no_break(printer, data, stateForCase, byteNum, dumped);
         }
 
         if (neededStates == 0) {
-            if ((stateForCase != null) && !toPrint) {
-                printer.println("                  break;");
-            }
             return;
         }
 
         if (neededStates == 1) {
             var cases = new ArrayList<String>();
-            if (toPrint) {
-                this.syntax.printCaseLabel(printer, cases, "               ", stateForCase.stateName);
-            }
             this.syntax.printCaseLabel(printer, cases, "               ", data.compositeStateName(key));
-            if (!dumped[toBePrinted.stateName] && !stateBlock && (toBePrinted.inNextOf > 1)) {
+            if (!dumped[toBePrinted.stateName] && (toBePrinted.inNextOf > 1)) {
                 this.syntax.printCaseLabel(printer, cases, "               ", toBePrinted.stateName);
             }
 
@@ -313,10 +291,6 @@ public class NfaMoveEmitter {
         List<List<NfaState>> partition = PartitionStatesSetForAscii(data, nameSet, byteNum);
 
         var cases = new ArrayList<String>();
-        if (toPrint) {
-            this.syntax.printCaseLabel(printer, cases, stateForCase.stateName);
-        }
-
         int keyState = data.compositeStateName(key);
         this.syntax.printCaseLabel(printer, cases, keyState);
         this.syntax.printCasesOpen(printer, cases);
@@ -329,12 +303,7 @@ public class NfaMoveEmitter {
             List<NfaState> subSet = partition.get(i);
 
             for (int j = 0; j < subSet.size(); j++) {
-                tmp = subSet.get(j);
-
-                if (stateBlock) {
-                    dumped[tmp.stateName] = true;
-                }
-                DumpAsciiMoveForCompositeState(printer, data, tmp, byteNum, j != 0);
+                DumpAsciiMoveForCompositeState(printer, data, subSet.get(j), byteNum, j != 0);
             }
         }
 
@@ -353,8 +322,6 @@ public class NfaMoveEmitter {
         NfaState toBePrinted = null;
         int neededStates = 0;
         NfaState tmp;
-        NfaState stateForCase = null;
-        boolean stateBlock = (data.stateBlockTable.get(key) != null);
 
         for (int j : nameSet) {
             tmp = data.getAllState(j);
@@ -367,38 +334,16 @@ public class NfaMoveEmitter {
             } else {
                 dumped[tmp.stateName] = true;
             }
-
-            if (tmp.stateForCase != null) {
-                if (stateForCase != null) {
-                    throw new IllegalStateException(
-                            "Two NFA states of the same composite state claim stateForCase");
-                }
-                stateForCase = tmp.stateForCase;
-            }
-        }
-
-        var toPrint = false;
-        if (stateForCase != null) {
-            toPrint = print_no_break(printer, data, stateForCase, -1, dumped);
         }
 
         if (neededStates == 0) {
-            if ((stateForCase != null) && !toPrint) {
-                printer.println("    break;");
-            }
-
             return;
         }
 
         if (neededStates == 1) {
-            // "stateForCase" is one more label on the very same body. Opening a block for it turned
-            // the labels that follow into orphaned cases -- the generated Java did not compile.
             var cases = new ArrayList<String>();
-            if (toPrint) {
-                this.syntax.printCaseLabel(printer, cases, stateForCase.stateName);
-            }
             this.syntax.printCaseLabel(printer, cases, data.compositeStateName(key));
-            if (!dumped[toBePrinted.stateName] && !stateBlock && (toBePrinted.inNextOf > 1)) {
+            if (!dumped[toBePrinted.stateName] && (toBePrinted.inNextOf > 1)) {
                 this.syntax.printCaseLabel(printer, cases, toBePrinted.stateName);
             }
 
@@ -408,10 +353,6 @@ public class NfaMoveEmitter {
         }
 
         var cases = new ArrayList<String>();
-        if (toPrint) {
-            this.syntax.printCaseLabel(printer, cases, stateForCase.stateName);
-        }
-
         int keyState = data.compositeStateName(key);
         this.syntax.printCaseLabel(printer, cases, keyState);
         this.syntax.printCasesOpen(printer, cases);
@@ -423,9 +364,6 @@ public class NfaMoveEmitter {
             tmp = data.getAllState(j);
 
             if (tmp.nonAsciiMethod != -1) {
-                if (stateBlock) {
-                    dumped[tmp.stateName] = true;
-                }
                 DumpNonAsciiMoveForCompositeState(printer, data, tmp);
             }
         }
@@ -622,34 +560,11 @@ public class NfaMoveEmitter {
                 continue;
             }
 
-            var toPrint = false;
-            if (element.stateForCase != null) {
-                if ((element.inNextOf == 1) || dumped[element.stateForCase.stateName]) {
-                    continue;
-                }
-
-                toPrint = print_no_break(printer, data, element.stateForCase, byteNum, dumped);
-
-                if (element.asciiMoves[byteNum] == 0L) {
-                    if (!toPrint) {
-                        printer.println("                  break;");
-                    }
-                    continue;
-                }
-            }
-
             if (element.asciiMoves[byteNum] == 0L) {
                 continue;
             }
 
-            // A stateForCase without moves of its own shares this body, as in the composite and
-            // non-ASCII paths. This used to print "case " + the NfaState object itself and open a
-            // block that was never closed.
             var cases = new ArrayList<String>();
-            if (toPrint) {
-                this.syntax.printCaseLabel(printer, cases, element.stateForCase.stateName);
-            }
-
             dumped[element.stateName] = true;
             DumpAsciiMove(printer, data, element, byteNum, dumped, true, cases, "");
         }
@@ -674,28 +589,10 @@ public class NfaMoveEmitter {
                 continue;
             }
 
-            var toPrint = false;
-            if (temp.stateForCase != null) {
-                if ((temp.inNextOf == 1) || dumped[temp.stateForCase.stateName])
-                    continue;
-
-                toPrint = print_no_break(printer, data, temp.stateForCase, -1, dumped);
-
-                if (temp.nonAsciiMethod == -1) {
-                    if (!toPrint)
-                        printer.println("break;");
-                    continue;
-                }
-            }
-
             if (temp.nonAsciiMethod == -1)
                 continue;
 
             var cases = new ArrayList<String>();
-            if (toPrint) {
-                this.syntax.printCaseLabel(printer, cases, temp.stateForCase.stateName);
-            }
-
             dumped[temp.stateName] = true;
             this.syntax.printCaseLabel(printer, cases, temp.stateName);
             printer.indent();
@@ -821,30 +718,6 @@ public class NfaMoveEmitter {
 
                 return toRet;
                 """);
-    }
-
-    protected boolean print_no_break(LinePrinter printer, NfaStateData data, NfaState state, int byteNum, boolean[] dumped) {
-        if (state.inNextOf != 1) {
-            throw new IllegalStateException(
-                    "NFA state " + state.stateName + " is the case of more than one state");
-        }
-
-        dumped[state.stateName] = true;
-
-        if (byteNum >= 0) {
-            if (state.asciiMoves[byteNum] != 0L) {
-                this.syntax.print_case(printer, "" + state.stateName);
-                DumpAsciiMoveForCompositeState(printer, data, state, byteNum, false);
-                printer.println("}");
-                return false;
-            }
-        } else if (state.nonAsciiMethod != -1) {
-            this.syntax.print_case(printer, "" + state.stateName);
-            DumpNonAsciiMoveForCompositeState(printer, data, state);
-            printer.println("}");
-            return false;
-        }
-        return true;
     }
 
     protected void DumpHeadForCase(LinePrinter printer, int byteNum) {

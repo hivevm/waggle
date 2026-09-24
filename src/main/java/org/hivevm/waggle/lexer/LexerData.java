@@ -9,6 +9,7 @@ import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.ParserOptions;
 
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
@@ -57,7 +58,6 @@ public class LexerData {
     final boolean[] ignoreCase;
     final Action[] actions;
     int stateSetSize;
-    int totalNumStates;
     final NfaState[] singlesToSkip;
 
     final long[] toSkip;
@@ -79,7 +79,7 @@ public class LexerData {
     boolean hasSpecial;
     boolean hasSkip;
     boolean hasMore;
-    private final boolean keepLineCol;
+    private final ParserOptions parserOptions;
 
     /**
      * Constructs an instance of {@link LexerData}.
@@ -113,7 +113,7 @@ public class LexerData {
         this.hasSkip = false;
         this.hasSkipActions = false;
         this.hasSpecial = false;
-        this.keepLineCol = request.options().getKeepLineColumn();
+        this.parserOptions = ParserOptions.from(request.options());
         this.stateSetSize = 0;
 
         this.toSkip = new long[(this.maxOrdinal / 64) + 1];
@@ -165,10 +165,6 @@ public class LexerData {
         return this.lohiByte.keySet();
     }
 
-    public final int getLohiByteSize() {
-        return this.lohiByte.size();
-    }
-
     public final List<int[]> getOrderedStateSet() {
         return this.orderedStateSet;
     }
@@ -210,7 +206,17 @@ public class LexerData {
     }
 
     public final boolean keepLineCol() {
-        return this.keepLineCol;
+        return this.parserOptions.keepLineColumn();
+    }
+
+    /** Whether the token manager traces its moves. */
+    public final boolean getDebugTokenManager() {
+        return this.parserOptions.debugTokenManager();
+    }
+
+    /** Whether the string-literal DFA is skipped and everything goes through the NFA. */
+    public final boolean getNoDfa() {
+        return this.parserOptions.noDfa();
     }
 
     public final boolean hasSkip() {
@@ -278,7 +284,7 @@ public class LexerData {
     }
 
     public final int getImageCount() {
-        return this.allImages == null ? -1 : this.allImages.length;
+        return this.allImages.length;
     }
 
     public final String getImage(int index) {
@@ -321,10 +327,6 @@ public class LexerData {
 
     public final int[][] getKinds() {
         return this.kinds;
-    }
-
-    public final void setKinds(int index, int[] kindsForStates) {
-        this.kinds[index] = kindsForStates;
     }
 
     public final int[][][] getStatesForState() {
@@ -377,10 +379,5 @@ public class LexerData {
 
     public final long getLohiByte(int offest, int index) {
         return this.lohiByte.get(offest)[index];
-    }
-
-    public final void init() {
-        this.kinds = new int[this.maxLexStates()][];
-        this.statesForState = new int[this.maxLexStates()][][];
     }
 }

@@ -72,7 +72,7 @@ record Nfa(NfaState start, NfaState end) {
                         continue;
                     }
 
-                    if (!data.options().getNoDfa() && (curRE instanceof RStringLiteral)
+                    if (!data.getNoDfa() && (curRE instanceof RStringLiteral)
                             && !((RStringLiteral) curRE).getImage().isEmpty()) {
                         StringLiteralAnalyzer.generateDfa(stateData, (RStringLiteral) curRE);
                         if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
@@ -195,7 +195,6 @@ record Nfa(NfaState start, NfaState end) {
                 generateNfaStartStates(stateData, stateData.getInitialState());
             }
 
-            data.totalNumStates += stateData.generatedStates();
             if (data.stateSetSize < stateData.generatedStates()) {
                 data.stateSetSize = stateData.generatedStates();
             }

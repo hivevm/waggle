@@ -162,11 +162,6 @@ class RustLexerGenerator extends LexerGenerator {
         printer.println("}");
     }
 
-    @Override
-    public void print_case(LinePrinter printer, String case_value) {
-        printer.println(case_value + " => {");
-    }
-
     /** Rust writes the state tables as bare arrays, without the surrounding braces Java needs. */
     @Override
     public String noStateSet() {
@@ -297,7 +292,7 @@ class RustLexerGenerator extends LexerGenerator {
     /** Rust logs differently. */
     @Override
     public void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
-        if (!data.global.options().getDebugTokenManager()) {
+        if (!data.global.getDebugTokenManager()) {
             return;
         }
 

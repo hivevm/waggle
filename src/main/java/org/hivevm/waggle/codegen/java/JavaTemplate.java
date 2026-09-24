@@ -5,6 +5,7 @@ package org.hivevm.waggle.codegen.java;
 
 import org.hivevm.source.TemplateSet;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.Waggle;
 import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
@@ -20,7 +21,7 @@ import java.util.Set;
 public interface JavaTemplate {
 
     TemplateSet<Options> SET = new TemplateSet<>("java", (name, options) -> {
-        var packagePath = options.getJavaPackageName().replace('.', File.separatorChar);
+        var packagePath = options.stringValue(Waggle.JAVA_PACKAGE).replace('.', File.separatorChar);
         var targetDir = new File(options.getOutputDirectory(), packagePath.toLowerCase(Locale.ROOT));
         return new File(targetDir, name + ".java");
     });

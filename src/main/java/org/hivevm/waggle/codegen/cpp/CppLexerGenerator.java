@@ -371,7 +371,7 @@ class CppLexerGenerator extends LexerGenerator {
     /** Cpp logs differently. */
     @Override
     public void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
-        if ((i != 0) && data.global.options().getDebugTokenManager()) {
+        if ((i != 0) && data.global.getDebugTokenManager()) {
             printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
             printer.println("    fprintf(debugStream, \"   Currently matched the first %d characters as a \\\"%s\\\" token.\\n\", (jjmatchedPos + 1), addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str());");
             printer.println("    fprintf(debugStream, \"   Possible string literal matches : { \");");

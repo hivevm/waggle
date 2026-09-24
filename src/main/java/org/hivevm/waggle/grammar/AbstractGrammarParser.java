@@ -89,7 +89,7 @@ abstract class AbstractGrammarParser implements ParserConstants {
                                     + "\" in lexical state list.");
                 }
             }
-            if (this.data.hasLexState(p.getLexStates()[i])) {
+            if (this.data.isNewLexState(p.getLexStates()[i])) {
                 this.data.setLexState(p.getLexStates()[i], this.nextFreeLexState++);
             }
         }

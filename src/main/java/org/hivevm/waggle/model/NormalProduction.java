@@ -56,8 +56,7 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
      */
     private int walkStatus = 0;
 
-    // The first and last tokens from the input stream that represent this production.
-    private Token lastToken;
+    // The first token from the input stream that represents this production.
     private Token firstToken;
 
     protected NormalProduction() {
@@ -183,19 +182,5 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
      */
     public Token getFirstToken() {
         return this.firstToken;
-    }
-
-    /**
-     * @param lastToken the lastToken to set
-     */
-    public void setLastToken(Token lastToken) {
-        this.lastToken = lastToken;
-    }
-
-    /**
-     * @return the lastToken
-     */
-    public Token getLastToken() {
-        return this.lastToken;
     }
 }

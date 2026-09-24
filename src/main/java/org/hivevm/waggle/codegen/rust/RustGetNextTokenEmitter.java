@@ -46,7 +46,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("while " + condition + " {");
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printDebugSkippingCharacter(printer, data);
         }
 
@@ -63,7 +63,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     @Override
     protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
         if (hasInitialMatch(data, state)) {
-            if (data.options().getDebugTokenManager()) {
+            if (data.getDebugTokenManager()) {
                 printer.println("eprintln!(\"   Matched the empty string as {} token.\", "
                         + "TOKEN_IMAGE[" + data.initMatch(state) + "]);");
             }
@@ -87,7 +87,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         }
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("eprintln!(\"   Current character matched as a {} token.\", "
                     + "TOKEN_IMAGE[" + kind + "]);");
         }
@@ -106,7 +106,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("if self.jjmatched_pos + 1 < cur_pos {");
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("eprintln!(\"   Putting back {} characters into the input stream.\", "
                     + "cur_pos - self.jjmatched_pos - 1);");
         }

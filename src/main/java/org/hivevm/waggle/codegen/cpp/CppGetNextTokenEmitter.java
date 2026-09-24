@@ -50,7 +50,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println(" {");
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             if (data.maxLexStates() > 1) {
                 printer.println("fprintf(debugStream, \"<%s>\" , addUnicodeEscapes(lexStateNames[curLexState]).c_str());");
             }
@@ -70,7 +70,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     @Override
     protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
         if (hasInitialMatch(data, state)) {
-            if (data.options().getDebugTokenManager()) {
+            if (data.getDebugTokenManager()) {
                 printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
                         + data.initMatch(state) + "]).c_str());");
             }
@@ -94,7 +94,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         }
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("fprintf(debugStream, \"   Current character matched as a %s token.\\n\", addUnicodeEscapes(tokenImages["
                     + kind + "]).c_str());");
         }
@@ -113,7 +113,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("if (jjmatchedPos + 1 < curPos) {");
         printer.indent();
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             printer.println("fprintf(debugStream, "
                     + "\"   Putting back %d characters into the input stream.\\n\", (curPos - jjmatchedPos - 1));");
         }
@@ -207,7 +207,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("if (!reader->endOfInput()) {");
         printer.println("    curChar = reader->read(); // UTF8: Support Unicode");
 
-        if (data.options().getDebugTokenManager()) {
+        if (data.getDebugTokenManager()) {
             this.syntax.printDebugCurrentCharacter(printer, data);
         }
         printer.println("    continue;");

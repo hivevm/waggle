@@ -39,9 +39,6 @@ class LookaheadCalc {
                     size = m2.firstFreeLoc();
                     m3 = m2;
                 }
-                if (size == 0)
-                    return null;
-                // we wish to ignore empty expansions and the JAVACODE stuff here.
                 diff = false;
                 for (int k = 0; k < size; k++) {
                     if (m1.match()[k] != m2.match()[k]) {
@@ -54,14 +51,6 @@ class LookaheadCalc {
             }
         }
         return null;
-    }
-
-    private static boolean javaCodeCheck(List<MatchInfo> v) {
-        for (MatchInfo element : v) {
-            if ((element).firstFreeLoc() == 0)
-                return true;
-        }
-        return false;
     }
 
     private static String image(MatchInfo m, Semanticize semanticize) {
@@ -122,11 +111,6 @@ class LookaheadCalc {
                     if (Semanticize.emptyExpansionExists(exp)) {
                         context.onWarning(exp, "This choice can expand to the empty token sequence "
                                 + "and will therefore always be taken in favor of the choices appearing later.");
-                        break;
-                    } else if (LookaheadCalc.javaCodeCheck(dbl[i])) {
-                        context.onWarning(exp,
-                                "JAVACODE non-terminal will force this choice to be taken "
-                                        + "in favor of the choices appearing later.");
                         break;
                     }
                 }
@@ -234,12 +218,6 @@ class LookaheadCalc {
             data.setConsiderSemanticLA(false);
             LookaheadCalc.genFollowSet(v, exp, data.nextGenerationIndex(), data);
             follow = data.getSizeLimitedMatches();
-            if ((la == 1) && LookaheadCalc.javaCodeCheck(first)) {
-                context.onWarning(nested,
-                        "JAVACODE non-terminal within " + LookaheadCalc.image(exp)
-                                + " construct will force this construct to be entered in favor of "
-                                + "expansions occurring after construct.");
-            }
             if ((m = LookaheadCalc.overlap(first, follow)) == null)
                 break;
             m1 = m;

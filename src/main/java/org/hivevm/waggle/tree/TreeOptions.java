@@ -9,8 +9,11 @@ package org.hivevm.waggle.tree;
 
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.Waggle;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The {@code NODE_*} and {@code VISITOR_*} settings of a grammar that builds a tree.
@@ -40,11 +43,27 @@ public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, bo
                           String visitorReturn, String visitorException) {
 
     public static TreeOptions from(Options options) {
-        return new TreeOptions(options.getUseAst(), options.getMulti(), options.getNodeDefaultVoid(),
-                options.getNodeScopeHook(), options.getTrackTokens(), options.getBuildNodeFiles(),
-                options.getNodeClass(), options.getNodeFactory(), options.getExcludeNodes(),
-                options.getVisitor(), options.getVisitorDataType(), options.getVisitorReturnType(),
-                options.getVisitorException());
+        return new TreeOptions(options.booleanValue(Waggle.USE_AST),
+                options.booleanValue(Waggle.NODE_MULTI),
+                options.booleanValue(Waggle.NODE_DEFAULT_VOID),
+                options.booleanValue(Waggle.NODE_SCOPE_HOOK),
+                options.booleanValue(Waggle.TRACK_TOKENS),
+                options.booleanValue(Waggle.BUILD_NODE_FILES),
+                options.stringValue(Waggle.NODE_CLASS),
+                options.stringValue(Waggle.NODE_FACTORY),
+                TreeOptions.customNodes(options.stringValue(Waggle.NODE_CUSTOM)),
+                options.booleanValue(Waggle.VISITOR),
+                options.stringValue(Waggle.VISITOR_DATA_TYPE),
+                options.stringValue(Waggle.VISITOR_RETURN_TYPE),
+                options.stringValue(Waggle.VISITOR_EXCEPTION));
+    }
+
+    /** The node classes the grammar author supplies, so generation skips them. */
+    private static Set<String> customNodes(String names) {
+        if ((names == null) || names.isEmpty()) {
+            return Set.of();
+        }
+        return Arrays.stream(names.split(",")).map(n -> "AST" + n).collect(Collectors.toSet());
     }
 
     /**
