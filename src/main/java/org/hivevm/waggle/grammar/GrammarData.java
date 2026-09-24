@@ -179,7 +179,7 @@ public class GrammarData implements SemanticRequest, ParserRequest {
     }
 
     @Override
-    public final void unsetTokenCount() {
+    public final void resetTokenCount() {
         this.tokenCount = 1;
     }
 

@@ -13,9 +13,6 @@
 #define WAGGLE_TOKEN_MANAGER
 
 #include <iostream>
-//@if(LIBRARY)
-#include "ImportExport.h"
-//@fi
 #include "Waggle.h"
 #include "Token.h"
 #include "TokenManagerErrorHandler.h"
@@ -29,11 +26,7 @@ namespace __CPP_NAMESPACE__ {
  * The user is free to use any implementation of their choice.
  */
 
-//@if(LIBRARY)
-class __CPP_DEFINE___API TokenManager {
-//@else
 class TokenManager {
-//@fi
 public:
 	TokenManager() {
 //@if(DEBUG_TOKEN_MANAGER)
@@ -47,19 +40,7 @@ public:
 	// This gets the next token from the input stream. A token of kind 0 (<EOF>) should be returned on EOF.
 	virtual Token * getNextToken() = 0;
 	virtual void lexicalError() = 0;
-/*
-	void setErrorHandler(TokenManagerErrorHandler* eh) {
-		if (delete_eh) delete errorHandler, errorHandler = nullptr;
-		delete_eh = false;  // We don't delete stuff passed in.
-		errorHandler = eh;
-	}
-	const TokenManagerErrorHandler * getErrorHandler() const { return errorHandler; }
-*/  
 protected:
-/*
-	bool                       delete_eh = false;
-	TokenManagerErrorHandler * errorHandler = nullptr;
-*/
 	bool                       trace;
 public:
 	void enable_tracing() {

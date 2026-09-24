@@ -354,7 +354,6 @@ public class Parser
             var p = new BNFProduction();
             p.setFirstToken(t);
             p.setLocation(t);
-            p.setThrowsList(new ArrayList<>());
             name = identifier();
             p.setLhs(name);
             switch ((jj_ntk == -1) ? jj_ntk_f() : jj_ntk) {
@@ -595,11 +594,11 @@ public class Parser
             emptyLA = false; commaAtEnd = false;
             la.setLaExpansion(e);
         } else {
-        }if (checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1))) {
+        }if (checkEmptyLAAndCommaEnd(emptyLA, commaAtEnd, getToken(1))) {
             jj_consume_token(COMMA);
             commaAtEnd = true;
         } else {
-        }if (checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd)) {
+        }if (checkEmptyLAOrCommaEnd(emptyLA, commaAtEnd)) {
             jj_consume_token(LBRACE);
             switch ((jj_ntk == -1) ? jj_ntk_f() : jj_ntk) {
                 case _LOOKAHEAD:

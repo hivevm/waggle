@@ -301,18 +301,14 @@ public class LexerData {
         throw new IllegalStateException("Unknown lexical state: " + name);
     }
 
-    /**
-     * Reset the {@link LexerData} for another cycle.
-     */
+    /** Creates the automaton data of the lexical state {@code name}. */
     final NfaStateData newStateData(String name) {
         NfaStateData data = new NfaStateData(this, name);
         this.stateData.put(name, data);
         return data;
     }
 
-    /**
-     * Reset the {@link LexerData} for another cycle.
-     */
+    /** The automaton data of the lexical state {@code name}. */
     public final NfaStateData getStateData(String name) {
         return this.stateData.get(name);
     }

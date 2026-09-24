@@ -112,7 +112,6 @@ bnf_production #BNF =
 	var p = new BNFProduction();
 	p.setFirstToken(t);
 	p.setLocation(t);
-	p.setThrowsList(new ArrayList<>());
 ?>
   name=identifier() <? p.setLhs(name); ?>
   [ < LPAREN > [ FormalParameters(p.getParameterListTokens()) ] < RPAREN > ]
@@ -211,8 +210,8 @@ local_lookahead(BNFProduction p) : Lookahead =
 	la.setLaExpansion(e);
 ?>
   ]
-  [ LOOKAHEAD(0, { checkEmptyLAAndCommandEnd(emptyLA, commaAtEnd, getToken(1)) } ) < COMMA > <? commaAtEnd = true; ?> ]
-  [ LOOKAHEAD(0, { checkEmptyLAOrCommandEnd(emptyLA, commaAtEnd) } )
+  [ LOOKAHEAD(0, { checkEmptyLAAndCommaEnd(emptyLA, commaAtEnd, getToken(1)) } ) < COMMA > <? commaAtEnd = true; ?> ]
+  [ LOOKAHEAD(0, { checkEmptyLAOrCommaEnd(emptyLA, commaAtEnd) } )
     < LBRACE >
     [ <? var first = getToken(1); ?>
       PrimaryExpression()

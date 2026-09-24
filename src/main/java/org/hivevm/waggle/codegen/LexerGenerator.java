@@ -30,7 +30,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     protected static final String NON_ASCII_TABLE = "NON_ASCII_TABLE";
 
     private static final String HAS_LOOP = "HAS_LOOP";
-    private static final String HAS_SKIP = "HAS_SKIP";
     private static final String HAS_SPECIAL = "HAS_SPECIAL";
 
     private static final String HAS_MORE_ACTIONS = "HAS_MORE_ACTIONS";
@@ -60,7 +59,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
                 .set("NON_ASCII_TABLE_NAME", this::getNonAsciiMethod)
                 .set("NON_ASCII_TABLE_METHOD", (s, w) -> dumpNonAsciiMoveMethod(data, s, w));
 
-        options.set(LexerGenerator.HAS_SKIP, data.hasSkip());
         options.set(LexerGenerator.HAS_LOOP, data.hasLoop());
         options.set(LexerGenerator.HAS_SPECIAL, data.hasSpecial());
 
@@ -191,10 +189,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         return this.getNextToken;
     }
 
-    /** Whether {@code jjStopAtPos} has already been declared for this rendering. */
-    protected final boolean isStopAtPosDumped() {
-        return stringLiterals().isStopAtPosDumped();
-    }
 
     /**
      * Prints the literal-image table: one entry per token kind, {@code null} for a kind without a
@@ -226,10 +220,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         }
     }
 
-    /** Resets the once-only {@code jjStopAtPos} emission between two renderings. */
-    protected final void setStopAtPosDumped(boolean dumped) {
-        stringLiterals().setStopAtPosDumped(dumped);
-    }
 
     protected final void dump_nfa_and_dfa(NfaStateData stateData, LinePrinter printer) {
         if (stateData.hasNFA() && !stateData.isMixedState())
@@ -297,14 +287,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
             dumpBitVector(printer, data, "jjtoMore", data::toMore);
         }
     }
-
-    // ////////////////////////// NFaState
-
-    // ---------------------------------------------------------------- DFA prologue
-
-    // ---------------------------------------------------------------- lexical actions
-    // Names and shapes the three action dumpers need. Java is the default; Rust renames, C++ reads
-    // through a "reader" and wraps the whole thing in a method of its own.
 
     protected final String getStatesForState(LexerData data) {
         // A grammar made only of string literals has no NFA, hence no state table. The assert that

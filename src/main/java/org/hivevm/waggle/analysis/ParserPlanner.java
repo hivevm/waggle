@@ -66,7 +66,7 @@ public class ParserPlanner {
         }
 
         for (var e : data.getExpansionCounts()) {
-            buildPhase3Routine(data, e.getKey(), e.getValue());
+            findSemanticLookahead(data, e.getKey(), e.getValue());
         }
 
         return data;
@@ -285,7 +285,7 @@ public class ParserPlanner {
 
             if (seq instanceof RExpression re) {
                 data.setInternalName(e, "jj_scan_token("
-                        + ((re.getLabel() == null) || re.getLabel().isEmpty() ? "" + re.getOrdinal()
+                        + (re.getLabel().isEmpty() ? "" + re.getOrdinal()
                         : re.getLabel()) + ")");
                 return;
             }
@@ -300,10 +300,13 @@ public class ParserPlanner {
         }
     }
 
+    /**
+     * The production {@code e} belongs to. The parents form a tree, so the walk ends; it used to
+     * give up after 42 steps "in case there's a cycle", which named deeply nested routines R_null_N.
+     */
     private static String getProductionName(Expansion e) {
         Object next = e;
-        // Limit the number of iterations in case there's a cycle
-        for (int i = 0; (i < 42) && (next != null); i++) {
+        while (next != null) {
             if (next instanceof BNFProduction bnf)
                 return bnf.getLhs();
             else if (next instanceof Expansion exp)
@@ -314,7 +317,11 @@ public class ParserPlanner {
         return null;
     }
 
-    private void buildPhase3Routine(ParserData data, Expansion e, int count) {
+    /**
+     * Marks the parser as needing {@code jj_lookingAhead} when a jj_3 routine evaluates a semantic
+     * lookahead. It builds nothing: the routines are written by the back ends.
+     */
+    private void findSemanticLookahead(ParserData data, Expansion e, int count) {
         if (data.internalName(e).startsWith("jj_scan_token")) {
             return;
         }
@@ -335,7 +342,7 @@ public class ParserPlanner {
             int cnt = count;
             for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                 var eseq = e_nrw.getUnits().get(i);
-                buildPhase3Routine(data, eseq, cnt);
+                findSemanticLookahead(data, eseq, cnt);
                 cnt -= data.minimumSize(eseq);
                 if (cnt <= 0) {
                     break;

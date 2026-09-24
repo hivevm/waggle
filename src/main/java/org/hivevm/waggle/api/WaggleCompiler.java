@@ -55,16 +55,20 @@ public class WaggleCompiler {
     }
 
     /**
-     * Reads a grammar or lexical file.
+     * Reads a grammar file; JJDoc reads it the same way.
      *
      * <p>The charset is fixed to UTF-8 and line endings are normalised to {@code \n}. Both matter for
      * reproducibility: action text is copied verbatim into the generated source, so reading with the
      * platform default charset — or on a CRLF checkout — made the output, and therefore the checksum
      * of every generated file, depend on the machine it was generated on.
      */
-    private static String readGrammar(File file) throws IOException {
-        return Files.readString(file.toPath(), StandardCharsets.UTF_8)
-                .replace("\r\n", "\n").replace('\r', '\n');
+    public static String readGrammar(File file) throws IOException {
+        return WaggleCompiler.normalizeLineEnds(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+    }
+
+    /** The text with every CR LF and every lone CR turned into LF. */
+    public static String normalizeLineEnds(String text) {
+        return text.replace("\r\n", "\n").replace('\r', '\n');
     }
 
     /**

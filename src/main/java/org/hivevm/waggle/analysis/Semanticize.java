@@ -162,15 +162,11 @@ public class Semanticize {
         buildProductionTable();
         checkNonTerminalsAreDefined();
 
+        // Each phase that marks token specifications for removal removes them before it returns.
         checkTokenProductions();
-        removePreparedItems();
-
         collectNamedTokens();
         mergeDuplicateStringLiterals();
-        removePreparedItems();
-
         resolveRegularExpressionNames();
-        removePreparedItems();
 
         if (this.context.hasErrors())
             throw new GenerationException("Semantic analysis found " + this.context.errorCount()
@@ -178,7 +174,7 @@ public class Semanticize {
 
         computeEmptyPossible();
 
-        if (this.context.isSanityCheck() && !this.context.hasErrors()) {
+        if (this.context.isSanityCheck()) { // the errors so far have ended the run above
             checkNoEmptyRepetitions();
             collectLeftMostProductions();
             checkLeftRecursion();
@@ -299,7 +295,7 @@ public class Semanticize {
      */
     private void mergeDuplicateStringLiterals() {
 
-        this.request.unsetTokenCount();
+        this.request.resetTokenCount();
         for (var tokenProduction : this.request.getTokenProductions()) {
             var respecs = tokenProduction.getRespecs();
             if (tokenProduction.getLexStates() == null) {
@@ -441,7 +437,6 @@ public class Semanticize {
         }
 
         this.removePreparedItems();
-        this.removePreparedItems();
     }
 
     /**
@@ -508,7 +503,7 @@ public class Semanticize {
     /** The lookahead ambiguity checking. */
     private void checkLookaheadAmbiguity() {
         for (var production : this.request.getNormalProductions()) {
-            TreeWalker.walk(production.getExpansion(), new LookaheadChecker(this), false);
+            TreeWalker.walk(production.getExpansion(), new LookaheadChecker(), false);
         }
     }
 
@@ -565,9 +560,7 @@ public class Semanticize {
         switch (exp) {
             case NonTerminal nonTerminal -> {
                 var target = nonTerminal.getProd();
-                if (this.leftExpansions.computeIfAbsent(prod, p -> new LinkedHashSet<>())
-                        .add(target)) {
-                }
+                this.leftExpansions.computeIfAbsent(prod, p -> new LinkedHashSet<>()).add(target);
             }
 
             case OneOrMore oneOrMore -> addLeftMost(prod, oneOrMore.getExpansion());
@@ -594,8 +587,6 @@ public class Semanticize {
         }
     }
 
-    // Returns true to indicate an unraveling of a detected left recursion loop,
-    // and returns false otherwise.
     /**
      * Ends the walk of a production in which a left-recursion loop was found. The loop is reported
      * only at the production that opened it ({@link Walk#LOOP_START}); elsewhere it is handed back
@@ -840,12 +831,6 @@ public class Semanticize {
 
     private class LookaheadChecker implements TreeWalker {
 
-        private final Semanticize data;
-
-        private LookaheadChecker(Semanticize data) {
-            this.data = data;
-        }
-
         @Override
         public boolean goDeeper(Expansion e) {
             return !(e instanceof RegularExpression) && !(e instanceof Lookahead);
@@ -855,20 +840,20 @@ public class Semanticize {
         public void action(Expansion e) {
             if (e instanceof Choice choice) {
                 if ((getContext().getLookahead() == 1) || getContext().isForceLaCheck())
-                    LookaheadCalc.choiceCalc(choice, this.data, getContext());
-            } else if (e instanceof OneOrMore exp) {
-                if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
-                    LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
-            } else if (e instanceof ZeroOrMore exp) {
-                if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
-                    LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
-            } else if (e instanceof ZeroOrOne exp) {
-                if (getContext().isForceLaCheck() || (implicitLA(exp.getExpansion()) && (
-                        getContext().getLookahead() == 1)))
-                    LookaheadCalc.ebnfCalc(exp, exp.getExpansion(), this.data, getContext());
+                    LookaheadCalc.choiceCalc(choice, Semanticize.this, getContext());
+                return;
             }
+
+            // The three repetitions were three identical branches.
+            Expansion nested = switch (e) {
+                case OneOrMore exp -> exp.getExpansion();
+                case ZeroOrMore exp -> exp.getExpansion();
+                case ZeroOrOne exp -> exp.getExpansion();
+                default -> null;
+            };
+            if ((nested != null) && (getContext().isForceLaCheck()
+                    || (implicitLA(nested) && (getContext().getLookahead() == 1))))
+                LookaheadCalc.ebnfCalc(e, nested, Semanticize.this, getContext());
         }
 
         private boolean implicitLA(Expansion exp) {

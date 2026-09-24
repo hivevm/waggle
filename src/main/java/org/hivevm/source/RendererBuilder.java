@@ -107,6 +107,11 @@ class RendererBuilder {
      * the condition defined by the expression evaluates to true during runtime.
      */
     public final RendererBuilder addCase(String expression) {
+        // Only the branch of an //@if can be followed by another: at the top level this was an
+        // EmptyStackException, inside a //@foreach a ClassCastException.
+        if ((stack.size() < 2) || !(stack.get(stack.size() - 2) instanceof MatchRenderer)) {
+            throw new TemplateException("//@elif or //@else outside an //@if");
+        }
         stack.pop();
         var peek = (MatchRenderer) stack.peek();
         var renderer = new ListRenderer();

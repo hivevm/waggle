@@ -61,6 +61,21 @@ class TemplateTest {
         assertFalse(out.contains("yes"), out);
     }
 
+    /** An //@else without an //@if is a template error, not an EmptyStackException. */
+    @Test
+    void elseOutsideAnIfIsATemplateError() {
+        assertThrows(TemplateException.class, () -> render("a\n//@else\nb\n", Map.of()));
+        assertThrows(TemplateException.class,
+                () -> render("//@foreach(LIST)\n//@else\n//@end\n", Map.of("LIST", 1)));
+    }
+
+    /** The line after a directive is text, even when it starts with "(": it was taken as a parameter. */
+    @Test
+    void aLineStartingWithAParenthesisAfterElseIsKept() {
+        var out = render("//@if(FLAG)\nyes\n//@else\n(void) x;\n//@fi\n", Map.of("FLAG", false));
+        assertTrue(out.contains("(void) x;"), out);
+    }
+
     /**
      * A negated condition must render when the flag is false. This is what the C++ and Rust
      * templates rely on (e.g. {@code //@if(!CACHE_TOKENS)} guarding the {@code jj_ntk} declaration).

@@ -82,16 +82,16 @@ public abstract class GeneratorProvider implements Generator {
             emitter.get().emitRuntime(request.options(), treeOptions, tree.get());
         }
 
+        // No diagnostic is reported after planning, and ParserPlanner.build refuses a grammar with
+        // errors, so there is nothing left to check before writing.
         newFileGenerator().generate(dataLexer);
-        if (!request.diagnostics().hasError()) {
-            newLexerGenerator().generate(dataLexer);
+        newLexerGenerator().generate(dataLexer);
 
-            var parserGenerator = newParserGenerator();
-            parserGenerator.decorateWith(emitter
-                    .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions))
-                    .orElse(ExpansionDecorator.NONE));
-            parserGenerator.generate(dataParser);
-        }
+        var parserGenerator = newParserGenerator();
+        parserGenerator.decorateWith(emitter
+                .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions))
+                .orElse(ExpansionDecorator.NONE));
+        parserGenerator.generate(dataParser);
     }
 
     /** Refuses to generate anything that would overwrite one of the runtime classes. */

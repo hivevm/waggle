@@ -43,15 +43,16 @@ public class Template {
         }
     }
 
-    // "\\s*" before the parameter list: "//@if (X)" used to leave the parameter unmatched, which
-    // silently turned the condition into "no condition" and dropped the block.
+    // "[ \\t]*" before the parameter list: "//@if (X)" used to leave the parameter unmatched, which
+    // silently turned the condition into "no condition" and dropped the block. Not "\\s*", which
+    // also crossed the line end and took a line starting with "(" after //@else as its parameter.
     //
     // The placeholder body is reluctant ("\\w*?"): the previous greedy form ran across two adjacent
     // placeholders — "__A__ __B__" was captured as the single name "A__ " — so neither was
     // substituted. The leading "[^_()]" stays: it is what lets a name be glued to a prefix that ends
     // in an underscore, as in "jjbitVec___TOKEN_MASKS_INDEX__".
     private static final Pattern STATEMENT = Pattern.compile(
-            "(\\t*)//@(\\w+)(?:\\s*\\(([^)]+)\\))?\\v?|__([^_()]\\w*?)__",
+            "(\\t*)//@(\\w+)(?:[ \\t]*\\(([^)]+)\\))?\\v?|__([^_()]\\w*?)__",
             Pattern.MULTILINE);
 
     /**

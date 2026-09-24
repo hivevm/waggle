@@ -285,9 +285,6 @@ void __PARSER_NAME__::parseError()
 //@else
 void __PARSER_NAME__::parseError()
 {
-//@if(ERROR_REPORTING)
-        JJERR << JJWIDE(Parse error at : ) << token->beginLine() << JJWIDE(:) << token->beginColumn() << JJWIDE( after token: ) << addUnicodeEscapes(token->image()) << JJWIDE( encountered: ) << addUnicodeEscapes(getToken(1)->image()) << std::endl;
-//@fi
 }
 //@fi
 

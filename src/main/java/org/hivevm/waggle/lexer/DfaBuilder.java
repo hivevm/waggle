@@ -423,13 +423,7 @@ public class DfaBuilder {
     // -----------------------------------------------------------------------
 
     static void reArrange(NfaStateData data) {
-        List<NfaState> v = data.cloneAllStates();
-
-        if (data.getAllStateCount() != data.generatedStates()) {
-            throw new IllegalStateException("NFA state count changed while rearranging: "
-                    + data.getAllStateCount() + " states, but " + data.generatedStates()
-                    + " were generated");
-        }
+        List<NfaState> v = data.takeAllStatesForReindex();
 
         for (NfaState tmp : v) {
             if ((tmp.stateName != -1) && !tmp.dummy) {

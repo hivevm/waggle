@@ -360,10 +360,6 @@ public class WaggleOptions implements Options {
         return this.optionValues.get(name);
     }
 
-    public void setParser(String value) {
-        set(Waggle.PARSER_NAME, value);
-    }
-
     @Override
     public void set(String name, Object value) {
         if (Waggle.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
@@ -374,13 +370,5 @@ public class WaggleOptions implements Options {
                     : Collections.emptyList();
         }
         this.optionValues.put(name, value);
-    }
-
-    /**
-     * Return the file encoding; this will return the file.encoding system property if no value was
-     * explicitly set
-     */
-    public static String getFileEncoding() {
-        return System.getProperties().getProperty("file.encoding");
     }
 }

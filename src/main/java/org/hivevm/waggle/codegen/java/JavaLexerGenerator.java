@@ -33,6 +33,7 @@ class JavaLexerGenerator extends LexerGenerator {
         JavaTemplate.LEXER.render(options);
     }
 
+    @Override
     protected SourceProvider<Options> getConstantsTemplate() {
         return JavaTemplate.PARSER_CONSTANTS;
     }

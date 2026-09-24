@@ -33,14 +33,6 @@ public class StringLiteralDfaEmitter {
         this.syntax = syntax;
     }
 
-    final boolean isStopAtPosDumped() {
-        return this.stopAtPosDumped;
-    }
-
-    final void setStopAtPosDumped(boolean dumped) {
-        this.stopAtPosDumped = dumped;
-    }
-
     /**
      * The per-state code of the string-literal DFA. Java and C++ share it verbatim — every place
      * they used to differ is now one of the dialect hooks above. Rust still overrides it.

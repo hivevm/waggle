@@ -4,7 +4,8 @@
 package org.hivevm.waggle.model;
 
 /**
- * Describes one-or-more regular expressions (<foo+>).
+ * Describes a repetition range of a regular expression: {@code <foo{n}>}, {@code <foo{n,}>} or
+ * {@code <foo{n,m}>}.
  */
 public final class RRepetitionRange extends RExpression {
 
@@ -28,6 +29,10 @@ public final class RRepetitionRange extends RExpression {
         return this.max;
     }
 
+    /**
+     * Whether a comma was written. The name says otherwise: {@code {n,}} has a comma and no upper
+     * bound, which {@link #getMax()} gives as -1; {@code {n}} has neither and means exactly n.
+     */
     public final boolean hasMax() {
         return this.hasMax;
     }

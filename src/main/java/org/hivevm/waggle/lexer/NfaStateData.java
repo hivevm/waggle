@@ -154,7 +154,12 @@ public class NfaStateData {
         return this.generatedStates;
     }
 
-    public final List<NfaState> cloneAllStates() {
+    /**
+     * Hands over the states and leaves an empty slot per generated state, for the states to be put
+     * back by their final name. It cloned nothing, and the slot count was then checked against the
+     * very number it had just been made from.
+     */
+    final List<NfaState> takeAllStatesForReindex() {
         List<NfaState> v = this.allStates;
         this.allStates = new ArrayList<>(Collections.nCopies(generatedStates(), null));
         return v;

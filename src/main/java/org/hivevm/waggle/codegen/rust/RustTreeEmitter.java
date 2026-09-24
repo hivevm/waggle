@@ -16,7 +16,6 @@ import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.util.Collection;
 
 /**
  * Rust's tree support: the code around one node scope, and the tree runtime it calls into.
@@ -71,31 +70,11 @@ public class RustTreeEmitter implements TreeEmitter {
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options, Collection<String> thrown_names) {
-        if (!thrown_names.isEmpty()) {
-            printer.println("  if try_catch.is_err() {");
-            printer.println("// CATCH " + ScopeVariables.exception(ns));
-            printer.println("  if " + ScopeVariables.closed(ns) + " {");
-            printer.println("//    self.jjtree.clear_node_scope(" + ScopeVariables.node(ns) + ".clone());");
-            printer.println("//    " + ScopeVariables.closed(ns) + " = false;");
-            printer.println("  } else {");
-            printer.println("//    self.jjtree.pop_node();");
-            printer.println("  }");
-            // This is either an Error or an undeclared Exception. If it's an Error then the cast is good,
-            // otherwise we want to force the user to declare it by crashing on the bad cast.
-            printer.println("  }");
-        }
-
+    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
         printer.println("    // FINALLY");
         printer.println("if " + ScopeVariables.closed(ns) + " {");
         closeScope(ns, printer, options, true);
         printer.println("}");
-        if (!thrown_names.isEmpty()) {
-            printer.println("    if try_catch.is_err() {");
-            printer.println("        return Err(std::io::Error::new(std::io::ErrorKind::Other, \""
-                    + ScopeVariables.exception(ns) + "\"));");
-            printer.println("    }");
-        }
         printer.println("// END TRY_CATCH");
     }
 

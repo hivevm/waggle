@@ -26,6 +26,7 @@ class BNFGenerator implements DocGenerator {
     private final Diagnostics diagnostics;
     private final String inputFile;
     private String outputFile;
+    private boolean standardOutput;
     private boolean printing = true;
 
     /**
@@ -47,6 +48,7 @@ class BNFGenerator implements DocGenerator {
 
         if (this.opts.stringValue(Waggle.OUTPUT_FILE).isEmpty()) {
             if (this.inputFile.equals("standard input")) {
+                this.standardOutput = true;
                 return new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
             } else {
                 String ext = ".bnf";
@@ -66,10 +68,13 @@ class BNFGenerator implements DocGenerator {
             this.outputFile = this.opts.stringValue(Waggle.OUTPUT_FILE);
         }
         try {
-            this.ostr = new java.io.PrintWriter(new java.io.FileWriter(this.outputFile));
+            this.ostr = new java.io.PrintWriter(new java.io.FileWriter(this.outputFile,
+                    java.nio.charset.StandardCharsets.UTF_8));
         } catch (java.io.IOException e) {
             this.diagnostics.warning("JJDoc: can't open output stream on file " + this.outputFile
                     + ".  Using standard output.");
+            this.outputFile = "standard output";
+            this.standardOutput = true;
             this.ostr = new java.io.PrintWriter(new java.io.OutputStreamWriter(System.out));
         }
 
@@ -100,7 +105,12 @@ class BNFGenerator implements DocGenerator {
 
     @Override
     public void documentEnd() {
-        this.ostr.close();
+        // Standard output is not ours to close: the command line still reports after this.
+        if (this.standardOutput) {
+            this.ostr.flush();
+        } else {
+            this.ostr.close();
+        }
     }
 
     @Override

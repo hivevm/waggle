@@ -264,8 +264,6 @@ abstract class AbstractGrammarParser implements ParserConstants {
                 && (t.kind != ParserConstants.RBRACKET) && (t.kind != ParserConstants.SEMICOLON);
     }
 
-    protected abstract Token getNextToken();
-
     protected abstract Token getToken(int index);
 
     /**
@@ -308,12 +306,11 @@ abstract class AbstractGrammarParser implements ParserConstants {
         return !emptyLA && (token.kind != ParserConstants.RPAREN);
     }
 
-    protected boolean checkEmptyLAAndCommandEnd(boolean emptyLA, boolean commaAtEnd,
-                                                Token ignoredToken) {
-        return !emptyLA && !commaAtEnd && (getToken(1).kind != ParserConstants.RPAREN);
+    protected boolean checkEmptyLAAndCommaEnd(boolean emptyLA, boolean commaAtEnd, Token token) {
+        return !emptyLA && !commaAtEnd && (token.kind != ParserConstants.RPAREN);
     }
 
-    protected boolean checkEmptyLAOrCommandEnd(boolean emptyLA, boolean commaAtEnd) {
+    protected boolean checkEmptyLAOrCommaEnd(boolean emptyLA, boolean commaAtEnd) {
         return emptyLA || commaAtEnd;
     }
 

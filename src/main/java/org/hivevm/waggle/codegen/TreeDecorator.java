@@ -9,7 +9,6 @@ import org.hivevm.waggle.model.NodeDescriptor;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.util.Collections;
 
 /**
  * The tree-building decorator: opens a node scope before the expansion it annotates and unwinds it
@@ -41,7 +40,7 @@ final class TreeDecorator implements ExpansionDecorator {
     @Override
     public void after(NodeScope scope, LinePrinter printer) {
         printer.outdent();
-        this.emitter.catchBlocks(scope, printer, this.options, Collections.emptyList());
+        this.emitter.catchBlocks(scope, printer, this.options);
     }
 
     private void open(NodeScope scope, LinePrinter printer) {

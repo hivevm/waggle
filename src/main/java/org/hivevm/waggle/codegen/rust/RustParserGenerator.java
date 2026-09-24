@@ -14,7 +14,6 @@ import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -59,6 +58,7 @@ class RustParserGenerator extends ParserGenerator {
         RustTemplate.PARSER.render(options);
     }
 
+    @Override
     protected String getStringIndex(int i) {
         return "_" + i;
     }
@@ -78,19 +78,12 @@ class RustParserGenerator extends ParserGenerator {
         }
         printer.print(") -> Result<(), std::io::Error> /* throws ParseException */");
 
-        for (List<Token> name : p.getThrowsList()) {
-            printer.print(", ");
-            for (Token token : name) {
-                t = token;
-                printer.print(t.image);
-            }
-        }
-
         printer.println(" {");
         printer.print("    let mut try_catch: Result<(), std::io::Error> = Ok(());");
         return null;
     }
 
+    @Override
     protected final void generate_phase1_tail(LinePrinter printer) {
         printer.println("    try_catch");
         super.generate_phase1_tail(printer);
@@ -103,17 +96,7 @@ class RustParserGenerator extends ParserGenerator {
         consumer.accept(printer);
     }
 
-
-
-
-
-
-
-
-
-
-
-
+    @Override
     protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
         printer.println("  fn jj_2" + internal_name_as_snake_case(e) + "(&mut self, xla: u32) -> bool {");
         printer.println("    self.jj_la = xla;");
@@ -135,6 +118,7 @@ class RustParserGenerator extends ParserGenerator {
         printer.println();
     }
 
+    @Override
     protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
         if (internalName(e).startsWith("jj_scan_token"))
             return;
@@ -143,10 +127,9 @@ class RustParserGenerator extends ParserGenerator {
 
         // DEPTH_LIMIT and DEBUG_LOOKAHEAD are rejected up front in generate(); the Rust back end
         // emits neither guard code nor a trace call, so no expansion is ever traced.
-        boolean xsp_declared = false;
         Expansion jj3_expansion = null;
 
-        phase3().emit(data, jj3_expansion, xsp_declared, e, count, printer);
+        phase3().emit(data, jj3_expansion, e, count, printer);
 
         printer.println("    " + genReturn(jj3_expansion, false, data));
         if (data.getDepthLimit() > 0) {
@@ -157,7 +140,6 @@ class RustParserGenerator extends ParserGenerator {
         printer.println("}");
         printer.println();
     }
-
 
     /**
      * A jj_3 routine ends in a bare {@code true}/{@code false} expression, where the base class

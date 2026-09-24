@@ -47,7 +47,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected static final String MASK_INDEX = "MASK_INDEX";
     protected static final String TOKEN_COUNT = "TOKEN_COUNT";
     protected static final String TOKEN_MASKS = "TOKEN_MASKS";
-    protected static final String JJPARSER_USE_AST = "USE_AST";
+    protected static final String USE_AST = "USE_AST";
 
     /**
      * What the lookahead checker has opened so far: nothing, an if chain or a switch.
@@ -85,7 +85,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         this.plan = data;
         var options = OptionsContext.of(data.options());
 
-        options.set(ParserGenerator.JJPARSER_USE_AST, data.usesTree());
+        options.set(ParserGenerator.USE_AST, data.usesTree());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
         options.set(ParserGenerator.JJ2_INDEX, data.jj2Index());
         options.set(ParserGenerator.MASK_INDEX, data.maskIndex());
@@ -186,26 +186,6 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             this.lookahead = new LookaheadEmitter(syntax(), this);
         }
         return this.lookahead;
-    }
-
-    protected final void print_lookahead_amount0(LinePrinter printer, LookaheadState state,
-            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        lookahead().semantic(printer, state, action, la, scope, index);
-    }
-
-    protected final void print_lookahead_amount1(LinePrinter printer, LookaheadState state,
-            Consumer<LinePrinter> action, boolean cacheTokens, List<String> cases) {
-        lookahead().oneToken(printer, state, action, cacheTokens, cases);
-    }
-
-    protected final void print_lookahead(LinePrinter printer, LookaheadState state,
-            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        lookahead().syntactic(printer, state, action, la, scope, index);
-    }
-
-    protected final void print_lookahead_tail(LinePrinter printer, LookaheadState state,
-            Consumer<LinePrinter> action, int indents, int index) {
-        lookahead().fallback(printer, state, action, indents, index);
     }
 
     /** The name a lookahead call uses for the routine of {@code e}; Rust snake-cases it. */
@@ -372,7 +352,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
             switch (step.kind()) {
                 case SEMANTIC -> {
                     indentAmt += ParserGenerator.openedBlocks(state);
-                    print_lookahead_amount0(printer, state, action, step.la(), scope,
+                    lookahead().semantic(printer, state, action, step.la(), scope,
                             maskIndex(data, step.mask()));
                     state = LookaheadState.OPENIF;
                 }
@@ -385,19 +365,19 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                         String name = data.getNameOfToken(kind);
                         cases.add((name == null) ? "" + kind : name);
                     }
-                    print_lookahead_amount1(printer, state, action, data.getCacheTokens(), cases);
+                    lookahead().oneToken(printer, state, action, data.getCacheTokens(), cases);
                     state = LookaheadState.OPENSWITCH;
                 }
                 case SYNTACTIC -> {
                     indentAmt += ParserGenerator.openedBlocks(state);
-                    print_lookahead(printer, state, action, step.la(), scope,
+                    lookahead().syntactic(printer, state, action, step.la(), scope,
                             maskIndex(data, step.mask()));
                     state = LookaheadState.OPENIF;
                 }
             }
         }
 
-        print_lookahead_tail(printer, state, p -> actions.accept(p, plan.defaultAlternative()),
+        lookahead().fallback(printer, state, p -> actions.accept(p, plan.defaultAlternative()),
                 state == LookaheadState.OPENSWITCH ? indentAmt + 1 : indentAmt,
                 maskIndex(data, plan.defaultMask()));
     }
@@ -415,10 +395,6 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     private static int maskIndex(ParserData data, int mask) {
         return data.getErrorReporting() ? mask : -1;
     }
-
-
-
-
 
     protected abstract void generate_phase2(Expansion e, LinePrinter printer, ParserData data);
 

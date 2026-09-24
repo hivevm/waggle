@@ -24,8 +24,7 @@ public class ParseException extends java.text.ParseException {
 	private static final String INDENT = "    ";
 
 	/**
-	 * The end of line string (we do not use System.getProperty("") so that we are compatible with
-	 * Android/GWT);
+	 * The end of line string of the messages: always "\n", whatever the platform.
 	 */
 	protected static String EOL = "\n";
 

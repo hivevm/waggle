@@ -19,7 +19,8 @@ public interface SemanticRequest {
 
     Diagnostics diagnostics();
 
-    void unsetTokenCount();
+    /** Restarts the token count at 1: kind 0 is always end of input. */
+    void resetTokenCount();
 
     int addTokenCount();
 

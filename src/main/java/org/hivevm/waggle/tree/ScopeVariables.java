@@ -29,11 +29,6 @@ public interface ScopeVariables {
         return ScopeVariables.name("c", scope);
     }
 
-    /** The exception a failing scope is unwound for, e.g. {@code jjte000}. */
-    static String exception(NodeScope scope) {
-        return ScopeVariables.name("e", scope);
-    }
-
     /** The tree-runtime call that opens the scope; the same in every target that builds trees. */
     static String openCall(NodeScope scope) {
         return "jjtree.openNodeScope(" + ScopeVariables.node(scope) + ");";

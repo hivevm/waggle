@@ -66,6 +66,7 @@ class RustLexerGenerator extends LexerGenerator {
         RustTemplate.LEXER.render(options);
     }
 
+    @Override
     public String self() {
         return "self.";
     }
@@ -212,10 +213,12 @@ class RustLexerGenerator extends LexerGenerator {
         return "0x" + Long.toHexString(value);
     }
 
+    @Override
     protected String getNonAsciiMethod(NfaState state) {
         return "_" + state.nonAsciiMethod;
     }
 
+    @Override
     protected SourceProvider<Options> getConstantsTemplate() {
         return RustTemplate.PARSER_CONSTANTS;
     }

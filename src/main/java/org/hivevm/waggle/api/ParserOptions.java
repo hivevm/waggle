@@ -3,7 +3,6 @@
 
 package org.hivevm.waggle.api;
 
-import java.io.File;
 
 /**
  * The settings that decide what kind of parser is generated, as values.
@@ -15,8 +14,6 @@ import java.io.File;
  * is that a stage takes the settings it uses, and a typo is a compile error rather than a
  * {@code null} at run time.
  *
- * @param parserName           the grammar's name
- * @param outputDirectory      where the generated sources go
  * @param lookahead            the default lookahead depth
  * @param choiceAmbiguityCheck how far a choice is checked for ambiguity
  * @param otherAmbiguityCheck  how far a repetition is checked for ambiguity
@@ -32,16 +29,14 @@ import java.io.File;
  * @param cacheTokens          whether the parser caches the next token
  * @param keepLineColumn       whether tokens carry their position
  */
-public record ParserOptions(String parserName, File outputDirectory,
-                            int lookahead, int choiceAmbiguityCheck, int otherAmbiguityCheck,
+public record ParserOptions(int lookahead, int choiceAmbiguityCheck, int otherAmbiguityCheck,
                             int depthLimit, boolean noDfa, boolean debugParser,
                             boolean debugLookahead, boolean debugTokenManager,
                             boolean errorReporting, boolean ignoreCase, boolean sanityCheck,
                             boolean forceLaCheck, boolean cacheTokens, boolean keepLineColumn) {
 
     public static ParserOptions from(Options options) {
-        return new ParserOptions(options.getParserName(), options.getOutputDirectory(),
-                options.intValue(Waggle.LOOKAHEAD),
+        return new ParserOptions(options.intValue(Waggle.LOOKAHEAD),
                 options.intValue(Waggle.CHOICE_AMBIGUITY_CHECK),
                 options.intValue(Waggle.OTHER_AMBIGUITY_CHECK),
                 options.intValue(Waggle.DEPTH_LIMIT),

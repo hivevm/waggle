@@ -44,10 +44,19 @@ public class Phase3Emitter {
      * Writes the scan for {@code e}, up to {@code count} tokens deep.
      *
      * @param jj3_expansion the routine this body belongs to, which decides what giving up yields
-     * @param xspDeclared   whether the scan-position local has already been declared
+     */
+    public final void emit(ParserData data, Expansion jj3_expansion, Expansion e, int count,
+            LinePrinter printer) {
+        scan(data, jj3_expansion, false, e, count, printer);
+    }
+
+    /**
+     * {@link #emit}, for one expansion of the routine.
+     *
+     * @param xspDeclared whether the scan-position local has already been declared
      * @return whether it has been declared after this call
      */
-    public final boolean emit(ParserData data, Expansion jj3_expansion, boolean xspDeclared,
+    private boolean scan(ParserData data, Expansion jj3_expansion, boolean xspDeclared,
             Expansion e, int count, LinePrinter printer) {
         if (this.parser.internalName(e).startsWith("jj_scan_token")) {
             return xspDeclared;
@@ -98,7 +107,7 @@ public class Phase3Emitter {
                 int cnt = count;
                 for (int i = 1; i < e_nrw.getUnits().size(); i++) {
                     var eseq = e_nrw.getUnits().get(i);
-                    xspDeclared = emit(data, jj3_expansion, xspDeclared, eseq, cnt, printer);
+                    xspDeclared = scan(data, jj3_expansion, xspDeclared, eseq, cnt, printer);
                     cnt -= data.minimumSize(eseq);
                     if (cnt <= 0) {
                         break;

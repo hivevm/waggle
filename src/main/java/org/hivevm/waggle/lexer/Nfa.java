@@ -36,7 +36,6 @@ record Nfa(NfaState start, NfaState end) {
     static void buildLexer(LexerData data, Map<String, List<TokenProduction>> allTpsForState,
                                   List<RExpression> choices) {
         RExpression curRE;
-        TokenKind[] kinds = new TokenKind[data.maxOrdinal];
 
         for (String key : allTpsForState.keySet()) {
             NfaStateData stateData = data.newStateData(key);
@@ -68,7 +67,6 @@ record Nfa(NfaState start, NfaState end) {
                     data.ignoreCase[curRE.getOrdinal()] = ignore;
 
                     if (curRE.isPrivateExp()) {
-                        kinds[curRE.getOrdinal()] = null;
                         continue;
                     }
 
@@ -97,12 +95,6 @@ record Nfa(NfaState start, NfaState end) {
                         stateData.getInitialState().AddMove(temp.start());
                     }
 
-                    if (kinds.length < curRE.getOrdinal()) {
-                        TokenKind[] tmp = new TokenKind[curRE.getOrdinal() + 1];
-                        System.arraycopy(kinds, 0, tmp, 0, kinds.length);
-                        kinds = tmp;
-                    }
-                    kinds[curRE.getOrdinal()] = kind;
 
                     if ((respec.nextState != null) && !respec.nextState.equals(
                             data.getStateName(stateData.getStateIndex()))) {

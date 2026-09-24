@@ -23,19 +23,14 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
     // The name of the non-terminal of this production.
     private String lhs;
 
-    // The tokens that make up the return type of this production.
-    private final List<Token> return_type_tokens = new ArrayList<>();
+    // The return type of this production, as one token (see AbstractGrammarParser.typeToken), or
+    // null when it returns nothing.
+    private Token returnType;
 
     // The tokens that make up the parameters of this production.
     private final List<Token> parameter_list_tokens = new ArrayList<>();
 
-    /**
-     * Each entry in this list is a list of tokens that represents an exception in the throws list
-     * of this production. This list does not include ParseException which is always thrown.
-     */
-    private List<List<Token>> throws_list = new ArrayList<>();
-
-    // The RHS of this production. Not used for JavaCodeProduction.
+    // The RHS of this production.
     private Expansion expansion;
 
     // This boolean flag is true if this production can expand to empty.
@@ -68,19 +63,13 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
         return this.lhs;
     }
 
-    /**
-     * @return the return_type_tokens
-     */
+    /** The return type, or null when the production returns nothing. */
     public Token getReturnTypeToken() {
-        return this.return_type_tokens.isEmpty() ? null : this.return_type_tokens.getFirst();
+        return this.returnType;
     }
 
-    /**
-     * @return the return_type_tokens
-     */
     public void setReturnTypeToken(Token token) {
-        this.return_type_tokens.clear();
-        this.return_type_tokens.add(token);
+        this.returnType = token;
     }
 
     /**
@@ -90,19 +79,6 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
         return this.parameter_list_tokens;
     }
 
-    /**
-     * @param throws_list the throws_list to set
-     */
-    public void setThrowsList(List<List<Token>> throws_list) {
-        this.throws_list = throws_list;
-    }
-
-    /**
-     * @return the throws_list
-     */
-    public List<List<Token>> getThrowsList() {
-        return this.throws_list;
-    }
 
     /**
      * @param expansion the expansion to set

@@ -11,10 +11,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 /**
- * NOTE : This generated class can be safely deleted if installing in a GWT installation (use
- * StringProvider instead)
+ * Reads the input from a stream or a reader. A stream is read as UTF-8 unless a charset is given.
  */
 public class StreamProvider implements Provider {
 
@@ -25,7 +25,7 @@ public class StreamProvider implements Provider {
 	}
 
 	public StreamProvider(InputStream stream) throws IOException {
-		this._reader = new BufferedReader(new InputStreamReader(stream));
+		this._reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
 	}
 
 	public StreamProvider(InputStream stream, String charsetName) throws IOException {
@@ -34,20 +34,7 @@ public class StreamProvider implements Provider {
 
 	@Override
 	public int read(char[] buffer, int off, int len) throws IOException {
-		int result = this._reader.read(buffer, off, len);
-
-		/*
-		 * CBA -- Added 2014/03/29 -- This logic allows the generated Java code to be easily translated
-		 * to C# (via sharpen) - as in C# 0 represents end of file, and in Java, -1 represents end of
-		 * file See : http://msdn.microsoft.com/en-us/library/9kstw824(v=vs.110).aspx Technically, this
-		 * is not required for java but the overhead is extremely low compared to the code generation
-		 * benefits.
-		 */
-		if (result == 0 && (off < buffer.length) && (len > 0)) {
-			result = -1;
-		}
-
-		return result;
+		return this._reader.read(buffer, off, len);
 	}
 
 	@Override

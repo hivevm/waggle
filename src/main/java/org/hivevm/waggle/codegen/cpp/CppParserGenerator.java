@@ -15,7 +15,6 @@ import org.hivevm.waggle.analysis.ParserData;
 import org.hivevm.waggle.codegen.ParserGenerator;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.NormalProduction;
-import org.hivevm.waggle.grammar.ParserConstants;
 import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 
@@ -50,21 +49,10 @@ class CppParserGenerator extends ParserGenerator {
     protected String generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
         Token t = p.getFirstToken();
 
-        boolean void_ret = false;
-        boolean ptr_ret = false;
-
         setup_token(t);
         printLeadingComments(printer, t);
         Token returnType = p.getReturnTypeToken();
-        if (returnType != null) {
-            printer.print(returnType.image);
-            if (returnType.kind == ParserConstants.STAR) {
-                ptr_ret = true;
-            }
-        } else {
-            printer.print("void");
-            void_ret = true;
-        }
+        printer.print((returnType == null) ? "void" : returnType.image);
         printTrailingComments(printer, t);
         printer.print(" " + data.getParserName() + "::" + p.getLhs() + "(");
         if (!p.getParameterListTokens().isEmpty()) {
@@ -72,18 +60,9 @@ class CppParserGenerator extends ParserGenerator {
         }
         printer.print(")");
 
-        // Generate a default value for error return.
-        String default_return;
-        if (ptr_ret) {
-            default_return = "NULL";
-        } else if (void_ret) {
-            default_return = "";
-        } else {
-            default_return = "0"; // 0 converts to most (all?) basic types.
-        }
-
         printer.print(" {");
-        return default_return;
+        // The value returned on error: 0 converts to most basic types.
+        return (returnType == null) ? "" : "0";
     }
 
     /** Wraps the body of a production in the DEPTH_LIMIT guard and the DEBUG_PARSER trace. */
@@ -125,18 +104,7 @@ class CppParserGenerator extends ParserGenerator {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
+    @Override
     protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
         printer.println("  inline bool jj_2" + internalName(e) + "(int xla) {");
         printer.println("    jj_la = xla; jj_lastpos = jj_scanpos = token;");
@@ -155,6 +123,7 @@ class CppParserGenerator extends ParserGenerator {
         printer.println();
     }
 
+    @Override
     protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
         if (internalName(e).startsWith("jj_scan_token"))
             return;
@@ -166,7 +135,6 @@ class CppParserGenerator extends ParserGenerator {
             printer.println("#define __ERROR_RET__ true");
         }
 
-        boolean xsp_declared = false;
         Expansion jj3_expansion = null;
         if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {
             String prefix = "    ";
@@ -177,7 +145,7 @@ class CppParserGenerator extends ParserGenerator {
             jj3_expansion = e;
         }
 
-        phase3().emit(data, jj3_expansion, xsp_declared, e, count, printer);
+        phase3().emit(data, jj3_expansion, e, count, printer);
 
         printer.println("    " + genReturn(jj3_expansion, false, data));
         if (data.getDepthLimit() > 0) {

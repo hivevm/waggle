@@ -51,16 +51,17 @@ class CppLexerGenerator extends LexerGenerator {
         options.set("DUMP_STR_LITERAL_IMAGES", p -> DumpStrLiteralImages(p, data));
         options.set("DUMP_STATES_FOR_STATE_CPP", p -> DumpStatesForStateCPP(p, data));
         options.set("DUMP_STATES_FOR_KIND", p -> DumpStatesForKind(p, data));
-        options.set("DUMP_NFA_AND_DFA_HEADER", w ->
-                data.getStateNames().forEach(name -> dump_nfa_and_dfa_header(data.getStateData(name), w))
-        );
+        options.set("DUMP_NFA_AND_DFA_HEADER", w -> {
+            var stopAtPosDeclared = new boolean[1]; // jjStopAtPos is shared by all states
+            data.getStateNames().forEach(name ->
+                    dump_nfa_and_dfa_header(data.getStateData(name), w, stopAtPosDeclared));
+        });
 
         CppTemplate.LEXER.render(options, data.getParserName());
-
-        setStopAtPosDumped(false);
         CppTemplate.LEXER_H.render(options, data.getParserName());
     }
 
+    @Override
     protected SourceProvider<Options> getConstantsTemplate() {
         return CppTemplate.PARSER_CONSTANTS;
     }
@@ -183,7 +184,8 @@ class CppLexerGenerator extends LexerGenerator {
         printer.println("};");
     }
 
-    private void dump_nfa_and_dfa_header(NfaStateData data, LinePrinter printer) {
+    private void dump_nfa_and_dfa_header(NfaStateData data, LinePrinter printer,
+                                         boolean[] stopAtPosDeclared) {
         var lexer_state_suffix = data.getLexerStateSuffix();
         int maxKindsReqd = (data.getMaxStrKind() / 64) + 1;
         if (data.hasNFA() && !data.isMixedState() && (data.getMaxStrKind() > 0)) {
@@ -217,9 +219,9 @@ class CppLexerGenerator extends LexerGenerator {
 
         if (data.getMaxLen() == 0) {
             printer.println("int jjMoveStringLiteralDfa0" + lexer_state_suffix + "();");
-        } else if (!isStopAtPosDumped()) {
+        } else if (!stopAtPosDeclared[0]) {
             printer.println("int jjStopAtPos(int pos, int kind);");
-            setStopAtPosDumped(true);
+            stopAtPosDeclared[0] = true;
         }
 
         // Dump DFA code

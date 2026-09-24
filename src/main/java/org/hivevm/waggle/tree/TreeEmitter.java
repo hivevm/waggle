@@ -7,7 +7,6 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.Options;
 
-import java.util.Collection;
 
 /**
  * Everything a target has to be able to write for a grammar that builds a tree: the code around one
@@ -37,8 +36,7 @@ public interface TreeEmitter {
     void closeScope(NodeScope scope, LinePrinter printer, TreeOptions options, boolean isFinal);
 
     /** Ends the guarded region: unwinds the scope on failure and closes it on the way out. */
-    void catchBlocks(NodeScope scope, LinePrinter printer, TreeOptions options,
-            Collection<String> thrown);
+    void catchBlocks(NodeScope scope, LinePrinter printer, TreeOptions options);
 
     /** Writes the tree runtime: the node base, the node constants, the tree state, the visitor. */
     void emitRuntime(Options options, TreeOptions tree, TreeModel model);

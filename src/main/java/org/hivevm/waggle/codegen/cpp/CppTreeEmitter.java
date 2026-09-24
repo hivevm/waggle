@@ -18,7 +18,6 @@ import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.util.Collection;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -71,7 +70,7 @@ public class CppTreeEmitter implements TreeEmitter {
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options, Collection<String> thrown_names) {
+    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
         printer.println("} catch (...) {"); // " + ns.exceptionVar + ") {");
         printer.println("  if (" + ScopeVariables.closed(ns) + ") {");
         printer.println("    jjtree.clearNodeScope(" + ScopeVariables.node(ns) + ");");

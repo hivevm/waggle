@@ -16,7 +16,6 @@ import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -70,35 +69,8 @@ public class JavaTreeEmitter implements TreeEmitter {
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options, Collection<String> thrown_names) {
+    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
         printer.println();
-        if (!thrown_names.isEmpty()) {
-            printer.println("} catch (Throwable " + ScopeVariables.exception(ns) + ") {");
-            printer.indent();
-            printer.println("if (" + ScopeVariables.closed(ns) + ") {");
-            printer.indent();
-            printer.println("jjtree.clearNodeScope(" + ScopeVariables.node(ns) + ");");
-            printer.println(ScopeVariables.closed(ns) + " = false;");
-            printer.outdent();
-            printer.println("} else {");
-            printer.indent();
-            printer.println("jjtree.popNode();");
-            printer.outdent();
-            printer.println("}");
-
-            for (var thrown : thrown_names) {
-                printer.println("if (" + ScopeVariables.exception(ns) + " instanceof " + thrown + ") {");
-                printer.indent();
-                printer.println("throw (" + thrown + ")" + ScopeVariables.exception(ns) + ";");
-                printer.outdent();
-                printer.println("}");
-            }
-            // This is either an Error or an undeclared Exception. If it's an Error then the cast is good,
-            // otherwise we want to force the user to declare it by crashing on the bad cast.
-            printer.println("throw (Error)" + ScopeVariables.exception(ns) + ";");
-            printer.outdent();
-        }
-
         printer.println("} finally {");
         printer.indent();
         printer.println("if (" + ScopeVariables.closed(ns) + ") {");
@@ -186,10 +158,6 @@ public class JavaTreeEmitter implements TreeEmitter {
         }
     }
 
-    /**
-     * The base class the generated node classes extend. Defaults to the generated {@code Node}, so
-     * that a grammar which does not supply a NODE_CLASS still yields compilable node classes.
-     */
     /**
      * The type of the payload passed through {@code jjtAccept}. Defaults to {@code Object}, so that
      * VISITOR without an explicit VISITOR_DATA_TYPE still yields a typed parameter.
