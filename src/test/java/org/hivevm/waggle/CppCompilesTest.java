@@ -187,7 +187,12 @@ class CppCompilesTest {
                 lexer.lines().filter(l -> l.contains("curChar < 64")).toList().toString());
     }
 
-    private static void assertCompiles(String grammar, Path dir)
+    /**
+     * Compiles every generated {@code .cc} and links them into one shared library that may not
+     * leave a symbol undefined. {@code -fsyntax-only} alone passed code that declared a member,
+     * called it and never defined it.
+     */
+    static void assertCompiles(String grammar, Path dir)
             throws IOException, InterruptedException {
         assumeTrue(CppCompilesTest.hasCompiler(), "no C++ compiler on PATH");
 
@@ -201,26 +206,22 @@ class CppCompilesTest {
                 .setTargetDir(target.toFile())
                 .build().parse();
 
-        List<Path> sources;
+        List<String> sources;
         try (Stream<Path> paths = Files.walk(target)) {
-            sources = paths.filter(p -> p.toString().endsWith(".cc")).sorted().toList();
+            sources = paths.filter(p -> p.toString().endsWith(".cc")).sorted()
+                    .map(p -> target.relativize(p).toString()).toList();
         }
         assertEquals(false, sources.isEmpty(), "no C++ was generated");
 
-        var failures = new ArrayList<String>();
-        for (var file : sources) {
-            var command = List.of("g++", "-fsyntax-only", "-std=c++17", file.getFileName().toString());
-            var process = new ProcessBuilder(command)
-                    .directory(target.toFile())
-                    .redirectErrorStream(true)
-                    .start();
-            var output = new String(process.getInputStream().readAllBytes());
-            if (process.waitFor() != 0) {
-                failures.add(file.getFileName() + ":\n" + output);
-            }
-        }
-
-        assertEquals(List.of(), failures, "the generated C++ does not compile");
+        var command = new ArrayList<>(List.of("g++", "-std=c++17", "-shared", "-fPIC",
+                "-Wl,--no-undefined", "-o", "libgrammar.so"));
+        command.addAll(sources);
+        var process = new ProcessBuilder(command)
+                .directory(target.toFile())
+                .redirectErrorStream(true)
+                .start();
+        var output = new String(process.getInputStream().readAllBytes());
+        assertEquals(0, process.waitFor(), "the generated C++ does not compile or link:\n" + output);
     }
 
     private static boolean hasCompiler() {

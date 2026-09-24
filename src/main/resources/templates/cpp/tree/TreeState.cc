@@ -16,20 +16,6 @@
 namespace __CPP_NAMESPACE__ {
 //@fi
 
-//@if(NODE_FACTORY)
-	__NODE_FACTORY__ *nodeFactory = nullptr;
-	// Takes ownerhip of the factory
-	void setNodeFactory(__NODE_FACTORY__ *factory) {
-	//if (nodeFactory) {
-		//delete nodeFactory;
-	//}
-	nodeFactory = factory;
-	}
-
-	__NODE_FACTORY__ *getNodeFactory() {
-	return nodeFactory;
-	}
-//@fi
 #define FIXUP_MARKS \
 	if (marks->size() > 0) {\
 	mk = marks->back();\

@@ -161,7 +161,7 @@ Token * __PARSER_NAME__::jj_consume_token(int kind)
 //@fi
 //@fi
 //@if(DEBUG_PARSER)
-		trace_token(token, "
+		trace_token(token, "");
 //@fi
 		return token;
 	}
@@ -221,6 +221,11 @@ bool __PARSER_NAME__::jj_scan_token(int kind)
 //@fi
     }
 //@fi
+//@if(DEBUG_LOOKAHEAD)
+//@if(!ERROR_REPORTING)
+    trace_scan(jj_scanpos, kind);
+//@fi
+//@fi
     if (jj_scanpos->kind() != kind) return true;
     if (jj_la == 0 && jj_scanpos == jj_lastpos) { return jj_done = true; }
     return false;
@@ -242,7 +247,7 @@ Token * __PARSER_NAME__::getNextToken()
 	jj_gen++;
 //@fi
 //@if(DEBUG_PARSER)
-		trace_token(tok", " (in getNextToken)
+	trace_token(token, " (in getNextToken)");
 //@fi
 	return token;
 }
@@ -330,8 +335,8 @@ void __PARSER_NAME__::trace_token(Token *t, const char *where)
 {
     if (trace_enabled()) {
         for (int i = 0; i < indent; i++) { printf(" "); }
-        printf("Consumed token: <kind: %d(%s), \"%s\"", t->kind, addUnicodeEscapes(tokenImage[t->kind]).c_str(), addUnicodeEscapes(t->image).c_str());
-        printf(" at line %d column %d> %s\n", t->beginLine, t->beginColumn, where);
+        printf("Consumed token: <kind: %d(%s), \"%s\"", t->kind(), addUnicodeEscapes(tokenImages[t->kind()]).c_str(), addUnicodeEscapes(t->image()).c_str());
+        printf(" at line %d column %d> %s\n", t->beginLine(), t->beginColumn(), where);
     }
 }
 
@@ -339,8 +344,8 @@ void __PARSER_NAME__::trace_scan(Token *t1, int t2)
 {
     if (trace_enabled()) {
         for (int i = 0; i < indent; i++) { printf(" "); }
-        printf("Visited token: <Kind: %d(%s), \"%s\"", t1->kind, addUnicodeEscapes(tokenImage[t1->kind]).c_str(), addUnicodeEscapes(t1->image).c_str());
-        printf(" at line %d column %d>; Expected token: %s\n", t1->beginLine, t1->beginColumn, addUnicodeEscapes(tokenImage[t2]).c_str());
+        printf("Visited token: <Kind: %d(%s), \"%s\"", t1->kind(), addUnicodeEscapes(tokenImages[t1->kind()]).c_str(), addUnicodeEscapes(t1->image()).c_str());
+        printf(" at line %d column %d>; Expected token: %s\n", t1->beginLine(), t1->beginColumn(), addUnicodeEscapes(tokenImages[t2]).c_str());
     }
 }
 

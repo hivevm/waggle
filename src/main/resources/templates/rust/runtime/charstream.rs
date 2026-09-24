@@ -232,7 +232,9 @@ impl<'a> CharStream<'a> {
 				c = result.unwrap();
 				self.buffer[self.bufpos as usize] = c;
 				if self.buffer[self.bufpos as usize] != '\\' {
+//@if(KEEP_LINE_COLUMN)
 					self.update_line_column(c);
+//@fi
 					// found a non-backslash char.
 					if c == 'u' && (back_slash_cnt & 1) == 1 {
 						self.bufpos -= 1;

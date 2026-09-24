@@ -5,7 +5,9 @@
 //
 // Derived from JavaCC 7.0.12: org/javacc/parser/ParseGen.java
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 //@foreach(JAVA_IMPORTS)
 import __JAVA_IMPORTS_VALUE__;
@@ -42,6 +44,7 @@ public class Parser
 //@fi
 //@if(DEPTH_LIMIT)
 	private int                jj_depth;
+	private boolean            jj_depth_error;
 //@fi
 //@if(MASK_INDEX)
 	private Token              jj_scanpos, jj_lastpos;
@@ -228,7 +231,9 @@ public class Parser
 		}
 //@fi
 //@if(DEBUG_LOOKAHEAD)
+//@if(!ERROR_REPORTING)
 		trace_scan(jj_scanpos, kind);
+//@fi
 //@fi
 		if (jj_scanpos.kind != kind)
 			return true;
@@ -446,11 +451,10 @@ public class Parser
 				System.out.print(" ");
 			}
 			System.out.print("Consumed token: <" + tokenImage[t.kind]);
-			if (t.kind != 0 && !tokenImage[t.kind].equals("\\"" + t.image + "\\"")) {
-				System.out.print(": \\"" + TokenException.addEscapes(" + "t.image) + "\\"");
+			if (t.kind != 0 && !tokenImage[t.kind].equals("\"" + t.image + "\"")) {
+				System.out.print(": \"" + TokenException.addEscapes(t.image) + "\"");
 			}
-			genCodeLine(
-				"	   System.out.println(" at line " + t.beginLine + " + "" column " + t.beginColumn + ">" + where);
+			System.out.println(" at line " + t.beginLine + " column " + t.beginColumn + ">" + where);
 		}
 	}
 
@@ -460,10 +464,10 @@ public class Parser
 				System.out.print(" ");
 			}
 			System.out.print("Visited token: <" + tokenImage[t1.kind]);
-			if (t1.kind != 0 && !tokenImage[t1.kind].equals("\\"" + t1.image + "\\"")) {
-				 System.out.print(": \\"" + TokenException.addEscapes(" + "t1.image) + "\\"");
+			if (t1.kind != 0 && !tokenImage[t1.kind].equals("\"" + t1.image + "\"")) {
+				System.out.print(": \"" + TokenException.addEscapes(t1.image) + "\"");
 			}
-			System.out.println(" at line " + t1.beginLine + ""
+			System.out.println(" at line " + t1.beginLine
 				+ " column " + t1.beginColumn + ">; Expected token: <" + tokenImage[t2] + ">");
 		}
 	}

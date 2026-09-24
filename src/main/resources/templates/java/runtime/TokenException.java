@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: org/javacc/jjtree/TokenMgrException.java, src/main/resources/templates/TokenMgrError.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 /**
  * Token Manager Error.

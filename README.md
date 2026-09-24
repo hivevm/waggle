@@ -144,6 +144,9 @@ to be discovered.
   options switch on is a Java class that was never ported, so a Rust grammar that asks for either is
   rejected. `DEBUG_TOKEN_MANAGER` does work for Rust.
 
+* **`NODE_FACTORY` is not supported for C++.** The C++ node classes have no `jjtCreate` for a
+  factory to call, so a C++ grammar that sets it is rejected.
+
 
 ## Example
 

@@ -51,10 +51,6 @@ public:
 	Node(__PARSER_NAME__* parser, int id);
 	virtual ~Node();
 
-// @_if(!NODE_FACTORY)
-//#define jjtCreate(id) new Node(id)
-//#define jjtCreate(p, id) new Node(p, id)
-// @_fi
 	virtual void jjtOpen() const;
 	virtual void jjtClose() const;
 	virtual void jjtSetParent(Node *n);

@@ -89,6 +89,12 @@ public class WaggleCompiler {
             parser.initialize(data);
             parser.grammar_input();
 
+            // The lookahead trace is written with the parser trace's methods, so it implies it, as
+            // it did in JavaCC (Options.normalize).
+            if (options.booleanValue(Waggle.DEBUG_LOOKAHEAD)) {
+                options.set(Waggle.DEBUG_PARSER, Boolean.TRUE);
+            }
+
             // Initialize the parser data
             createOutputDir(options.getOutputDirectory());
             Semanticize.semanticize(data, options);

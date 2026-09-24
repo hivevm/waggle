@@ -132,7 +132,7 @@ protected:
 private:
 	int  indent; // trace indentation
 	bool trace = __DEBUG_PARSER__;
-	bool trace_la = __DEBUG_PARSER__;
+	bool trace_la = __DEBUG_LOOKAHEAD__;
 
 public:
 	bool trace_enabled();

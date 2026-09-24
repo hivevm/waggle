@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: src/main/resources/templates/SimpleNode.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 //@if(NODE_EXTENDS)
 public class Node extends __NODE_EXTENDS__ {

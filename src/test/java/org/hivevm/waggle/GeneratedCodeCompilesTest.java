@@ -401,7 +401,7 @@ class GeneratedCodeCompilesTest {
         return target;
     }
 
-    private static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)
+    static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)
             throws IOException {
         GeneratedCodeCompilesTest.assertGeneratedSourceCompiles(dir, name, grammar, List.of(),
                 Map.of());

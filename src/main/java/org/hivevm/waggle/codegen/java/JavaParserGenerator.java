@@ -111,7 +111,11 @@ class JavaParserGenerator extends ParserGenerator {
         printer.println("jj_la = xla;");
         printer.println("jj_lastpos = jj_scanpos = token;");
 
-        String ret_suffix = (data.getDepthLimit() > 0) ? " && !jj_depth_error" : "";
+        String ret_suffix = "";
+        if (data.getDepthLimit() > 0) {
+            printer.println("jj_depth_error = false;");
+            ret_suffix = " && !jj_depth_error";
+        }
         printer.println("try {");
         printer.indent();
         printer.println("return (!jj_3" + internalName(e) + "()" + ret_suffix + ");");
@@ -140,19 +144,22 @@ class JavaParserGenerator extends ParserGenerator {
         printer.println("private boolean jj_3" + internalName(e) + "() {");
         printer.indent();
 
+        // Too deep a lookahead fails it: jj_2 tests the flag. A ParseException, as a production
+        // throws, cannot leave a jj_3 routine, which declares none.
         if (data.getDepthLimit() > 0) {
             printer.println("if(++jj_depth > " + data.getDepthLimit() + ") {");
             printer.indent();
-            printer.println("jj_consume_token(-1);");
-            printer.println("throw new ParseException();");
+            printer.println("--jj_depth;");
+            printer.println("jj_depth_error = true;");
+            printer.println("return true;");
             printer.outdent();
             printer.println("}");
             printer.println("try {");
+            printer.indent();
         }
 
         Expansion jj3_expansion = null;
         if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {
-            printer.indent();
             if (data.getErrorReporting()) {
                 printer.print("if (!jj_rescan) ");
             }
@@ -165,12 +172,12 @@ class JavaParserGenerator extends ParserGenerator {
 
         printer.println(genReturn(jj3_expansion, false, data));
         if (data.getDepthLimit() > 0) {
+            printer.outdent();
             printer.println("} finally {");
             printer.indent();
             printer.println("--jj_depth;");
             printer.outdent();
             printer.println("}");
-            printer.outdent();
         }
 
         printer.outdent();

@@ -38,7 +38,11 @@ class CppParserGenerator extends ParserGenerator {
     protected final void generate(ParserData data, OptionsContext options) {
         options.set("DUMP_NORMALPRODUCTIONS_IMPL", w -> data.getProductions().forEach(n -> {
             Token returnType = n.getReturnTypeToken();
-            w.println((returnType == null ? "void" : returnType.image) + " " + n.getLhs() + "();");
+            w.print((returnType == null ? "void" : returnType.image) + " " + n.getLhs() + "(");
+            if (!n.getParameterListTokens().isEmpty()) {
+                printTokens(n.getParameterListTokens(), null, w);
+            }
+            w.println(");");
         }));
 
         CppTemplate.PARSER.render(options, data.getParserName());

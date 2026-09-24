@@ -66,15 +66,6 @@ public:
 	virtual ~Tree() { }
 };
 
-//@if(NODE_FACTORY)
-	class __NODE_FACTORY__;
-	extern __NODE_FACTORY__ *nodeFactory;
-	
-	// Takes ownerhip of the factory
-	void setNodeFactory(__NODE_FACTORY__ *factory);
-	__NODE_FACTORY__ *getNodeFactory();
-//@fi
-
 //@if(CPP_NAMESPACE)
 }
 //@fi

@@ -66,99 +66,82 @@ class CppLexerGenerator extends LexerGenerator {
         return CppTemplate.PARSER_CONSTANTS;
     }
 
+    /**
+     * The kind each NFA state of a lexical state accepts, for the DEBUG_TOKEN_MANAGER trace:
+     * {@code kindForState[lexState][state]}. It used to be one rectangular array, printed as
+     * {@code = null;} for a grammar without an NFA, which is not C++.
+     */
     private void DumpStatesForKind(LinePrinter printer, LexerData data) {
-        boolean moreThanOne = false;
-        int cnt;
-
         if (data.getKinds() == null) {
-            printer.println("static const int kindForState[" + data.stateSetSize() + "]["
-                    + data.stateSetSize() + "] = null;");
+            printer.println("static const int* const kindForState[] = { nullptr };");
             return;
         }
 
-        printer.println("static const int kindForState[" + data.getKinds().length + "]["
-                + data.stateSetSize() + "] = {");
-
-        for (int[] kind : data.getKinds()) {
-            if (moreThanOne) {
-                printer.println(",");
-            }
-            moreThanOne = true;
-
-            if (kind == null) {
-                printer.println("{}");
-            } else {
-                cnt = 0;
-                printer.print("{ ");
-                for (int element : kind) {
-                    if ((cnt % 15) == 0) {
-                        printer.print("\n  ");
-                    } else if (cnt > 1) {
-                        printer.print(" ");
-                    }
-
-                    printer.print("" + element);
-                    printer.print(", ");
-
-                }
-
-                printer.print("}");
+        int[][] kinds = data.getKinds();
+        for (int i = 0; i < kinds.length; i++) {
+            if (kinds[i] != null) {
+                printer.println("static const int kindForState_" + i + "[] = { "
+                        + joined(kinds[i]) + " };");
             }
         }
-        printer.println("\n};");
+        printer.print("static const int* const kindForState[] = {");
+        for (int i = 0; i < kinds.length; i++) {
+            printer.print((i > 0 ? ", " : " ") + ((kinds[i] == null) ? "nullptr" : "kindForState_" + i));
+        }
+        printer.println(" };");
     }
 
+    /**
+     * The NFA states each composite state stands for, per lexical state, for the
+     * DEBUG_TOKEN_MANAGER trace: {@code statesForState[lexState][state]}, with the length of each
+     * set in {@code statesForStateLen}. The sets used to be padded to one fixed length, so a
+     * reader could not tell a set's zeros from state 0.
+     */
     private void DumpStatesForStateCPP(LinePrinter printer, LexerData data) {
-        // A grammar made only of string literals has no NFA, hence no state table.
-        if (data.getStatesForState() == null) {
+        int[][][] states = data.getStatesForState();
+        if (states == null) { // a grammar made only of string literals has no NFA
+            printer.println("static const int* const* const statesForState[] = { nullptr };");
+            printer.println("static const int* const statesForStateLen[] = { nullptr };");
             return;
         }
 
         for (int i = 0; i < data.maxLexStates(); i++) {
-            if (data.getStatesForState()[i] == null) {
+            if (states[i] == null) {
                 continue;
             }
-
-            for (int j = 0; j < data.getStatesForState()[i].length; j++) {
-                int[] stateSet = data.getStatesForState()[i][j];
-
-                printer.print(
-                        "const int stateSet_" + i + "_" + j + "[" + data.stateSetSize() + "] = ");
-                if (stateSet == null) {
-                    printer.println("   { " + j + " };");
-                    continue;
-                }
-
-                printer.print("   { ");
-
-                for (int element : stateSet) {
-                    printer.print(element + ", ");
-                }
-
-                printer.println("};");
+            var lengths = new int[states[i].length];
+            for (int j = 0; j < states[i].length; j++) {
+                int[] set = (states[i][j] == null) ? new int[] {j} : states[i][j];
+                lengths[j] = set.length;
+                printer.println("static const int stateSet_" + i + "_" + j + "[] = { "
+                        + joined(set) + " };");
             }
+            printer.print("static const int* const stateSet_" + i + "[] = {");
+            for (int j = 0; j < states[i].length; j++) {
+                printer.print((j > 0 ? ", " : " ") + "stateSet_" + i + "_" + j);
+            }
+            printer.println(" };");
+            printer.println("static const int stateSetLen_" + i + "[] = { " + joined(lengths) + " };");
         }
 
+        printer.print("static const int* const* const statesForState[] = {");
         for (int i = 0; i < data.maxLexStates(); i++) {
-            printer.println("const int *stateSet_" + i + "[] = {");
-            if (data.getStatesForState()[i] == null) {
-                printer.println(" NULL, ");
-                printer.println("};");
-                continue;
-            }
-
-            for (int j = 0; j < data.getStatesForState()[i].length; j++) {
-                printer.print("stateSet_" + i + "_" + j + ",");
-            }
-            printer.println("};");
+            printer.print((i > 0 ? ", " : " ") + ((states[i] == null) ? "nullptr" : "stateSet_" + i));
         }
-
-        printer.print("const int** statesForState[] = { ");
+        printer.println(" };");
+        printer.print("static const int* const statesForStateLen[] = {");
         for (int i = 0; i < data.maxLexStates(); i++) {
-            printer.println("stateSet_" + i + ", ");
+            printer.print((i > 0 ? ", " : " ") + ((states[i] == null) ? "nullptr" : "stateSetLen_" + i));
         }
+        printer.println(" };");
+    }
 
-        printer.println("\n};");
+    private static String joined(int[] values) {
+        var text = new StringBuilder();
+        for (int value : values) {
+            text.append(text.isEmpty() ? "" : ", ").append(value);
+        }
+        return text.toString();
     }
 
     private void DumpStrLiteralImages(LinePrinter printer, LexerData data) {

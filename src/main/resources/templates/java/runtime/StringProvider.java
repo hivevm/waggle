@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: src/main/resources/templates/gwt/StringProvider.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 import java.io.IOException;
 

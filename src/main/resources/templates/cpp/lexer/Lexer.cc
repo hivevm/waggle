@@ -9,6 +9,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
+#include <set>
 #include "__PARSER_NAME__TokenManager.h"
 #include "TokenManagerError.h"
 #include "TokenManagerErrorHandler.h"
@@ -24,6 +25,53 @@ static const unsigned long long jjbitVec__LOHI_BYTES_INDEX__[] = { __LOHI_BYTES_
 //@if(DEBUG_TOKEN_MANAGER)
 //@invoke(DUMP_STATES_FOR_STATE_CPP)
 //@invoke(DUMP_STATES_FOR_KIND)
+
+static int jjKindCnt = 0;
+
+/** The token kinds a bit vector of the string-literal DFA still allows. */
+const Latin1 __PARSER_NAME__TokenManager::jjKindsForBitVector(int i, unsigned long long vec)
+{
+	Latin1 names;
+	if (i == 0) {
+		jjKindCnt = 0;
+	}
+	for (int j = 0; j < 64; j++) {
+		if ((vec & (1ULL << j)) != 0ULL) {
+			if (jjKindCnt++ > 0) {
+				names += ", ";
+			}
+			if ((jjKindCnt % 5) == 0) {
+				names += "\n     ";
+			}
+			names += tokenImages[(i * 64) + j];
+		}
+	}
+	return names;
+}
+
+/** The token kinds the NFA states in "vec" can still lead to. */
+const Latin1 __PARSER_NAME__TokenManager::jjKindsForStateVector(int lexState, int vec[], int start, int end)
+{
+	std::set<int> done;
+	Latin1 names;
+	int cnt = 0;
+	for (int i = start; i < end; i++) {
+		if (vec[i] == -1) {
+			continue;
+		}
+		const int* states = statesForState[lexState][vec[i]];
+		for (int k = 0; k < statesForStateLen[lexState][vec[i]]; k++) {
+			int kind = kindForState[lexState][states[k]];
+			if (done.insert(kind).second) {
+				if (cnt++ > 0) {
+					names += "\n     ";
+				}
+				names += tokenImages[kind];
+			}
+		}
+	}
+	return (cnt == 0) ? Latin1("{  }") : "{ " + names + " }";
+}
 //@fi
 //@if(HAS_LOOP)
 static int  jjemptyLineNo[__MAX_LEX_STATES__];

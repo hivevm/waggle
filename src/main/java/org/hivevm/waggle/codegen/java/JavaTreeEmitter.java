@@ -27,14 +27,15 @@ public class JavaTreeEmitter implements TreeEmitter {
     @Override
     public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
         printer.print(nodeClass + " " + ScopeVariables.node(ns) + " = ");
+        // The factory has the signature of the node classes' own: jjtCreate(Parser, int).
+        String arguments = "(this, NodeType." + ns.getNodeDescriptor().getNodeId() + ");";
         if (options.nodeFactory().equals("*")) {
             // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
+            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate" + arguments);
         } else if (!options.nodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + ")"
-                    + options.nodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
+            printer.println("(" + nodeClass + ")" + options.nodeFactory() + ".jjtCreate" + arguments);
         } else {
-            printer.println("new " + nodeClass + "(this, " + "NodeType." + ns.getNodeDescriptor().getNodeId() + ");");
+            printer.println("new " + nodeClass + arguments);
         }
 
         printer.println("boolean " + ScopeVariables.closed(ns) + " = true;");

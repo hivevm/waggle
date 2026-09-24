@@ -13,6 +13,7 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.model.NodeScope;
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
@@ -29,16 +30,9 @@ public class CppTreeEmitter implements TreeEmitter {
 
     @Override
     public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
-        printer.print(nodeClass + " *" + ScopeVariables.node(ns) + " = ");
-        if (options.nodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + "*)" + nodeClass + "::jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.nodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + "*)"
-                    + options.nodeFactory() + "->jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else {
-            printer.println("new " + nodeClass + "(" + ns.getNodeDescriptor().getNodeId() + ");");
-        }
+        // NODE_FACTORY is rejected in emitRuntime.
+        printer.println(nodeClass + " *" + ScopeVariables.node(ns) + " = new " + nodeClass + "("
+                + ns.getNodeDescriptor().getNodeId() + ");");
 
         printer.println("bool " + ScopeVariables.closed(ns) + " = true;");
 
@@ -89,6 +83,12 @@ public class CppTreeEmitter implements TreeEmitter {
 
     @Override
     public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
+        if (!tree.nodeFactory().isEmpty()) {
+            // The C++ nodes have no jjtCreate, and a named factory came out as "Factory->jjtCreate"
+            // on a class name. Fail instead of emitting C++ that cannot compile (SPECIFICATION.md
+            // §3: target feature gaps are tracked, not silently produced).
+            throw new GenerationException("NODE_FACTORY is not supported for the C++ target.");
+        }
         generateTreeState(context);
         generateTreeConstants(context, data);
         generateVisitors(context, tree, data);

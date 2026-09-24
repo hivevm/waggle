@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: org/javacc/jjtree/ASTOptions.java, src/main/resources/templates/MultiNode.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 public class __NODE_TYPE__ extends __NODE_CLASS__ {
 

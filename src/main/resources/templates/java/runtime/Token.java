@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: org/javacc/jjtree/Token.java, org/javacc/parser/Token.java
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 /**
  * Describes the input token stream.

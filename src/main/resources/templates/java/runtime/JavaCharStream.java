@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: src/main/resources/templates/JavaCharStream.template, src/main/resources/templates/SimpleCharStream.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 /**
  * An implementation of interface CharStream, where the stream is assumed to contain only ASCII
@@ -265,7 +267,9 @@ class JavaCharStream {
 
 				try {
 					if ((this.buffer[this.bufpos] = c = ReadByte()) != '\\') {
+//@if(KEEP_LINE_COLUMN)
 						UpdateLineColumn(c);
+//@fi
 						// found a non-backslash char.
 						if ((c == 'u') && ((backSlashCnt & 1) == 1)) {
 							if (--this.bufpos < 0) {
@@ -318,7 +322,7 @@ class JavaCharStream {
 						"Invalid escape character at line " + this.line + " column " + this.column
 								+ ".");
 //@else
-				throw new RuntimeException(\"Invalid escape character in input\");
+				throw new RuntimeException("Invalid escape character in input");
 //@fi
 			}
 

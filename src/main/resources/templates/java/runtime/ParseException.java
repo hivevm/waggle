@@ -4,7 +4,9 @@
 //
 // Derived from JavaCC 7.0.12: src/main/resources/templates/ParseException.template, src/main/resources/templates/cpp/ParseException.cc.template
 
+//@if(JAVA_PACKAGE)
 package __JAVA_PACKAGE__;
+//@fi
 
 /**
  * This exception is thrown when parse errors are encountered. You can explicitly create objects of
