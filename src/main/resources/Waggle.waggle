@@ -526,7 +526,7 @@ identifier() : String =
 ;
 
 /**********************************************
- * THE JJTREE PRODUCTIONS START HERE       *
+ * THE TREE-NODE PRODUCTIONS START HERE       *
  **********************************************/
 
 node_descriptor(Expansion exp, BNFProduction p) #NodeDescriptor =
@@ -691,8 +691,8 @@ Arguments(List<Token> tokens) =
  * An action: either the Java code between "<?" and "?>", or a brace block.
  *
  * The brace block matters for the empty action "{}", which is how an empty
- * alternative is written (see the "#BNFParenthesized" branch in JJTree.waggle); it
- * may only contain nested blocks, since Java code lives in "<? ... ?>".
+ * alternative inside a parenthesized expansion is written; it may only contain
+ * nested blocks, since Java code lives in "<? ... ?>".
  * Parsing fills "tokens" with all tokens of the block, excluding the outer braces.
  */
 Statement(List<Token> tokens) =

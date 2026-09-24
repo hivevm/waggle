@@ -7,9 +7,8 @@
 package org.hivevm.waggle.api;
 
 /**
- * This package contains data created as a result of parsing and semanticizing a JavaCC input file.
- * This data is what is used by the back-ends of JavaCC as well as any other back-end of JavaCC
- * related tools such as JJTree.
+ * The names of the options a grammar, a caller or a back end can set, as they are written in a
+ * grammar's {@code options { … }} block and read by the templates.
  */
 public interface Waggle {
 

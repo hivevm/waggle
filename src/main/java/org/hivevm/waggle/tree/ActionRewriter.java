@@ -12,8 +12,8 @@ import org.hivevm.waggle.model.NodeScope;
  * whether that scope is still open — the locals a {@link TreeEmitter} declares. An action written
  * against them keeps working whatever the back end calls those locals.
  *
- * <p>This used to live in {@code generator/CodeGenerator}, which is why JJTree — the reference
- * consumer of tree building — had to reach into a back end to rewrite an action (ADR-0016).
+ * <p>This used to live in {@code generator/CodeGenerator}, so rewriting an action meant reaching
+ * into a back end (ADR-0016).
  */
 public interface ActionRewriter {
 

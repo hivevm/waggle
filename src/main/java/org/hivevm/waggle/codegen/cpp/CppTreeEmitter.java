@@ -5,14 +5,13 @@
 //
 // Derived from JavaCC 7.0.12: org/javacc/jjtree/CPPCodeGenerator.java, org/javacc/jjtree/JavaCodeGenerator.java
 
-package org.hivevm.waggle.codegen.cpp.tree;
+package org.hivevm.waggle.codegen.cpp;
 
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.codegen.cpp.CppTemplate;
 import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.ScopeVariables;

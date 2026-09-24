@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -199,6 +200,105 @@ class GeneratedCodeCompilesTest {
             ;
             """;
 
+    /**
+     * {@code NODE_SCOPE_HOOK} together with {@code BASE_PARSER}: the parser calls
+     * {@code jjtreeOpenNodeScope}/{@code jjtreeCloseNodeScope} on itself, and finds them on the
+     * class it extends. This pair was only ever exercised by the JJTree reference consumer, whose
+     * hand-written {@code NodeScopeHooks} stated the contract; that package is gone (ADR-0027), so
+     * the contract is stated here instead — by a base class the generated parser has to fit.
+     */
+    private static final String SCOPE_HOOK_WITH_BASE_PARSER = """
+            grammar Hooked;
+
+            options {
+              JAVA_PACKAGE: "org.example",
+              NODE_MULTI: true,
+              NODE_DEFAULT_VOID: true,
+              NODE_SCOPE_HOOK: true,
+              VISITOR: true,
+              BASE_PARSER: "HookedBase"
+            }
+
+            Input() #Root =
+              expr() <EOF>
+            ;
+
+            expr =
+              term() ( < PLUS > term() #Add(2) )*
+            ;
+
+            term =
+              <NUMBER> #Number
+            ;
+
+            SKIP = " " | "\\n" ;
+
+            TOKEN =
+              < PLUS: "+" >
+            | < NUMBER: (["0"-"9"])+ >
+            ;
+            """;
+
+    /** The class {@code BASE_PARSER} names, holding the two hooks the generated parser calls. */
+    private static final String HOOKED_BASE = """
+            package org.example;
+
+            abstract class HookedBase {
+
+                protected void jjtreeOpenNodeScope(Node node) throws ParseException {
+                }
+
+                protected void jjtreeCloseNodeScope(Node node) throws ParseException {
+                }
+            }
+            """;
+
+    @Test
+    void scopeHooksResolveAgainstTheBaseParser(@TempDir Path dir) throws IOException {
+        var target = assertGeneratedSourceCompiles(dir, "Hooked.waggle",
+                GeneratedCodeCompilesTest.SCOPE_HOOK_WITH_BASE_PARSER, List.of(),
+                Map.of("org/example/HookedBase.java", GeneratedCodeCompilesTest.HOOKED_BASE));
+
+        // Without these, the base class would be unused and the test would prove nothing.
+        var parser = Files.readString(target.resolve("org/example/Parser.java"));
+        assertTrue(parser.contains("extends HookedBase"),
+                "the parser does not extend the class BASE_PARSER names");
+        assertTrue(parser.contains("jjtreeOpenNodeScope(") && parser.contains("jjtreeCloseNodeScope("),
+                "NODE_SCOPE_HOOK emitted no call to the hooks");
+    }
+
+    /** The node class the grammar author supplies for {@code #Number}, in place of a generated one. */
+    private static final String SUPPLIED_NUMBER = """
+            package org.example;
+
+            public class ASTNumber extends Node {
+
+                public ASTNumber(Parser p, int id) {
+                    super(p, id);
+                }
+
+                @Override
+                public Object jjtAccept(NodeVisitor visitor, Object data) {
+                    return visitor.visit(this, data);
+                }
+            }
+            """;
+
+    /**
+     * Node classes the author supplies — {@code treeNodes} in the Gradle plugin,
+     * {@code ParserBuilder.setCustomNodes} — are not written, and the rest of the tree compiles
+     * against them. The only user of this was the build's JJTree task, which is gone (ADR-0027).
+     */
+    @Test
+    void suppliedNodeClassesAreNotGenerated(@TempDir Path dir) throws IOException {
+        var target = assertGeneratedSourceCompiles(dir, "TreeDefaults.waggle",
+                GeneratedCodeCompilesTest.TREE_WITHOUT_NODE_OPTIONS, List.of("Number"),
+                Map.of("org/example/ASTNumber.java", GeneratedCodeCompilesTest.SUPPLIED_NUMBER));
+
+        assertTrue(Files.isRegularFile(target.resolve("org/example/ASTAdd.java")),
+                "the nodes the author does not supply must still be generated");
+    }
+
     @Test
     void choiceWithAnEmptyAlternativeCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "EmptyAlt.waggle", GeneratedCodeCompilesTest.EMPTY_ALTERNATIVE);
@@ -303,6 +403,19 @@ class GeneratedCodeCompilesTest {
 
     private static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)
             throws IOException {
+        GeneratedCodeCompilesTest.assertGeneratedSourceCompiles(dir, name, grammar, List.of(),
+                Map.of());
+    }
+
+    /**
+     * @param customNodes the node classes the author supplies, without their {@code AST} prefix
+     * @param extra       sources the grammar expects to find beside the generated ones, keyed by
+     *                    their path below the target directory — a {@code BASE_PARSER} class, for
+     *                    instance. Generation must not have written any of them.
+     * @return the directory the sources were generated into
+     */
+    private static Path assertGeneratedSourceCompiles(Path dir, String name, String grammar,
+            List<String> customNodes, Map<String, String> extra) throws IOException {
         var source = dir.resolve(name);
         Files.writeString(source, grammar);
 
@@ -311,7 +424,16 @@ class GeneratedCodeCompilesTest {
         builder.setLanguage(Language.JAVA);
         builder.setTargetDir(target.toFile());
         builder.setParserFile(source.toFile());
+        builder.setCustomNodes(customNodes);
         builder.build().parse();
+
+        for (var entry : extra.entrySet()) {
+            var file = target.resolve(entry.getKey());
+            assertTrue(!Files.exists(file), "generation wrote " + entry.getKey()
+                    + ", which the grammar's author supplies");
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, entry.getValue());
+        }
 
         List<File> sources;
         try (Stream<Path> paths = Files.walk(target)) {
@@ -333,5 +455,6 @@ class GeneratedCodeCompilesTest {
                     .map(Object::toString).collect(Collectors.joining("\n"));
             assertTrue(ok, "generated code for " + name + " does not compile:\n" + errors);
         }
+        return target;
     }
 }

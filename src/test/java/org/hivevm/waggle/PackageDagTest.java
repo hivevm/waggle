@@ -20,8 +20,8 @@ import java.util.stream.Stream;
 /**
  * The whole dependency graph of the pipeline, in one place (ADR-0019).
  *
- * <p>It used to be three tests — one for the model (ADR-0013), one for JJTree (ADR-0016), one for
- * the lexer (ADR-0012) — each written after that one edge had been crossed. Stating the graph is
+ * <p>It used to be three tests — one for the model (ADR-0013), one for the tree API (ADR-0016), one
+ * for the lexer (ADR-0012) — each written after that one edge had been crossed. Stating the graph is
  * what keeps the next edge from being discovered the same way.
  */
 class PackageDagTest {
@@ -52,8 +52,6 @@ class PackageDagTest {
                     List.of(W + "model.", W + "diag.", W + "api.", "org.hivevm.source.")),
             Map.entry(W + "analysis", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.",
                     "org.hivevm.source.")),
-            Map.entry(W + "jjtree", List.of(W + "model.", W + "diag.", W + "tree.", W + "api.",
-                    W + "grammar.", "org.hivevm.source.")),
             Map.entry(W + "codegen", List.of(W + "model.", W + "diag.", W + "api.", W + "tree.",
                     W + "lexer.", W + "analysis.", W + "grammar.", "org.hivevm.source.")),
             Map.entry(W + "grammar",

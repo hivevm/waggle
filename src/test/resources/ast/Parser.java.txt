@@ -1405,7 +1405,7 @@ public class Parser
     }
 
     /**********************************************
-     * THE JJTREE PRODUCTIONS START HERE       *
+     * THE TREE-NODE PRODUCTIONS START HERE       *
      **********************************************/
     public final void node_descriptor(Expansion exp, BNFProduction p) throws ParseException { // NodeDescriptor
         ASTNodeDescriptor jjtn000 = new ASTNodeDescriptor(this, NodeType.JJTNODEDESCRIPTOR);
@@ -1856,8 +1856,8 @@ public class Parser
      * An action: either the Java code between "<?" and "?>", or a brace block.
      *
      * The brace block matters for the empty action "{}", which is how an empty
-     * alternative is written (see the "#BNFParenthesized" branch in JJTree.waggle); it
-     * may only contain nested blocks, since Java code lives in "<? ... ?>".
+     * alternative inside a parenthesized expansion is written; it may only contain
+     * nested blocks, since Java code lives in "<? ... ?>".
      * Parsing fills "tokens" with all tokens of the block, excluding the outer braces.
      */
     public final void Statement(List<Token> tokens) throws ParseException {
@@ -2861,5 +2861,5 @@ public class Parser
     }
 }
 
-// Checksum=992B42FF3A6D132BF55B595BD1525C78 (Do not edit this line!)
+// Checksum=5FDA70C0CC5BE7FD3BB2272A8DC52A69 (Do not edit this line!)
 // Options: BASE_PARSER='AbstractGrammarParser', CACHE_TOKENS=false, DEBUG_LOOKAHEAD=false, DEBUG_PARSER=false, DEPTH_LIMIT=0, DUMP_EXPANSIONS, DUMP_LOOKAHEADS, DUMP_NORMALPRODUCTIONS, ERROR_REPORTING=true, JAVA_IMPORTS=3, JAVA_IMPORTS_VALUE, JAVA_PACKAGE='org.hivevm.waggle.grammar', JJ2_INDEX=10, JJ2_OFFSET=10, JJ2_OFFSET_INDEX, JJ2_OFFSET_VALUE, LOOKAHEAD_NEEDED=false, MASK_INDEX=59, TOKEN_COUNT=63, TOKEN_MASKS=2, TOKEN_MASKS_INDEX, TOKEN_MASKS_LA1=2, TOKEN_MASKS_LA1_INDEX, TOKEN_MASKS_LA1_VALUE, TOKEN_MASKS_VALUE, USE_AST=true

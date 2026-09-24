@@ -15,9 +15,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * This package contains data created as a result of parsing and semanticizing a JavaCC input file.
- * This data is what is used by the back-ends of JavaCC as well as any other back-end of JavaCC
- * related tools such as JJTree.
+ * The version of Waggle, read from the {@code /version} resource of the build.
  */
 public interface WaggleVersion {
 

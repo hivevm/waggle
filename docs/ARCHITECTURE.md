@@ -37,7 +37,6 @@ org.hivevm.waggle
   tree                the tree model and the TreeEmitter SPI
   codegen             the back ends: java/, cpp/, rust/
   doc                 JJDoc, the grammar-documentation tool
-  jjtree              the tested reference consumer of tree building
 ~~~
 
 The dependency graph is a DAG and `PackageDagTest` is its normative statement — every package is
@@ -102,3 +101,4 @@ the largest test.
 | `GeneratorSizeTest` | no class under `codegen` above 1000 lines — `LexerGenerator` was 3064 |
 | `MultiTargetGenerationTest` | every target generating, and its debug output referring to things that exist |
 | `AstTest` | tree building on Waggle.waggle, end to end: node classes, a golden parser, and compilation |
+| `GeneratedCodeCompilesTest` | the tree options — `#Node`, `NODE_MULTI`, `VISITOR`, `NODE_SCOPE_HOOK` with `BASE_PARSER` — producing code that compiles ([ADR-0027](adr/0027-remove-the-jjtree-reference-consumer.md)) |

@@ -8,7 +8,6 @@ import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.codegen.cpp.tree.CppTreeEmitter;
 import org.hivevm.waggle.codegen.ParserGenerator;
 
 import java.util.Optional;

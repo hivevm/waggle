@@ -12,7 +12,6 @@ import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.codegen.rust.tree.RustTreeEmitter;
 import org.hivevm.waggle.codegen.ParserGenerator;
 
 import java.util.Locale;

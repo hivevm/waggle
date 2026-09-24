@@ -17,8 +17,6 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * The tool must be able to generate its own parser from its own grammar (self-hosting).
@@ -35,9 +33,6 @@ class WaggleParserTest {
     private static final File PARSER_SOURCE =
             new File(new File(".").getAbsoluteFile(), "src/main/resources");
 
-    private static final List<String> NODES = Arrays.asList("BNF", "BNFAction", "BNFDeclaration",
-            "BNFNodeScope", "ExpansionNodeScope", "NodeDescriptor", "OptionBinding");
-
     @Test
     void generatesItsOwnParser(@TempDir Path target) {
         new ParserBuilder()
@@ -47,19 +42,6 @@ class WaggleParserTest {
                 .build().parse();
 
         assertGenerated(target, "org/hivevm/waggle/grammar", "Parser.java", "Lexer.java",
-                "ParserConstants.java", "Token.java");
-    }
-
-    @Test
-    void generatesTheTreeParser(@TempDir Path target) {
-        new ParserBuilder()
-                .setLanguage(Language.JAVA)
-                .setTargetDir(target.toFile())
-                .setParserFile(WaggleParserTest.PARSER_SOURCE, "JJTree.waggle")
-                .setCustomNodes(WaggleParserTest.NODES)
-                .build().parse();
-
-        assertGenerated(target, "org/hivevm/waggle/jjtree", "Parser.java", "Lexer.java",
                 "ParserConstants.java", "Token.java");
     }
 

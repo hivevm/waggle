@@ -29,11 +29,9 @@ import java.util.stream.Stream;
 /**
  * Tree building, end to end, on the grammar of the grammar language.
  *
- * <p>Waggle.waggle carries its node descriptors but sets USE_AST: false, so the parser the tool runs
- * on builds no tree. This test switches the tree on with {@link #TREE_OPTIONS} and generates the
- * grammar through Waggle itself: the node classes, the visitor and the parser with the tree code
- * woven into its node scopes. The options are added here, not in the grammar, because the build
- * generates Waggle.waggle with the published plugin (ADR-0028).
+ * <p>Waggle.waggle sets USE_AST with NODE_MULTI, NODE_DEFAULT_VOID, NODE_SCOPE_HOOK and VISITOR.
+ * This test generates it, unchanged, through Waggle itself: the node classes, the visitor and the
+ * parser with the tree code woven into its node scopes.
  */
 class AstTest {
 
@@ -43,15 +41,6 @@ class AstTest {
     /** Where the generated parser lands, relative to the target directory. */
     private static final Path PACKAGE = Path.of("org", "hivevm", "waggle", "grammar");
 
-    /** The tree options, as they would stand in Waggle.waggle. */
-    private static final String TREE_OPTIONS = """
-              USE_AST: true,
-              NODE_MULTI: true,
-              NODE_DEFAULT_VOID: true,
-              NODE_SCOPE_HOOK: true,
-              VISITOR: true,
-            """;
-
     @TempDir
     static Path dir;
 
@@ -59,18 +48,10 @@ class AstTest {
 
     @BeforeAll
     static void generate() throws IOException {
-        var grammar = Files.readString(AstTest.GRAMMAR, StandardCharsets.UTF_8)
-                .replace("\r\n", "\n").replace('\r', '\n');
-        var anchor = "  USE_AST: false,\n";
-        assertTrue(grammar.contains(anchor), "Waggle.waggle no longer sets USE_AST: false");
-
-        var source = AstTest.dir.resolve("Waggle.waggle");
-        Files.writeString(source, grammar.replace(anchor, AstTest.TREE_OPTIONS));
-
         AstTest.generated = AstTest.dir.resolve("generated");
         new ParserBuilder()
                 .setLanguage(Language.JAVA)
-                .setParserFile(source.toFile())
+                .setParserFile(AstTest.GRAMMAR.toFile())
                 .setTargetDir(AstTest.generated.toFile())
                 .build().parse();
     }

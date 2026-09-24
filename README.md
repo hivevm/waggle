@@ -73,9 +73,9 @@ parserProject {
   }
 
   task {
-    name      = 'tree'
-    file      = 'src/main/resources/JJTree.waggle'
-    treeNodes = [ 'BNF', 'NodeDescriptor' ]   // hand-written node classes
+    name      = 'expressions'
+    file      = 'src/main/resources/Expressions.waggle'
+    treeNodes = [ 'Add', 'Number' ]   // hand-written node classes
   }
 }
 ~~~
@@ -100,7 +100,7 @@ parserProject {
 
 * Lexical specifications can define tokens to be case-insensitive per token block, with the `[IGNORE_CASE]` modifier (`TOKEN [IGNORE_CASE] = …`). Note that `IGNORE_CASE` is a reserved word and so cannot be used as a key inside `options { … }`.
 
-* Tree building is **part of the grammar itself**: a production or an expansion is annotated with `#Node`, and — once the grammar sets `USE_AST: true` — the tree-node classes and visitor are generated alongside the parser. Without `USE_AST` the annotations are ignored with a warning ([ADR-0028](docs/adr/0028-tree-building-is-opted-into-with-use-ast.md)). Unlike JavaCC — where JJTree is a separate pre-processor that rewrites a tree grammar into a plain grammar before the parser generator runs — HiveVM Waggle needs no second step and no intermediate grammar. The package `org.hivevm.waggle.jjtree` keeps the name but is not that pre-processor: it holds `JJTree.waggle`, the grammar of the grammar language, which the build regenerates on every run. It is the only grammar in the repository that exercises `#Node`, `NODE_MULTI`, `VISITOR`, `NODE_SCOPE_HOOK` and `BASE_PARSER` end to end, so tree building breaks there first (see its `package-info.java`).
+* Tree building is **part of the grammar itself**: a production or an expansion is annotated with `#Node`, and — once the grammar sets `USE_AST: true` — the tree-node classes and visitor are generated alongside the parser. Without `USE_AST` the annotations are ignored with a warning ([ADR-0028](docs/adr/0028-tree-building-is-opted-into-with-use-ast.md)). Unlike JavaCC — where JJTree is a separate pre-processor that rewrites a tree grammar into a plain grammar before the parser generator runs — HiveVM Waggle needs no second step, no intermediate grammar and no pre-processor of its own ([ADR-0027](docs/adr/0027-remove-the-jjtree-reference-consumer.md)). With `NODE_SCOPE_HOOK` the generated parser calls `jjtreeOpenNodeScope`/`jjtreeCloseNodeScope` on itself as it opens and closes each scope; it declares both as empty protected methods for a subclass to override.
 
 * A grammar can be **run without generating code**: `ParserBuilder.interpret(text)` builds the
   automaton and simulates it, returning the tokens. It is meant for trying a lexical specification
