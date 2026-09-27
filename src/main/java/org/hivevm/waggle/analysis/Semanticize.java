@@ -782,6 +782,10 @@ public class Semanticize {
                 la1.setLaExpansion(new REndOfFile());
                 seq.getUnits().set(0, la1);
                 seq.getUnits().add(1, ch);
+                // Every unit behind the new choice moved up by one; the follow set is read from there.
+                for (int i = 1; i < seq.getUnits().size(); i++) {
+                    seq.getUnits().get(i).setParent(seq, i);
+                }
             }
         }
 

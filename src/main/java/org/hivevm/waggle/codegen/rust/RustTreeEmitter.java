@@ -23,33 +23,20 @@ import org.hivevm.waggle.tree.TreeOptions;
  * <p>Rust has no templates for per-node classes (NODE_MULTI) or visitors (VISITOR) — the ones it had
  * were unported Java leftovers under names that did not exist, so such a grammar died with "Invalid
  * template name". Both are rejected up front with a message that says what is missing, as
- * DEPTH_LIMIT is.
+ * DEPTH_LIMIT is, and so are NODE_FACTORY and TRACK_TOKENS, which came out as Java.
  */
 public class RustTreeEmitter implements TreeEmitter {
 
     @Override
     public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
-        printer.print("let " + ScopeVariables.node(ns) + " = ");
-        if (options.nodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else if (!options.nodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + ")"
-                    + options.nodeFactory() + ".jjtCreate(" + ns.getNodeDescriptor().getNodeId() + ");");
-        } else {
-            printer.println("new_node(&TreeConstants::" + ns.getNodeDescriptor().getNodeId() + ");");
-        }
+        printer.println("let " + ScopeVariables.node(ns) + " = new_node(&TreeConstants::"
+                + ns.getNodeDescriptor().getNodeId() + ");");
 
         printer.println("let mut " + ScopeVariables.closed(ns) + " = true;");
 
         printer.println("self.jjtree.open_node_scope(&" + ScopeVariables.node(ns) + ");");
         if (options.scopeHook())
             printer.println("self.jjtree_open_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
-
-        if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + ".jjtSetFirstToken(getToken(1));");
-        }
-        printer.print("// TRY_CATCH");
     }
 
     @Override
@@ -63,33 +50,27 @@ public class RustTreeEmitter implements TreeEmitter {
             printer.println("  self.jjtree_close_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
             printer.println("}");
         }
-
-        if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + ".jjtSetLastToken(getToken(0));");
-        }
     }
 
     @Override
     public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
-        printer.println("    // FINALLY");
+        printer.println();
         printer.println("if " + ScopeVariables.closed(ns) + " {");
         closeScope(ns, printer, options, true);
         printer.println("}");
-        printer.println("// END TRY_CATCH");
     }
 
+    /** What the Rust nodes cannot do; the options would otherwise come out as Java. */
     @Override
-    public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
-        rejectUnsupported(tree, data);
-
-        RustTemplate.TREE_STATE.render(context);
-        generateTreeConstants(context, data);
-        RustTemplate.NODE.render(context);
-    }
-
-    private static void rejectUnsupported(TreeOptions tree, TreeModel data) {
+    public void validate(TreeOptions tree, TreeModel data) {
         if (tree.visitor()) {
             throw new GenerationException("VISITOR is not supported for the Rust target.");
+        }
+        if (!tree.nodeFactory().isEmpty()) {
+            throw new GenerationException("NODE_FACTORY is not supported for the Rust target.");
+        }
+        if (tree.trackTokens()) {
+            throw new GenerationException("TRACK_TOKENS is not supported for the Rust target.");
         }
 
         var excludes = tree.customNodes();
@@ -98,6 +79,13 @@ public class RustTreeEmitter implements TreeEmitter {
             throw new GenerationException("Node classes (NODE_MULTI with BUILD_NODE_FILES) are not "
                     + "supported for the Rust target.");
         }
+    }
+
+    @Override
+    public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
+        RustTemplate.TREE_STATE.render(context);
+        generateTreeConstants(context, data);
+        RustTemplate.NODE.render(context);
     }
 
     private void generateTreeConstants(Options context, TreeModel data) {

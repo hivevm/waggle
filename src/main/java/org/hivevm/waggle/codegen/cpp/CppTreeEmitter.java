@@ -82,13 +82,17 @@ public class CppTreeEmitter implements TreeEmitter {
 
 
     @Override
-    public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
+    public void validate(TreeOptions tree, TreeModel data) {
         if (!tree.nodeFactory().isEmpty()) {
             // The C++ nodes have no jjtCreate, and a named factory came out as "Factory->jjtCreate"
             // on a class name. Fail instead of emitting C++ that cannot compile (SPECIFICATION.md
             // §3: target feature gaps are tracked, not silently produced).
             throw new GenerationException("NODE_FACTORY is not supported for the C++ target.");
         }
+    }
+
+    @Override
+    public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
         generateTreeState(context);
         generateTreeConstants(context, data);
         generateVisitors(context, tree, data);

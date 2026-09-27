@@ -367,7 +367,7 @@ abstract class AbstractGrammarParser implements ParserConstants {
     protected final void setInputOption(Token o, Token v) {
         switch (v.kind) {
             case ParserConstants.INTEGER_LITERAL:
-                getOptions().setOption(diagnostics(), o, v, o.image, Integer.valueOf(v.image));
+                getOptions().setOption(diagnostics(), o, v, o.image, integerValue(v));
                 break;
 
             case ParserConstants.TRUE:

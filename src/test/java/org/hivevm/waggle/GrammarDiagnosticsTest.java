@@ -177,6 +177,48 @@ class GrammarDiagnosticsTest {
         assertTrue(error.hasPosition(), error.toString());
     }
 
+    /** An option value is an integer as Java writes it, hexadecimal included. */
+    @Test
+    void anOptionMayBeWrittenInHexadecimal() throws IOException {
+        var diagnostics = generate("""
+                TOKEN = < A: "a" > ;
+                """, "CHOICE_AMBIGUITY_CHECK: 0x3");
+        assertEquals(List.of(), errors(diagnostics));
+    }
+
+    /**
+     * A lookahead that opens a production is moved into a choice of its own, which shifts the units
+     * after it. Their positions in the sequence were left as they were, so the follow set of the
+     * loop behind it started at the loop itself and reported a conflict with its own first token.
+     */
+    @Test
+    void aLookaheadBeforeALoopLeavesItsFollowSetAlone() throws IOException {
+        var diagnostics = new Diagnostics(DiagnosticSink.SILENT);
+        compileOrExplain(diagnostics, LOOP.formatted("<B>"));
+        assertEquals(List.of(), conflicts(diagnostics));
+
+        diagnostics = new Diagnostics(DiagnosticSink.SILENT);
+        compileOrExplain(diagnostics, LOOP.formatted("<A>"));
+        assertEquals(1, conflicts(diagnostics).size(), diagnostics.collected().toString());
+    }
+
+    /** A loop behind a lookahead, and the token that follows it filled in. */
+    private static final String LOOP = """
+            grammar Example;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input = LOOKAHEAD(2) ( <A> )* %s <EOF> ;
+
+            TOKEN = < A: "a" > | < B: "b" > ;
+            """;
+
+    private static List<Diagnostic> conflicts(Diagnostics diagnostics) {
+        return diagnostics.collected().stream().filter(d -> d.message().contains("conflict")).toList();
+    }
+
     /** A choice that needs a lookahead of two; its amount is filled in. */
     private static final String INTEGERS = """
             grammar Example;

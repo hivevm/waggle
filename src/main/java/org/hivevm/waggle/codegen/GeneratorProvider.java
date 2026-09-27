@@ -78,6 +78,7 @@ public abstract class GeneratorProvider implements Generator {
             throw new GenerationException(
                     "Tree building (#Node) is not supported for this target.");
         }
+        emitter.ifPresent(e -> e.validate(treeOptions, tree.get()));
         if (emitter.isPresent() && generatesTreeRuntime(tree.get(), treeOptions)) {
             emitter.get().emitRuntime(request.options(), treeOptions, tree.get());
         }

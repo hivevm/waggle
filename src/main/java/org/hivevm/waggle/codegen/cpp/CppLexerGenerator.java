@@ -210,13 +210,17 @@ class CppLexerGenerator extends LexerGenerator {
         if (data.getMaxLen() > 0) {
             for (int i = 0; i < data.getMaxLen(); i++) {
                 printer.print("int jjMoveStringLiteralDfa" + i + lexer_state_suffix + "(");
+                // Separated by whether a parameter was printed, not by index: a vector whose
+                // literals are too short to reach position i is left out, the first one included.
+                boolean first = true;
                 if (i != 0) {
                     if (i == 1) {
                         for (int j = 0; j < maxKindsReqd; j++) {
                             if (i <= data.getMaxLenForActive(j)) {
-                                if (j > 0) {
+                                if (!first) {
                                     printer.print(", ");
                                 }
+                                first = false;
                                 printer.print("unsigned long long active");
                                 printer.print("" + j);
                             }
@@ -224,9 +228,10 @@ class CppLexerGenerator extends LexerGenerator {
                     } else {
                         for (int j = 0; j < maxKindsReqd; j++) {
                             if (i <= (data.getMaxLenForActive(j) + 1)) {
-                                if (j > 0) {
+                                if (!first) {
                                     printer.print(", ");
                                 }
+                                first = false;
                                 printer.print("unsigned long long old" + j + ", ");
                                 printer.print("unsigned long long active" + j);
                             }

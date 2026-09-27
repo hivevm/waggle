@@ -38,6 +38,13 @@ public interface TreeEmitter {
     /** Ends the guarded region: unwinds the scope on failure and closes it on the way out. */
     void catchBlocks(NodeScope scope, LinePrinter printer, TreeOptions options);
 
+    /**
+     * Refuses the tree options this target cannot build. Runs for every grammar that builds a tree,
+     * before anything is written, whether or not the target writes a runtime for it.
+     */
+    default void validate(TreeOptions tree, TreeModel model) {
+    }
+
     /** Writes the tree runtime: the node base, the node constants, the tree state, the visitor. */
     void emitRuntime(Options options, TreeOptions tree, TreeModel model);
 }

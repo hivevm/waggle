@@ -247,6 +247,44 @@ class CppCompilesTest {
     }
 
     /**
+     * More than 64 token kinds, where the first 64 are all one character long and only later kinds
+     * are longer: {@code jjMoveStringLiteralDfa1} then takes no {@code active0}. The header
+     * separated its parameters by index rather than by whether one had been printed yet, and
+     * declared it with a leading comma.
+     */
+    @Test
+    void literalsBeyondTheFirst64KindsAreDeclaredInTheHeader(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        var tokens = new StringBuilder();
+        for (int i = 0; i < 63; i++) {
+            char c = (i < 26) ? (char) ('A' + i) : (i < 52) ? (char) ('a' + i - 26) : (char) ('0' + i - 52);
+            tokens.append("< T").append(i).append(": \"").append(c).append("\" > | ");
+        }
+        var output = run("""
+                grammar Kinds;
+
+                Input = ( <T0> | <BEGIN> | <END> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN = %s< BEGIN: "begin" > | < END: "end" > ;
+                """.formatted(tokens), dir, """
+                #include <iostream>
+                #include "KindsTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("A begin 9 end"));
+                    KindsTokenManager lexer(&reader);
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        std::cout << t->kind() << ":" << t->image() << ";";
+                    }
+                }
+                """);
+        assertEquals("2:A;65:begin;63:9;66:end;", output);
+    }
+
+    /**
      * Backing up over characters beyond ASCII: "a\u00e4c" starts "a\u00e4b", which fails at
      * "c", so the lexer takes "a" and backs up over "\u00e4c". The reader backed up by bytes while
      * the lexer counts characters, and so stopped inside the "\u00e4". Written once with literals,

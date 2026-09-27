@@ -17,6 +17,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -291,6 +293,16 @@ class RustCompilesTest {
     @Test
     void rejectsVisitorForRust(@TempDir Path dir) throws IOException {
         assertRejected(dir, "  VISITOR: true,\n  NODE_SCOPE_HOOK: true", "VISITOR");
+    }
+
+    /**
+     * Without NODE_SCOPE_HOOK and node classes Rust writes no tree runtime, and the check sat in the
+     * code that writes it: VISITOR passed, and NODE_FACTORY and TRACK_TOKENS came out as Java.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"VISITOR: true", "NODE_FACTORY: \"Factory\"", "TRACK_TOKENS: true"})
+    void rejectsWhatTheRustNodesCannotDo(String option, @TempDir Path dir) throws IOException {
+        assertRejected(dir, "  " + option, option.substring(0, option.indexOf(':')));
     }
 
     private static void assertRejected(Path dir, String options, String expected) throws IOException {
