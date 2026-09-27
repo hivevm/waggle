@@ -40,20 +40,13 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
     }
 
     /**
-     * Return <code>true</code> if the cases are ignored.
-     */
-    private boolean isIgnoreCase() {
-        return this.ignoreCase;
-    }
-
-    /**
      * The characters {@code expr} matches, as a list that is not negated: case-folded first, when
      * case is ignored, then complemented. The other order folds the complement, which matches the
      * excluded character in its other case. Works on a copy; the grammar's list stays as written.
      */
-    private RCharacterList matched(RCharacterList expr, NfaStateData data) {
+    private RCharacterList matched(RCharacterList expr) {
         RCharacterList list = expr.copy();
-        if (data.ignoreCase() || isIgnoreCase()) {
+        if (this.ignoreCase) {
             list.ToCaseNeutral();
             list.SortDescriptors();
         }
@@ -67,7 +60,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
 
     @Override
     public Nfa visit(RCharacterList expr, NfaStateData data) {
-        RCharacterList list = matched(expr, data);
+        RCharacterList list = matched(expr);
         if (list.getDescriptors().isEmpty()) {
             data.global.diagnostics().error(expr,
                     "Empty character set is not allowed as it will not match any character.");
@@ -100,7 +93,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
 
     @Override
     public Nfa visit(RChoice expr, NfaStateData data) {
-        List<RExpression> choices = compressed(expr, data);
+        List<RExpression> choices = compressed(expr);
 
         if (choices.size() == 1)
             return choices.getFirst().accept(this, data);
@@ -124,7 +117,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
      * used to rewrite the grammar's own choice (RChoice.CompressCharLists), so the unmatchability
      * check that runs afterwards saw the merged list instead of the alternatives it names.
      */
-    private List<RExpression> compressed(RChoice expr, NfaStateData data) {
+    private List<RExpression> compressed(RChoice expr) {
         List<RExpression> choices = new ArrayList<>(expr.getChoices());
 
         // Unroll nested choices; their alternatives go to the end, last first.
@@ -152,7 +145,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
             if ((curRE instanceof RStringLiteral literal) && (literal.getImage().length() == 1)) {
                 descriptors = List.of(new SingleCharacter(literal.getImage().charAt(0)));
             } else if (curRE instanceof RCharacterList list) {
-                descriptors = list.isNegated_list() ? matched(list, data).getDescriptors()
+                descriptors = list.isNegated_list() ? matched(list).getDescriptors()
                         : list.copy().getDescriptors();
             } else {
                 continue;
@@ -267,7 +260,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
             startState.charMoves = new char[1];
             startState.AddChar(expr.getImage().charAt(i));
 
-            if (data.ignoreCase() || isIgnoreCase()) {
+            if (this.ignoreCase) {
                 startState.AddChar(Character.toLowerCase(expr.getImage().charAt(i)));
                 startState.AddChar(Character.toUpperCase(expr.getImage().charAt(i)));
             }

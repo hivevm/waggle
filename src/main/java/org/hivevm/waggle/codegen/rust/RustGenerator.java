@@ -3,9 +3,9 @@
 
 package org.hivevm.waggle.codegen.rust;
 
+import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.ParserRequest;
-import org.hivevm.waggle.codegen.FileGenerator;
 import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.codegen.LexerGenerator;
@@ -30,12 +30,12 @@ public class RustGenerator extends GeneratorProvider {
     }
 
     @Override
-    public final LexerGenerator newLexerGenerator() {
+    protected final LexerGenerator newLexerGenerator() {
         return new RustLexerGenerator();
     }
 
     @Override
-    public final ParserGenerator newParserGenerator() {
+    protected final ParserGenerator newParserGenerator() {
         return new RustParserGenerator();
     }
 
@@ -65,15 +65,13 @@ public class RustGenerator extends GeneratorProvider {
     }
 
     @Override
-    protected final FileGenerator newFileGenerator() {
-        return context -> {
-            RustTemplate.TOKEN.render(context.options());
-            RustTemplate.CHAR_STREAM.render(context.options());
-        };
+    protected final void emitRuntime(Options options) {
+        RustTemplate.TOKEN.render(options);
+        RustTemplate.CHAR_STREAM.render(options);
     }
 
     @Override
     protected final Set<String> reservedNames() {
-        return RustTemplate.reservedNames();
+        return RustTemplate.SET.reservedNames();
     }
 }

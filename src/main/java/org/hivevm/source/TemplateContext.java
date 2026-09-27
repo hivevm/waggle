@@ -9,19 +9,18 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * The {@code TemplateOptions} class provides a flexible mechanism to manage key-value options
- * within an environment. It allows the definition and retrieval of options, and supports setting
- * options with direct values, suppliers, writers, or custom mappers.
+ * A render context that overlays key-value bindings on an underlying {@link RenderContext}. Values
+ * can be bound directly, or as suppliers, consumers, or per-element mappers.
+ *
+ * <p>A caller may extend it to add its own view of the same names (ADR-0023); its behaviour is
+ * fixed, so every method is final.
  */
-class TemplateContext implements Context {
+public class TemplateContext implements RenderContext {
 
     private final RenderContext environment;
     private final Map<String, Object> options = new HashMap<>();
 
-    /**
-     * Constructs a new instance of the {@code TemplateOptions} class with the specified
-     * environment.
-     */
+    /** A fresh overlay over {@code environment}. */
     public TemplateContext(RenderContext environment) {
         this.environment = environment;
     }
@@ -87,7 +86,7 @@ class TemplateContext implements Context {
         return new Qualifier<>();
     }
 
-    public class Qualifier<T> implements Context.Qualifier<T> {
+    public class Qualifier<T> {
 
         public final Qualifier<T> set(String key, Function<T, Object> function) {
             TemplateContext.this.options.put(key, function);
@@ -98,5 +97,26 @@ class TemplateContext implements Context {
             TemplateContext.this.options.put(key, provider);
             return this;
         }
+    }
+
+    /** A value rendered as the text it supplies. */
+    @FunctionalInterface
+    public interface SourceSupplier {
+
+        String get();
+    }
+
+    /** A value rendered by printing it. */
+    @FunctionalInterface
+    public interface SourceConsumer {
+
+        void apply(LinePrinter printer);
+    }
+
+    /** A per-element value of a list, rendered by printing it for the element. */
+    @FunctionalInterface
+    public interface SourceProvider<V> {
+
+        void apply(V value, LinePrinter printer);
     }
 }

@@ -15,7 +15,7 @@ import org.hivevm.waggle.model.Lookahead;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.OneOrMore;
-import org.hivevm.waggle.model.RegularExpression;
+import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
@@ -52,7 +52,6 @@ public class ParserData {
 
     /** The syntactic lookaheads, each of which gets a jj_2 routine. */
     private final List<Lookahead> phase2list;
-    final List<Phase3Data> phase3list = new ArrayList<>();
     // LinkedHashMap (not Hashtable): iteration follows insertion order, so getExpansions() emits
     // phase-3 routines deterministically instead of in hash-bucket order (reproducible output).
     final LinkedHashMap<Expansion, Integer> phase3table = new LinkedHashMap<>();
@@ -125,10 +124,6 @@ public class ParserData {
         return this.request.getNormalProductions();
     }
 
-    public final NormalProduction getProduction(String name) {
-        return this.request.getProductionTable(name);
-    }
-
     /** The name of the lookahead routine for {@code e}, or the empty string before one is given. */
     public final String internalName(Expansion e) {
         return this.internalNames.getOrDefault(e, "");
@@ -190,13 +185,6 @@ public class ParserData {
         this.lookaheadPlans.put(e, plan);
     }
 
-    protected final void addExpansion(Lookahead la) {
-        Expansion e = la.getLaExpansion();
-        Phase3Data p3d = new Phase3Data(e, la.getAmount());
-        this.phase3list.add(p3d);
-        this.phase3table.put(e, la.getAmount());
-    }
-
     protected final void setLookAheadNeeded(boolean lookaheadNeeded) {
         this.lookaheadNeeded = lookaheadNeeded;
     }
@@ -217,12 +205,8 @@ public class ParserData {
             return Integer.MAX_VALUE;
         try {
             return switch (e) {
-                case RegularExpression regularExpression -> 1;
-                case NonTerminal e_nrw -> {
-                    NormalProduction ntprod = getProduction(e_nrw.getName());
-                    Expansion ntexp = ntprod.getExpansion();
-                    yield minimumSize(ntexp);
-                }
+                case RExpression regularExpression -> 1;
+                case NonTerminal e_nrw -> minimumSize(e_nrw.getProd().getExpansion());
                 case Choice e_nrw -> {
                     int min = oldMin;
                     Expansion nested_e;
@@ -263,16 +247,5 @@ public class ParserData {
         } finally {
             this.inMinimumSize.remove(e);
         }
-    }
-
-    /**
-     * This class stores information to pass from phase 2 to phase 3.
-     *
-     * @param exp   This is the expansion to generate the jj3 method for.
-     * @param count This is the number of tokens that can still be consumed. This number is used to
-     *              limit the number of jj3 methods generated.
-     */
-    record Phase3Data(Expansion exp, int count) {
-
     }
 }

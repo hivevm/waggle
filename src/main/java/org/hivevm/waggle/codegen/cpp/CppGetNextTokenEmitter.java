@@ -29,21 +29,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.indent();
         printer.println("reader->backup(0);");
 
-        long lower = data.singlesToSkip(state).asciiMoves[0];
-        long upper = data.singlesToSkip(state).asciiMoves[1];
-        if ((lower != 0L) && (upper != 0L)) {
-            printer.print("while ((curChar < 64 && (" + this.syntax.toHexString(lower)
-                    + " & (1L << curChar)) != 0L) || \n"
-                    + "          (curChar >> 6) == 1 && (" + this.syntax.toHexString(upper)
-                    + " & (1L << (curChar & 077))) != 0L)");
-        } else if (upper == 0L) {
-            printer.print("while (curChar <= " + (int) TargetSyntax.MaxChar(lower)
-                    + " && (" + this.syntax.toHexString(lower) + " & (1L << curChar)) != 0L)");
-        } else if (lower == 0L) {
-            printer.print("while (curChar > 63 && curChar <= "
-                    + (TargetSyntax.MaxChar(upper) + 64) + " && (" + this.syntax.toHexString(upper)
-                    + " & (1L << (curChar & 077))) != 0L)");
-        }
+        printer.print("while (" + skipSinglesCondition(data, state) + ")");
 
         // the loop body must be braced: it advances curChar, and without the braces only the
         // end-of-input check would be repeated -- forever
@@ -68,59 +54,21 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
-        if (hasInitialMatch(data, state)) {
-            if (data.getDebugTokenManager()) {
-                printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
-                        + data.initMatch(state) + "]).c_str());");
-            }
-            printer.println("jjmatchedKind = " + data.initMatch(state) + ";");
-            printer.println("jjmatchedPos = -1;");
-            printer.println("curPos = 0;");
-        } else {
-            printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-            printer.println("jjmatchedPos = 0;");
-        }
+    protected void printDebugEmptyStringMatched(LinePrinter printer, int kind) {
+        printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
+                + kind + "]).c_str());");
     }
 
     @Override
-    protected void printCanMatchAnyChar(LinePrinter printer, LexerData data, int state) {
-        int kind = data.canMatchAnyChar(state);
-        if (hasInitialMatch(data, state)) {
-            printer.println("if (jjmatchedPos < 0 || (jjmatchedPos == 0 && jjmatchedKind > " + kind
-                    + ")) {");
-        } else {
-            printer.println("if (jjmatchedPos == 0 && jjmatchedKind > " + kind + ") {");
-        }
-        printer.indent();
-
-        if (data.getDebugTokenManager()) {
-            printer.println("fprintf(debugStream, \"   Current character matched as a %s token.\\n\", addUnicodeEscapes(tokenImages["
-                    + kind + "]).c_str());");
-        }
-        printer.println("jjmatchedKind = " + kind + ";");
-
-        if (hasInitialMatch(data, state)) {
-            printer.println("jjmatchedPos = 0;");
-        }
-
-        printer.outdent();
-        printer.println("}");
+    protected void printDebugCurrentCharacterMatched(LinePrinter printer, int kind) {
+        printer.println("fprintf(debugStream, \"   Current character matched as a %s token.\\n\", addUnicodeEscapes(tokenImages["
+                + kind + "]).c_str());");
     }
 
     @Override
-    protected void printBackupBlock(LinePrinter printer, LexerData data) {
-        printer.println("if (jjmatchedPos + 1 < curPos) {");
-        printer.indent();
-
-        if (data.getDebugTokenManager()) {
-            printer.println("fprintf(debugStream, "
-                    + "\"   Putting back %d characters into the input stream.\\n\", (curPos - jjmatchedPos - 1));");
-        }
-
-        printer.println("reader->backup(curPos - jjmatchedPos - 1);");
-        printer.outdent();
-        printer.println("}");
+    protected void printDebugPuttingBack(LinePrinter printer) {
+        printer.println("fprintf(debugStream, "
+                + "\"   Putting back %d characters into the input stream.\\n\", (curPos - jjmatchedPos - 1));");
     }
 
     @Override
@@ -134,8 +82,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
             printer.println("TokenLexicalActions(matchedToken);");
         }
         if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
+            printNewLexState(printer);
         }
         printer.println("return matchedToken;");
     }
@@ -180,8 +127,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         }
 
         if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
+            printNewLexState(printer);
         }
 
         printer.println("goto EOFLoop;");
@@ -198,8 +144,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         }
 
         if (data.maxLexStates() > 1) {
-            printer.println("if (jjnewLexState[jjmatchedKind] != -1)");
-            printer.println("    curLexState = jjnewLexState[jjmatchedKind];");
+            printNewLexState(printer);
         }
         printer.println("curPos = 0;");
         printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");

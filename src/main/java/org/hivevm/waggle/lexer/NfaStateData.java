@@ -7,11 +7,15 @@
 
 package org.hivevm.waggle.lexer;
 
+import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -25,7 +29,6 @@ public class NfaStateData {
     private final int lexStateIndex;
     private final String lexStateSuffix;
 
-    // RString
     int maxLen;
     int maxStrKind;
     boolean[] subString;
@@ -36,24 +39,19 @@ public class NfaStateData {
     int[][] intermediateMatchedPos;
 
     /**
-     * Deliberately a {@link Hashtable}, for the reason given on {@link #charPosKind}:
-     * {@code StringLiteralDfaEmitter} walks this table's {@code keySet()} and writes one
-     * {@code jjStopStringLiteralDfa} branch per key, so the table's iteration order is the order of
-     * those branches in the generated token manager.
+     * Deliberately a {@link Hashtable}: {@code StringLiteralDfaEmitter} walks this table's
+     * {@code keySet()} and writes one {@code jjStopStringLiteralDfa} branch per key, so the table's
+     * iteration order is the order of those branches in the generated token manager. A
+     * {@code LinkedHashMap} here reorders those branches, which is a change to the emitted parser -
+     * and to the checked-in bootstrap parser (ADR-0009) - not a cleanup.
      */
     public Hashtable<String, long[]>[] statesForPos;
     /**
-     * Deliberately a {@link Hashtable}. {@link #reArrange} sorts these keys by their first
-     * character only, so keys sharing one inherit the table's own iteration order, and that order
-     * reaches the generated token manager as the order of its {@code jjStopStringLiteralDfa}
-     * branches. A {@code LinkedHashMap} here reorders those branches, which is a change to the
-     * emitted parser - and to the checked-in bootstrap parser (ADR-0009) - not a cleanup.
+     * Per position, the string literals that continue with a character there, keyed by that
+     * character. Sorted by it, since the string-literal DFA emits one case per key in this order.
      */
-    final List<Hashtable<String, KindInfo>> charPosKind;
+    final List<TreeMap<Character, KindInfo>> charPosKind;
 
-    // NfaState
-    boolean done;
-    boolean[] mark;
     /**
      * Package-private, not public: the same value was reachable both as this field and through
      * {@link #hasNFA()}, and the two back ends picked different ones. Stage 4 writes it, back ends
@@ -68,9 +66,9 @@ public class NfaStateData {
     private List<NfaState> allStates;
     private final List<NfaState> indexedAllStates;
 
-    public int dummyStateIndex;
+    private int dummyStateIndex = -1;
     private final Map<String, int[]> allNextStates;
-    public final Map<String, Integer> stateNameForComposite;
+    final Map<String, Integer> stateNameForComposite;
     public final Map<String, int[]> compositeStateTable;
     final Map<String, NfaState> equivStatesTable;
 
@@ -84,29 +82,13 @@ public class NfaStateData {
         this.lexStateIndex = this.global.getStateIndex(name);
         this.lexStateSuffix = "_" + this.lexStateIndex;
 
-        // RString
-        this.maxLen = 0;
-        this.maxStrKind = 0;
-        this.subString = null;
-        this.subStringAtPos = null;
         // Indexed by ordinal / 64 (see StringLiteralAnalyzer), so size it from the token count
         // instead of a fixed 100 ints (which silently overflowed past 6400 token kinds).
         this.maxLenForActive = new int[(this.global.maxOrdinal / 64) + 1];
-        this.intermediateKinds = null;
-        this.intermediateMatchedPos = null;
         this.charPosKind = new ArrayList<>();
-        this.statesForPos = null;
 
-        // NfaState
-        this.done = false;
-        this.mark = null;
-        this.idCnt = 0;
-        this.hasNFA = false;
-        this.hasMixed = false;
-        this.generatedStates = 0;
         this.allStates = new ArrayList<>();
         this.indexedAllStates = new ArrayList<>();
-        this.dummyStateIndex = -1;
 
         this.allNextStates = new LinkedHashMap<>();
         this.stateNameForComposite = new LinkedHashMap<>();
@@ -155,17 +137,23 @@ public class NfaStateData {
     }
 
     /**
-     * Hands over the states and leaves an empty slot per generated state, for the states to be put
-     * back by their final name. It cloned nothing, and the slot count was then checked against the
-     * very number it had just been made from.
+     * Makes the states of this lexical state its indexed states, each in the slot of its state
+     * name. The others - dummies, and states without transitions that never got a name - are of no
+     * further use.
      */
-    final List<NfaState> takeAllStatesForReindex() {
-        List<NfaState> v = this.allStates;
-        this.allStates = new ArrayList<>(Collections.nCopies(generatedStates(), null));
-        return v;
+    final void reindexByStateName() {
+        this.allStates = new ArrayList<>(this.indexedAllStates);
     }
 
-    public final NfaState getIndexedState(int index) {
+    /**
+     * How many state names there are: the generated states and the names given to composite state
+     * sets that no member state can stand for.
+     */
+    public final int stateNameCount() {
+        return Math.max(generatedStates(), this.dummyStateIndex + 1);
+    }
+
+    final NfaState getIndexedState(int index) {
         return this.indexedAllStates.get(index);
     }
 
@@ -182,10 +170,6 @@ public class NfaStateData {
         return this.allStates.get(index);
     }
 
-    public final void setAllState(int index, NfaState state) {
-        this.allStates.set(index, state);
-    }
-
     public final Iterable<NfaState> getAllStates() {
         return this.allStates;
     }
@@ -199,22 +183,12 @@ public class NfaStateData {
         return this.allNextStates.get(name);
     }
 
-    public final void setNextStates(String name, int[] states) {
+    final void setNextStates(String name, int[] states) {
         this.allNextStates.put(name, states);
     }
 
-    public final Hashtable<String, KindInfo> getCharPosKind(int index) {
+    public final SortedMap<Character, KindInfo> getCharPosKind(int index) {
         return this.charPosKind.get(index);
-    }
-
-    /**
-     * The keys of {@link #getCharPosKind(int)}, ordered by their first character.
-     *
-     * <p>The order is a property of the finished DFA, so it is settled here rather than recomputed
-     * by each back end while it emits (ADR-0012).
-     */
-    public final String[] getOrderedCharPosKinds(int index) {
-        return NfaStateData.reArrange(this.charPosKind.get(index));
     }
 
     /** Whether the two state sets share a state. A query over the finished DFA. */
@@ -242,14 +216,6 @@ public class NfaStateData {
         return this.maxLenForActive[index];
     }
 
-    public final int[][] getIntermediateKinds() {
-        return this.intermediateKinds;
-    }
-
-    public final int[][] getIntermediateMatchedPos() {
-        return this.intermediateMatchedPos;
-    }
-
     public final int getMaxLen() {
         return this.maxLen;
     }
@@ -270,7 +236,7 @@ public class NfaStateData {
      * Whether the string literal of {@code kind} is shadowed at position {@code i} by a shorter
      * literal that is complete there and declared earlier: the DFA then reports that one instead.
      */
-    public final boolean isShadowedByIntermediate(int i, int kind) {
+    final boolean isShadowedByIntermediate(int i, int kind) {
         return (this.intermediateKinds != null) && (this.intermediateKinds[kind] != null)
                 && (this.intermediateKinds[kind][i] < kind)
                 && (this.intermediateMatchedPos != null)
@@ -281,7 +247,7 @@ public class NfaStateData {
      * Whether the string literal of {@code kind} is shadowed on its first character by an earlier
      * catch-all token of this lexical state.
      */
-    public final boolean isShadowedByAnyChar(int i, int kind) {
+    final boolean isShadowedByAnyChar(int i, int kind) {
         int anyChar = this.global.canMatchAnyChar(getStateIndex());
         return (i == 0) && (anyChar >= 0) && (anyChar < kind);
     }
@@ -303,35 +269,33 @@ public class NfaStateData {
      * manager deals with elsewhere.
      */
     public final boolean isPlainSkip(KindInfo info, int i, char c) {
-        // Both call sites used to compute "generatedStates == 0 || no ASCII move for c" through
-        // helpers of opposite sense; canStartNfaUsingAscii is the positive one.
+        return plainSkipKind(info, i, c) >= 0;
+    }
+
+    /** The kind of the plain SKIP {@link #isPlainSkip} finds, or -1 if there is none. */
+    final int plainSkipKind(KindInfo info, int i, char c) {
         if (!((i == 0) && (c < 128) && info.hasFinalKindCnt()
                 && ((generatedStates() == 0) || !canStartNfaUsingAscii(c)))) {
-            return false;
+            return -1;
         }
 
-        int maxLongsReqd = (this.maxStrKind / 64) + 1;
-        int j;
-        for (j = 0; j < maxLongsReqd; j++) {
-            if (info.finalKinds[j] != 0L) {
+        // Only the kinds in the first word that has one are looked at, as JavaCC did.
+        int[] kinds = info.finalKindsAscending();
+        for (int kind : kinds) {
+            if ((kind / 64) != (kinds[0] / 64)) {
                 break;
             }
-        }
-
-        for (int k = 0; k < 64; k++) {
-            int kind = (j * 64) + k;
-            if (((info.finalKinds[j] & (1L << k)) != 0L) && !isSubString(kind)) {
+            if (!isSubString(kind)) {
                 if (isShadowedByIntermediate(i, kind) || isShadowedByAnyChar(i, kind)) {
-                    return false;
-                } else if (((this.global.toSkip(kind / 64) & (1L << (kind % 64))) != 0L)
-                        && ((this.global.toSpecial(kind / 64) & (1L << (kind % 64))) == 0L)
+                    return -1;
+                } else if (this.global.isSkip(kind) && !this.global.isSpecial(kind)
                         && (this.global.actions(kind) == null)
                         && (this.global.newLexState(kind) == null)) {
-                    return true;
+                    return kind;
                 }
             }
         }
-        return false;
+        return -1;
     }
 
     /**
@@ -361,20 +325,20 @@ public class NfaStateData {
      * A pure query over the finished DFA model; owned by the lexer layer so stage-5 generators read
      * it instead of recomputing DFA structure (ADR-0012).
      */
-    public boolean canStartNfaUsingAscii(char c) {
+    boolean canStartNfaUsingAscii(char c) {
         if (c >= 128) {
             throw new IllegalStateException(
                     "canStartNfaUsingAscii called with a non-ASCII character: " + (int) c);
         }
 
-        String s = getInitialState().GetEpsilonMovesString();
+        String s = getInitialState().epsilonMovesString;
         if ((s == null) || s.equals("null;")) {
             return false;
         }
 
         for (int state : getNextStates(s)) {
             NfaState tmp = getIndexedState(state);
-            if ((tmp.asciiMoves[c / 64] & (1L << (c % 64))) != 0L) {
+            if (Bits.test(tmp.asciiMoves, c)) {
                 return true;
             }
         }
@@ -388,36 +352,6 @@ public class NfaStateData {
     @SuppressWarnings({"unchecked", "rawtypes"})
     static Hashtable<String, long[]>[] newStatesForPos(int length) {
         return new Hashtable[length];
-    }
-
-    /**
-     * Returns the keys of {@code tab} ordered by their first character (a stable insertion sort).
-     * Stage 4 owns the order; back ends read it through {@link #getOrderedCharPosKinds(int)}
-     * (ADR-0012).
-     */
-    static <T> String[] reArrange(Map<String, T> tab) {
-        String[] ret = new String[tab.size()];
-        int cnt = 0;
-
-        for (String s : tab.keySet()) {
-            int i = 0, j;
-            char c = s.charAt(0);
-
-            while ((i < cnt) && (ret[i].charAt(0) < c)) {
-                i++;
-            }
-
-            if (i < cnt) {
-                for (j = cnt - 1; j >= i; j--) {
-                    ret[j + 1] = ret[j];
-                }
-            }
-
-            ret[i] = s;
-            cnt++;
-        }
-
-        return ret;
     }
 
     /**
@@ -474,7 +408,7 @@ public class NfaStateData {
                 int[] other = entry.getValue();
                 while ((toRet < nameSet.length) && (
                         (getIndexedState(nameSet[toRet]).inNextOf > 1)
-                                || (NfaState.ElemOccurs(nameSet[toRet], other) >= 0))) {
+                                || NfaState.contains(other, nameSet[toRet]))) {
                     toRet++;
                 }
             }
@@ -499,30 +433,85 @@ public class NfaStateData {
         public final long[] validKinds;
         public final long[] finalKinds;
 
-        private int validKindCnt = 0;
-        private int finalKindCnt = 0;
-
         KindInfo(int maxKind) {
             this.validKinds = new long[(maxKind / 64) + 1];
             this.finalKinds = new long[(maxKind / 64) + 1];
         }
 
         void InsertValidKind(int kind) {
-            this.validKinds[kind / 64] |= (1L << (kind % 64));
-            this.validKindCnt++;
+            Bits.set(this.validKinds, kind);
         }
 
         void InsertFinalKind(int kind) {
-            this.finalKinds[kind / 64] |= (1L << (kind % 64));
-            this.finalKindCnt++;
+            Bits.set(this.finalKinds, kind);
         }
 
         public boolean hasValidKindCnt() {
-            return this.validKindCnt != 0;
+            return Arrays.stream(this.validKinds).anyMatch(word -> word != 0L);
         }
 
         public boolean hasFinalKindCnt() {
-            return this.finalKindCnt != 0;
+            return Arrays.stream(this.finalKinds).anyMatch(word -> word != 0L);
+        }
+
+        /** The final kinds, ascending. */
+        int[] finalKindsAscending() {
+            return BitSet.valueOf(this.finalKinds).stream().toArray();
+        }
+    }
+
+    /**
+     * Splits the states of a composite state into groups whose ASCII moves on {@code byteNum} are
+     * disjoint, largest move sets first. Each group becomes one if-else chain in the move code.
+     */
+    public final List<List<NfaState>> asciiPartition(int[] states, int byteNum) {
+        // Of equally large move sets, the later state comes first.
+        List<NfaState> original = new ArrayList<>(Arrays.stream(states).mapToObj(this::getAllState)
+                .filter(state -> state.asciiMoves[byteNum] != 0L).toList().reversed());
+        original.sort(Comparator.comparingInt(
+                (NfaState state) -> Long.bitCount(state.asciiMoves[byteNum])).reversed());
+
+        List<List<NfaState>> partition = new ArrayList<>();
+        while (!original.isEmpty()) {
+            NfaState tmp = original.removeFirst();
+            long bitVec = tmp.asciiMoves[byteNum];
+            List<NfaState> subSet = new ArrayList<>();
+            subSet.add(tmp);
+
+            for (int j = 0; j < original.size(); j++) {
+                NfaState tmp1 = original.get(j);
+
+                if ((tmp1.asciiMoves[byteNum] & bitVec) == 0L) {
+                    bitVec |= tmp1.asciiMoves[byteNum];
+                    subSet.add(tmp1);
+                    original.remove(j--);
+                }
+            }
+
+            partition.add(subSet);
+        }
+
+        return partition;
+    }
+
+    /** What a key of {@link #statesForPos} holds. */
+    public final StopKey stopKey(String key) {
+        return StopKey.parse(key);
+    }
+
+    /**
+     * A key of {@link #statesForPos}: the kind the string-literal DFA has matched when it stops, the
+     * position it matched it at, and the state set the NFA resumes in ({@code "null;"} for none).
+     */
+    public record StopKey(int kind, int matchedPos, String stateSet) {
+
+        String key() {
+            return this.kind + ", " + this.matchedPos + ", " + this.stateSet;
+        }
+
+        static StopKey parse(String key) {
+            String[] parts = key.split(", ", 3);
+            return new StopKey(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), parts[2]);
         }
     }
 }

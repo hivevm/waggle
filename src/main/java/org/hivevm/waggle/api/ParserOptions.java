@@ -23,17 +23,15 @@ package org.hivevm.waggle.api;
  * @param debugLookahead       whether the parser traces its lookahead
  * @param debugTokenManager    whether the token manager traces its moves
  * @param errorReporting       whether the parser collects expected-token sets
- * @param ignoreCase           whether the whole lexical specification is case-insensitive
  * @param sanityCheck          whether the grammar is checked beyond what generation needs
  * @param forceLaCheck         whether lookahead adequacy is checked even above LL(1)
  * @param cacheTokens          whether the parser caches the next token
- * @param keepLineColumn       whether tokens carry their position
  */
 public record ParserOptions(int lookahead, int choiceAmbiguityCheck, int otherAmbiguityCheck,
                             int depthLimit, boolean noDfa, boolean debugParser,
                             boolean debugLookahead, boolean debugTokenManager,
-                            boolean errorReporting, boolean ignoreCase, boolean sanityCheck,
-                            boolean forceLaCheck, boolean cacheTokens, boolean keepLineColumn) {
+                            boolean errorReporting, boolean sanityCheck, boolean forceLaCheck,
+                            boolean cacheTokens) {
 
     public static ParserOptions from(Options options) {
         return new ParserOptions(options.intValue(Waggle.LOOKAHEAD),
@@ -45,10 +43,8 @@ public record ParserOptions(int lookahead, int choiceAmbiguityCheck, int otherAm
                 options.booleanValue(Waggle.DEBUG_LOOKAHEAD),
                 options.booleanValue(Waggle.DEBUG_TOKEN_MANAGER),
                 options.booleanValue(Waggle.ERROR_REPORTING),
-                options.booleanValue(Waggle.IGNORE_CASE),
                 options.booleanValue(Waggle.SANITY_CHECK),
                 options.booleanValue(Waggle.FORCE_LA_CHECK),
-                options.booleanValue(Waggle.CACHE_TOKENS),
-                options.booleanValue(Waggle.KEEP_LINE_COLUMN));
+                options.booleanValue(Waggle.CACHE_TOKENS));
     }
 }

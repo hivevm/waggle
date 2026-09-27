@@ -50,8 +50,8 @@ final class RustParserSyntax implements ParserSyntax {
         return (name == null) ? Integer.toString(ordinal) : RustIdentifier.of(name);
     }
 
-    @Override
-    public String callRef(String call) {
+    /** How a call to another lookahead routine is written where it is tested. */
+    private static String callRef(String call) {
         return "self." + call;
     }
 
@@ -111,14 +111,6 @@ final class RustParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public void endChoice(LinePrinter printer, int count) {
-        for (int i = 1; i < count; i++) {
-            printer.outdent();
-            printer.println("}");
-        }
-    }
-
-    @Override
     public void scanLoop(LinePrinter printer, String call) {
         printer.println("loop {");
         printer.indent();
@@ -148,7 +140,7 @@ final class RustParserSyntax implements ParserSyntax {
     @Override
     public void openSemanticCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
             int index) {
-        // In parentheses, as closeSemanticCondition closes them: the grammar writes the condition.
+        // In parentheses, as LookaheadEmitter.semantic closes them: the grammar writes the condition.
         openConditionArm(printer, state, index, "(");
     }
 

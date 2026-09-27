@@ -3,9 +3,7 @@
 
 package org.hivevm.waggle.api;
 
-import org.hivevm.source.Context;
-import org.hivevm.source.OutputSink;
-import org.hivevm.source.Template;
+import org.hivevm.source.TemplateContext;
 
 /**
  * A render context that is both a template overlay and this generation's options.
@@ -18,63 +16,16 @@ import org.hivevm.source.Template;
  * <p>The template engine used to supply both, because {@code org.hivevm.source.Context} extended
  * {@code Options} — the cycle ADR-0023 removes. The join belongs on this side: every accessor of
  * {@link Options} is a default method over {@code get(String)}, so an object that can answer names
- * is an option set, and all this class adds is the delegation that says so.
+ * is an option set, and all this class adds is the declaration that says so.
  */
-public final class OptionsContext implements Options, Context {
+public final class OptionsContext extends TemplateContext implements Options {
 
-    private final Context delegate;
-
-    private OptionsContext(Context delegate) {
-        this.delegate = delegate;
+    private OptionsContext(Options options) {
+        super(options);
     }
 
     /** A fresh overlay over {@code options}, carrying its sink and its banner. */
     public static OptionsContext of(Options options) {
-        return new OptionsContext(Template.newContext(options));
-    }
-
-    @Override
-    public boolean has(String name) {
-        return this.delegate.has(name);
-    }
-
-    @Override
-    public Object get(String name) {
-        return this.delegate.get(name);
-    }
-
-    @Override
-    public OutputSink outputSink() {
-        return this.delegate.outputSink();
-    }
-
-    @Override
-    public String renderTitle() {
-        return this.delegate.renderTitle();
-    }
-
-    @Override
-    public void set(String name, Object value) {
-        this.delegate.set(name, value);
-    }
-
-    @Override
-    public void set(String name, SourceSupplier supplier) {
-        this.delegate.set(name, supplier);
-    }
-
-    @Override
-    public void set(String name, SourceConsumer consumer) {
-        this.delegate.set(name, consumer);
-    }
-
-    @Override
-    public <T> Qualifier<T> add(String name, T value) {
-        return this.delegate.add(name, value);
-    }
-
-    @Override
-    public <T> Qualifier<T> add(String name, Iterable<T> value) {
-        return this.delegate.add(name, value);
+        return new OptionsContext(options);
     }
 }

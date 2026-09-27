@@ -9,7 +9,6 @@ package org.hivevm.waggle.analysis;
 
 import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.api.GenerationException;
-import org.hivevm.waggle.analysis.ParserData.Phase3Data;
 import org.hivevm.waggle.model.BNFProduction;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
@@ -18,7 +17,6 @@ import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.model.OneOrMore;
 import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.RegularExpression;
 import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
@@ -26,11 +24,22 @@ import org.hivevm.waggle.model.ZeroOrOne;
 import org.hivevm.waggle.tree.TreeModel;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class ParserPlanner {
 
     private int rIndex;
+
+    /**
+     * An expansion that needs a jj_3 routine, passed from phase 2 to phase 3.
+     *
+     * @param exp   the expansion to generate the jj_3 routine for
+     * @param count the number of tokens that can still be consumed, which limits the number of jj_3
+     *              routines generated
+     */
+    private record Phase3Data(Expansion exp, int count) {
+    }
 
     /**
      * Constructs an instance of {@link ParserPlanner}.
@@ -56,13 +65,15 @@ public class ParserPlanner {
             }
         }
 
+        List<Phase3Data> phase3list = new ArrayList<>();
         for (Lookahead la : data.getLookaheads()) {
-            data.addExpansion(la);
+            phase3list.add(new Phase3Data(la.getLaExpansion(), la.getAmount()));
+            data.phase3table.put(la.getLaExpansion(), la.getAmount());
         }
 
         // setupPhase3Builds appends to the list it walks.
-        for (int phase3index = 0; phase3index < data.phase3list.size(); phase3index++) {
-            setupPhase3Builds(data, data.phase3list.get(phase3index));
+        for (int phase3index = 0; phase3index < phase3list.size(); phase3index++) {
+            setupPhase3Builds(data, phase3list.get(phase3index), phase3list);
         }
 
         for (var e : data.getExpansionCounts()) {
@@ -233,51 +244,44 @@ public class ParserPlanner {
         return jj2la;
     }
 
-    private void setupPhase3Builds(ParserData data, Phase3Data p3d) {
-        Expansion e = p3d.exp();
-        if (e instanceof RegularExpression) {
-            // nothing to here
-        } else if (e instanceof NonTerminal e_nrw) {
-            // All expansions of non-terminals have the "name" fields set. So
-            // there's no need to check it below for "e_nrw" and "ntexp". In
-            // fact, we rely here on the fact that the "name" fields of both these
-            // variables are the same.
-            NormalProduction ntprod = data.getProduction(e_nrw.getName());
-            generate3R(data, ntprod.getExpansion(), p3d);
-        } else if (e instanceof Choice e_nrw) {
-            for (Expansion element : e_nrw.getChoices()) {
-                generate3R(data, element, p3d);
-            }
-        } else if (e instanceof Sequence e_nrw) {
-            // We skip the first element in the following iteration since it is the
-            // Lookahead object.
-            int cnt = p3d.count();
-            for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                Expansion eseq = e_nrw.getUnits().get(i);
-                setupPhase3Builds(data, new Phase3Data(eseq, cnt));
-                cnt -= data.minimumSize(eseq);
-                if (cnt <= 0) {
-                    break;
+    private void setupPhase3Builds(ParserData data, Phase3Data p3d, List<Phase3Data> phase3list) {
+        switch (p3d.exp()) {
+            case NonTerminal e_nrw -> generate3R(data, e_nrw.getProd().getExpansion(), p3d, phase3list);
+            case Choice e_nrw -> {
+                for (Expansion element : e_nrw.getChoices()) {
+                    generate3R(data, element, p3d, phase3list);
                 }
             }
-        } else if (e instanceof OneOrMore e_nrw) {
-            generate3R(data, e_nrw.getExpansion(), p3d);
-        } else if (e instanceof ZeroOrMore e_nrw) {
-            generate3R(data, e_nrw.getExpansion(), p3d);
-        } else if (e instanceof ZeroOrOne e_nrw) {
-            generate3R(data, e_nrw.getExpansion(), p3d);
+            case Sequence e_nrw -> {
+                // We skip the first element in the following iteration since it is the
+                // Lookahead object.
+                int cnt = p3d.count();
+                for (int i = 1; i < e_nrw.getUnits().size(); i++) {
+                    Expansion eseq = e_nrw.getUnits().get(i);
+                    setupPhase3Builds(data, new Phase3Data(eseq, cnt), phase3list);
+                    cnt -= data.minimumSize(eseq);
+                    if (cnt <= 0) {
+                        break;
+                    }
+                }
+            }
+            case OneOrMore e_nrw -> generate3R(data, e_nrw.getExpansion(), p3d, phase3list);
+            case ZeroOrMore e_nrw -> generate3R(data, e_nrw.getExpansion(), p3d, phase3list);
+            case ZeroOrOne e_nrw -> generate3R(data, e_nrw.getExpansion(), p3d, phase3list);
+            default -> {
+            }
         }
     }
 
-    private void generate3R(ParserData data, Expansion e, Phase3Data inf) {
+    private void generate3R(ParserData data, Expansion e, Phase3Data inf,
+                            List<Phase3Data> phase3list) {
         Expansion seq = e;
         if (data.internalName(e).isEmpty()) {
             while (true) {
                 if ((seq instanceof Sequence s) && s.getUnits().size() == 2) {
                     seq = s.getUnits().get(1);
                 } else if (seq instanceof NonTerminal e_nrw) {
-                    NormalProduction ntprod = data.getProduction(e_nrw.getName());
-                    seq = ntprod.getExpansion();
+                    seq = e_nrw.getProd().getExpansion();
                 } else {
                     break;
                 }
@@ -295,7 +299,7 @@ public class ParserPlanner {
 
         Integer count = data.phase3table.get(e);
         if ((count == null) || (count < inf.count())) {
-            data.phase3list.add(new Phase3Data(e, inf.count()));
+            phase3list.add(new Phase3Data(e, inf.count()));
             data.phase3table.put(e, inf.count());
         }
     }
@@ -305,14 +309,9 @@ public class ParserPlanner {
      * give up after 42 steps "in case there's a cycle", which named deeply nested routines R_null_N.
      */
     private static String getProductionName(Expansion e) {
-        Object next = e;
-        while (next != null) {
+        for (Expansion next = e; next != null; next = next.parent()) {
             if (next instanceof BNFProduction bnf)
                 return bnf.getLhs();
-            else if (next instanceof Expansion exp)
-                next = exp.parent();
-            else
-                return null;
         }
         return null;
     }

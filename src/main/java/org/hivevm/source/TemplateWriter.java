@@ -13,6 +13,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,11 +27,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * The DigestWriter class extends {@link PrintWriter} and implements the {@link Environment}
- * interface. It is designed to wrap an output stream and compute a cryptographic digest (MD5) of
- * the written contents. Additionally, it tracks and processes environment variables consumed during
- * its operations, allowing for formatted output with metadata such as a checksum and consumed
- * options.
+ * The TemplateWriter class is the {@link LinePrinter} a template renders into and the
+ * {@link Environment} it reads from. It wraps an output stream in a {@link PrintWriter} and
+ * computes a cryptographic digest (MD5) of the written contents. Additionally, it tracks the
+ * environment variables consumed during its operations, allowing for formatted output with
+ * metadata such as a checksum and consumed options.
  */
 class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
 
@@ -48,7 +49,8 @@ class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
      * Constructs an instance of {@link TemplateWriter}.
      */
     private TemplateWriter(DigestOutputStream stream, Environment environment) {
-        this.writer = new PrintWriter(stream);
+        // UTF-8, as Template.render decodes it: the checksum is taken over these bytes.
+        this.writer = new PrintWriter(stream, false, StandardCharsets.UTF_8);
         this.stream = stream;
         this.consumed = new HashSet<>();
         this.environment = environment;

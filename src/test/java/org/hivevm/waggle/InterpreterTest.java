@@ -12,12 +12,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.hivevm.waggle.api.ParserBuilder;
 import org.hivevm.waggle.api.ParserInterpreter;
 import org.hivevm.waggle.diag.DiagnosticSink;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.lexer.LexerInterpreter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -52,6 +57,17 @@ class InterpreterTest {
     void itReadsTheTokensOfAGrammar() {
         var images = InterpreterTest.tokenize("x1 + 42").stream()
                 .map(LexerInterpreter.Match::image).toList();
+
+        assertEquals(List.of("x1", "+", "42"), images);
+    }
+
+    /** The builder reads the grammar from its file and hands it to the interpreter (ADR-0020). */
+    @Test
+    void theBuilderInterpretsItsGrammarFile(@TempDir Path dir) throws IOException {
+        var grammar = Files.writeString(dir.resolve("Calc.waggle"), InterpreterTest.GRAMMAR);
+
+        var images = new ParserBuilder().setParserFile(grammar.toFile()).interpret("x1 + 42")
+                .stream().map(LexerInterpreter.Match::image).toList();
 
         assertEquals(List.of("x1", "+", "42"), images);
     }

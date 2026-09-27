@@ -14,10 +14,7 @@ import java.util.List;
  */
 public final class RChoice extends RExpression {
 
-    /**
-     * The list of choices of this regular expression. Each list component will narrow to
-     * RegularExpression.
-     */
+    /** The alternatives of this regular expression. */
     private final List<RExpression> choices = new ArrayList<>();
 
     public final List<RExpression> getChoices() {

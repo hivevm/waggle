@@ -35,17 +35,17 @@ public class LexerBuilder {
         Map<String, List<TokenProduction>> allTpsForState = new LinkedHashMap<>();
         LexerData data = buildLexStatesTable(request, allTpsForState);
 
-        List<RExpression> choices = new ArrayList<>();
+        List<RChoice> choices = new ArrayList<>();
         Nfa.buildLexer(data, allTpsForState, choices);
 
-        choices.forEach(c -> StringLiteralAnalyzer.checkUnmatchability((RChoice) c, data));
+        choices.forEach(c -> StringLiteralAnalyzer.checkUnmatchability(c, data));
         StringLiteralAnalyzer.checkEmptyStringMatch(data);
 
         for (String stateName : data.getStateNames()) {
             NfaStateData stateData = data.getStateData(stateName);
             if (stateData.hasNFA) {
-                for (int i = 0; i < stateData.getAllStateCount(); i++) {
-                    Nfa.getNonAsciiMoves(data, stateData.getAllState(i));
+                for (NfaState state : stateData.getAllStates()) {
+                    Nfa.getNonAsciiMoves(data, state);
                 }
             }
 
@@ -71,9 +71,6 @@ public class LexerBuilder {
      */
     private static void warnAboutUnlabelledTokens(ParserRequest request) {
         for (TokenProduction tp : request.getTokenProductions()) {
-            if (tp.getRespecs() == null) {
-                continue;
-            }
             for (RegExprSpec respec : tp.getRespecs()) {
                 RExpression re = respec.rexp;
                 if (!(re instanceof RStringLiteral) && re.getLabel().isEmpty()
@@ -100,11 +97,7 @@ public class LexerBuilder {
         data.allImages[0] = "";
         for (int i = 0; i < data.getImageCount(); i++) {
             String image = data.allImages[i];
-            long bit = 1L << (i % 64);
-            boolean isSkip = (data.toSkip[i / 64] & bit) != 0L;
-            boolean isMore = (data.toMore[i / 64] & bit) != 0L;
-            boolean isToken = (data.toToken[i / 64] & bit) != 0L;
-            if ((image == null) || !isToken || isSkip || isMore
+            if ((image == null) || !data.isToken(i) || data.isSkip(i) || data.isMore(i)
                     || data.canReachOnMore(data.getState(i))
                     || ((data.ignoreCase() || data.ignoreCase(i))
                     && (!image.equals(image.toLowerCase(Locale.ENGLISH))
@@ -116,35 +109,18 @@ public class LexerBuilder {
 
     private LexerData buildLexStatesTable(ParserRequest request,
                                           Map<String, List<TokenProduction>> allTpsForState) {
-        String[] tmpLexStateName = new String[request.getStateCount()];
         int maxOrdinal = 1;
-        int maxLexStates = 0;
         for (TokenProduction tp : request.getTokenProductions()) {
-            List<RegExprSpec> respecs = tp.getRespecs();
-            List<TokenProduction> tps;
-
             for (String lexState : tp.getLexStates()) {
-                if ((tps = allTpsForState.get(lexState)) == null) {
-                    tmpLexStateName[maxLexStates++] = lexState;
-                    allTpsForState.put(lexState, tps = new ArrayList<>());
-                }
-                tps.add(tp);
+                allTpsForState.computeIfAbsent(lexState, k -> new ArrayList<>()).add(tp);
             }
-
-            if ((respecs == null) || (respecs.isEmpty())) {
-                continue;
-            }
-
-            RExpression re;
-            for (RegExprSpec respec : respecs) {
-                if (maxOrdinal <= (re = respec.rexp).getOrdinal()) {
-                    maxOrdinal = re.getOrdinal() + 1;
-                }
+            for (RegExprSpec respec : tp.getRespecs()) {
+                maxOrdinal = Math.max(maxOrdinal, respec.rexp.getOrdinal() + 1);
             }
         }
 
-        LexerData data = new LexerData(request, maxOrdinal, maxLexStates);
-        System.arraycopy(tmpLexStateName, 0, data.lexStateNames, 0, data.maxLexStates);
+        LexerData data = new LexerData(request, maxOrdinal, allTpsForState.size());
+        allTpsForState.keySet().toArray(data.lexStateNames);
         return data;
     }
 }

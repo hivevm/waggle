@@ -19,13 +19,13 @@ import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.source.LinePrinter;
-import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentCharacter;
-import static org.hivevm.waggle.codegen.rust.RustDebugPrinter.printCurrentlyMatched;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Generate lexer.
@@ -64,16 +64,9 @@ class RustLexerGenerator extends LexerGenerator {
         var images = RustLexerGenerator.getStrLiteralImageList(data);
         options.add("LITERAL_IMAGES", images).set("LITERAL_IMAGE_NAME", s -> s);
         options.set("LITERAL_IMAGES_LENGTH", images.size());
-        options.set("STATES_FOR_STATE", () -> getStatesForState(data));
-        options.set("KIND_FOR_STATE", () -> getNextToken().getKindForState(data));
         options.set("STATE_NAMES_LENGTH", data.getStateNames().size());
 
         RustTemplate.LEXER.render(options);
-    }
-
-    @Override
-    public String self() {
-        return "self.";
     }
 
     // ---------------------------------------------------------------- dialect
@@ -227,7 +220,7 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected SourceProvider<Options> getConstantsTemplate() {
+    protected TemplateSet.Source<Options> getConstantsTemplate() {
         return RustTemplate.PARSER_CONSTANTS;
     }
 
@@ -309,10 +302,7 @@ class RustLexerGenerator extends LexerGenerator {
 
         // Java guards only the first of the two lines -- its "if" carries no braces. Wrapping both
         // in a Rust block swallowed the second one.
-        printer.println("if self.jjmatched_kind != 0 && self.jjmatched_kind != 0x"
-                + Integer.toHexString(Integer.MAX_VALUE) + " {");
-        printCurrentlyMatched(printer, "   ");
-        printer.println("}");
+        printDebugCurrentlyMatched(printer);
 
         var vectors = new ArrayList<String>();
         for (int vecs = 0; vecs < ((data.getMaxStrKind() / 64) + 1); vecs++) {
@@ -340,19 +330,73 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
+    public void printMoveNfaSignature(LinePrinter printer, NfaStateData data) {
+        printer.println("fn jj_move_nfa" + data.getLexerStateSuffix()
+                + "(&mut self, start_state: usize, mut cur_pos: usize) -> usize {");
+    }
+
+    @Override
+    public void printMoveNfaMixedPrologue(LinePrinter printer) {
+        printer.print("""
+                let str_kind = self.jjmatched_kind;
+                let str_pos = self.jjmatched_pos;
+                let seen_upto: usize = cur_pos + 1;
+                self.input_stream.backup(seen_upto);
+                let result = self.input_stream.read_char();
+                if result.is_err() {
+                    panic!("Internal Error");
+                }
+                self.cur_char = u32::from(result.unwrap());
+                let mut cur_pos: usize = 0;
+                """);
+    }
+
+    @Override
+    public void printDebugStartingNfa(LinePrinter printer) {
+        printer.println("eprintln!(\"   Starting NFA to match one of : {}\", "
+                + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
+                + "&self.jjstate_set, 0, 1));");
+    }
+
+    @Override
+    public void printForEver(LinePrinter printer) {
+        printer.println("loop {");
+    }
+
+    @Override
+    public void printSwapStateSets(LinePrinter printer, NfaStateData data) {
+        printer.println("i = self.jjnew_state_cnt;");
+        printer.println("self.jjnew_state_cnt = starts_at;");
+        printer.println("starts_at = " + data.generatedStates() + " - self.jjnew_state_cnt;");
+        printer.println("if i == starts_at {");
+        printer.println(data.isMixedState() ? "    break;" : "    return cur_pos;");
+        printer.println("}");
+    }
+
+    @Override
+    public void printDebugPossibleLongerMatches(LinePrinter printer) {
+        printer.println("eprintln!(\"   Possible kinds of longer matches : {}\", "
+                + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
+                + "&self.jjstate_set, starts_at, i));");
+    }
+
+    @Override
+    public void printReadCharOrLeave(LinePrinter printer, NfaStateData data) {
+        printer.println("let result = self.input_stream.read_char();");
+        printer.println("if result.is_err() {");
+        printer.println(data.isMixedState() ? "    break;" : "    return cur_pos;");
+        printer.println("}");
+        printer.println("self.cur_char = u32::from(result.unwrap());");
+    }
+
+    @Override
+    public void printDebugNoMatchPossible(LinePrinter printer) {
+        printer.println("eprintln!(\"No string literal matches possible.\");");
+    }
+
+    @Override
     public String longZero() {
         return "0";
-    }
-
-    @Override
-    public String stopStringLiteralDfaCall(NfaStateData data, int i) {
-        return "self.jjStopStringLiteralDfa" + data.getLexerStateSuffix() + "(" + (i - 1) + ", ";
-    }
-
-    @Override
-    public String moveNfaCall(NfaStateData data, int position) {
-        return "self.jj_move_nfa" + data.getLexerStateSuffix() + "(" + InitStateName(data) + ", "
-                + position + ")";
     }
 
     @Override
@@ -394,11 +438,6 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public String matchedPosVar() {
-        return "self.jjmatched_pos";
-    }
-
-    @Override
     public String strLiteralImages() {
         return "JJSTR_LITERAL_IMAGES";
     }
@@ -414,24 +453,16 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printStopStringLiteralDfaSignature(LinePrinter printer, NfaStateData data,
-                                                      int maxKindsReqd) {
-        printer.print("fn jjStopStringLiteralDfa" + data.getLexerStateSuffix()
-                + "(&mut self, pos: usize");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", active" + i + ": " + longType());
-        }
-        printer.println(") -> usize {");
+    public void printPosAndActivesSignature(LinePrinter printer, NfaStateData data, String name,
+                                              int maxKindsReqd) {
+        printer.println("fn " + name + "(&mut self, pos: usize, " + activeParameters(maxKindsReqd)
+                + ") -> usize {");
     }
 
     @Override
-    public void printStartNfaSignature(LinePrinter printer, NfaStateData data,
-                                          int maxKindsReqd) {
-        printer.print("fn jjStartNfa" + data.getLexerStateSuffix() + "(&mut self, pos: usize");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", active" + i + ": " + longType());
-        }
-        printer.println(") -> usize {");
+    public String activeParameters(int maxKindsReqd) {
+        return IntStream.range(0, maxKindsReqd).mapToObj(i -> "active" + i + ": " + longType())
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -582,11 +613,6 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
-        printCurrentCharacter(printer, data.global.maxLexStates() > 1);
-    }
-
-    @Override
     public void printMoveStringLiteralDfa0Call(LinePrinter printer, int state) {
         printer.println("cur_pos = self.jj_move_string_literal_dfa0_" + state + "();");
     }
@@ -711,10 +737,7 @@ class RustLexerGenerator extends LexerGenerator {
         printer.println(kind + " => {");
     }
 
-    @Override
-    public void printActionBreak(LinePrinter printer) {
-    }
-
+    /** A match arm falls out on its own. */
     @Override
     public void printActionCaseEnd(LinePrinter printer) {
         printer.println("}");
@@ -734,7 +757,7 @@ class RustLexerGenerator extends LexerGenerator {
             printer.println(lengthOfMatch() + " = " + strLiteralImages() + "[" + i + "].len();");
         } else {
             // The suffix has to be read out before the borrow of self.image starts.
-            printer.println(lengthOfMatch() + " = " + matchedPosVar() + " + 1;");
+            printer.println(lengthOfMatch() + " = " + matchedPos() + " + 1;");
             printer.println("let suffix = " + inputStream() + getSuffix() + "(" + imageLen()
                     + " + " + lengthOfMatch() + ");");
             printer.println("self.image.push_str(&suffix);");
@@ -758,7 +781,7 @@ class RustLexerGenerator extends LexerGenerator {
 
     @Override
     public void printEmptyLoopCheck(LinePrinter printer, LexerData data, int i) {
-        printer.println("if " + matchedPosVar() + " == usize::MAX {");
+        printer.println("if " + matchedPos() + " == usize::MAX {");
         printer.println("    if self.jjbeenHere[" + data.getState(i) + "]");
         printer.println("        && self.jjemptyLineNo[" + data.getState(i) + "] == " + beginLine());
         printer.println("        && self.jjemptyColNo[" + data.getState(i) + "] == " + beginColumn()
@@ -799,5 +822,26 @@ class RustLexerGenerator extends LexerGenerator {
     static String bitVectorTest(String table) {
         return "(" + table + "[(self.jjmatched_kind >> 6) as usize]"
                 + " & (1u64 << (self.jjmatched_kind & 0o77))) != 0";
+    }
+
+    /**
+     * The current-character trace. Rust has no redirectable debugStream; the trace goes to stderr,
+     * which is what stderr is for.
+     */
+    private static void printCurrentCharacter(LinePrinter printer, boolean withLexState) {
+        var prefix = withLexState
+                ? "<{}>Current character : {}({}) at line {} column {}\", "
+                        + "LEX_STATE_NAMES[self.cur_lex_state as usize], "
+                : "Current character : {}({}) at line {} column {}\", ";
+        printer.println("eprintln!(\"" + prefix
+                + "char::from_u32(self.cur_char).unwrap_or('\\u{fffd}'), self.cur_char, "
+                + "self.input_stream.get_end_line(), self.input_stream.get_end_column());");
+    }
+
+    /** "Currently matched the first N characters as a X token." */
+    private static void printCurrentlyMatched(LinePrinter printer, String indent) {
+        printer.println(indent + "eprintln!(\"   Currently matched the first {} characters as a {} "
+                + "token.\", self.jjmatched_pos.wrapping_add(1), "
+                + "TOKEN_IMAGE[self.jjmatched_kind as usize]);");
     }
 }

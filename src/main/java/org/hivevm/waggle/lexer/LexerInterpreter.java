@@ -91,9 +91,9 @@ public final class LexerInterpreter {
             var begin = (moreFrom < 0) ? match.begin() : moreFrom;
             moreFrom = -1;
 
-            if (isMore(match.kind())) {
+            if (this.data.isMore(match.kind())) {
                 moreFrom = begin;
-            } else if (!isSkipped(match.kind())) {
+            } else if (!this.data.isSkip(match.kind()) && !this.data.isSpecial(match.kind())) {
                 matches.add(new Match(match.kind(), input.substring(begin, match.end()), begin,
                         match.end(), this.data.getStateName(state)));
             }
@@ -169,7 +169,7 @@ public final class LexerInterpreter {
     /** Whether {@code state} has a move on {@code c}. */
     private static boolean matches(NfaState state, char c) {
         if (c < 128) {
-            return (state.asciiMoves[c / 64] & (1L << (c % 64))) != 0L;
+            return Bits.test(state.asciiMoves, c);
         }
         if (state.charMoves != null) {
             for (var move : state.charMoves) {
@@ -194,12 +194,4 @@ public final class LexerInterpreter {
         return false;
     }
 
-    private boolean isSkipped(int kind) {
-        return ((this.data.toSkip(kind / 64) | this.data.toSpecial(kind / 64))
-                & (1L << (kind % 64))) != 0L;
-    }
-
-    private boolean isMore(int kind) {
-        return (this.data.toMore(kind / 64) & (1L << (kind % 64))) != 0L;
-    }
 }

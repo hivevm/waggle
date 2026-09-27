@@ -5,7 +5,6 @@ package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.api.ParserBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,21 +14,13 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * The generated Rust parser, run against the Java parser of the same grammar (ADR-0030): for every
@@ -279,12 +270,9 @@ class RustParserTest {
         assertEquals("true", output);
 
         var clash = grammar.replace("Type", "New");
-        var source = dir.resolve("clash").resolve("Clash.waggle");
-        Files.createDirectories(source.getParent());
-        Files.writeString(source, clash);
-        var failure = assertThrows(GenerationException.class, () -> new ParserBuilder()
-                .setLanguage(Language.RUST).setParserFile(source.toFile())
-                .setTargetDir(dir.resolve("clash").resolve("rust").toFile()).build().parse());
+        var failure = assertThrows(GenerationException.class,
+                () -> GeneratedSources.generate(dir.resolve("clash").resolve("Clash.waggle"), clash,
+                        Language.RUST, dir.resolve("clash").resolve("rust")));
         assertTrue(failure.getMessage().contains("'new'"), failure.getMessage());
     }
 
@@ -294,7 +282,7 @@ class RustParserTest {
      */
     private static void assertAgrees(Path dir, String javaGrammar, String rustGrammar,
             String javaBase, String rustHelper, String start, List<String> inputs) throws Exception {
-        assumeTrue(RustParserTest.hasCompiler(), "no Rust compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("rustc", "--version"), "no Rust compiler on PATH");
 
         var java = RustParserTest.javaParser(dir.resolve("java"), javaGrammar, javaBase, start);
         var module = RustParserTest.module(rustGrammar);
@@ -312,13 +300,13 @@ class RustParserTest {
                 }
                 """.formatted(module, start.toLowerCase()) + (rustHelper == null ? "" : rustHelper));
 
+        var stdin = dir.resolve("input.txt");
         for (var input : inputs) {
-            var process = new ProcessBuilder(program.toString()).redirectErrorStream(true).start();
-            process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
-            process.getOutputStream().close();
-            var rust = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(process.waitFor(20, TimeUnit.SECONDS), "the Rust parser did not end");
-            assertEquals(java.run(input), rust, "input [" + input + "]");
+            Files.writeString(stdin, input);
+            var rust = GeneratedSources.runBounded(new ProcessBuilder(program.toString())
+                    .redirectErrorStream(true).redirectInput(stdin.toFile()), 20);
+            assertTrue(rust.finished(), "the Rust parser did not end on [" + input + "]");
+            assertEquals(java.run(input), rust.out(), "input [" + input + "]");
         }
     }
 
@@ -342,30 +330,13 @@ class RustParserTest {
 
     private static JavaParser javaParser(Path dir, String grammar, String base, String start)
             throws Exception {
-        var source = dir.resolve("Grammar.waggle");
-        Files.createDirectories(dir);
-        Files.writeString(source, grammar);
-        var target = dir.resolve("generated");
-        new ParserBuilder().setLanguage(Language.JAVA).setParserFile(source.toFile())
-                .setTargetDir(target.toFile()).build().parse();
+        var target = GeneratedSources.generate(dir.resolve("Grammar.waggle"), grammar,
+                Language.JAVA, dir.resolve("generated"));
         if (base != null) {
             Files.writeString(target.resolve("org").resolve("example").resolve("Base.java"), base);
         }
 
-        List<File> sources;
-        try (Stream<Path> paths = Files.walk(target)) {
-            sources = paths.filter(p -> p.toString().endsWith(".java")).map(Path::toFile).toList();
-        }
-        var classes = Files.createDirectories(dir.resolve("classes"));
-        var compiler = ToolProvider.getSystemJavaCompiler();
-        var diagnostics = new DiagnosticCollector<JavaFileObject>();
-        try (var files = compiler.getStandardFileManager(diagnostics, null, null)) {
-            var ok = compiler.getTask(null, files, diagnostics, List.of("-d", classes.toString()),
-                    null, files.getJavaFileObjectsFromFiles(sources)).call();
-            assertTrue(ok, "the Java parser does not compile:\n" + diagnostics.getDiagnostics());
-        }
-        var loader = new URLClassLoader(new java.net.URL[] {classes.toUri().toURL()},
-                RustParserTest.class.getClassLoader());
+        var loader = GeneratedSources.javac(target, dir.resolve("classes"));
         var parser = loader.loadClass("org.example.Parser");
         return new JavaParser(parser.getConstructor(String.class), parser.getMethod(start));
     }
@@ -380,41 +351,22 @@ class RustParserTest {
     /** Builds a program from the generated modules and {@code main}, and returns its path. */
     private static Path buildRust(Path dir, String grammar, String module, String main)
             throws IOException, InterruptedException {
-        var source = dir.resolve("Grammar.waggle");
-        Files.createDirectories(dir);
-        Files.writeString(source, grammar);
-        var target = dir.resolve("generated");
-        new ParserBuilder().setLanguage(Language.RUST).setParserFile(source.toFile())
-                .setTargetDir(target.toFile()).build().parse();
-
-        Files.writeString(target.resolve(module).resolve("mod.rs"),
-                "pub mod token;\npub mod charstream;\npub mod parserconstants;\npub mod lexer;\npub mod parser;\n");
-        Files.writeString(target.resolve("main.rs"), "mod " + module + ";\n\n" + main);
+        var target = GeneratedSources.generate(dir.resolve("Grammar.waggle"), grammar,
+                Language.RUST, dir.resolve("generated"));
         // Warnings count as failures: generated code has to build cleanly in a user's crate.
-        var build = new ProcessBuilder("rustc", "--edition", "2024", "-D", "warnings", "-o", "program",
-                "main.rs").directory(target.toFile()).redirectErrorStream(true).start();
-        var output = new String(build.getInputStream().readAllBytes());
-        assertEquals(0, build.waitFor(), "the generated Rust does not build:\n" + output);
-        return target.resolve("program");
+        return GeneratedSources.rustProgram(target, module, "mod " + module + ";\n\n" + main,
+                "-D", "warnings");
     }
 
     /** Runs {@code body} as the main of a program built from {@code grammar}. */
     private static String runRust(Path dir, String grammar, String module, String body)
             throws IOException, InterruptedException {
-        assumeTrue(RustParserTest.hasCompiler(), "no Rust compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("rustc", "--version"), "no Rust compiler on PATH");
         var program = RustParserTest.buildRust(dir, grammar, module, "fn main() {\n" + body + "}\n");
-        var process = new ProcessBuilder(program.toString()).redirectErrorStream(true).start();
-        var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        assertTrue(process.waitFor(20, TimeUnit.SECONDS), "the Rust program did not end");
-        assertEquals(0, process.exitValue(), output);
-        return output;
-    }
-
-    private static boolean hasCompiler() {
-        try {
-            return new ProcessBuilder("rustc", "--version").start().waitFor() == 0;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
+        var run = GeneratedSources.runBounded(
+                new ProcessBuilder(program.toString()).redirectErrorStream(true), 20);
+        assertTrue(run.finished(), "the Rust program did not end");
+        assertEquals(0, run.status(), run.out());
+        return run.out();
     }
 }

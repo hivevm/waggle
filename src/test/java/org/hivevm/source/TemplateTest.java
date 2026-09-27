@@ -39,7 +39,7 @@ class TemplateTest {
     }
 
     private static String render(String template, Map<String, Object> env) {
-        return new Template(template).render("Test", new MapEnv(env));
+        return new Template("Test", template).render("Test", new MapEnv(env));
     }
 
     // ---------------------------------------------------------------- conditions
@@ -217,5 +217,18 @@ class TemplateTest {
     void foreachOverSomethingNotIterableFails() {
         assertThrows(TemplateException.class,
                 () -> render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", new int[] {1, 2})));
+    }
+
+    // ---------------------------------------------------------------- errors
+
+    /**
+     * A broken template is named by its path. The render title — the "HiveVM Waggle v.X" banner —
+     * used to stand in for the name, which said nothing about which template was broken.
+     */
+    @Test
+    void aBrokenTemplateIsNamedByItsPath() {
+        var path = "/org/hivevm/source/Unclosed.template";
+        var e = assertThrows(TemplateException.class, () -> TemplateCache.get(path));
+        assertTrue(e.getMessage().startsWith(path + ": "), e.getMessage());
     }
 }

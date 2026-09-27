@@ -6,8 +6,8 @@
 
 package org.hivevm.waggle.grammar;
 
-import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.Waggle;
+import org.hivevm.waggle.api.WaggleOptions;
 
 import org.hivevm.waggle.api.GenerationContext;
 import org.hivevm.waggle.api.ParserRequest;
@@ -63,7 +63,7 @@ public class GrammarData implements SemanticRequest, ParserRequest {
      * lexical state which maps to a second level hashtable. The index to the second level hashtable
      * is the string of the simple token converted to upper case, and this maps to a third level
      * hashtable. This third level hashtable contains the actual string of the simple token and maps
-     * it to its RegularExpression.
+     * it to its RExpression.
      */
     private final Map<String, Map<String, Map<String, RExpression>>> simple_tokens_table =
             new LinkedHashMap<>();
@@ -101,8 +101,20 @@ public class GrammarData implements SemanticRequest, ParserRequest {
         this.simple_tokens_table.put("DEFAULT", new LinkedHashMap<>());
     }
 
+    /**
+     * Reads the grammar {@code text} into a new {@link GrammarData}. The grammar is parsed, not yet
+     * checked; what the parser has to say about it goes to the context's diagnostics.
+     */
+    public static GrammarData parse(String text, GenerationContext context) throws ParseException {
+        var data = new GrammarData(context);
+        var parser = new Parser(new StringProvider(text));
+        parser.initialize(data);
+        parser.grammar_input();
+        return data;
+    }
+
     @Override
-    public final Options options() {
+    public final WaggleOptions options() {
         return this.context.options();
     }
 

@@ -65,16 +65,7 @@ class RustParserGenerator extends ParserGenerator {
             }
         }
 
-        options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
-                .set("TOKEN_MASKS_LA1_INDEX", this::getStringIndex)
-                .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : (32 * i) + " + ");
-
         RustTemplate.PARSER.render(options);
-    }
-
-    @Override
-    protected String getStringIndex(int i) {
-        return "_" + i;
     }
 
     /**
@@ -82,7 +73,7 @@ class RustParserGenerator extends ParserGenerator {
      * parameter as type then name, Rust as name then type (ADR-0030).
      */
     @Override
-    protected String generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
+    protected void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
         Token t = p.getFirstToken();
         setup_token(t);
         printLeadingComments(printer, t);
@@ -97,7 +88,6 @@ class RustParserGenerator extends ParserGenerator {
         this.returnsUnit = p.getReturnTypeToken() == null;
         var type = this.returnsUnit ? "()" : p.getReturnTypeToken().image;
         printer.print(") -> Result<" + type + ", ParseError> {");
-        return null;
     }
 
     /**
@@ -152,7 +142,7 @@ class RustParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String returnType, Consumer<LinePrinter> consumer) {
+    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer) {
         // DEPTH_LIMIT and DEBUG_PARSER are rejected up front in generate(); the Rust back end emits
         // neither guard code nor a trace wrapper.
         consumer.accept(printer);
@@ -185,18 +175,13 @@ class RustParserGenerator extends ParserGenerator {
 
     @Override
     protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
-        if (internalName(e).startsWith("jj_scan_token"))
-            return;
-
         printer.println("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {");
 
         // DEPTH_LIMIT and DEBUG_LOOKAHEAD are rejected up front in generate(); the Rust back end
         // emits neither guard code nor a trace call, so no expansion is ever traced.
-        Expansion jj3_expansion = null;
-
         printer.indent();
-        phase3().emit(data, jj3_expansion, e, count, printer);
-        printer.println(genReturn(jj3_expansion, false, data));
+        phase3().emit(data, null, e, count, printer);
+        printer.println(genReturn(null, false, data));
         printer.outdent();
         printer.println("}");
         printer.println();
@@ -210,12 +195,6 @@ class RustParserGenerator extends ParserGenerator {
     @Override
     protected String genReturn(Expansion expansion, boolean value, ParserData data) {
         return Boolean.toString(value);
-    }
-
-    @Override
-    protected String genjj_3Call(Expansion e) {
-        var name = internalName(e);
-        return name.startsWith("jj_scan_token") ? name : "jj_3" + internal_name_as_snake_case(e) + "()";
     }
 
     @Override

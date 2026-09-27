@@ -2,190 +2,158 @@
 // Copyright (c) 2006, Sun Microsystems, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 //
-// Derived from JavaCC 7.0.12: org/javacc/jjdoc/JJDoc.java
+// Derived from JavaCC 7.0.12: org/javacc/jjdoc/JJDoc.java, org/javacc/jjdoc/Generator.java,
+// org/javacc/jjdoc/BNFGenerator.java, org/javacc/jjdoc/TextGenerator.java
 
 package org.hivevm.waggle.doc;
 
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.GenerationException;
-import org.hivevm.waggle.api.WaggleOptions;
-import org.hivevm.waggle.model.*;
+import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.grammar.GrammarData;
-import org.hivevm.waggle.model.RegExprSpec;
+import org.hivevm.waggle.model.*;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 /**
- * The main entry point for JJDoc.
+ * Writes the BNF productions of a grammar as BNF, one per paragraph. Token productions are not
+ * written, and neither are actions and lookaheads.
  */
-class JJDoc {
+final class JJDoc {
 
-    static BNFGenerator start(GrammarData javacc, String inputFile) {
-        var generator = new BNFGenerator((WaggleOptions) javacc.options(), javacc.diagnostics(),
-                inputFile);
-        generator.documentStart();
-        JJDoc.emitTokenProductions(generator, javacc.getTokenProductions());
-        JJDoc.emitNormalProductions(generator, javacc.getNormalProductions());
-        generator.documentEnd();
-        return generator;
+    private final PrintWriter out;
+
+    private JJDoc(PrintWriter out) {
+        this.out = out;
     }
 
-    private static void emitTokenProductions(DocGenerator gen, Iterable<TokenProduction> prods) {
-        gen.tokensStart();
-        for (TokenProduction tp : prods) {
-            gen.handleTokenProduction(tp);
+    /**
+     * Writes the BNF of {@code grammar}, read from {@code inputFile}, and returns where it went: the
+     * OUTPUT_FILE option, else the input file with the extension {@code .bnf}, else standard output.
+     */
+    static String write(GrammarData grammar, String inputFile) {
+        String outputFile = grammar.options().stringValue(Waggle.OUTPUT_FILE);
+        if (outputFile.isEmpty()) {
+            outputFile = JJDoc.outputFileFor(inputFile);
         }
-        gen.tokensEnd();
-    }
 
-    static String getStandardTokenProductionText(TokenProduction tp) {
-        var token = new StringBuilder();
-        if (tp.isExplicit()) {
-            if (tp.getLexStates() == null) {
-                token.append("<*> ");
-            } else {
-                token.append("<");
-                for (int i = 0; i < tp.getLexStates().length; ++i) {
-                    token.append(tp.getLexStates()[i]);
-                    if (i < (tp.getLexStates().length - 1)) {
-                        token.append(",");
-                    }
-                }
-                token.append("> ");
+        PrintWriter out = null;
+        if (outputFile != null) {
+            try {
+                out = new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                grammar.diagnostics().warning("JJDoc: can't open output stream on file "
+                        + outputFile + ".  Using standard output.");
             }
-            token.append(tp.getKind().name());
-            if (tp.isIgnoreCase()) {
-                token.append(" [IGNORE_CASE]");
-            }
-            token.append(" : {\n");
-            for (Iterator<RegExprSpec> it2 = tp.getRespecs().iterator(); it2.hasNext(); ) {
-                RegExprSpec res = it2.next();
-
-                token.append(JJDoc.emitRE(res.rexp));
-
-                if (res.nsTok != null) {
-                    token.append(" : ").append(res.nsTok.image);
-                }
-
-                token.append("\n");
-                if (it2.hasNext()) {
-                    token.append("| ");
-                }
-            }
-            token.append("}\n\n");
         }
-        return token.toString();
-    }
+        boolean standardOutput = (out == null);
+        if (standardOutput) {
+            outputFile = "standard output";
+            out = new PrintWriter(new OutputStreamWriter(System.out));
+        }
 
-    private static void emitNormalProductions(DocGenerator gen, Iterable<NormalProduction> prods) {
-        gen.nonterminalsStart();
-        for (NormalProduction np : prods) {
+        var doc = new JJDoc(out);
+        for (NormalProduction np : grammar.getNormalProductions()) {
             if (np instanceof BNFProduction) {
-                gen.productionStart(np);
-                if (np.getExpansion() instanceof Choice c) {
-                    boolean first = true;
-                    for (Expansion element : c.getChoices()) {
-                        gen.expansionStart(element, first);
-                        JJDoc.emitExpansionTree(element, gen);
-                        gen.expansionEnd(element, first);
-                        first = false;
-                    }
-                } else {
-                    gen.expansionStart(np.getExpansion(), true);
-                    JJDoc.emitExpansionTree(np.getExpansion(), gen);
-                    gen.expansionEnd(np.getExpansion(), true);
-                }
-                gen.productionEnd(np);
+                doc.production(np);
             }
         }
-        gen.nonterminalsEnd();
+
+        // Standard output is not ours to close: the command line still reports after this.
+        if (standardOutput) {
+            out.flush();
+        } else {
+            out.close();
+        }
+        return outputFile;
     }
 
-    private static void emitExpansionTree(Expansion exp, DocGenerator gen) {
+    /** The input file with the extension {@code .bnf}, or {@code null} for standard input. */
+    private static String outputFileFor(String inputFile) {
+        if (inputFile.equals("standard input")) {
+            return null;
+        }
+        String ext = ".bnf";
+        int i = inputFile.lastIndexOf('.');
+        if ((i == -1) || inputFile.substring(i).equals(ext)) {
+            return inputFile + ext;
+        }
+        return inputFile.substring(0, i) + ext;
+    }
+
+    private void production(NormalProduction np) {
+        this.out.print("\n");
+        this.out.print(np.getLhs() + " ::= ");
+        expansion(np.getExpansion());
+        this.out.print("\n");
+    }
+
+    private void expansion(Expansion exp) {
         switch (exp) {
-            case Action action -> JJDoc.emitExpansionAction();
-            case Choice choice -> JJDoc.emitExpansionChoice(choice, gen);
-            case Lookahead lookahead -> JJDoc.emitExpansionLookahead();
-            case NonTerminal nonTerminal -> JJDoc.emitExpansionNonTerminal(nonTerminal, gen);
-            case OneOrMore oneOrMore -> JJDoc.emitExpansionOneOrMore(oneOrMore, gen);
-            case RegularExpression regularExpression ->
-                    JJDoc.emitExpansionRegularExpression((RExpression) regularExpression, gen);
-            case Sequence sequence -> JJDoc.emitExpansionSequence(sequence, gen);
-            case ZeroOrMore zeroOrMore -> JJDoc.emitExpansionZeroOrMore(zeroOrMore, gen);
-            case ZeroOrOne zeroOrOne -> JJDoc.emitExpansionZeroOrOne(zeroOrOne, gen);
-            case null, default ->
-                    throw new GenerationException("Unknown expansion type: " + exp);
+            case Action action -> {
+            }
+            case Choice choice -> choice(choice);
+            case Lookahead lookahead -> {
+            }
+            case NonTerminal nonTerminal -> this.out.print(nonTerminal.getName());
+            case OneOrMore oneOrMore -> unit(oneOrMore.getExpansion(), " )+");
+            case RExpression re -> regularExpression(re);
+            case Sequence sequence -> sequence(sequence);
+            case ZeroOrMore zeroOrMore -> unit(zeroOrMore.getExpansion(), " )*");
+            case ZeroOrOne zeroOrOne -> unit(zeroOrOne.getExpansion(), " )?");
+            case null, default -> throw new GenerationException("Unknown expansion type: " + exp);
         }
     }
 
-    private static void emitExpansionAction() {
-    }
-
-    private static void emitExpansionChoice(Choice c, DocGenerator gen) {
+    private void choice(Choice c) {
         for (Iterator<Expansion> it = c.getChoices().iterator(); it.hasNext(); ) {
-            Expansion e = it.next();
-            JJDoc.emitExpansionTree(e, gen);
+            expansion(it.next());
             if (it.hasNext()) {
-                gen.text(" | ");
+                this.out.print(" | ");
             }
         }
     }
 
-    private static void emitExpansionLookahead() {
+    private void unit(Expansion e, String close) {
+        this.out.print("( ");
+        expansion(e);
+        this.out.print(close);
     }
 
-    private static void emitExpansionNonTerminal(NonTerminal nt, DocGenerator gen) {
-        gen.nonTerminalStart(nt);
-        gen.text(nt.getName());
-        gen.nonTerminalEnd(nt);
-    }
-
-    private static void emitExpansionOneOrMore(OneOrMore o, DocGenerator gen) {
-        gen.text("( ");
-        JJDoc.emitExpansionTree(o.getExpansion(), gen);
-        gen.text(" )+");
-    }
-
-    private static void emitExpansionRegularExpression(RExpression r, DocGenerator gen) {
-        String reRendered = JJDoc.emitRE(r);
-        if (!reRendered.isEmpty()) {
-            gen.reStart(r);
-            gen.text(reRendered);
-            gen.reEnd(r);
+    /**
+     * A named token and a character list are not written in a BNF production, as in JavaCC's BNF
+     * generator.
+     */
+    private void regularExpression(RExpression r) {
+        if (!(r instanceof RJustName) && !(r instanceof RCharacterList)) {
+            this.out.print(JJDoc.emitRE(r));
         }
     }
 
-    private static void emitExpansionSequence(Sequence s, DocGenerator gen) {
+    private void sequence(Sequence s) {
         boolean firstUnit = true;
         for (Expansion e : s.getUnits()) {
             if ((e instanceof Lookahead) || (e instanceof Action)) {
                 continue;
             }
             if (!firstUnit) {
-                gen.text(" ");
+                this.out.print(" ");
             }
             boolean needParens = (e instanceof Choice) || (e instanceof Sequence);
             if (needParens) {
-                gen.text("( ");
+                this.out.print("( ");
             }
-            JJDoc.emitExpansionTree(e, gen);
+            expansion(e);
             if (needParens) {
-                gen.text(" )");
+                this.out.print(" )");
             }
             firstUnit = false;
         }
-    }
-
-    private static void emitExpansionZeroOrMore(ZeroOrMore z, DocGenerator gen) {
-        gen.text("( ");
-        JJDoc.emitExpansionTree(z.getExpansion(), gen);
-        gen.text(" )*");
-    }
-
-    private static void emitExpansionZeroOrOne(ZeroOrOne z, DocGenerator gen) {
-        gen.text("( ");
-        JJDoc.emitExpansionTree(z.getExpansion(), gen);
-        gen.text(" )?");
     }
 
     private static String emitRE(RExpression re) {
@@ -218,16 +186,13 @@ class JJDoc {
                     Object o = it.next();
                     if (o instanceof SingleCharacter c) {
                         returnString.append("\"");
-                        char[] s = {c.getChar()};
-                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append(Encoding.escape(String.valueOf(c.getChar())));
                         returnString.append("\"");
                     } else if (o instanceof CharacterRange range) {
                         returnString.append("\"");
-                        char[] s = {range.getLeft()};
-                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append(Encoding.escape(String.valueOf(range.getLeft())));
                         returnString.append("\"-\"");
-                        s[0] = range.getRight();
-                        returnString.append(Encoding.escape(new String(s)));
+                        returnString.append(Encoding.escape(String.valueOf(range.getRight())));
                         returnString.append("\"");
                     } else {
                         throw new GenerationException(
@@ -248,11 +213,7 @@ class JJDoc {
             }
             case REndOfFile rEndOfFile -> returnString.append("EOF");
             case RJustName jn -> returnString.append(jn.getLabel());
-            case ROneOrMore om -> {
-                returnString.append("(");
-                returnString.append(JJDoc.emitRE(om.getRegexpr()));
-                returnString.append(")+");
-            }
+            case ROneOrMore om -> returnString.append(JJDoc.group(om.getRegexpr(), "+"));
             case RSequence s -> {
                 for (Iterator<RExpression> it = s.getUnits().iterator(); it.hasNext(); ) {
                     RExpression sub = it.next();
@@ -270,27 +231,14 @@ class JJDoc {
                 }
             }
             case RStringLiteral sl -> returnString.append("\"").append(Encoding.escape(sl.getImage())).append("\"");
-            case RZeroOrMore zm -> {
-                returnString.append("(");
-                returnString.append(JJDoc.emitRE(zm.getRegexpr()));
-                returnString.append(")*");
-            }
-            case RZeroOrOne zo -> {
-                returnString.append("(");
-                returnString.append(JJDoc.emitRE(zo.getRegexpr()));
-                returnString.append(")?");
-            }
+            case RZeroOrMore zm -> returnString.append(JJDoc.group(zm.getRegexpr(), "*"));
+            case RZeroOrOne zo -> returnString.append(JJDoc.group(zo.getRegexpr(), "?"));
             case RRepetitionRange zo -> {
-                returnString.append("(");
-                returnString.append(JJDoc.emitRE(zo.getRegexpr()));
-                returnString.append(")");
-                returnString.append("{");
+                returnString.append(JJDoc.group(zo.getRegexpr(), "{"));
+                returnString.append(zo.getMin());
                 if (zo.hasMax()) {
-                    returnString.append(zo.getMin());
                     returnString.append(",");
                     returnString.append(zo.getMax());
-                } else {
-                    returnString.append(zo.getMin());
                 }
                 returnString.append("}");
             }
@@ -300,5 +248,10 @@ class JJDoc {
             returnString.append(">");
         }
         return returnString.toString();
+    }
+
+    /** {@code re} in parentheses, followed by {@code suffix}. */
+    private static String group(RExpression re, String suffix) {
+        return "(" + JJDoc.emitRE(re) + ")" + suffix;
     }
 }

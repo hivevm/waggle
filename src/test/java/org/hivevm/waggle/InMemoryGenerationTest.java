@@ -70,7 +70,9 @@ class InMemoryGenerationTest {
     @Test
     void theGeneratedParserIsAvailableAsText(@TempDir Path dir) throws IOException {
         var sink = generate(Language.JAVA, dir);
-        var parser = sink.endingWith("Parser.java")
+        var parser = sink.files().entrySet().stream()
+                .filter(e -> e.getKey().endsWith("Parser.java")).map(Map.Entry::getValue)
+                .findFirst()
                 .orElseThrow(() -> new AssertionError("no parser among " + sink.files().keySet()));
 
         assertTrue(parser.contains("package org.example;"), parser.substring(0, 200));

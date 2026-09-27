@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * The resolved settings of one generation: the defaults, overridden by what the caller asked for and
@@ -33,50 +32,9 @@ public class WaggleOptions implements Options {
     private static final String OUTPUT_LANGUAGE_JAVA = "java";
     private static final String OUTPUT_LANGUAGE_RUST = "rust";
 
-    private static final Set<OptionInfo> userOptions;
-
-    static {
-        TreeSet<OptionInfo> temp = new TreeSet<>();
-
-        temp.add(new OptionInfo(Waggle.LOOKAHEAD, 1));
-
-        temp.add(new OptionInfo(Waggle.CHOICE_AMBIGUITY_CHECK, 2));
-        temp.add(new OptionInfo(Waggle.OTHER_AMBIGUITY_CHECK, 1));
-        temp.add(new OptionInfo(Waggle.NO_DFA, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.DEBUG_PARSER, Boolean.FALSE));
-
-        temp.add(new OptionInfo(Waggle.DEBUG_LOOKAHEAD, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.DEBUG_TOKEN_MANAGER, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.ERROR_REPORTING, Boolean.TRUE));
-
-        temp.add(new OptionInfo(Waggle.IGNORE_CASE, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.SANITY_CHECK, Boolean.TRUE));
-
-        temp.add(new OptionInfo(Waggle.FORCE_LA_CHECK, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.CACHE_TOKENS, Boolean.FALSE));
-        temp.add(new OptionInfo(Waggle.KEEP_LINE_COLUMN, Boolean.TRUE));
-
-        temp.add(new OptionInfo(Waggle.OUTPUT_DIRECTORY, "."));
-        temp.add(new OptionInfo(Waggle.CODE_GENERATOR, WaggleOptions.OUTPUT_LANGUAGE_JAVA));
-        temp.add(new OptionInfo(Waggle.DEPTH_LIMIT, 0));
-
-        temp.add(new OptionInfo(Waggle.BASE_PARSER, ""));
-        temp.add(new OptionInfo(Waggle.BASE_LEXER, ""));
-
-        temp.add(new OptionInfo(Waggle.JAVA_PACKAGE, ""));
-        temp.add(new OptionInfo(Waggle.JAVA_IMPORTS, ""));
-
-        temp.add(new OptionInfo(Waggle.RUST_MODULE, ""));
-
-        temp.add(new OptionInfo(Waggle.CPP_NAMESPACE, ""));
-        temp.add(new OptionInfo(Waggle.CPP_STACK_LIMIT, ""));
-
-        userOptions = Collections.unmodifiableSet(temp);
-    }
-
     /**
      * A mapping of option names (Strings) to values (Integer, Boolean, String). This table is
-     * initialized by the main program. Its contents defines the set of legal options. Its initial
+     * initialized by the constructor. Its contents defines the set of legal options. Its initial
      * values define the default option values, and the option types can be determined from these
      * values too.
      */
@@ -96,17 +54,35 @@ public class WaggleOptions implements Options {
 
     private OutputSink outputSink = new FileSink();
 
-    // Limit subclassing to derived classes.
+    /** The options with their defaults: every name here is a legal option, of its default's type. */
     public WaggleOptions() {
         this.optionValues = new HashMap<>();
         this.cmdLineSetting = new HashSet<>();
         this.inputFileSetting = new HashSet<>();
 
-        for (OptionInfo info : WaggleOptions.userOptions) {
-            set(info.getName(), info.getDefault());
-        }
-
-        // Got from TreeOptions
+        set(Waggle.LOOKAHEAD, 1);
+        set(Waggle.CHOICE_AMBIGUITY_CHECK, 2);
+        set(Waggle.OTHER_AMBIGUITY_CHECK, 1);
+        set(Waggle.NO_DFA, Boolean.FALSE);
+        set(Waggle.DEBUG_PARSER, Boolean.FALSE);
+        set(Waggle.DEBUG_LOOKAHEAD, Boolean.FALSE);
+        set(Waggle.DEBUG_TOKEN_MANAGER, Boolean.FALSE);
+        set(Waggle.ERROR_REPORTING, Boolean.TRUE);
+        set(Waggle.IGNORE_CASE, Boolean.FALSE);
+        set(Waggle.SANITY_CHECK, Boolean.TRUE);
+        set(Waggle.FORCE_LA_CHECK, Boolean.FALSE);
+        set(Waggle.CACHE_TOKENS, Boolean.FALSE);
+        set(Waggle.KEEP_LINE_COLUMN, Boolean.TRUE);
+        set(Waggle.OUTPUT_DIRECTORY, ".");
+        set(Waggle.CODE_GENERATOR, WaggleOptions.OUTPUT_LANGUAGE_JAVA);
+        set(Waggle.DEPTH_LIMIT, 0);
+        set(Waggle.BASE_PARSER, "");
+        set(Waggle.BASE_LEXER, "");
+        set(Waggle.JAVA_PACKAGE, "");
+        set(Waggle.JAVA_IMPORTS, "");
+        set(Waggle.RUST_MODULE, "");
+        set(Waggle.CPP_NAMESPACE, "");
+        set(Waggle.CPP_STACK_LIMIT, "");
         set(Waggle.PARSER_NAME, "");
         set(Waggle.USE_AST, Boolean.TRUE);
         set(Waggle.NODE_MULTI, Boolean.FALSE);
@@ -125,12 +101,6 @@ public class WaggleOptions implements Options {
         set(Waggle.VISITOR_EXCEPTION, "");
     }
 
-    /**
-     * Takes over what the caller asked for, as the values they are.
-     *
-     * <p>Each of these counts as a caller setting, so the grammar's own {@code options { … }} block
-     * is told when it disagrees — exactly as when they arrived as {@code -CODE_GENERATOR=…} strings.
-     */
     @Override
     public final OutputSink outputSink() {
         return this.outputSink;
@@ -140,6 +110,12 @@ public class WaggleOptions implements Options {
         this.outputSink = sink;
     }
 
+    /**
+     * Takes over what the caller asked for, as the values they are.
+     *
+     * <p>Each of these counts as a caller setting, so the grammar's own {@code options { … }} block
+     * is told when it disagrees — exactly as when they arrived as {@code -CODE_GENERATOR=…} strings.
+     */
     public final void apply(GenerationRequest request) {
         setFromCaller(Waggle.CODE_GENERATOR, request.language().name());
         setFromCaller(Waggle.OUTPUT_DIRECTORY,
@@ -186,45 +162,45 @@ public class WaggleOptions implements Options {
             value = ((Boolean) value) ? "*" : "";
         }
 
+        // Every legal option has a non-null default, which fixes its type.
         final Object existingValue = this.optionValues.get(nameUpperCase);
-        if (existingValue != null) {
-            // A list-valued option is judged by its first element. Casting "value" here instead of
-            // the unwrapped element threw a ClassCastException for exactly that case; the flag was
-            // also named for the opposite of what it tests.
-            Object element = (value instanceof List<?> list) ? list.getFirst() : value;
 
-            // The default fixes the option's type. Without this check a mistyped value was stored
-            // as written and failed much later, as a ClassCastException without a grammar position.
-            // A list is written as one comma-separated string and split by set().
-            var expected = (existingValue instanceof List<?>) ? String.class : existingValue.getClass();
-            if (!(value instanceof List<?>) && (value.getClass() != expected)) {
-                diagnostics.warning(valueloc,
-                        "Bad option value \"" + value + "\" for \"" + name + "\": expected "
-                                + WaggleOptions.typeName(expected)
-                                + ".  Option setting will be ignored.");
-                return;
-            }
+        // A list-valued option is judged by its first element. Casting "value" here instead of
+        // the unwrapped element threw a ClassCastException for exactly that case; the flag was
+        // also named for the opposite of what it tests.
+        Object element = (value instanceof List<?> list) ? list.getFirst() : value;
 
-            if ((element instanceof Integer number) && (number <= 0)) {
-                diagnostics.warning(valueloc,
-                        "Bad option value \"" + value + "\" for \"" + name
-                                + "\".  Option setting will be ignored.");
-                return;
-            }
+        // The default fixes the option's type. Without this check a mistyped value was stored
+        // as written and failed much later, as a ClassCastException without a grammar position.
+        // A list is written as one comma-separated string and split by set().
+        var expected = (existingValue instanceof List<?>) ? String.class : existingValue.getClass();
+        if (!(value instanceof List<?>) && (value.getClass() != expected)) {
+            diagnostics.warning(valueloc,
+                    "Bad option value \"" + value + "\" for \"" + name + "\": expected "
+                            + WaggleOptions.typeName(expected)
+                            + ".  Option setting will be ignored.");
+            return;
+        }
 
-            if (this.inputFileSetting.contains(nameUpperCase)) {
+        if ((element instanceof Integer number) && (number <= 0)) {
+            diagnostics.warning(valueloc,
+                    "Bad option value \"" + value + "\" for \"" + name
+                            + "\".  Option setting will be ignored.");
+            return;
+        }
+
+        if (this.inputFileSetting.contains(nameUpperCase)) {
+            diagnostics.warning(nameloc,
+                    "Duplicate option setting for \"" + name + "\" will be ignored.");
+            return;
+        }
+
+        if (this.cmdLineSetting.contains(nameUpperCase)) {
+            if (!existingValue.equals(value)) {
                 diagnostics.warning(nameloc,
-                        "Duplicate option setting for \"" + name + "\" will be ignored.");
-                return;
+                        "Command line setting of \"" + name + "\" modifies option value in file.");
             }
-
-            if (this.cmdLineSetting.contains(nameUpperCase)) {
-                if (!existingValue.equals(value)) {
-                    diagnostics.warning(nameloc,
-                            "Command line setting of \"" + name + "\" modifies option value in file.");
-                }
-                return;
-            }
+            return;
         }
 
         set(nameUpperCase, value);
@@ -331,24 +307,6 @@ public class WaggleOptions implements Options {
         if (language.equalsIgnoreCase(WaggleOptions.OUTPUT_LANGUAGE_RUST))
             return Language.RUST;
         return Language.JAVA; // default (also covers OUTPUT_LANGUAGE_JAVA)
-    }
-
-    private record OptionInfo(String _name, Object _default) implements Comparable<OptionInfo> {
-
-        public String getName() {
-            return this._name;
-        }
-
-        public Object getDefault() {
-            return this._default;
-        }
-
-        // equals/hashCode come from the record (component-wise, matching the former hand-written
-        // equals); only the name-based ordering needs an explicit implementation.
-        @Override
-        public int compareTo(OptionInfo o) {
-            return this._name.compareTo(o._name);
-        }
     }
 
     @Override

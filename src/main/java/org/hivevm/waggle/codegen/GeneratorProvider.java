@@ -8,6 +8,7 @@ import org.hivevm.waggle.analysis.ParserPlanner;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Language;
+import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.lexer.LexerBuilder;
 import org.hivevm.waggle.tree.TreeAnalyzer;
@@ -23,7 +24,12 @@ import java.util.Set;
  */
 public abstract class GeneratorProvider implements Generator {
 
-    protected abstract FileGenerator newFileGenerator();
+    /** Writes the runtime files every generated parser needs, whatever the grammar. */
+    protected abstract void emitRuntime(Options options);
+
+    protected abstract LexerGenerator newLexerGenerator();
+
+    protected abstract ParserGenerator newParserGenerator();
 
     /** Lets a back end fill in defaults that only it can know. */
     protected void prepare(ParserRequest request) {
@@ -85,7 +91,7 @@ public abstract class GeneratorProvider implements Generator {
 
         // No diagnostic is reported after planning, and ParserPlanner.build refuses a grammar with
         // errors, so there is nothing left to check before writing.
-        newFileGenerator().generate(dataLexer);
+        emitRuntime(request.options());
         newLexerGenerator().generate(dataLexer);
 
         var parserGenerator = newParserGenerator();

@@ -12,8 +12,6 @@ import org.hivevm.source.OutputSink;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.grammar.GrammarData;
-import org.hivevm.waggle.grammar.GrammarParser;
-import org.hivevm.waggle.grammar.StringProvider;
 import org.hivevm.waggle.analysis.Semanticize;
 
 import java.io.File;
@@ -49,11 +47,6 @@ public class WaggleCompiler {
         this.sink = sink;
     }
 
-    /** What this compilation had to say about the grammar. */
-    public final Diagnostics diagnostics() {
-        return this.diagnostics;
-    }
-
     /**
      * Reads a grammar file; JJDoc reads it the same way.
      *
@@ -84,10 +77,7 @@ public class WaggleCompiler {
 
             var context = GenerationContext.of(this.request, this.diagnostics, this.sink);
             var options = context.options();
-            var data = new GrammarData(context);
-            var parser = new GrammarParser(new StringProvider(text), options);
-            parser.initialize(data);
-            parser.grammar_input();
+            var data = GrammarData.parse(text, context);
 
             // The lookahead trace is written with the parser trace's methods, so it implies it, as
             // it did in JavaCC (Options.normalize).
@@ -97,7 +87,7 @@ public class WaggleCompiler {
 
             // Initialize the parser data
             createOutputDir(options.getOutputDirectory());
-            Semanticize.semanticize(data, options);
+            Semanticize.semanticize(data);
             options.set(Waggle.PARSER_NAME, data.getParserName());
             var generator = GeneratorProvider.generatorFor(options.getOutputLanguage());
             generator.generate(data);

@@ -7,29 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-/** Versions sort by semantic version precedence. The order used to be reversed. */
+/** A version reads back as it was written, and formats to the width of a pattern. */
 class VersionTest {
 
     @Test
-    void theLowerVersionSortsFirst() {
-        var sorted = List.of("1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta",
-                "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0-rc.1", "1.0.0", "1.0.1", "1.2", "2.0.0");
-
-        var shuffled = new ArrayList<>(sorted);
-        Collections.reverse(shuffled);
-        var versions = new ArrayList<>(shuffled.stream().map(Version::parse).toList());
-        Collections.sort(versions);
-
-        assertEquals(sorted, versions.stream().map(Version::toString).toList());
+    void aParsedVersionPrintsAsWritten() {
+        for (String text : new String[] {"1.2", "1.0.13", "1.0.0-rc.1", "19.12-beta1+build.1.2"}) {
+            assertEquals(text, Version.parse(text).toString());
+        }
     }
 
     @Test
-    void aMissingPatchIsZeroAndTheBuildIsIgnored() {
-        assertEquals(0, Version.parse("1.2").compareTo(Version.parse("1.2.0")));
-        assertEquals(0, Version.parse("1.2.0+build.1").compareTo(Version.parse("1.2.0+build.2")));
+    void theFormatSetsTheWidthOfEachPart() {
+        assertEquals("1.0", Version.parse("1.0.13").toString("0.0"));
+        assertEquals("01.02.000", Version.parse("1.2").toString("00.00.000"));
+        assertEquals("1.0.13-rc.1", Version.parse("1.0.13-rc.1+b.7").toString("0.0.0-0"));
     }
 }

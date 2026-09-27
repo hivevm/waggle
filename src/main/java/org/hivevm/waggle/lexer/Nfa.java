@@ -15,11 +15,14 @@ import org.hivevm.waggle.model.TokenProduction;
 import org.hivevm.waggle.model.RegExprSpec;
 
 import java.util.Hashtable;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A Non-deterministic Finite Automaton.
@@ -34,18 +37,16 @@ record Nfa(NfaState start, NfaState end) {
      * Main NFA construction loop: processes all token productions and builds the NFA transitions.
      */
     static void buildLexer(LexerData data, Map<String, List<TokenProduction>> allTpsForState,
-                                  List<RExpression> choices) {
-        RExpression curRE;
-
+                           List<RChoice> choices) {
         for (String key : allTpsForState.keySet()) {
             NfaStateData stateData = data.newStateData(key);
-            stateData.getInitialState();
+            int idx = stateData.getStateIndex();
+            NfaState init = stateData.getInitialState();
 
-            data.singlesToSkip[stateData.getStateIndex()] = new NfaState(stateData);
-            data.singlesToSkip[stateData.getStateIndex()].dummy = true;
+            data.singlesToSkip[idx] = new NfaState(stateData);
 
             if (key.equals("DEFAULT")) {
-                data.defaultLexState = stateData.getStateIndex();
+                data.defaultLexState = idx;
             }
 
             boolean ignoring = false;
@@ -60,82 +61,74 @@ record Nfa(NfaState start, NfaState end) {
                 }
 
                 for (RegExprSpec respec : tp.getRespecs()) {
-                    curRE = respec.rexp;
+                    RExpression curRE = respec.rexp;
+                    int ord = curRE.getOrdinal();
 
-                    data.rexprs[data.curKind = curRE.getOrdinal()] = curRE;
-                    data.lexStates[curRE.getOrdinal()] = stateData.getStateIndex();
-                    data.ignoreCase[curRE.getOrdinal()] = ignore;
+                    data.rexprs[data.curKind = ord] = curRE;
+                    data.lexStates[ord] = idx;
+                    data.ignoreCase[ord] = ignore;
 
                     if (curRE.isPrivateExp()) {
                         continue;
                     }
 
-                    if (!data.getNoDfa() && (curRE instanceof RStringLiteral)
-                            && !((RStringLiteral) curRE).getImage().isEmpty()) {
-                        StringLiteralAnalyzer.generateDfa(stateData, (RStringLiteral) curRE);
+                    if (!data.getNoDfa() && (curRE instanceof RStringLiteral literal)
+                            && !literal.getImage().isEmpty()) {
+                        StringLiteralAnalyzer.generateDfa(stateData, literal);
                         if ((i != 0) && !stateData.isMixedState() && (ignoring != ignore)) {
                             stateData.hasMixed = true;
                         }
                     } else if (curRE.CanMatchAnyChar()) {
-                        if ((data.canMatchAnyChar[stateData.getStateIndex()] == -1)
-                                || (data.canMatchAnyChar[stateData.getStateIndex()]
-                                > curRE.getOrdinal())) {
-                            data.canMatchAnyChar[stateData.getStateIndex()] = curRE.getOrdinal();
+                        if ((data.canMatchAnyChar[idx] == -1) || (data.canMatchAnyChar[idx] > ord)) {
+                            data.canMatchAnyChar[idx] = ord;
                         }
                     } else {
-                        Nfa temp;
-
-                        if (curRE instanceof RChoice) {
-                            choices.add(curRE);
+                        if (curRE instanceof RChoice choice) {
+                            choices.add(choice);
                         }
 
-                        temp = curRE.accept(new NfaVisitor(ignore), stateData);
+                        Nfa temp = curRE.accept(new NfaVisitor(data.ignoreCase() || ignore), stateData);
                         temp.end().isFinal = true;
-                        temp.end().kind = curRE.getOrdinal();
-                        stateData.getInitialState().AddMove(temp.start());
+                        temp.end().kind = ord;
+                        init.AddMove(temp.start());
                     }
 
-
-                    if ((respec.nextState != null) && !respec.nextState.equals(
-                            data.getStateName(stateData.getStateIndex()))) {
-                        data.newLexState[curRE.getOrdinal()] = respec.nextState;
+                    if ((respec.nextState != null)
+                            && !respec.nextState.equals(data.getStateName(idx))) {
+                        data.newLexState[ord] = respec.nextState;
                     }
 
                     if ((respec.act != null) && !respec.act.getActionTokens().isEmpty()) {
-                        data.actions[curRE.getOrdinal()] = respec.act;
+                        data.actions[ord] = respec.act;
                     }
 
                     switch (kind) {
                         case SPECIAL:
                             data.hasSkipActions |=
-                                    (data.actions[curRE.getOrdinal()] != null) || (
-                                            data.newLexState[curRE.getOrdinal()] != null);
+                                    (data.actions[ord] != null) || (data.newLexState[ord] != null);
                             data.hasSpecial = true;
-                            data.toSpecial[curRE.getOrdinal() / 64] |=
-                                    1L << (curRE.getOrdinal() % 64);
-                            data.toSkip[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
+                            Bits.set(data.toSpecial, ord);
+                            Bits.set(data.toSkip, ord);
                             break;
                         case SKIP:
-                            data.hasSkipActions |= (data.actions[curRE.getOrdinal()] != null);
+                            data.hasSkipActions |= (data.actions[ord] != null);
                             data.hasSkip = true;
-                            data.toSkip[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
+                            Bits.set(data.toSkip, ord);
                             break;
                         case MORE:
-                            data.hasMoreActions |= (data.actions[curRE.getOrdinal()] != null);
+                            data.hasMoreActions |= (data.actions[ord] != null);
                             data.hasMore = true;
-                            data.toMore[curRE.getOrdinal() / 64] |= 1L << (curRE.getOrdinal() % 64);
+                            Bits.set(data.toMore, ord);
 
-                            if (data.newLexState[curRE.getOrdinal()] != null) {
-                                data.canReachOnMore[data.getStateIndex(
-                                        data.newLexState[curRE.getOrdinal()])] = true;
+                            if (data.newLexState[ord] != null) {
+                                data.canReachOnMore[data.getStateIndex(data.newLexState[ord])] = true;
                             } else {
-                                data.canReachOnMore[stateData.getStateIndex()] = true;
+                                data.canReachOnMore[idx] = true;
                             }
                             break;
                         case TOKEN:
-                            data.hasTokenActions |= (data.actions[curRE.getOrdinal()] != null);
-                            data.toToken[curRE.getOrdinal() / 64] |=
-                                    1L << (curRE.getOrdinal() % 64);
+                            data.hasTokenActions |= (data.actions[ord] != null);
+                            Bits.set(data.toToken, ord);
                             break;
                     }
                 }
@@ -143,48 +136,41 @@ record Nfa(NfaState start, NfaState end) {
 
             NfaState.ComputeClosures(stateData);
 
-            for (int i = 0; i < stateData.getInitialState().epsilonMoves.size(); i++) {
-                stateData.getInitialState().epsilonMoves.get(i).GenerateCode();
+            for (int i = 0; i < init.epsilonMoves.size(); i++) {
+                init.epsilonMoves.get(i).GenerateCode();
             }
 
             stateData.hasNFA = (stateData.generatedStates() != 0);
             if (stateData.hasNFA) {
-                stateData.getInitialState().GenerateCode();
-                stateData.getInitialState().GetEpsilonMovesString();
-                if (stateData.getInitialState().epsilonMovesString == null) {
-                    stateData.getInitialState().epsilonMovesString = "null;";
+                init.GenerateCode();
+                init.GetEpsilonMovesString();
+                if (init.epsilonMovesString == null) {
+                    init.epsilonMovesString = "null;";
                 }
-                stateData.addCompositeStateSet(stateData.getInitialState().epsilonMovesString);
+                stateData.addCompositeStateSet(init.epsilonMovesString);
             }
 
-            if ((stateData.getInitialState().kind != Integer.MAX_VALUE) && (
-                    stateData.getInitialState().kind != 0)) {
-                if (((data.toSkip[stateData.getInitialState().kind / 64] & (1L
-                        << stateData.getInitialState().kind)) != 0L)
-                        || ((data.toSpecial[stateData.getInitialState().kind / 64]
-                        & (1L << stateData.getInitialState().kind)) != 0L)) {
+            if ((init.kind != Integer.MAX_VALUE) && (init.kind != 0)) {
+                if (data.isSkip(init.kind) || data.isSpecial(init.kind)) {
                     data.hasSkipActions = true;
-                } else if ((data.toMore[stateData.getInitialState().kind / 64]
-                        & (1L << stateData.getInitialState().kind)) != 0L) {
+                } else if (data.isMore(init.kind)) {
                     data.hasMoreActions = true;
                 } else {
                     data.hasTokenActions = true;
                 }
 
-                if ((data.initMatch[stateData.getStateIndex()] == 0)
-                        || (data.initMatch[stateData.getStateIndex()]
-                        > stateData.getInitialState().kind)) {
-                    data.initMatch[stateData.getStateIndex()] = stateData.getInitialState().kind;
+                if ((data.initMatch[idx] == 0) || (data.initMatch[idx] > init.kind)) {
+                    data.initMatch[idx] = init.kind;
                     data.hasEmptyMatch = true;
                 }
-            } else if (data.initMatch[stateData.getStateIndex()] == 0) {
-                data.initMatch[stateData.getStateIndex()] = Integer.MAX_VALUE;
+            } else if (data.initMatch[idx] == 0) {
+                data.initMatch[idx] = Integer.MAX_VALUE;
             }
 
             StringLiteralAnalyzer.fillSubString(stateData);
 
             if (stateData.hasNFA && !stateData.isMixedState()) {
-                generateNfaStartStates(stateData, stateData.getInitialState());
+                generateNfaStartStates(stateData, init);
             }
 
             if (data.stateSetSize < stateData.generatedStates()) {
@@ -197,24 +183,26 @@ record Nfa(NfaState start, NfaState end) {
      * Computes NFA start state sets for string literal matching.
      */
     private static void generateNfaStartStates(NfaStateData data, NfaState initialState) {
-        Map<String, String> stateSets = new LinkedHashMap<>();
-        String stateSetString = "";
-        int i, j, kind, jjmatchedPos = 0;
+        int idx = data.getStateIndex();
+        int anyChar = data.global.canMatchAnyChar[idx];
         int maxKindsReqd = (data.maxStrKind / 64) + 1;
-        long[] actives;
+        Set<String> stateSets = new LinkedHashSet<>();
+        String stateSetString = "";
         List<NfaState> newStates = new ArrayList<>();
-        List<NfaState> oldStates = null, jjtmpStates;
 
         data.statesForPos = NfaStateData.newStatesForPos(data.maxLen);
         data.intermediateKinds = new int[data.maxStrKind + 1][];
         data.intermediateMatchedPos = new int[data.maxStrKind + 1][];
+        if (initialState.epsilonMoves.isEmpty()) {
+            return;
+        }
 
         // Precompute image -> smallest matching string kind for this lexical state, so the inner
         // loop below does an O(1) lookup instead of rescanning every string kind (the former
         // getStrKind was O(maxStrKind), making the whole pass O(maxStrKind^2 * maxLen)).
         Map<String, Integer> strKindByImage = new HashMap<>();
         for (int k = 0; k < data.maxStrKind; k++) {
-            if (data.global.getState(k) != data.getStateIndex()) {
+            if (data.global.getState(k) != idx) {
                 continue;
             }
             String img = data.global.getImage(k);
@@ -223,70 +211,60 @@ record Nfa(NfaState start, NfaState end) {
             }
         }
 
-        for (i = 0; i < data.maxStrKind; i++) {
-            if (data.global.getState(i) != data.getStateIndex()) {
-                continue;
-            }
-
+        for (int i = 0; i < data.maxStrKind; i++) {
             String image = data.global.getImage(i);
-            if ((image == null) || (image.isEmpty())) {
+            if ((data.global.getState(i) != idx) || (image == null) || image.isEmpty()) {
                 continue;
             }
 
-            oldStates = new ArrayList<>(initialState.epsilonMoves);
-            if (oldStates.isEmpty()) {
-                return;
-            }
+            List<NfaState> oldStates = new ArrayList<>(initialState.epsilonMoves);
+            int[] kinds = data.intermediateKinds[i] = new int[image.length()];
+            int[] matchedPos = data.intermediateMatchedPos[i] = new int[image.length()];
+            int jjmatchedPos = 0;
 
-            data.intermediateKinds[i] = new int[image.length()];
-            data.intermediateMatchedPos[i] = new int[image.length()];
-            jjmatchedPos = 0;
-            kind = Integer.MAX_VALUE;
-
-            for (j = 0; j < image.length(); j++) {
-                if ((oldStates == null) || oldStates.isEmpty()) {
-                    kind = data.intermediateKinds[i][j] = data.intermediateKinds[i][j - 1];
-                    jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][j - 1];
+            for (int j = 0; j < image.length(); j++) {
+                int kind;
+                if (oldStates.isEmpty()) {
+                    kind = kinds[j] = kinds[j - 1];
+                    jjmatchedPos = matchedPos[j] = matchedPos[j - 1];
                 } else {
                     kind = NfaState.MoveFromSet(image.charAt(j), oldStates, newStates);
                     oldStates.clear();
 
-                    if ((j == 0) && (kind != Integer.MAX_VALUE) && (
-                            data.global.canMatchAnyChar[data.getStateIndex()] != -1)
-                            && (kind > data.global.canMatchAnyChar[data.getStateIndex()])) {
-                        kind = data.global.canMatchAnyChar[data.getStateIndex()];
+                    if ((j == 0) && (kind != Integer.MAX_VALUE) && (anyChar != -1) && (kind > anyChar)) {
+                        kind = anyChar;
                     }
 
                     if (strKindByImage.getOrDefault(image.substring(0, j + 1), Integer.MAX_VALUE) < kind) {
-                        data.intermediateKinds[i][j] = kind = Integer.MAX_VALUE;
+                        kinds[j] = kind = Integer.MAX_VALUE;
                         jjmatchedPos = 0;
                     } else if (kind != Integer.MAX_VALUE) {
-                        data.intermediateKinds[i][j] = kind;
-                        jjmatchedPos = data.intermediateMatchedPos[i][j] = j;
+                        kinds[j] = kind;
+                        jjmatchedPos = matchedPos[j] = j;
                     } else if (j == 0) {
-                        kind = data.intermediateKinds[i][j] = Integer.MAX_VALUE;
+                        kind = kinds[j] = Integer.MAX_VALUE;
                     } else {
-                        kind = data.intermediateKinds[i][j] = data.intermediateKinds[i][j - 1];
-                        jjmatchedPos = data.intermediateMatchedPos[i][j] = data.intermediateMatchedPos[i][j - 1];
+                        kind = kinds[j] = kinds[j - 1];
+                        jjmatchedPos = matchedPos[j] = matchedPos[j - 1];
                     }
 
                     stateSetString = epsilonMovesString(data, newStates);
                 }
 
-                if ((kind == Integer.MAX_VALUE) && ((newStates == null) || (newStates.isEmpty()))) {
+                if ((kind == Integer.MAX_VALUE) && newStates.isEmpty()) {
                     continue;
                 }
 
                 // A stop set is one more set its states occur in, as a next set is. A state that
                 // occurs in another set as well must not name the composite state of this one:
                 // the move code of that name would then run for the other set too.
-                if (stateSets.putIfAbsent(stateSetString, stateSetString) == null) {
+                if (stateSets.add(stateSetString)) {
                     for (NfaState state : newStates) {
                         state.inNextOf++;
                     }
                 }
 
-                jjtmpStates = oldStates;
+                List<NfaState> jjtmpStates = oldStates;
                 oldStates = newStates;
                 (newStates = jjtmpStates).clear();
 
@@ -294,14 +272,8 @@ record Nfa(NfaState start, NfaState end) {
                     data.statesForPos[j] = new Hashtable<>();
                 }
 
-                if ((actives = (data.statesForPos[j].get(
-                        kind + ", " + jjmatchedPos + ", " + stateSetString))) == null) {
-                    actives = new long[maxKindsReqd];
-                    data.statesForPos[j].put(kind + ", " + jjmatchedPos + ", " + stateSetString,
-                            actives);
-                }
-
-                actives[i / 64] |= 1L << (i % 64);
+                String key = new NfaStateData.StopKey(kind, jjmatchedPos, stateSetString).key();
+                Bits.set(data.statesForPos[j].computeIfAbsent(key, k -> new long[maxKindsReqd]), i);
             }
         }
     }
@@ -310,126 +282,82 @@ record Nfa(NfaState start, NfaState end) {
      * Computes non-ASCII move indices and bit vectors for a single NFA state.
      */
     static void getNonAsciiMoves(LexerData data, NfaState state) {
-        int i = 0, j = 0;
-        char hiByte;
-        int cnt = 0;
         if (((state.charMoves == null) || (state.charMoves[0] == 0))
                 && ((state.rangeMoves == null) || (state.rangeMoves[0] == 0))) {
             return;
         }
 
-        long[][] loBytes = new long[256][4];
+        // The low bytes the state moves on, per high byte.
+        BitSet[] loBytes = new BitSet[256];
+        Arrays.setAll(loBytes, i -> new BitSet(256));
 
         if (state.charMoves != null) {
-            for (i = 0; i < state.charMoves.length; i++) {
-                if (state.charMoves[i] == 0) {
+            for (char c : state.charMoves) {
+                if (c == 0) {
                     break;
                 }
-
-                hiByte = (char) (state.charMoves[i] >> 8);
-                loBytes[hiByte][(state.charMoves[i] & 0xff) / 64] |= (1L << ((state.charMoves[i] & 0xff) % 64));
+                loBytes[c >> 8].set(c & 0xff);
             }
         }
 
         if (state.rangeMoves != null) {
-            for (i = 0; i < state.rangeMoves.length; i += 2) {
-                if (state.rangeMoves[i] == 0) {
-                    break;
-                }
-
-                char c, r;
-
-                r = (char) (state.rangeMoves[i + 1] & 0xff);
-                hiByte = (char) (state.rangeMoves[i] >> 8);
-
-                if (hiByte == (char) (state.rangeMoves[i + 1] >> 8)) {
-                    for (c = (char) (state.rangeMoves[i] & 0xff); c <= r; c++) {
-                        loBytes[hiByte][c / 64] |= (1L << (c % 64));
-                    }
-                    continue;
-                }
-
-                for (c = (char) (state.rangeMoves[i] & 0xff); c <= 0xff; c++) {
-                    loBytes[hiByte][c / 64] |= (1L << (c % 64));
-                }
-
-                while (++hiByte < (char) (state.rangeMoves[i + 1] >> 8)) {
-                    loBytes[hiByte][0] |= 0xffffffffffffffffL;
-                    loBytes[hiByte][1] |= 0xffffffffffffffffL;
-                    loBytes[hiByte][2] |= 0xffffffffffffffffL;
-                    loBytes[hiByte][3] |= 0xffffffffffffffffL;
-                }
-
-                for (c = 0; c <= r; c++) {
-                    loBytes[hiByte][c / 64] |= (1L << (c % 64));
+            for (int i = 0; (i < state.rangeMoves.length) && (state.rangeMoves[i] != 0); i += 2) {
+                char left = state.rangeMoves[i];
+                char right = state.rangeMoves[i + 1];
+                for (int hiByte = left >> 8; hiByte <= (right >> 8); hiByte++) {
+                    int from = (hiByte == (left >> 8)) ? (left & 0xff) : 0;
+                    int to = (hiByte == (right >> 8)) ? (right & 0xff) : 0xff;
+                    loBytes[hiByte].set(from, to + 1);
                 }
             }
         }
 
-        long[] common = null;
         boolean[] done = new boolean[256];
         int[] tmpIndices = new int[512];
+        int cnt = 0;
 
-        for (i = 0; i <= 255; i++) {
-            if (done[i]
-                    || (done[i] =
-                    (loBytes[i][0] == 0) && (loBytes[i][1] == 0) && (loBytes[i][2] == 0) && (
-                            loBytes[i][3] == 0))) {
+        for (int i = 0; i < 256; i++) {
+            if (done[i] || (done[i] = loBytes[i].isEmpty())) {
                 continue;
             }
 
-            for (j = i + 1; j < 256; j++) {
-                if (done[j]) {
-                    continue;
-                }
-
-                if ((loBytes[i][0] == loBytes[j][0]) && (loBytes[i][1] == loBytes[j][1]) && (
-                        loBytes[i][2] == loBytes[j][2]) && (loBytes[i][3] == loBytes[j][3])) {
+            BitSet common = null;
+            for (int j = i + 1; j < 256; j++) {
+                if (!done[j] && loBytes[i].equals(loBytes[j])) {
                     done[j] = true;
                     if (common == null) {
                         done[i] = true;
-                        common = new long[4];
-                        common[i / 64] |= (1L << (i % 64));
+                        common = new BitSet(256);
+                        common.set(i);
                     }
-                    common[j / 64] |= (1L << (j % 64));
+                    common.set(j);
                 }
             }
 
             if (common != null) {
-                tmpIndices[cnt++] = internBitVector(data,
-                        new long[]{common[0], common[1], common[2], common[3]});
-                tmpIndices[cnt++] = internBitVector(data,
-                        new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]});
-                common = null;
+                tmpIndices[cnt++] = internBitVector(data, common);
+                tmpIndices[cnt++] = internBitVector(data, loBytes[i]);
             }
         }
 
-        state.nonAsciiMoveIndices = new int[cnt];
-        System.arraycopy(tmpIndices, 0, state.nonAsciiMoveIndices, 0, cnt);
+        state.nonAsciiMoveIndices = Arrays.copyOf(tmpIndices, cnt);
 
-        for (i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++) {
             if (!done[i]) {
                 state.loByteVec.add(i);
-                state.loByteVec.add(internBitVector(data,
-                        new long[]{loBytes[i][0], loBytes[i][1], loBytes[i][2], loBytes[i][3]}));
+                state.loByteVec.add(internBitVector(data, loBytes[i]));
             }
         }
         updateDuplicateNonAsciiMoves(data, state);
     }
 
-    /** Interns a four-word lo/hi byte vector in the shared bit-vector tables and returns its index. */
-    private static int internBitVector(LexerData data, long[] vec) {
-        var key = new BitVector(vec);
-        Integer ind = data.lohiByteTab.get(key);
-        if (ind == null) {
-            ind = data.lohiByteTab.size();
-            data.allBitsSet.add(key.allBitsSet());
-            if (!key.allBitsSet()) {
-                data.lohiByte.put(ind, vec);
-            }
-            data.lohiByteTab.put(key, ind);
-        }
-        return ind;
+    /** Interns a 256-bit lo/hi byte vector in the shared bit-vector tables and returns its index. */
+    private static int internBitVector(LexerData data, BitSet bits) {
+        var vector = new BitVector(Arrays.copyOf(bits.toLongArray(), 4));
+        return data.bitVectorIndex.computeIfAbsent(vector, key -> {
+            data.bitVectors.add(key);
+            return data.bitVectors.size() - 1;
+        });
     }
 
     // -----------------------------------------------------------------------
@@ -441,20 +369,8 @@ record Nfa(NfaState start, NfaState end) {
             return "null;";
         }
 
-        int[] set = new int[states.size()];
-        var sb = new StringBuilder("{ ");
-        for (int i = 0; i < states.size(); ) {
-            int k;
-            sb.append(k = states.get(i).stateName).append(", ");
-            set[i] = k;
-
-            if ((i++ > 0) && ((i % 16) == 0)) {
-                sb.append("\n");
-            }
-        }
-
-        sb.append("};");
-        String epsilonMovesString = sb.toString();
+        int[] set = states.stream().mapToInt(state -> state.stateName).toArray();
+        String epsilonMovesString = NfaState.stateSetKey(set);
         data.setNextStates(epsilonMovesString, set);
         return epsilonMovesString;
     }
@@ -462,9 +378,8 @@ record Nfa(NfaState start, NfaState end) {
     private static void updateDuplicateNonAsciiMoves(LexerData data, NfaState state) {
         for (int i = 0; i < data.nonAsciiTableForMethod.size(); i++) {
             NfaState tmp = data.nonAsciiTableForMethod.get(i);
-            if (NfaState.EqualLoByteVectors(state.loByteVec, tmp.loByteVec)
-                    && NfaState.EqualNonAsciiMoveIndices(state.nonAsciiMoveIndices,
-                    tmp.nonAsciiMoveIndices)) {
+            if (state.loByteVec.equals(tmp.loByteVec)
+                    && Arrays.equals(state.nonAsciiMoveIndices, tmp.nonAsciiMoveIndices)) {
                 state.nonAsciiMethod = i;
                 return;
             }

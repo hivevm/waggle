@@ -5,8 +5,6 @@ package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.Waggle;
 
-import org.hivevm.waggle.api.ParserBuilder;
-
 import org.hivevm.waggle.api.Language;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -30,16 +27,12 @@ import java.nio.file.Path;
  */
 class WaggleParserTest {
 
-    private static final File PARSER_SOURCE =
-            new File(new File(".").getAbsoluteFile(), "src/main/resources");
+    private static final Path GRAMMAR =
+            Path.of("src", "main", "resources", "Waggle.waggle").toAbsolutePath();
 
     @Test
     void generatesItsOwnParser(@TempDir Path target) {
-        new ParserBuilder()
-                .setLanguage(Language.JAVA)
-                .setTargetDir(target.toFile())
-                .setParserFile(WaggleParserTest.PARSER_SOURCE, "Waggle.waggle")
-                .build().parse();
+        GeneratedSources.generate(WaggleParserTest.GRAMMAR, Language.JAVA, target);
 
         assertGenerated(target, "org/hivevm/waggle/grammar", "Parser.java", "Lexer.java",
                 "ParserConstants.java", "Token.java");

@@ -64,7 +64,7 @@ public abstract class ParserGenerator extends DefaultTask {
         }
 
         for (ParserTask task : config.getTasks()) {
-            File grammar = getFile(task.file == null ? config.file : task.file);
+            File grammar = grammarFile(task, config);
             if (grammar == null) {
                 continue;
             }
@@ -86,7 +86,7 @@ public abstract class ParserGenerator extends DefaultTask {
         }
 
         for (ParserTask task : config.getTasks()) {
-            File output = getFile(task.output == null ? config.output : task.output);
+            File output = outputDirectory(task, config);
             if ((output != null) && !dirs.contains(output)) {
                 dirs.add(output);
             }
@@ -108,6 +108,16 @@ public abstract class ParserGenerator extends DefaultTask {
 
     private ParserProject getConfig() {
         return getProject().getExtensions().findByType(ParserProject.class);
+    }
+
+    /** The task's grammar, else the project's. */
+    private File grammarFile(ParserTask task, ParserProject config) {
+        return getFile(task.file == null ? config.file : task.file);
+    }
+
+    /** The task's output directory, else the project's. */
+    private File outputDirectory(ParserTask task, ParserProject config) {
+        return getFile(task.output == null ? config.output : task.output);
     }
 
     /**
@@ -141,8 +151,8 @@ public abstract class ParserGenerator extends DefaultTask {
 
         var builder = new ParserBuilder();
         builder.setLanguage(language);
-        builder.setTargetDir(getFile(task.output == null ? config.output : task.output));
-        builder.setParserFile(getFile(task.file == null ? config.file : task.file));
+        builder.setTargetDir(outputDirectory(task, config));
+        builder.setParserFile(grammarFile(task, config));
         builder.setCustomNodes(task.treeNodes);
         builder.build().parse();
     }

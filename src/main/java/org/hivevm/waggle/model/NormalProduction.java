@@ -112,9 +112,8 @@ public abstract sealed class NormalProduction extends Expansion permits BNFProdu
     /**
      * @param firstToken the firstToken to set
      */
-    public Token setFirstToken(Token firstToken) {
+    public void setFirstToken(Token firstToken) {
         this.firstToken = firstToken;
-        return firstToken;
     }
 
     /**

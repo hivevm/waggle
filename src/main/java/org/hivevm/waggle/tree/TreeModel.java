@@ -45,24 +45,21 @@ public class TreeModel {
 
     /** The node classes to write, one per node type ({@code NODE_MULTI} only). */
     public final Set<String> getNodesToGenerate() {
-        return nodesToGenerate;
+        return Collections.unmodifiableSet(this.nodesToGenerate);
     }
 
-    /** Registers the node class a descriptor asks the back end to write. */
-    public final void addNodeDescriptor(NodeDescriptor descriptor, TreeOptions options) {
-        if (descriptor != null) {
-            var type = NodeDescriptor.getNodeType(descriptor.getName(), options.multi());
-            if (!"Node".equals(type)) {
-                this.nodesToGenerate.add(type);
-            }
-        }
-    }
-
-    /** Records a node the parser opens, in the order the grammar declares it. */
-    final void addNode(NodeDescriptor descriptor) {
+    /**
+     * Records a node the parser opens, in the order the grammar declares it, and the node class it
+     * asks the back end to write.
+     */
+    final void add(NodeDescriptor descriptor, TreeOptions options) {
         if (!this.nodeIds.contains(descriptor.getNodeId())) {
             this.nodeIds.add(descriptor.getNodeId());
             this.nodeNames.add(descriptor.getName());
+        }
+        var type = NodeDescriptor.getNodeType(descriptor.getName(), options.multi());
+        if (!"Node".equals(type)) {
+            this.nodesToGenerate.add(type);
         }
     }
 

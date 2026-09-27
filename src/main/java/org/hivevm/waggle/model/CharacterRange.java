@@ -15,7 +15,7 @@ public class CharacterRange extends Production {
     /**
      * The leftmost and the rightmost characters in this character range.
      */
-    private char right;
+    private final char right;
 
     private char left;
 
@@ -24,7 +24,7 @@ public class CharacterRange extends Production {
     // always well-formed, so the model performs no reporting of its own (ADR-0013).
     public CharacterRange(char l, char r) {
         setLeft(l);
-        setRight(r);
+        this.right = r;
     }
 
     public void setLeft(char left) {
@@ -33,10 +33,6 @@ public class CharacterRange extends Production {
 
     public char getLeft() {
         return this.left;
-    }
-
-    public void setRight(char right) {
-        this.right = right;
     }
 
     public char getRight() {

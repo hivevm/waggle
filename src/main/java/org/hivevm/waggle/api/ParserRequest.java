@@ -37,6 +37,4 @@ public interface ParserRequest {
     Iterable<TokenProduction> getTokenProductions();
 
     Iterable<NormalProduction> getNormalProductions();
-
-    NormalProduction getProductionTable(String name);
 }

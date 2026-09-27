@@ -9,7 +9,6 @@ import java.util.List;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
-import org.gradle.api.tasks.Nested;
 
 import org.hivevm.waggle.api.Language;
 
@@ -35,7 +34,6 @@ public abstract class ParserProject {
         return this.project;
     }
 
-    @Nested
     public final List<ParserTask> getTasks() {
         return this.tasks.get();
     }

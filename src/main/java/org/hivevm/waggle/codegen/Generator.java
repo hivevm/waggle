@@ -26,8 +26,4 @@ public interface Generator {
      * target without one still generates plain parsers; it only refuses grammars that build a tree.
      */
     Optional<TreeEmitter> treeSupport();
-
-    LexerGenerator newLexerGenerator();
-
-    ParserGenerator newParserGenerator();
 }

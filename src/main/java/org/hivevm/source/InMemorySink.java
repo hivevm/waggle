@@ -7,7 +7,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Keeps rendered source in memory, so a generation can be asked what it emitted without a temporary
@@ -25,13 +24,5 @@ public final class InMemorySink implements OutputSink {
     /** What was written, keyed by path, in the order it was written. */
     public Map<String, String> files() {
         return Collections.unmodifiableMap(this.files);
-    }
-
-    /** The file whose path ends in {@code suffix}, if exactly one does. */
-    public Optional<String> endingWith(String suffix) {
-        return this.files.entrySet().stream()
-                .filter(e -> e.getKey().endsWith(suffix))
-                .map(Map.Entry::getValue)
-                .findFirst();
     }
 }

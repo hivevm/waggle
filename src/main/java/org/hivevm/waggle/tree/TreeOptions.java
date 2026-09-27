@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
  *
  * @param useAst          {@code USE_AST}: the grammar builds a tree at all (ADR-0028)
  * @param multi           {@code NODE_MULTI}: a distinct node class per rule
- * @param defaultVoid     {@code NODE_DEFAULT_VOID}: rules without a descriptor produce no node
  * @param scopeHook       {@code NODE_SCOPE_HOOK}: the parser calls open/close hooks
  * @param trackTokens     {@code TRACK_TOKENS}: nodes remember their first and last token
  * @param buildNodeFiles  {@code BUILD_NODE_FILES}: the node classes are written
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
  * @param visitorReturn   {@code VISITOR_RETURN_TYPE}
  * @param visitorException {@code VISITOR_EXCEPTION}
  */
-public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, boolean scopeHook, boolean trackTokens,
+public record TreeOptions(boolean useAst, boolean multi, boolean scopeHook, boolean trackTokens,
                           boolean buildNodeFiles, String nodeClass, String nodeFactory,
                           Set<String> customNodes, boolean visitor, String visitorDataType,
                           String visitorReturn, String visitorException) {
@@ -45,7 +44,6 @@ public record TreeOptions(boolean useAst, boolean multi, boolean defaultVoid, bo
     public static TreeOptions from(Options options) {
         return new TreeOptions(options.booleanValue(Waggle.USE_AST),
                 options.booleanValue(Waggle.NODE_MULTI),
-                options.booleanValue(Waggle.NODE_DEFAULT_VOID),
                 options.booleanValue(Waggle.NODE_SCOPE_HOOK),
                 options.booleanValue(Waggle.TRACK_TOKENS),
                 options.booleanValue(Waggle.BUILD_NODE_FILES),

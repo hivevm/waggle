@@ -7,8 +7,6 @@ import org.hivevm.waggle.lexer.LexerInterpreter;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 
 /**
@@ -73,8 +71,7 @@ public class ParserBuilder {
      */
     public final List<LexerInterpreter.Match> interpret(String text) {
         try {
-            var grammar = Files.readString(this.parserFile.toPath(), StandardCharsets.UTF_8)
-                    .replace("\r\n", "\n").replace('\r', '\n');
+            var grammar = WaggleCompiler.readGrammar(this.parserFile);
             return new ParserInterpreter().tokenize(grammar, text);
         } catch (IOException e) {
             throw new GenerationException("Failed to read " + this.parserFile, e);

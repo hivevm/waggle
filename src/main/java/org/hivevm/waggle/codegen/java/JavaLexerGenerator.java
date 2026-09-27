@@ -13,7 +13,7 @@ import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.source.LinePrinter;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
 
 /**
  * Generate lexer.
@@ -26,15 +26,13 @@ class JavaLexerGenerator extends LexerGenerator {
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        options.set("STATES_FOR_STATE", () -> getStatesForState(data));
-        options.set("KIND_FOR_STATE", () -> getNextToken().getKindForState(data));
         options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data, p));
 
         JavaTemplate.LEXER.render(options);
     }
 
     @Override
-    protected SourceProvider<Options> getConstantsTemplate() {
+    protected TemplateSet.Source<Options> getConstantsTemplate() {
         return JavaTemplate.PARSER_CONSTANTS;
     }
 

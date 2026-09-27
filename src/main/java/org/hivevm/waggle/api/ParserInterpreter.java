@@ -6,8 +6,6 @@ package org.hivevm.waggle.api;
 import org.hivevm.waggle.analysis.Semanticize;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.grammar.GrammarData;
-import org.hivevm.waggle.grammar.GrammarParser;
-import org.hivevm.waggle.grammar.StringProvider;
 import org.hivevm.waggle.lexer.LexerBuilder;
 import org.hivevm.waggle.lexer.LexerInterpreter;
 
@@ -37,11 +35,6 @@ public final class ParserInterpreter {
         this.diagnostics = diagnostics;
     }
 
-    /** What this run had to say about the grammar. */
-    public Diagnostics diagnostics() {
-        return this.diagnostics;
-    }
-
     /**
      * Tokenises {@code input} with the lexical specification of {@code grammar}.
      *
@@ -64,13 +57,11 @@ public final class ParserInterpreter {
     private org.hivevm.waggle.lexer.LexerData buildLexer(String grammar) {
         var options = new WaggleOptions();
         var context = new GenerationContext(options, this.diagnostics);
-        var data = new GrammarData(context);
+        GrammarData data;
         try {
-            var parser = new GrammarParser(new StringProvider(grammar), options);
-            parser.initialize(data);
-            parser.grammar_input();
+            data = GrammarData.parse(grammar, context);
             options.set(Waggle.NO_DFA, Boolean.TRUE);
-            Semanticize.semanticize(data, options);
+            Semanticize.semanticize(data);
         } catch (Exception e) {
             throw new GenerationException("Failed to read the grammar: detected "
                     + this.diagnostics.errorCount() + " error(s) and "

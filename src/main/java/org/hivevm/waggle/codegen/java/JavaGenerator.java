@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.codegen.java;
 
-import org.hivevm.waggle.codegen.FileGenerator;
+import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.codegen.LexerGenerator;
@@ -25,31 +25,29 @@ public class JavaGenerator extends GeneratorProvider {
     }
 
     @Override
-    public final LexerGenerator newLexerGenerator() {
+    protected final LexerGenerator newLexerGenerator() {
         return new JavaLexerGenerator();
     }
 
     @Override
-    public final ParserGenerator newParserGenerator() {
+    protected final ParserGenerator newParserGenerator() {
         return new JavaParserGenerator();
     }
 
     @Override
-    protected final FileGenerator newFileGenerator() {
-        return context -> {
-            JavaTemplate.PROVIDER.render(context.options());
-            JavaTemplate.STRING_PROVIDER.render(context.options());
-            JavaTemplate.STREAM_PROVIDER.render(context.options());
-            JavaTemplate.CHAR_STREAM.render(context.options());
+    protected final void emitRuntime(Options options) {
+        JavaTemplate.PROVIDER.render(options);
+        JavaTemplate.STRING_PROVIDER.render(options);
+        JavaTemplate.STREAM_PROVIDER.render(options);
+        JavaTemplate.CHAR_STREAM.render(options);
 
-            JavaTemplate.TOKEN.render(context.options());
-            JavaTemplate.TOKEN_EXCEPTION.render(context.options());
-            JavaTemplate.PARSER_EXCEPTION.render(context.options());
-        };
+        JavaTemplate.TOKEN.render(options);
+        JavaTemplate.TOKEN_EXCEPTION.render(options);
+        JavaTemplate.PARSER_EXCEPTION.render(options);
     }
 
     @Override
     protected final Set<String> reservedNames() {
-        return JavaTemplate.reservedNames();
+        return JavaTemplate.SET.reservedNames();
     }
 }

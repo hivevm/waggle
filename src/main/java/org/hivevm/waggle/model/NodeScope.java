@@ -3,8 +3,6 @@
 
 package org.hivevm.waggle.model;
 
-import java.util.function.Function;
-
 /**
  * The region of a production that one {@code #Node} descriptor covers, and the number that tells it
  * apart from the other scopes of the same production.
@@ -12,15 +10,10 @@ import java.util.function.Function;
  * <p>It is data: the names a back end gives the scope's locals are the back end's business
  * (ADR-0016).
  */
-public class NodeScope {
+public final class NodeScope {
 
     private final NodeDescriptor node_descriptor;
     private final int scopeNumber;
-
-    protected NodeScope(NodeConfig config, Function<NodeScope, Integer> scope_number) {
-        this.node_descriptor = config.node_descriptor();
-        this.scopeNumber = scope_number.apply(this);
-    }
 
     private NodeScope(BNFProduction p, NodeDescriptor n) {
         if (n == null) {
@@ -38,10 +31,6 @@ public class NodeScope {
         return this.node_descriptor;
     }
 
-    public final boolean isVoid() {
-        return this.node_descriptor.getName().equals("void");
-    }
-
     public final String getNodeDescriptorText() {
         return this.node_descriptor.getDescriptor();
     }
@@ -53,8 +42,5 @@ public class NodeScope {
 
     public static NodeScope create(BNFProduction p, NodeDescriptor nd) {
         return new NodeScope(p, nd);
-    }
-
-    public record NodeConfig(String id, NodeDescriptor node_descriptor) {
     }
 }

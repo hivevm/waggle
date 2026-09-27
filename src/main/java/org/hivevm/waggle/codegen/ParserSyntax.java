@@ -57,11 +57,6 @@ public interface ParserSyntax {
         return (name == null) ? Integer.toString(ordinal) : "ParserConstants." + name;
     }
 
-    /** How a call to another lookahead routine is written where it is tested. */
-    default String callRef(String call) {
-        return call;
-    }
-
     /** How the abandon-the-lookahead statement is written around the value it yields. */
     default String failure(String value) {
         return value;
@@ -77,7 +72,7 @@ public interface ParserSyntax {
 
     /** Gives up unless the nested routine {@code call} succeeds. */
     default void failIfCall(LinePrinter printer, String call, String failure) {
-        printer.println("if (" + callRef(call) + ")");
+        printer.println("if (" + call + ")");
         printer.indent();
         printer.println(failure);
         printer.outdent();
@@ -110,12 +105,12 @@ public interface ParserSyntax {
             printer.print(semanticGuard());
         }
         if (isLast) {
-            printer.println(callRef(call) + ")");
+            printer.println(call + ")");
             printer.indent();
             printer.println(failure);
             printer.outdent();
         } else {
-            printer.println(callRef(call) + ") {");
+            printer.println(call + ") {");
             printer.indent();
             printer.println("jj_scanpos = xsp;");
         }
@@ -134,7 +129,7 @@ public interface ParserSyntax {
         printer.println("while (true) {");
         printer.indent();
         saveScanPos(printer);
-        printer.println("if (" + callRef(call) + ") {");
+        printer.println("if (" + call + ") {");
         printer.indent();
         printer.println("jj_scanpos = xsp;");
         printer.println("break;");
@@ -147,7 +142,7 @@ public interface ParserSyntax {
     /** Scans {@code call} if it matches, and backtracks if it does not — {@code […]}. */
     default void optionalScan(LinePrinter printer, String call) {
         saveScanPos(printer);
-        printer.println("if (" + callRef(call) + ")");
+        printer.println("if (" + call + ")");
         printer.indent();
         printer.println("jj_scanpos = xsp;");
         printer.outdent();
@@ -217,11 +212,6 @@ public interface ParserSyntax {
                 action.accept(printer);
             }
         }
-    }
-
-    /** Closes a purely semantic condition and opens its block. */
-    default void closeSemanticCondition(LinePrinter printer) {
-        printer.print(") {");
     }
 
     /** Closes a syntactic lookahead condition and opens its block. */

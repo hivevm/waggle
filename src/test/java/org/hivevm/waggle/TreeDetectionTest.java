@@ -3,8 +3,6 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.api.ParserBuilder;
-
 import org.hivevm.waggle.api.WaggleCompiler;
 
 import org.hivevm.waggle.api.GenerationRequest;
@@ -154,15 +152,7 @@ class TreeDetectionTest {
     }
 
     private static Path generate(Path dir, String name, String grammar) throws IOException {
-        var source = dir.resolve(name);
-        Files.writeString(source, grammar);
-
-        var target = dir.resolve("out");
-        new ParserBuilder()
-                .setLanguage(Language.JAVA)
-                .setParserFile(source.toFile())
-                .setTargetDir(target.toFile())
-                .build().parse();
-        return target;
+        return GeneratedSources.generate(dir.resolve(name), grammar, Language.JAVA,
+                dir.resolve("out"));
     }
 }

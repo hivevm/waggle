@@ -20,11 +20,6 @@ public interface ActionRewriter {
     String NODE = "$NODE";
     String CLOSED = "$BOOL";
 
-    /** Whether the text mentions either placeholder at all. */
-    static boolean rewrites(String text) {
-        return text.contains(ActionRewriter.CLOSED) || text.contains(ActionRewriter.NODE);
-    }
-
     /** Replaces the placeholders with the locals of {@code scope}. */
     static String rewrite(String text, NodeScope scope) {
         return text.replace(ActionRewriter.CLOSED, ScopeVariables.closed(scope))

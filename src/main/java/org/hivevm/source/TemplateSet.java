@@ -5,7 +5,6 @@ package org.hivevm.source;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,16 +63,11 @@ public final class TemplateSet<C extends RenderContext> {
                 .collect(Collectors.toSet());
     }
 
-    /** Everything this target can write, in declaration order. */
-    public List<Source<C>> sources() {
-        return Collections.unmodifiableList(this.sources);
-    }
-
     /**
      * One template of this set. A static class holding its set, not an inner one, so that a
      * declaration reads {@code Source<Options>} rather than {@code TemplateSet<Options>.Source}.
      */
-    public static final class Source<C extends RenderContext> implements SourceProvider<C> {
+    public static final class Source<C extends RenderContext> {
 
         private final TemplateSet<C> set;
         private final String path;
@@ -89,20 +83,21 @@ public final class TemplateSet<C extends RenderContext> {
             return this.name;
         }
 
-        @Override
-        public String getPath() {
-            return this.path;
+        /** Renders the template into the file of its declared name. */
+        public void render(C context) {
+            render(context, null);
         }
 
-        @Override
-        public String getType() {
-            return this.set.type;
-        }
-
-        @Override
-        public File getTargetFile(String name, C context) {
-            return this.set.naming.targetFile(
+        /**
+         * Renders the template into the file its declared name gives with {@code name} filled in,
+         * handing the source to the sink the generation chose (ADR-0018).
+         */
+        public void render(C context, String name) {
+            var file = this.set.naming.targetFile(
                     name == null ? this.name : String.format(this.name, name), context);
+            var source = TemplateCache.get(String.format("/templates/%s/%s", this.set.type, this.path))
+                    .render(context.renderTitle(), context);
+            context.outputSink().write(file, source);
         }
     }
 }

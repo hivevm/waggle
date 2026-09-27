@@ -7,6 +7,8 @@
 package org.hivevm.waggle.analysis;
 
 import org.hivevm.waggle.api.Encoding;
+import org.hivevm.waggle.api.ParserOptions;
+import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
@@ -21,9 +23,50 @@ import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * The lookahead adequacy check of one generation: it warns where a choice or a repetition cannot be
+ * decided with the lookahead it has. One instance serves every check of a run, and holds the
+ * scratch state of the first- and follow-set walks.
+ */
 class LookaheadCalc {
+
+    private final ParserOptions options;
+    private final Diagnostics diagnostics;
+
+    /** The regular expression of each token ordinal, to name the tokens of a common prefix. */
+    private final Map<Integer, RExpression> tokens;
+
+    private long generationIndex = 1;
+    private int laLimit;
+    private boolean considerSemanticLA;
+    private List<MatchInfo> sizeLimitedMatches;
+
+    /**
+     * The generation in which each expansion was last visited by the follow-set walk, so a
+     * right-recursive grammar does not loop. It used to be a field of the expansion, which put this
+     * walk's scratch space into the model — and made it per-JVM rather than per-generation
+     * (ADR-0019).
+     */
+    private final Map<Expansion, Long> visited = new IdentityHashMap<>();
+
+    LookaheadCalc(ParserOptions options, Diagnostics diagnostics, Map<Integer, RExpression> tokens) {
+        this.options = options;
+        this.diagnostics = diagnostics;
+        this.tokens = tokens;
+    }
+
+    private long nextGenerationIndex() {
+        return this.generationIndex++;
+    }
+
+    /** Whether {@code exp} has not yet been seen in {@code generation}. */
+    private boolean visit(Expansion exp, long generation) {
+        return !Long.valueOf(generation).equals(this.visited.put(exp, generation));
+    }
 
     private static MatchInfo overlap(List<MatchInfo> v1, List<MatchInfo> v2) {
         MatchInfo m1, m2, m3;
@@ -53,13 +96,13 @@ class LookaheadCalc {
         return null;
     }
 
-    private static String image(MatchInfo m, Semanticize semanticize) {
+    private String image(MatchInfo m) {
         StringBuilder ret = new StringBuilder();
         for (int i = 0; i < m.firstFreeLoc(); i++) {
             if (m.match()[i] == 0)
                 ret.append(" <EOF>");
             else {
-                RExpression re = semanticize.getRegularExpression(m.match()[i]);
+                RExpression re = this.tokens.get(m.match()[i]);
                 if (re instanceof RStringLiteral)
                     ret.append(" \"").append(Encoding.escape(((RStringLiteral) re).getImage()))
                             .append("\"");
@@ -72,8 +115,17 @@ class LookaheadCalc {
         return (m.firstFreeLoc() == 0) ? "" : ret.substring(1);
     }
 
-    static void choiceCalc(Choice ch, Semanticize data, SemanticContext context) {
-        int first = LookaheadCalc.firstChoice(ch, context);
+    /** The size-limited matches of {@code exp}, from an empty prefix. */
+    private List<MatchInfo> sizeLimitedMatches(Expansion exp) {
+        this.sizeLimitedMatches = new ArrayList<>();
+        List<MatchInfo> v = new ArrayList<>();
+        v.add(new MatchInfo(this.laLimit));
+        genFirstSet(v, exp);
+        return this.sizeLimitedMatches;
+    }
+
+    void choiceCalc(Choice ch) {
+        int first = firstChoice(ch);
         // dbl[i] and dbr[i] are lists of size limited matches for choice i
         // of ch. dbl ignores matches with semantic lookaheads (when force_la_check
         // is false), while dbr ignores semantic lookahead.
@@ -83,33 +135,22 @@ class LookaheadCalc {
         MatchInfo[] overlapInfo = new MatchInfo[ch.getChoices().size() - 1];
         int[] other = new int[ch.getChoices().size() - 1];
         MatchInfo m;
-        List<MatchInfo> v;
         boolean overlapDetected;
-        for (int la = 1; la <= context.getChoiceAmbiguityCheck(); la++) {
-            data.setLaLimit(la);
-            data.setConsiderSemanticLA(!context.isForceLaCheck());
+        for (int la = 1; la <= this.options.choiceAmbiguityCheck(); la++) {
+            this.laLimit = la;
+            this.considerSemanticLA = !this.options.forceLaCheck();
             for (int i = first; i < (ch.getChoices().size() - 1); i++) {
-                data.initSizeLimitedMatches();
-                m = new MatchInfo(data.laLimit());
-                v = new ArrayList<>();
-                v.add(m);
-                LookaheadCalc.genFirstSet(data, v, ch.getChoices().get(i));
-                dbl[i] = data.getSizeLimitedMatches();
+                dbl[i] = sizeLimitedMatches(ch.getChoices().get(i));
             }
-            data.setConsiderSemanticLA(false);
+            this.considerSemanticLA = false;
             for (int i = first + 1; i < ch.getChoices().size(); i++) {
-                data.initSizeLimitedMatches();
-                m = new MatchInfo(data.laLimit());
-                v = new ArrayList<>();
-                v.add(m);
-                LookaheadCalc.genFirstSet(data, v, ch.getChoices().get(i));
-                dbr[i] = data.getSizeLimitedMatches();
+                dbr[i] = sizeLimitedMatches(ch.getChoices().get(i));
             }
             if (la == 1) {
                 for (int i = first; i < (ch.getChoices().size() - 1); i++) {
                     Expansion exp = ch.getChoices().get(i);
                     if (Semanticize.emptyExpansionExists(exp)) {
-                        context.onWarning(exp, "This choice can expand to the empty token sequence "
+                        this.diagnostics.warning(exp, "This choice can expand to the empty token sequence "
                                 + "and will therefore always be taken in favor of the choices appearing later.");
                         break;
                     }
@@ -131,12 +172,12 @@ class LookaheadCalc {
                 break;
         }
         for (int i = first; i < (ch.getChoices().size() - 1); i++) {
-            if (LookaheadCalc.explicitLA(ch.getChoices().get(i)) && !context.isForceLaCheck())
+            if (LookaheadCalc.explicitLA(ch.getChoices().get(i)) && !this.options.forceLaCheck())
                 continue;
-            if (minLA[i] > context.getChoiceAmbiguityCheck()) {
-                warnChoiceConflict(context, data, ch, i, other[i], overlapInfo[i], minLA[i], " or more");
+            if (minLA[i] > this.options.choiceAmbiguityCheck()) {
+                warnChoiceConflict(ch, i, other[i], overlapInfo[i], minLA[i], " or more");
             } else if (minLA[i] > 1) {
-                warnChoiceConflict(context, data, ch, i, other[i], overlapInfo[i], minLA[i], "");
+                warnChoiceConflict(ch, i, other[i], overlapInfo[i], minLA[i], "");
             }
         }
     }
@@ -150,16 +191,15 @@ class LookaheadCalc {
      * reading {@code Diagnostics} afterwards got a warning that named neither the two expansions nor
      * the prefix they share. The whole warning is one diagnostic now; the rendered text is the same.
      */
-    private static void warnChoiceConflict(SemanticContext context, Semanticize data, Choice ch,
-                                           int i, int other, MatchInfo overlapInfo, int minLA,
-                                           String amount) {
-        context.onWarning("Choice conflict involving two expansions at"
+    private void warnChoiceConflict(Choice ch, int i, int other, MatchInfo overlapInfo, int minLA,
+                                    String amount) {
+        this.diagnostics.warning("Choice conflict involving two expansions at"
                 + "\n         line " + ch.getChoices().get(i).getLine()
                 + ", column " + ch.getChoices().get(i).getColumn()
                 + " and line " + ch.getChoices().get(other).getLine()
                 + ", column " + ch.getChoices().get(other).getColumn()
                 + " respectively."
-                + "\n         A common prefix is: " + LookaheadCalc.image(overlapInfo, data)
+                + "\n         A common prefix is: " + image(overlapInfo)
                 + "\n         Consider using a lookahead of " + minLA + amount
                 + " for earlier expansion.");
     }
@@ -179,8 +219,8 @@ class LookaheadCalc {
         return la.isExplicit();
     }
 
-    private static int firstChoice(Choice ch, SemanticContext context) {
-        if (context.isForceLaCheck())
+    private int firstChoice(Choice ch) {
+        if (this.options.forceLaCheck())
             return 0;
         for (int i = 0; i < ch.getChoices().size(); i++) {
             if (!LookaheadCalc.explicitLA(ch.getChoices().get(i)))
@@ -198,34 +238,28 @@ class LookaheadCalc {
             return "[...]";
     }
 
-    static void ebnfCalc(Expansion exp, Expansion nested, Semanticize data,
-                         SemanticContext context) {
+    void ebnfCalc(Expansion exp, Expansion nested) {
         // exp is one of OneOrMore, ZeroOrMore, ZeroOrOne
         MatchInfo m, m1 = null;
-        List<MatchInfo> v;
-        List<MatchInfo> first, follow;
         int la;
-        for (la = 1; la <= context.getOtherAmbiguityCheck(); la++) {
-            data.setLaLimit(la);
-            data.initSizeLimitedMatches();
-            m = new MatchInfo(data.laLimit());
-            v = new ArrayList<>();
-            v.add(m);
-            data.setConsiderSemanticLA(!context.isForceLaCheck());
-            LookaheadCalc.genFirstSet(data, v, nested);
-            first = data.getSizeLimitedMatches();
-            data.initSizeLimitedMatches();
-            data.setConsiderSemanticLA(false);
-            LookaheadCalc.genFollowSet(v, exp, data.nextGenerationIndex(), data);
-            follow = data.getSizeLimitedMatches();
+        for (la = 1; la <= this.options.otherAmbiguityCheck(); la++) {
+            this.laLimit = la;
+            this.considerSemanticLA = !this.options.forceLaCheck();
+            List<MatchInfo> first = sizeLimitedMatches(nested);
+            this.sizeLimitedMatches = new ArrayList<>();
+            this.considerSemanticLA = false;
+            List<MatchInfo> v = new ArrayList<>();
+            v.add(new MatchInfo(this.laLimit));
+            genFollowSet(v, exp, nextGenerationIndex());
+            List<MatchInfo> follow = this.sizeLimitedMatches;
             if ((m = LookaheadCalc.overlap(first, follow)) == null)
                 break;
             m1 = m;
         }
-        if (la > context.getOtherAmbiguityCheck()) {
-            LookaheadCalc.warnEbnfConflict(context, data, exp, m1, la, " or more");
+        if (la > this.options.otherAmbiguityCheck()) {
+            warnEbnfConflict(exp, m1, la, " or more");
         } else if (la > 1) {
-            LookaheadCalc.warnEbnfConflict(context, data, exp, m1, la, "");
+            warnEbnfConflict(exp, m1, la, "");
         }
     }
 
@@ -234,30 +268,24 @@ class LookaheadCalc {
      * with {@link #warnChoiceConflict}, the two branches differed only in the "{@code or more}"
      * hint, and the detail lines bypassed the diagnostics channel (ADR-0015).
      */
-    private static void warnEbnfConflict(SemanticContext context, Semanticize data, Expansion exp,
-                                         MatchInfo m1, int la, String amount) {
-        context.onWarning("Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
+    private void warnEbnfConflict(Expansion exp, MatchInfo m1, int la, String amount) {
+        this.diagnostics.warning("Choice conflict in " + LookaheadCalc.image(exp) + " construct " + "at line "
                 + exp.getLine()
                 + ", column " + exp.getColumn() + "."
                 + "\n         Expansion nested within construct and expansion following construct"
-                + "\n         have common prefixes, one of which is: " + LookaheadCalc.image(m1, data)
+                + "\n         have common prefixes, one of which is: " + image(m1)
                 + "\n         Consider using a lookahead of " + la + amount
                 + " for nested expansion.");
     }
 
-    private static void listAppend(List<MatchInfo> vToAppendTo, List<MatchInfo> vToAppend) {
-        vToAppendTo.addAll(vToAppend);
-    }
-
-    static List<MatchInfo> genFirstSet(Semanticize data, List<MatchInfo> partialMatches,
-                                       Expansion exp) {
+    private List<MatchInfo> genFirstSet(List<MatchInfo> partialMatches, Expansion exp) {
         return switch (exp) {
             case RExpression regexp -> {
                 List<MatchInfo> retval = new ArrayList<>();
                 for (MatchInfo m : partialMatches) {
                     MatchInfo mnew = m.copyWith(regexp.getOrdinal());
-                    if (mnew.firstFreeLoc() == data.laLimit()) {
-                        data.getSizeLimitedMatches().add(mnew);
+                    if (mnew.firstFreeLoc() == this.laLimit) {
+                        this.sizeLimitedMatches.add(mnew);
                     } else {
                         retval.add(mnew);
                     }
@@ -265,14 +293,13 @@ class LookaheadCalc {
                 yield retval;
             }
 
-            case NonTerminal nonTerminal -> LookaheadCalc.genFirstSet(data, partialMatches,
+            case NonTerminal nonTerminal -> genFirstSet(partialMatches,
                     nonTerminal.getProd().getExpansion());
 
             case Choice choice -> {
                 List<MatchInfo> retval = new ArrayList<>();
                 for (var alternative : choice.getChoices()) {
-                    LookaheadCalc.listAppend(retval,
-                            LookaheadCalc.genFirstSet(data, partialMatches, alternative));
+                    retval.addAll(genFirstSet(partialMatches, alternative));
                 }
                 yield retval;
             }
@@ -280,7 +307,7 @@ class LookaheadCalc {
             case Sequence sequence -> {
                 List<MatchInfo> matches = partialMatches;
                 for (var unit : sequence.getUnits()) {
-                    matches = LookaheadCalc.genFirstSet(data, matches, unit);
+                    matches = genFirstSet(matches, unit);
                     if (matches.isEmpty()) {
                         break;
                     }
@@ -288,54 +315,44 @@ class LookaheadCalc {
                 yield matches;
             }
 
-            case OneOrMore oneOrMore -> LookaheadCalc.genRepeated(data, partialMatches,
-                    oneOrMore.getExpansion(), false);
+            case OneOrMore oneOrMore -> genRepeated(partialMatches, oneOrMore.getExpansion(), false);
 
             // Zero repetitions is a match too, so the incoming matches are kept.
-            case ZeroOrMore zeroOrMore -> LookaheadCalc.genRepeated(data, partialMatches,
-                    zeroOrMore.getExpansion(), true);
+            case ZeroOrMore zeroOrMore -> genRepeated(partialMatches, zeroOrMore.getExpansion(), true);
 
             case ZeroOrOne zeroOrOne -> {
-                List<MatchInfo> retval = new ArrayList<>();
-                LookaheadCalc.listAppend(retval, partialMatches);
-                LookaheadCalc.listAppend(retval,
-                        LookaheadCalc.genFirstSet(data, partialMatches, zeroOrOne.getExpansion()));
+                List<MatchInfo> retval = new ArrayList<>(partialMatches);
+                retval.addAll(genFirstSet(partialMatches, zeroOrOne.getExpansion()));
                 yield retval;
             }
 
             // A semantic lookahead cuts the first set: nothing is guaranteed to match.
             case Lookahead lookahead
-                    when data.considerSemanticLA() && !lookahead.getActionTokens().isEmpty() ->
+                    when this.considerSemanticLA && !lookahead.getActionTokens().isEmpty() ->
                     new ArrayList<>();
 
-            case Lookahead lookahead -> LookaheadCalc.copyOf(partialMatches);
-            case Action action -> LookaheadCalc.copyOf(partialMatches);
-            case NormalProduction production -> LookaheadCalc.copyOf(partialMatches);
+            case Lookahead lookahead -> new ArrayList<>(partialMatches);
+            case Action action -> new ArrayList<>(partialMatches);
+            case NormalProduction production -> new ArrayList<>(partialMatches);
         };
     }
 
     /** The first set of an expansion repeated any number of times. */
-    private static List<MatchInfo> genRepeated(Semanticize data, List<MatchInfo> partialMatches,
-                                               Expansion body, boolean zeroAllowed) {
+    private List<MatchInfo> genRepeated(List<MatchInfo> partialMatches, Expansion body,
+                                        boolean zeroAllowed) {
         List<MatchInfo> retval = new ArrayList<>();
         if (zeroAllowed) {
-            LookaheadCalc.listAppend(retval, partialMatches);
+            retval.addAll(partialMatches);
         }
 
         List<MatchInfo> matches = partialMatches;
         while (true) {
-            matches = LookaheadCalc.genFirstSet(data, matches, body);
+            matches = genFirstSet(matches, body);
             if (matches.isEmpty()) {
                 break;
             }
-            LookaheadCalc.listAppend(retval, matches);
+            retval.addAll(matches);
         }
-        return retval;
-    }
-
-    private static List<MatchInfo> copyOf(List<MatchInfo> matches) {
-        List<MatchInfo> retval = new ArrayList<>();
-        LookaheadCalc.listAppend(retval, matches);
         return retval;
     }
 
@@ -354,15 +371,14 @@ class LookaheadCalc {
         }
     }
 
-    static List<MatchInfo> genFollowSet(List<MatchInfo> partialMatches, Expansion exp,
-                                        long generation,
-                                        Semanticize data) {
-        if (!data.visit(exp, generation))
+    private List<MatchInfo> genFollowSet(List<MatchInfo> partialMatches, Expansion exp,
+                                         long generation) {
+        if (!visit(exp, generation))
             return new ArrayList<>();
 
         Expansion parent = exp.parent();
         if (parent == null) {
-            return LookaheadCalc.copyOf(partialMatches);
+            return new ArrayList<>(partialMatches);
         }
 
         return switch (parent) {
@@ -370,8 +386,7 @@ class LookaheadCalc {
             case NormalProduction production -> {
                 List<MatchInfo> retval = new ArrayList<>();
                 for (var user : production.getParents()) {
-                    LookaheadCalc.listAppend(retval,
-                            LookaheadCalc.genFollowSet(partialMatches, user, generation, data));
+                    retval.addAll(genFollowSet(partialMatches, user, generation));
                 }
                 yield retval;
             }
@@ -380,60 +395,55 @@ class LookaheadCalc {
             case Sequence sequence -> {
                 List<MatchInfo> matches = partialMatches;
                 for (int i = exp.parentOrdinal() + 1; i < sequence.getUnits().size(); i++) {
-                    matches = LookaheadCalc.genFirstSet(data, matches, sequence.getUnits().get(i));
+                    matches = genFirstSet(matches, sequence.getUnits().get(i));
                     if (matches.isEmpty()) {
                         yield matches;
                     }
                 }
-                yield LookaheadCalc.followParent(matches, partialMatches, sequence, generation, data);
+                yield followParent(matches, partialMatches, sequence, generation);
             }
 
             // A repetition may loop, so what follows it may also be itself.
-            case OneOrMore oneOrMore ->
-                    LookaheadCalc.followRepeated(partialMatches, exp, oneOrMore, generation, data);
-            case ZeroOrMore zeroOrMore ->
-                    LookaheadCalc.followRepeated(partialMatches, exp, zeroOrMore, generation, data);
+            case OneOrMore oneOrMore -> followRepeated(partialMatches, exp, oneOrMore, generation);
+            case ZeroOrMore zeroOrMore -> followRepeated(partialMatches, exp, zeroOrMore, generation);
 
-            default -> LookaheadCalc.genFollowSet(partialMatches, parent, generation, data);
+            default -> genFollowSet(partialMatches, parent, generation);
         };
     }
 
     /** What follows a repetition: the repetition itself, and then whatever follows it. */
-    private static List<MatchInfo> followRepeated(List<MatchInfo> partialMatches, Expansion exp,
-                                                  Expansion parent, long generation,
-                                                  Semanticize data) {
-        List<MatchInfo> moreMatches = new ArrayList<>();
-        LookaheadCalc.listAppend(moreMatches, partialMatches);
+    private List<MatchInfo> followRepeated(List<MatchInfo> partialMatches, Expansion exp,
+                                           Expansion parent, long generation) {
+        List<MatchInfo> moreMatches = new ArrayList<>(partialMatches);
 
         List<MatchInfo> matches = partialMatches;
         while (true) {
-            matches = LookaheadCalc.genFirstSet(data, matches, exp);
+            matches = genFirstSet(matches, exp);
             if (matches.isEmpty()) {
                 break;
             }
-            LookaheadCalc.listAppend(moreMatches, matches);
+            moreMatches.addAll(matches);
         }
-        return LookaheadCalc.followParent(moreMatches, partialMatches, parent, generation, data);
+        return followParent(moreMatches, partialMatches, parent, generation);
     }
 
     /**
      * Continues into what follows "parent". Matches that were already present on the way in keep the
      * current generation; the ones added here get a fresh one, so a right-recursive loop terminates.
      */
-    private static List<MatchInfo> followParent(List<MatchInfo> matches,
-                                                List<MatchInfo> partialMatches, Expansion parent,
-                                                long generation, Semanticize data) {
+    private List<MatchInfo> followParent(List<MatchInfo> matches, List<MatchInfo> partialMatches,
+                                         Expansion parent, long generation) {
         List<MatchInfo> known = new ArrayList<>();
         List<MatchInfo> fresh = new ArrayList<>();
         LookaheadCalc.listSplit(matches, partialMatches, known, fresh);
 
         if (!known.isEmpty()) {
-            known = LookaheadCalc.genFollowSet(known, parent, generation, data);
+            known = genFollowSet(known, parent, generation);
         }
         if (!fresh.isEmpty()) {
-            fresh = LookaheadCalc.genFollowSet(fresh, parent, data.nextGenerationIndex(), data);
+            fresh = genFollowSet(fresh, parent, nextGenerationIndex());
         }
-        LookaheadCalc.listAppend(fresh, known);
+        fresh.addAll(known);
         return fresh;
     }
 }

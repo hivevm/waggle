@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Describes regular expressions.
  */
-public abstract sealed class RExpression extends RegularExpression
+public abstract sealed class RExpression extends Expansion
         permits RCharacterList, RChoice, REndOfFile, RJustName, ROneOrMore, RRepetitionRange,
         RSequence, RStringLiteral, RZeroOrMore, RZeroOrOne {
 

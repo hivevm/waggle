@@ -13,9 +13,6 @@ import org.hivevm.waggle.api.GenerationContext;
 import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.Diagnostics;
 import org.hivevm.waggle.grammar.GrammarData;
-import org.hivevm.waggle.grammar.GrammarParser;
-import org.hivevm.waggle.grammar.Parser;
-import org.hivevm.waggle.grammar.StringProvider;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.grammar.ParseException;
 
@@ -140,18 +137,14 @@ public final class JJDocMain {
             return 1;
         }
 
-        GrammarData javacc = new GrammarData(new GenerationContext(options, diagnostics));
         try {
-            Parser parser = new GrammarParser(new StringProvider(text), options);
-            parser.initialize(javacc);
-            parser.grammar_input();
-
-            var generator = JJDoc.start(javacc, inputFile);
+            var grammar = GrammarData.parse(text, new GenerationContext(options, diagnostics));
+            var outputFile = JJDoc.write(grammar, inputFile);
 
             if (!diagnostics.hasError()) {
                 if (!diagnostics.hasWarning()) {
                     JJDocMain.info("Grammar documentation generated successfully in "
-                            + generator.outputFile());
+                            + outputFile);
                 } else {
                     JJDocMain.info("Grammar documentation generated with 0 errors and "
                             + diagnostics.warningCount() + " warnings.");

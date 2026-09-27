@@ -67,23 +67,23 @@ public class Template {
         return param;
     }
 
-    private final String text;
-
-    /** The parsed template; it depends on the text alone, so it is built once (see render). */
-    private volatile Renderer renderer;
+    /** The parsed template; it depends on the text alone, so it is built once. */
+    private final Renderer renderer;
 
     /**
-     * Constructs a new instance of the Template class using the provided byte array.
+     * Parses the UTF-8 template {@code bytes}; {@code name}, usually its resource path, names it in
+     * a {@link TemplateException}.
      */
-    public Template(byte[] bytes) {
-        this(new String(bytes, StandardCharsets.UTF_8));
+    public Template(String name, byte[] bytes) {
+        this(name, new String(bytes, StandardCharsets.UTF_8));
     }
 
     /**
-     * Constructs a new instance of the Template class using the provided byte array.
+     * Parses the template {@code text}; {@code name}, usually its resource path, names it in a
+     * {@link TemplateException}.
      */
-    public Template(String text) {
-        this.text = text.replace("\r", "");
+    public Template(String name, String text) {
+        this.renderer = Template.build(name, text.replace("\r", ""));
     }
 
     /**
@@ -94,25 +94,20 @@ public class Template {
      * rendered text, not of writing it.
      */
     public final String render(String title, Environment environment) {
-        var parsed = this.renderer;
-        if (parsed == null) {
-            this.renderer = parsed = parse(title);
-        }
-
         var out = new java.io.ByteArrayOutputStream();
         try (var writer = TemplateWriter.create(title, out, environment)) {
-            parsed.render(writer, writer);
+            this.renderer.render(writer, writer);
         }
         return out.toString(StandardCharsets.UTF_8);
     }
 
     /**
-     * Builds the renderer tree. It used to be rebuilt on every call, so a template rendered once
+     * Builds the renderer tree. It used to be rebuilt on every render, so a template rendered once
      * per node type was re-parsed each time.
      */
     @SuppressWarnings("fallthrough")
-    private Renderer parse(String title) {
-        var builder = new RendererBuilder(title);
+    private static Renderer build(String name, String text) {
+        var builder = new RendererBuilder(name);
 
         var offset = 0;
         var matcher = Template.STATEMENT.matcher(text);
@@ -125,13 +120,13 @@ public class Template {
             var isFunc = matcher.group(4) == null;
             var func = isFunc ? matcher.group(2).toUpperCase(Locale.ROOT) : "VAR";
             var param = matcher.group(isFunc ? 3 : 4);
-            switch (Template.parse(title, func)) {
+            switch (Template.parse(name, func)) {
                 case IF:
-                    builder.addMatch(Template.require(title, func, param));
+                    builder.addMatch(Template.require(name, func, param));
                     break;
 
                 case ELIF:
-                    builder.addCase(Template.require(title, func, param));
+                    builder.addCase(Template.require(name, func, param));
                     break;
 
                 case ELSE:
@@ -170,14 +165,5 @@ public class Template {
             builder.addText(text.substring(offset));
         }
         return builder.build();
-    }
-
-    /**
-     * Creates a new instance of {@link Context} using the provided {@link RenderContext}. The
-     * returned context is designed to manage key-value pairs and interact with the given
-     * environment.
-     */
-    public static Context newContext(RenderContext environment) {
-        return new TemplateContext(environment);
     }
 }

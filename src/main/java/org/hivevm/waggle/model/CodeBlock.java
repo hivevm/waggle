@@ -6,28 +6,17 @@ package org.hivevm.waggle.model;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public enum CodeBlock {
+/** The text of an embedded code block, as the grammar's {@code <? ... ?>} delimits it. */
+public final class CodeBlock {
 
-    BEGIN("<?"),
-    END("?>");
+    private static final String BEGIN = "<?";
 
-    private final String image;
-
-    CodeBlock(String image) {
-        this.image = image;
-    }
-
-    public static String begin() {
-        return CodeBlock.BEGIN.image;
-    }
-
-    public static String end() {
-        return CodeBlock.END.image;
+    private CodeBlock() {
     }
 
     public static String strip(String text) {
-        if (text.startsWith(CodeBlock.BEGIN.image)) {
-            text = text.substring(CodeBlock.BEGIN.image.length());
+        if (text.startsWith(CodeBlock.BEGIN)) {
+            text = text.substring(CodeBlock.BEGIN.length());
             if (text.contains("\n")) {
                 var lines = Arrays.asList(text.split("\n"));
                 var first = lines.get(0).trim().isEmpty() ? 1 : 0;

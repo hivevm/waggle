@@ -38,8 +38,7 @@ public class Parser
 	 * Next token.
 	 */
 	public Token               jj_nt;
-//@if(CACHE_TOKENS)
-//@else
+//@if(!CACHE_TOKENS)
 	private int                jj_ntk;
 //@fi
 //@if(DEPTH_LIMIT)
@@ -287,8 +286,7 @@ public class Parser
 		return t;
 	}
 
-//@if(CACHE_TOKENS)
-//@else
+//@if(!CACHE_TOKENS)
 	private int jj_ntk_f() {
 		if ((jj_nt = token.next) == null)
 			return (jj_ntk = (token.next = token_source.getNextToken()).kind);

@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.stream.IntStream;
 
 /**
  * The {@link LexerData} provides the request data for the lexer generator.
@@ -35,25 +35,22 @@ public class LexerData {
 
     // Every distinct bit vector gets an index; the ones not all set are also emitted as tables,
     // in index order.
-    final Map<Integer, long[]> lohiByte;
-    final Map<BitVector, Integer> lohiByteTab;
+    final List<BitVector> bitVectors;
+    final Map<BitVector, Integer> bitVectorIndex;
 
     final List<NfaState> nonAsciiTableForMethod;
-    final List<Boolean> allBitsSet;
     int[][] kinds;
     int[][][] statesForState;
 
     boolean jjCheckNAddStatesUnaryNeeded;
     boolean jjCheckNAddStatesDualNeeded;
 
-    // public for NFA
     int lastIndex;
     final Map<String, int[]> tableToDump;
     final List<int[]> orderedStateSet;
 
     private final Map<String, NfaStateData> stateData = new HashMap<>();
 
-    // RString
     final String[] allImages;
 
     final String[] newLexState;
@@ -91,31 +88,14 @@ public class LexerData {
         this.maxOrdinal = maxOrdinal;
         this.maxLexStates = maxLexStates;
 
-        this.curKind = 0;
         this.nonAsciiTableForMethod = new ArrayList<>();
-        this.lohiByte = new TreeMap<>();
-        this.lohiByteTab = new HashMap<>();
-        this.allBitsSet = new ArrayList<>();
-
-        this.kinds = null;
-        this.statesForState = null;
+        this.bitVectors = new ArrayList<>();
+        this.bitVectorIndex = new HashMap<>();
 
         this.tableToDump = new LinkedHashMap<>();
         this.orderedStateSet = new ArrayList<>();
-        this.lastIndex = 0;
-        this.jjCheckNAddStatesUnaryNeeded = false;
-        this.jjCheckNAddStatesDualNeeded = false;
 
-        // additionals
-        this.defaultLexState = 0;
-        this.hasLoop = false;
-        this.hasMore = false;
-        this.hasMoreActions = false;
-        this.hasSkip = false;
-        this.hasSkipActions = false;
-        this.hasSpecial = false;
         this.parserOptions = ParserOptions.from(request.options());
-        this.stateSetSize = 0;
 
         this.toSkip = new long[(this.maxOrdinal / 64) + 1];
         this.toSpecial = new long[(this.maxOrdinal / 64) + 1];
@@ -134,16 +114,13 @@ public class LexerData {
         this.initMatch = new int[this.maxLexStates];
         this.newLexState = new String[this.maxOrdinal];
         this.newLexState[0] = request.getNextStateForEof();
-        this.hasEmptyMatch = false;
         this.lexStates = new int[this.maxOrdinal];
         this.ignoreCase = new boolean[this.maxOrdinal];
         this.rexprs = new RExpression[this.maxOrdinal];
         this.allImages = new String[this.maxOrdinal];
         this.canReachOnMore = new boolean[this.maxLexStates];
 
-        for (int i = 0; i < this.maxLexStates; i++) {
-            this.canMatchAnyChar[i] = -1;
-        }
+        Arrays.fill(this.canMatchAnyChar, -1);
     }
 
     public final Options options() {
@@ -163,7 +140,8 @@ public class LexerData {
     }
 
     public final Iterable<Integer> getLohiByte() {
-        return this.lohiByte.keySet();
+        return IntStream.range(0, this.bitVectors.size())
+                .filter(i -> !this.bitVectors.get(i).allBitsSet()).boxed().toList();
     }
 
     public final List<int[]> getOrderedStateSet() {
@@ -206,17 +184,13 @@ public class LexerData {
         return this.hasEmptyMatch;
     }
 
-    public final boolean keepLineCol() {
-        return this.parserOptions.keepLineColumn();
-    }
-
     /** Whether the token manager traces its moves. */
     public final boolean getDebugTokenManager() {
         return this.parserOptions.debugTokenManager();
     }
 
     /** Whether the string-literal DFA is skipped and everything goes through the NFA. */
-    public final boolean getNoDfa() {
+    final boolean getNoDfa() {
         return this.parserOptions.noDfa();
     }
 
@@ -248,7 +222,7 @@ public class LexerData {
         return this.canLoop[index];
     }
 
-    public final boolean canReachOnMore(int index) {
+    final boolean canReachOnMore(int index) {
         return this.canReachOnMore[index];
     }
 
@@ -264,10 +238,6 @@ public class LexerData {
         return this.request.getNextStateForEof() != null || this.request.getActionForEof() != null;
     }
 
-    public final int getStateCount() {
-        return this.lexStateNames.length;
-    }
-
     public final int getState(int index) {
         return this.lexStates[index];
     }
@@ -280,7 +250,7 @@ public class LexerData {
         return Arrays.asList(this.lexStateNames);
     }
 
-    public final int getCurrentKind() {
+    final int getCurrentKind() {
         return this.curKind;
     }
 
@@ -315,7 +285,7 @@ public class LexerData {
 
     /** Whether the bit vector at {@code index} has every bit set. */
     public final boolean hasAllBitsSet(int index) {
-        return this.allBitsSet.get(index);
+        return this.bitVectors.get(index).allBitsSet();
     }
 
     public final int[][] getKinds() {
@@ -350,6 +320,23 @@ public class LexerData {
         return this.singlesToSkip[index];
     }
 
+    /** Whether {@code kind} is skipped: a SKIP or a SPECIAL_TOKEN. */
+    final boolean isSkip(int kind) {
+        return Bits.test(this.toSkip, kind);
+    }
+
+    final boolean isSpecial(int kind) {
+        return Bits.test(this.toSpecial, kind);
+    }
+
+    final boolean isMore(int kind) {
+        return Bits.test(this.toMore, kind);
+    }
+
+    final boolean isToken(int kind) {
+        return Bits.test(this.toToken, kind);
+    }
+
     public final long toSkip(int index) {
         return this.toSkip[index];
     }
@@ -371,6 +358,6 @@ public class LexerData {
     }
 
     public final long getLohiByte(int offest, int index) {
-        return this.lohiByte.get(offest)[index];
+        return this.bitVectors.get(offest).words()[index];
     }
 }

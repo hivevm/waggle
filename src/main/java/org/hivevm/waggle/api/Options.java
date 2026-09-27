@@ -9,7 +9,6 @@
 package org.hivevm.waggle.api;
 
 import org.hivevm.source.RenderContext;
-import org.hivevm.core.Environment;
 
 import java.io.File;
 
@@ -17,10 +16,10 @@ import java.io.File;
  * The resolved settings of one generation, read by name.
  *
  * <p>The name-keyed lookup is the template contract (ADR-0005): a template reads option keys by
- * name, so the settings stay an {@link Environment}. Stages that consume settings take
- * {@code ParserOptions} or {@code TreeOptions}, which put a type and a single spelling on them and
- * turn a typo into a compile error (ADR-0019); only the two values every stage needs have accessors
- * here.
+ * name, so the settings stay an {@link org.hivevm.core.Environment}. Stages that consume
+ * settings take {@code ParserOptions} or {@code TreeOptions}, which put a type and a single
+ * spelling on them and turn a typo into a compile error (ADR-0019); only the two values every
+ * stage needs have accessors here.
  *
  * <p>Nothing here is static: the settings belong to one generation and are carried to the stages by
  * the {@code GenerationContext} (ADR-0015).

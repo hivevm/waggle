@@ -7,12 +7,6 @@ plugins {
 }
 
 
-// Apply the java-library plugin to add support for Java Library
-apply plugin: 'java'
-apply plugin: 'java-library'
-apply plugin: 'java-gradle-plugin'
-
-
 repositories {
     mavenLocal()
     mavenCentral()
@@ -29,10 +23,8 @@ java {
 }
 
 
-allprojects {
-    tasks.withType(Javadoc).all {
-        enabled = false
-    }
+tasks.withType(Javadoc).configureEach {
+    enabled = false
 }
 
 
@@ -48,8 +40,6 @@ tasks.withType(JavaCompile).configureEach {
 
 
 dependencies {
-    implementation gradleApi()
-
     // https://mvnrepository.com/artifact/org.jspecify/jspecify
     implementation("org.jspecify:jspecify:1.0.0")
 
@@ -69,17 +59,7 @@ sourceSets {
             // task instead of the bare path makes compileJava and sourcesJar depend on it.
             srcDir(tasks.named('generateParser'))
         }
-        resources {
-        }
     }
-/*
-  test {
-    java {
-      compileClasspath += configurations.compileOnly
-      runtimeClasspath += configurations.compileOnly
-    }
-  }
- */
 }
 
 test {
@@ -120,17 +100,4 @@ parserProject {
     name       = 'parser'
     file       = 'src/main/resources/Waggle.waggle'
   }
-
-  // task {
-    //   name       = 'oql4java'
-    //   output     = '/data/hivevm/develop/parser/parser/src/main/java'
-    //   file       = '/data/hivevm/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL.jjt'
-    // }
-
-    // task {
-    //   name       = 'oql4cpp'
-    //   target     = 'cpp'
-    //   output     = '/data/hivevm/develop/core-cpp/text/parser'
-    //   file       = '/data/hivevm/develop/parser/parser/src/main/resources/it/smartio/text/parser/OQL-Cpp.jjt'
-    // }
 }

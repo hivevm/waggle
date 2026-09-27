@@ -70,9 +70,9 @@ interface Renderer {
             }
 
             Object value = environment.get(text);
-            if (value instanceof Context.SourceConsumer consumer)
+            if (value instanceof TemplateContext.SourceConsumer consumer)
                 consumer.apply(printer);
-            else if (value instanceof Context.SourceSupplier supplier)
+            else if (value instanceof TemplateContext.SourceSupplier supplier)
                 printer.print(supplier.get());
             else if (value != null)
                 printer.print(value.toString());
@@ -104,7 +104,8 @@ interface Renderer {
      */
     record MatchRenderer(Map<String, Renderer> nodes) implements Renderer {
 
-        private static final String DEFAULT = "_";
+        /** The key of the {@code //@else} branch. */
+        static final String DEFAULT = "_";
 
         // A LinkedHashMap, so that an if/elif chain is evaluated in source order rather than in
         // hash order.
@@ -130,10 +131,9 @@ interface Renderer {
     }
 
     /**
-     * A record that implements the {@link Renderer} interface to enable conditional rendering based
-     * on environment variables. The {@code MatchRenderer} evaluates the conditions associated with
-     * the provided map of {@link Renderer} nodes and renders the first node whose condition is
-     * satisfied. If no condition is satisfied, a default renderer is used, if provided.
+     * A record that implements the {@link Renderer} interface to render its body once per element
+     * of a list: the environment value {@code list} names is either a count or an
+     * {@link Iterable}, and each pass sees the current element through a {@link ListEnv}.
      */
     record ForEachRenderer(String list, ListRenderer renderer) implements Renderer {
 
@@ -185,11 +185,9 @@ interface Renderer {
     }
 
     /**
-     * Represents an environment that overlays another environment, allowing the addition of local
-     * variables that override or supplement the variables in the underlying environment.
-     * <p>
-     * This class allows setting and retrieving variables while respecting the underlying
-     * environment if a variable is not explicitly set in the current instance.
+     * The environment of one pass of a {@code //@foreach}: it answers every name from the
+     * underlying environment, but applies a bound mapper or source provider to the current
+     * element.
      */
     class ListEnv implements Environment {
 
@@ -197,7 +195,7 @@ interface Renderer {
         private final Object value;
 
         /**
-         * Constructs a TemplateEnv instance with the specified underlying environment.
+         * Constructs the environment of the pass over {@code value}.
          */
         private ListEnv(Environment environment, Object value) {
             this.environment = environment;
@@ -205,12 +203,7 @@ interface Renderer {
         }
 
         /**
-         * Checks if the specified name exists in either the local environment variables or the
-         * underlying environment.
-         * <p>
-         * The method first checks if the name exists in the local `options` map of the current
-         * instance. If the name does not exist locally, it then delegates to the `has` method of
-         * the underlying environment.
+         * Checks if the specified name exists in the underlying environment.
          */
         @Override
         public final boolean has(String name) {
@@ -218,11 +211,9 @@ interface Renderer {
         }
 
         /**
-         * Retrieves the value associated with the specified name from the current environment.
-         * <p>
-         * This method first checks if the name exists in the local `options` map. If it exists, the
-         * corresponding value is returned. If the name does not exist in the local map, the method
-         * delegates the retrieval to the underlying environment using its `get` method.
+         * Retrieves the value of the specified name from the underlying environment. A
+         * {@link TemplateContext.SourceProvider} or a {@link Function} bound there is applied to the
+         * current element; any other value is returned as it is.
          *
          * <p>The environment is keyed by name and holds values of no common type (ADR-0005), so what
          * comes back is an {@code Object} whose type parameter erasure has already discarded. The
@@ -232,11 +223,11 @@ interface Renderer {
         @SuppressWarnings({"unchecked", "rawtypes"})
         public final Object get(String name) {
             Object func = environment.get(name);
-            if (func instanceof Context.SourceProvider provider)
-                return (Context.SourceConsumer) printer -> provider.apply(value, printer);
+            if (func instanceof TemplateContext.SourceProvider provider)
+                return (TemplateContext.SourceConsumer) printer -> provider.apply(value, printer);
             else if (func instanceof Function)
                 return ((Function<Object, Object>) func).apply(value);
-            return environment.get(name);
+            return func;
         }
     }
 }

@@ -9,7 +9,6 @@ import org.hivevm.waggle.api.Waggle;
 import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
-import java.util.Set;
 
 /**
  * The Java templates: which resource each is read from, and which file it writes.
@@ -53,8 +52,4 @@ public interface JavaTemplate {
             JavaTemplate.SET.declare("tree", "NodeVisitor.java", "NodeVisitor");
     Source<Options> MULTI_NODE_DEFAULT_VISITOR =
             JavaTemplate.SET.declare("tree", "NodeDefaultVisitor.java", "NodeDefaultVisitor");
-
-    static Set<String> reservedNames() {
-        return JavaTemplate.SET.reservedNames();
-    }
 }

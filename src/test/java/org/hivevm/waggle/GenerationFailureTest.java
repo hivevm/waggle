@@ -3,8 +3,6 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.api.ParserBuilder;
-
 import org.hivevm.waggle.api.GenerationException;
 
 import org.hivevm.waggle.api.Language;
@@ -165,10 +163,6 @@ class GenerationFailureTest {
     }
 
     private static void generate(Path source, Path dir, Language language) {
-        new ParserBuilder()
-                .setLanguage(language)
-                .setParserFile(source.toFile())
-                .setTargetDir(dir.resolve("out-" + language).toFile())
-                .build().parse();
+        GeneratedSources.generate(source, language, dir.resolve("out-" + language));
     }
 }

@@ -19,7 +19,7 @@ package org.hivevm.waggle.model;
 
 public abstract sealed class Expansion extends Production
         permits Action, Choice, Lookahead, NonTerminal, OneOrMore, Sequence, ZeroOrMore, ZeroOrOne,
-        NormalProduction, RegularExpression {
+        NormalProduction, RExpression {
 
     /**
      * The parent of this expansion node. In case this is the top level expansion of the production

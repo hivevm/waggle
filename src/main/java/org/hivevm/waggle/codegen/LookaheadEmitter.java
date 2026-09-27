@@ -38,7 +38,7 @@ public class LookaheadEmitter {
             Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
         this.syntax.openSemanticCondition(printer, state, index);
         writeActionTokens(printer, la, scope);
-        this.syntax.closeSemanticCondition(printer);
+        printer.print(") {"); // closes the condition and opens its block in every target
         printer.indent();
         action.accept(printer);
     }

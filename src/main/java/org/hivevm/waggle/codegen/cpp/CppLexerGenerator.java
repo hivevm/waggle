@@ -13,13 +13,14 @@ import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
+import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.NfaState;
 import org.hivevm.waggle.lexer.NfaStateData;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.source.LinePrinter;
-import org.hivevm.source.SourceProvider;
+import org.hivevm.source.TemplateSet;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -46,7 +47,13 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        options.add("STATE_NAMES_AS_CHARS", data.getStateCount())
+        options.set("HAS_MORE_ACTIONS", data.hasMoreActions());
+        options.set("HAS_SKIP_ACTIONS", data.hasSkipActions());
+        options.set("HAS_TOKEN_ACTIONS", data.hasTokenActions());
+        // Only C++ walks the lexical states, for the table of their names.
+        options.add("MAX_LEX_STATES", data.maxLexStates())
+                .set("MAX_LEX_STATES_INDEX", i -> i);
+        options.add("STATE_NAMES_AS_CHARS", data.maxLexStates())
                 .set("STATE_NAMES_AS_CHARS_INDEX", i -> i)
                 .set("STATE_NAMES_AS_CHARS_CHARS", (i, w) -> CppLexerGenerator.getTextAsChars(data.getStateName(i), w));
         options.set("DUMP_STR_LITERAL_IMAGES", p -> DumpStrLiteralImages(p, data));
@@ -63,7 +70,7 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected SourceProvider<Options> getConstantsTemplate() {
+    protected TemplateSet.Source<Options> getConstantsTemplate() {
         return CppTemplate.PARSER_CONSTANTS;
     }
 
@@ -171,25 +178,10 @@ class CppLexerGenerator extends LexerGenerator {
         var lexer_state_suffix = data.getLexerStateSuffix();
         int maxKindsReqd = (data.getMaxStrKind() / 64) + 1;
         if (data.hasNFA() && !data.isMixedState() && (data.getMaxStrKind() > 0)) {
-            printer.print("int jjStopStringLiteralDfa" + lexer_state_suffix + "(int pos, ");
-            for (int i = 0; i < maxKindsReqd; i++) {
-                if (i > 0) {
-                    printer.print(", ");
-                }
-                printer.print("unsigned long long active");
-                printer.print("" + i);
-            }
-            printer.println(");");
-
-            printer.print("int jjStartNfa" + lexer_state_suffix + "(int pos, ");
-            for (int i = 0; i < maxKindsReqd; i++) {
-                if (i > 0) {
-                    printer.print(", ");
-                }
-                printer.print("unsigned long long active");
-                printer.print("" + i);
-            }
-            printer.println(");");
+            printer.println("int jjStopStringLiteralDfa" + lexer_state_suffix + "(int pos, "
+                    + activeParameters(maxKindsReqd) + ");");
+            printer.println("int jjStartNfa" + lexer_state_suffix + "(int pos, "
+                    + activeParameters(maxKindsReqd) + ");");
         }
 
         if (!data.isMixedState() && (data.generatedStates() != 0) && data.getCreateStartNfa()) {
@@ -210,34 +202,7 @@ class CppLexerGenerator extends LexerGenerator {
         if (data.getMaxLen() > 0) {
             for (int i = 0; i < data.getMaxLen(); i++) {
                 printer.print("int jjMoveStringLiteralDfa" + i + lexer_state_suffix + "(");
-                // Separated by whether a parameter was printed, not by index: a vector whose
-                // literals are too short to reach position i is left out, the first one included.
-                boolean first = true;
-                if (i != 0) {
-                    if (i == 1) {
-                        for (int j = 0; j < maxKindsReqd; j++) {
-                            if (i <= data.getMaxLenForActive(j)) {
-                                if (!first) {
-                                    printer.print(", ");
-                                }
-                                first = false;
-                                printer.print("unsigned long long active");
-                                printer.print("" + j);
-                            }
-                        }
-                    } else {
-                        for (int j = 0; j < maxKindsReqd; j++) {
-                            if (i <= (data.getMaxLenForActive(j) + 1)) {
-                                if (!first) {
-                                    printer.print(", ");
-                                }
-                                first = false;
-                                printer.print("unsigned long long old" + j + ", ");
-                                printer.print("unsigned long long active" + j);
-                            }
-                        }
-                    }
-                }
+                printer.print(StringLiteralDfaEmitter.parameterList(data, i, maxKindsReqd, longType()));
                 printer.println(");");
             }
         }
@@ -305,6 +270,7 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     public void printActionCaseEnd(LinePrinter printer) {
+        printer.println("         break;");
         printer.println("       }");
     }
 
@@ -374,14 +340,6 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
-        printer.println("fprintf(debugStream, "
-                        + "\"<%s>Current character : %c(%d) at line %d column %d\\n\","
-                        + "addUnicodeEscapes(lexStateNames[curLexState]).c_str(), curChar, (int)curChar, "
-                        + "reader->getEndLine(), reader->getEndColumn());");
-    }
-
-    @Override
     public void printDebugNoMatchPossible(LinePrinter printer) {
         printer.println("    fprintf(debugStream, \"   No string literal matches possible.\");");
     }
@@ -418,25 +376,10 @@ class CppLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printStopStringLiteralDfaSignature(LinePrinter printer, NfaStateData data,
-                                                      int maxKindsReqd) {
-        printer.print("int " + data.global.getParserName() + "TokenManager::jjStopStringLiteralDfa"
-                + data.getLexerStateSuffix() + "(int pos");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", " + longType() + " active" + i);
-        }
-        printer.println(") {");
-    }
-
-    @Override
-    public void printStartNfaSignature(LinePrinter printer, NfaStateData data,
-                                          int maxKindsReqd) {
-        printer.print("int " + data.global.getParserName() + "TokenManager::jjStartNfa"
-                + data.getLexerStateSuffix() + "(int pos");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", " + longType() + " active" + i);
-        }
-        printer.println(") {");
+    public void printPosAndActivesSignature(LinePrinter printer, NfaStateData data, String name,
+                                              int maxKindsReqd) {
+        printer.println("int " + data.global.getParserName() + "TokenManager::" + name + "(int pos, "
+                + activeParameters(maxKindsReqd) + ") {");
     }
 
     @Override

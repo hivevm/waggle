@@ -23,11 +23,6 @@ public final class BNFProduction extends NormalProduction {
     }
 
     int getNodeScopeNumber(NodeScope s) {
-        Integer i = this.scopes.get(s);
-        if (i == null) {
-            i = this.nextScope++;
-            this.scopes.put(s, i);
-        }
-        return i;
+        return this.scopes.computeIfAbsent(s, k -> this.nextScope++);
     }
 }

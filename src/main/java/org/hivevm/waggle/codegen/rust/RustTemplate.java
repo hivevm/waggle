@@ -9,7 +9,6 @@ import org.hivevm.source.TemplateSet.Source;
 
 import java.io.File;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * The Rust templates: which resource each is read from, and which file it writes.
@@ -35,8 +34,4 @@ public interface RustTemplate {
     Source<Options> NODE = RustTemplate.SET.declare("tree", "node.rs", "node");
     Source<Options> TREE_STATE = RustTemplate.SET.declare("tree", "treestate.rs", "treestate");
     Source<Options> TREE_CONSTANTS = RustTemplate.SET.declare("tree", "treeconstants.rs", "treeconstants");
-
-    static Set<String> reservedNames() {
-        return RustTemplate.SET.reservedNames();
-    }
 }

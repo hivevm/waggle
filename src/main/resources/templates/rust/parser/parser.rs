@@ -23,7 +23,7 @@ use std::rc::Rc;
 //@fi
 
 //@foreach(TOKEN_MASKS)
-const JJ_LA1__TOKEN_MASKS_INDEX__: [u32; __MASK_INDEX__] = [__TOKEN_MASKS_VALUE__];
+const JJ_LA1___TOKEN_MASKS_INDEX__: [u32; __MASK_INDEX__] = [__TOKEN_MASKS_VALUE__];
 //@end
 
 /// Why a parse failed (ADR-0030). The message is the Java parser's.
@@ -311,7 +311,7 @@ impl<'a> Parser<'a> {
 			if self.jj_la1[i] == self.jj_gen {
 				for j in 0..32 {
 //@foreach(TOKEN_MASKS_LA1)
-					if (JJ_LA1__TOKEN_MASKS_LA1_INDEX__[i] & (1u32 << j)) != 0 {
+					if (JJ_LA1___TOKEN_MASKS_LA1_INDEX__[i] & (1u32 << j)) != 0 {
 						la1tokens[__TOKEN_MASKS_LA1_VALUE__j] = true;
 					}
 //@end
@@ -433,7 +433,7 @@ impl<'a> Parser<'a> {
 					match i {
 //@foreach(JJ2_OFFSET)
 						__JJ2_OFFSET_INDEX__ => {
-							self.jj_3__JJ2_OFFSET_VALUE__();
+							self.jj_3___JJ2_OFFSET_VALUE__();
 						}
 //@end
 						_ => {}

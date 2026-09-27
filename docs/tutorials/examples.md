@@ -257,8 +257,8 @@ TOKEN =
 - `#Root` on a production makes a node covering the whole production.
 - `#Add(2)` is a *definite* node: it takes the top **2** nodes off the stack and makes them its
   children — so `1 + 2 + 3` builds a left-leaning tree of `ASTAdd` nodes.
-- `NODE_DEFAULT_VOID: true` means productions build **no** node unless annotated; without it every
-  production would produce one.
+- `NODE_DEFAULT_VOID: true` is accepted but currently has no effect: nodes are only ever built for
+  productions and expansions annotated with a `#Name` descriptor, with or without the option.
 
 Two further options appear above; both have sensible defaults, so you can leave them out:
 

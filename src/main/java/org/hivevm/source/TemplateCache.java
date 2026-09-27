@@ -30,7 +30,7 @@ final class TemplateCache {
             if (stream == null) {
                 throw new IOException("Invalid template name: " + path);
             }
-            return new Template(stream.readAllBytes());
+            return new Template(path, stream.readAllBytes());
         } catch (IOException e) {
             throw new TemplateException("Failed to render " + path, e);
         }

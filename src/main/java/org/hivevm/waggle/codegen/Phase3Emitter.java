@@ -77,7 +77,7 @@ public class Phase3Emitter {
                 // there's no need to check it below for "e_nrw" and "ntexp". In
                 // fact, we rely here on the fact that the "name" fields of both these
                 // variables are the same.
-                var ntprod = data.getProduction(e_nrw.getName());
+                var ntprod = e_nrw.getProd();
                 var ntexp = ntprod.getExpansion();
                 this.syntax.failIfCall(printer, this.parser.genjj_3Call(ntexp), failure);
             }

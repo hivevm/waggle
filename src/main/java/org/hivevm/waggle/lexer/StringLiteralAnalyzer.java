@@ -13,8 +13,8 @@ import org.hivevm.waggle.model.RChoice;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.RStringLiteral;
 
-import java.util.Hashtable;
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.TreeMap;
 
 /**
  * Handles string literal DFA construction and lexer validation.
@@ -25,7 +25,6 @@ class StringLiteralAnalyzer {
      * Builds the charPosKind table for a string literal (used for top-level string literals).
      */
     static void generateDfa(NfaStateData data, RStringLiteral rstring) {
-        String s;
         int len;
 
         if (data.maxStrKind <= rstring.getOrdinal()) {
@@ -36,26 +35,18 @@ class StringLiteralAnalyzer {
             data.maxLen = len;
         }
 
-        char c;
         for (int i = 0; i < len; i++) {
-            if (data.ignoreCase()) {
-                s = ("" + (c = rstring.getImage().charAt(i))).toLowerCase(Locale.ENGLISH);
-            } else {
-                s = "" + (c = rstring.getImage().charAt(i));
-            }
+            char c = rstring.getImage().charAt(i);
+            insertKind(data, i, len, data.ignoreCase() ? Character.toLowerCase(c) : c,
+                    rstring.getOrdinal());
 
-            insertKind(data, i, len, s, rstring.getOrdinal());
-
-            if (!data.ignoreCase() && data.global.ignoreCase[rstring.getOrdinal()] && (c
-                    != Character.toLowerCase(c))) {
-                s = ("" + rstring.getImage().charAt(i)).toLowerCase(Locale.ENGLISH);
-                insertKind(data, i, len, s, rstring.getOrdinal());
-            }
-
-            if (!data.ignoreCase() && data.global.ignoreCase[rstring.getOrdinal()] && (c
-                    != Character.toUpperCase(c))) {
-                s = ("" + rstring.getImage().charAt(i)).toUpperCase(Locale.ENGLISH);
-                insertKind(data, i, len, s, rstring.getOrdinal());
+            if (!data.ignoreCase() && data.global.ignoreCase[rstring.getOrdinal()]) {
+                if (c != Character.toLowerCase(c)) {
+                    insertKind(data, i, len, Character.toLowerCase(c), rstring.getOrdinal());
+                }
+                if (c != Character.toUpperCase(c)) {
+                    insertKind(data, i, len, Character.toUpperCase(c), rstring.getOrdinal());
+                }
             }
         }
 
@@ -65,21 +56,15 @@ class StringLiteralAnalyzer {
     }
 
     /**
-     * Records {@code ordinal} at position {@code i} of the charPosKind table under key {@code s},
+     * Records {@code ordinal} at position {@code i} of the charPosKind table under key {@code c},
      * as a final kind when it is the last character of the literal and a valid kind otherwise.
      */
-    private static void insertKind(NfaStateData data, int i, int len, String s, int ordinal) {
-        Hashtable<String, NfaStateData.KindInfo> temp;
-        NfaStateData.KindInfo info;
-        if (i >= data.charPosKind.size()) { // Kludge, but OK
-            data.charPosKind.add(temp = new Hashtable<>());
-        } else { // Kludge, but OK
-            temp = data.charPosKind.get(i);
+    private static void insertKind(NfaStateData data, int i, int len, char c, int ordinal) {
+        if (i >= data.charPosKind.size()) {
+            data.charPosKind.add(new TreeMap<>());
         }
-
-        if ((info = temp.get(s)) == null) {
-            temp.put(s, info = new KindInfo(data.global.maxOrdinal));
-        }
+        KindInfo info = data.charPosKind.get(i)
+                .computeIfAbsent(c, key -> new KindInfo(data.global.maxOrdinal));
 
         if ((i + 1) == len) {
             info.InsertFinalKind(ordinal);
@@ -97,8 +82,6 @@ class StringLiteralAnalyzer {
         data.subStringAtPos = new boolean[data.maxLen];
 
         for (int i = 0; i < data.maxStrKind; i++) {
-            data.subString[i] = false;
-
             if (((image = data.global.getImage(i)) == null) || (data.global.getState(i)
                     != data.getStateIndex())) {
                 continue;
@@ -114,11 +97,8 @@ class StringLiteralAnalyzer {
                 String imageJ;
                 if ((j != i) && (data.global.getState(j) == data.getStateIndex())
                         && ((imageJ = data.global.getImage(j)) != null)) {
-                    if (imageJ.indexOf(image) == 0) {
-                        data.subString[i] = true;
-                        data.subStringAtPos[image.length() - 1] = true;
-                        break;
-                    } else if (data.ignoreCase() && startsWithIgnoreCase(imageJ, image)) {
+                    if (imageJ.startsWith(image)
+                            || (data.ignoreCase() && startsWithIgnoreCase(imageJ, image))) {
                         data.subString[i] = true;
                         data.subStringAtPos[image.length() - 1] = true;
                         break;
@@ -188,9 +168,7 @@ class StringLiteralAnalyzer {
             cycle = new StringBuilder();
             reList = new StringBuilder();
 
-            for (k = 0; k < data.maxLexStates; k++) {
-                seen[k] = false;
-            }
+            Arrays.fill(seen, false);
 
             j = i;
             seen[i] = true;
@@ -225,24 +203,18 @@ class StringLiteralAnalyzer {
             }
 
             data.hasLoop = true;
+            RExpression re = data.rexprs[data.initMatch[i]];
+            String warning = "Regular expression"
+                    + (re.getLabel().isEmpty() ? "" : (" for " + re.getLabel()))
+                    + " can be matched by the empty string (\"\") in lexical state "
+                    + data.getStateName(i) + ". ";
             if (len == 0) {
-                data.diagnostics().warning(data.rexprs[data.initMatch[i]],
-                        "Regular expression"
-                                + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
-                                : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
-                                + " can be matched by the empty string (\"\") in lexical state "
-                                + data.getStateName(i)
-                                + ". This can result in an endless loop of " + "empty string matches.");
+                data.diagnostics().warning(re,
+                        warning + "This can result in an endless loop of empty string matches.");
             } else {
-                data.diagnostics().warning(data.rexprs[data.initMatch[i]],
-                        "Regular expression"
-                                + ((data.rexprs[data.initMatch[i]].getLabel().equals("")) ? ""
-                                : (" for " + data.rexprs[data.initMatch[i]].getLabel()))
-                                + " can be matched by the empty string (\"\") in lexical state "
-                                + data.getStateName(i)
-                                + ". This regular expression along with the " + "regular expressions at "
-                                + reList
-                                + " forms the cycle \n   " + cycle
+                data.diagnostics().warning(re,
+                        warning + "This regular expression along with the regular expressions at "
+                                + reList + " forms the cycle \n   " + cycle
                                 + "\ncontaining regular expressions with empty matches."
                                 + " This can result in an endless loop of empty string matches.");
             }
@@ -255,25 +227,16 @@ class StringLiteralAnalyzer {
      * rendered the DFA — after the literal images they quote had already been pruned.
      */
     static void checkShadowedLiterals(NfaStateData data) {
-        int maxLongsReqd = (data.getMaxStrKind() / 64) + 1;
         for (int i = 0; i < data.getMaxLen(); i++) {
-            Hashtable<String, KindInfo> tab = data.getCharPosKind(i);
-            for (String key : NfaStateData.reArrange(tab)) {
-                KindInfo info = tab.get(key);
-                if (data.isPlainSkip(info, i, key.charAt(0)) || !info.hasFinalKindCnt()) {
+            for (var entry : data.getCharPosKind(i).entrySet()) {
+                KindInfo info = entry.getValue();
+                if (data.isPlainSkip(info, i, entry.getKey()) || !info.hasFinalKindCnt()) {
                     continue;
                 }
 
-                for (int j = 0; j < maxLongsReqd; j++) {
-                    for (int k = 0; k < 64; k++) {
-                        int kind = (j * 64) + k;
-                        if ((info.finalKinds[j] & (1L << k)) == 0L) {
-                            continue;
-                        }
-                        if (data.isShadowedByIntermediate(i, kind)
-                                || data.isShadowedByAnyChar(i, kind)) {
-                            warnShadowed(data.global, kind, data.kindToPrint(i, kind));
-                        }
+                for (int kind : info.finalKindsAscending()) {
+                    if (data.isShadowedByIntermediate(i, kind) || data.isShadowedByAnyChar(i, kind)) {
+                        warnShadowed(data.global, kind, data.kindToPrint(i, kind));
                     }
                 }
             }

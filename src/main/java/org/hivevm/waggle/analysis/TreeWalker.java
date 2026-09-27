@@ -27,40 +27,39 @@ import org.hivevm.waggle.model.Sequence;
 import org.hivevm.waggle.model.ZeroOrMore;
 import org.hivevm.waggle.model.ZeroOrOne;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 /**
- * Objects of this type are passed to the tree walker routines in ExpansionTreeWalker.
+ * Walks an expansion tree, calling an action on every node it visits.
  */
-interface TreeWalker {
+final class TreeWalker {
+
+    private TreeWalker() {
+    }
 
     /**
-     * When called at a particular node, this specifies to the tree walker if it should visit more
-     * nodes under this node.
+     * Visits the nodes of the tree rooted at "node" in pre- or post-order: {@code action} runs on a
+     * node before its children, or with {@code post} after them. The children of a node are
+     * visited only when {@code goDeeper} holds for it.
      */
-    boolean goDeeper(Expansion e);
-
-    /**
-     * When a node is visited, this method is invoked with the node as parameter.
-     */
-    void action(Expansion e);
-
-    /**
-     * Visits the nodes of the tree rooted at "node" in pre/post-order. i.e., it executes
-     * opObj.action first and then visits the children.
-     */
-    static void walk(Expansion node, TreeWalker walker, boolean post) {
+    static void walk(Expansion node, Predicate<Expansion> goDeeper, Consumer<Expansion> action,
+            boolean post) {
         if (!post)
-            walker.action(node);
+            action.accept(node);
 
-        if (walker.goDeeper(node)) {
+        if (goDeeper.test(node)) {
             switch (node) {
                 case Choice choice ->
-                        choice.getChoices().forEach(o -> TreeWalker.walk(o, walker, post));
+                        choice.getChoices().forEach(o -> TreeWalker.walk(o, goDeeper, action, post));
                 case Sequence sequence ->
-                        sequence.getUnits().forEach(o -> TreeWalker.walk(o, walker, post));
-                case OneOrMore oneOrMore -> TreeWalker.walk(oneOrMore.getExpansion(), walker, post);
+                        sequence.getUnits().forEach(o -> TreeWalker.walk(o, goDeeper, action, post));
+                case OneOrMore oneOrMore ->
+                        TreeWalker.walk(oneOrMore.getExpansion(), goDeeper, action, post);
                 case ZeroOrMore zeroOrMore ->
-                        TreeWalker.walk(zeroOrMore.getExpansion(), walker, post);
-                case ZeroOrOne zeroOrOne -> TreeWalker.walk(zeroOrOne.getExpansion(), walker, post);
+                        TreeWalker.walk(zeroOrMore.getExpansion(), goDeeper, action, post);
+                case ZeroOrOne zeroOrOne ->
+                        TreeWalker.walk(zeroOrOne.getExpansion(), goDeeper, action, post);
 
                 case Lookahead lookahead -> {
                     // Skip the lookahead's own expansion when it is the sequence this node opens,
@@ -68,19 +67,22 @@ interface TreeWalker {
                     Expansion nested = lookahead.getLaExpansion();
                     if (!((nested instanceof Sequence sequence)
                             && (sequence.getUnits().getFirst() == node))) {
-                        TreeWalker.walk(nested, walker, post);
+                        TreeWalker.walk(nested, goDeeper, action, post);
                     }
                 }
 
                 case RChoice choice ->
-                        choice.getChoices().forEach(o -> TreeWalker.walk(o, walker, post));
+                        choice.getChoices().forEach(o -> TreeWalker.walk(o, goDeeper, action, post));
                 case RSequence sequence ->
-                        sequence.getUnits().forEach(o -> TreeWalker.walk(o, walker, post));
-                case ROneOrMore oneOrMore -> TreeWalker.walk(oneOrMore.getRegexpr(), walker, post);
+                        sequence.getUnits().forEach(o -> TreeWalker.walk(o, goDeeper, action, post));
+                case ROneOrMore oneOrMore ->
+                        TreeWalker.walk(oneOrMore.getRegexpr(), goDeeper, action, post);
                 case RZeroOrMore zeroOrMore ->
-                        TreeWalker.walk(zeroOrMore.getRegexpr(), walker, post);
-                case RZeroOrOne zeroOrOne -> TreeWalker.walk(zeroOrOne.getRegexpr(), walker, post);
-                case RRepetitionRange range -> TreeWalker.walk(range.getRegexpr(), walker, post);
+                        TreeWalker.walk(zeroOrMore.getRegexpr(), goDeeper, action, post);
+                case RZeroOrOne zeroOrOne ->
+                        TreeWalker.walk(zeroOrOne.getRegexpr(), goDeeper, action, post);
+                case RRepetitionRange range ->
+                        TreeWalker.walk(range.getRegexpr(), goDeeper, action, post);
 
                 // Leaves: nothing to descend into.
                 case Action a -> { }
@@ -94,6 +96,6 @@ interface TreeWalker {
         }
 
         if (post)
-            walker.action(node);
+            action.accept(node);
     }
 }

@@ -16,7 +16,6 @@ import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.model.RStringLiteral;
 
 import java.util.List;
-import java.util.function.IntToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -30,10 +29,6 @@ import java.util.stream.IntStream;
  * answers are Java's, which is why the Java back end overrides almost nothing.
  */
 public interface TargetSyntax {
-
-    default String self() {
-        return "";
-    }
 
     /** Adds one state, checking first that it is not already in the set. */
     default void printCheckNAdd(LinePrinter printer, int state) {
@@ -90,11 +85,6 @@ public interface TargetSyntax {
     /** "the bit for the current character is not set in mask" */
     default String bitIsClear(long mask) {
         return "(" + toHexString(mask) + " & l) == 0L";
-    }
-
-    /** "the kind matched so far is weaker than kind" */
-    default String kindIsWeakerThan(int kind) {
-        return "kind > " + kind;
     }
 
     /** The call that tests whether a non-ASCII character can move out of "state". */
@@ -284,6 +274,7 @@ public interface TargetSyntax {
         printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
     }
 
+    /** The trace of the character the token manager is looking at. */
     default void printDebugCurrentCharacter(LinePrinter printer, LexerData data) {
         printer.println("debugStream.println("
                 + (data.maxLexStates() > 1 ? "\"<\" + lexStateNames[curLexState] + \">\" + " : "")
@@ -327,22 +318,6 @@ public interface TargetSyntax {
         printer.println("};");
     }
 
-    /** Emits one {@code jjto…} bit vector, 64 token kinds per element, 4 elements per line. */
-    default void dumpBitVector(LinePrinter printer, LexerData data, String name,
-                               IntToLongFunction bits) {
-        printBitVectorOpen(printer, data, name);
-        printer.indent();
-        for (int i = 0; i < ((data.maxOrdinal() / 64) + 1); i++) {
-            if ((i % 4) == 0) {
-                printer.println();
-            }
-            printer.print(toHexString(bits.applyAsLong(i)) + ", ");
-        }
-        printer.println();
-        printer.outdent();
-        printArrayClose(printer);
-    }
-
     /** Renders one entry of the token-image table. */
     default void printTokenImage(LinePrinter printer, String image) {
         printer.print("\"" + image + "\"");
@@ -365,25 +340,20 @@ public interface TargetSyntax {
         }
     }
 
-    /** The signature of {@code jjStopStringLiteralDfa}. */
-    default void printStopStringLiteralDfaSignature(LinePrinter printer, NfaStateData data,
-                                                      int maxKindsReqd) {
-        printer.print("private final int jjStopStringLiteralDfa" + data.getLexerStateSuffix()
-                + "(int pos");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", " + longType() + " active" + i);
-        }
-        printer.println(") {");
+    /**
+     * The signature of {@code jjStopStringLiteralDfa} or {@code jjStartNfa}, both of which take the
+     * position and the active vectors.
+     */
+    default void printPosAndActivesSignature(LinePrinter printer, NfaStateData data, String name,
+                                               int maxKindsReqd) {
+        printer.println("private final int " + name + "(int pos, " + activeParameters(maxKindsReqd)
+                + ") {");
     }
 
-    /** The signature of {@code jjStartNfa}. */
-    default void printStartNfaSignature(LinePrinter printer, NfaStateData data,
-                                          int maxKindsReqd) {
-        printer.print("private final int jjStartNfa" + data.getLexerStateSuffix() + "(int pos");
-        for (int i = 0; i < maxKindsReqd; i++) {
-            printer.print(", " + longType() + " active" + i);
-        }
-        printer.println(") {");
+    /** {@code long active0, long active1, …} — the active vectors as parameters. */
+    default String activeParameters(int maxKindsReqd) {
+        return IntStream.range(0, maxKindsReqd).mapToObj(i -> longType() + " active" + i)
+                .collect(Collectors.joining(", "));
     }
 
     /** Hands the position the string-literal DFA stopped at over to the NFA. */
@@ -445,12 +415,6 @@ public interface TargetSyntax {
     default void printDebugNoMoreStringLiteralMatches(LinePrinter printer) {
         printer.println(
                 "debugStream.println(\"   No more string literal token matches are possible.\");");
-    }
-
-    /** {@code active0, active1, …} — the arguments the two functions above are called with. */
-    static String activeArguments(int maxKindsReqd) {
-        return IntStream.range(0, maxKindsReqd).mapToObj(i -> "active" + i)
-                .collect(Collectors.joining(", "));
     }
 
     /** The declaration of the trivial jjMoveStringLiteralDfa0, used when there is nothing to match. */
@@ -534,17 +498,6 @@ public interface TargetSyntax {
         return "0L";
     }
 
-    /** The call that records how far the string-literal DFA got. */
-    default String stopStringLiteralDfaCall(NfaStateData data, int i) {
-        return "jjStopStringLiteralDfa" + data.getLexerStateSuffix() + "(" + (i - 1) + ", ";
-    }
-
-    /** The call that hands control to the NFA. */
-    default String moveNfaCall(NfaStateData data, int position) {
-        return "jjMoveNfa" + data.getLexerStateSuffix() + "(" + InitStateName(data) + ", " + position
-                + ")";
-    }
-
     /** The trace of what has been matched so far. */
     default void printDebugCurrentlyMatched(LinePrinter printer) {
         printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
@@ -569,16 +522,6 @@ public interface TargetSyntax {
     /** The default case. */
     default void printDefaultCaseOpen(LinePrinter printer) {
         printer.println("default: {");
-    }
-
-    /** The trace of the character the token manager is looking at. */
-    default void printDebugCurrentCharacter(LinePrinter printer, NfaStateData data) {
-        printer.println("debugStream.println("
-                        + (data.global.maxLexStates() > 1
-                        ? "\"<\" + lexStateNames[curLexState] + \">\" + "
-                        : "")
-                        + "\"Current character : \" + TokenException.addEscapes(String.valueOf((char) curChar)) + \" (\" + (int)curChar + \") "
-                        + "at line \" + input_stream.getEndLine() + \" column \" + input_stream.getEndColumn());");
     }
 
     /** The trace saying that no string literal can match any more. */
@@ -609,11 +552,6 @@ public interface TargetSyntax {
     /** The column the current token started on. */
     default String beginColumn() {
         return inputStream() + "getBeginColumn()";
-    }
-
-    /** The position matched so far, unqualified. */
-    default String matchedPosVar() {
-        return "jjmatchedPos";
     }
 
     /** The table of string-literal images. */
@@ -665,13 +603,9 @@ public interface TargetSyntax {
         printer.println("      image.setLength(0);");
     }
 
-    /** Leaves that case. A Rust match arm falls out on its own. */
-    default void printActionBreak(LinePrinter printer) {
-        printer.println("         break;");
-    }
-
-    /** Closes that case. */
+    /** Leaves and closes that case. */
     default void printActionCaseEnd(LinePrinter printer) {
+        printer.println("         break;");
     }
 
     /** Reports the empty-match loop the lexer has run into. */
@@ -687,7 +621,7 @@ public interface TargetSyntax {
      * back at the same line and column with nothing consumed, it is looping.
      */
     default void printEmptyLoopCheck(LinePrinter printer, LexerData data, int i) {
-        printer.println("         if (" + matchedPosVar() + " == -1)");
+        printer.println("         if (" + matchedPos() + " == -1)");
         printer.println("         {");
         printer.println("            if (jjbeenHere[" + data.getState(i) + "] &&");
         printer.println("                jjemptyLineNo[" + data.getState(i) + "] == " + beginLine() + " &&");
@@ -708,7 +642,7 @@ public interface TargetSyntax {
                     + "].length();");
         } else {
             printer.println("(" + inputStream() + getSuffix() + "(" + imageLen() + " + (" + lengthOfMatch()
-                    + " = " + matchedPosVar() + " + 1)));");
+                    + " = " + matchedPos() + " + 1)));");
         }
     }
 
@@ -840,29 +774,11 @@ public interface TargetSyntax {
         return "0x" + Long.toHexString(value) + "L";
     }
 
-    // Assumes l != 0L
-    static char MaxChar(long l) {
-        for (int i = 64; i-- > 0; ) {
-            if ((l & (1L << i)) != 0L) {
-                return (char) i;
-            }
-        }
-        return 0xffff;
-    }
-
-    default String getLohiBytes(LexerData data, int i) {
-        return String.join(", ",
-                toHexString(data.getLohiByte(i, 0)),
-                toHexString(data.getLohiByte(i, 1)),
-                toHexString(data.getLohiByte(i, 2)),
-                toHexString(data.getLohiByte(i, 3)));
-    }
-
     /** The name of the composite state the NFA starts in, or -1 when it has no epsilon moves. */
     default int InitStateName(NfaStateData data) {
         if (data.getInitialState().usefulEpsilonMoves == 0) {
             return -1;
         }
-        return data.stateNameForComposite.get(data.getInitialState().GetEpsilonMovesString());
+        return data.compositeStateName(data.getInitialState().epsilonMovesString);
     }
 }

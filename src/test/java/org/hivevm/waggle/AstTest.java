@@ -4,7 +4,6 @@
 package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.api.ParserBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,17 +12,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -67,12 +60,8 @@ class AstTest {
         var source = AstTest.dir.resolve("Waggle.waggle");
         Files.writeString(source, grammar.replace(anchor, AstTest.TREE_OPTIONS));
 
-        AstTest.generated = AstTest.dir.resolve("generated");
-        new ParserBuilder()
-                .setLanguage(Language.JAVA)
-                .setParserFile(source.toFile())
-                .setTargetDir(AstTest.generated.toFile())
-                .build().parse();
+        AstTest.generated = GeneratedSources.generate(source, Language.JAVA,
+                AstTest.dir.resolve("generated"));
     }
 
     /** Every node descriptor of the grammar becomes a node class, and the visitor is written. */
@@ -109,22 +98,6 @@ class AstTest {
     /** The parser, the nodes and the visitor compile against the hand-written base parser. */
     @Test
     void theGeneratedTreeCompiles() throws IOException {
-        List<File> sources;
-        try (Stream<Path> paths = Files.walk(AstTest.generated)) {
-            sources = paths.filter(p -> p.toString().endsWith(".java")).map(Path::toFile).toList();
-        }
-
-        var compiler = ToolProvider.getSystemJavaCompiler();
-        var diagnostics = new DiagnosticCollector<JavaFileObject>();
-        try (var files = compiler.getStandardFileManager(diagnostics, null, null)) {
-            var classes = Files.createDirectories(AstTest.dir.resolve("classes"));
-            var ok = compiler.getTask(null, files, diagnostics, List.of("-d", classes.toString()),
-                    null, files.getJavaFileObjectsFromFiles(sources)).call();
-
-            var errors = diagnostics.getDiagnostics().stream()
-                    .filter(d -> d.getKind() == Diagnostic.Kind.ERROR)
-                    .map(Object::toString).collect(Collectors.joining("\n"));
-            assertTrue(ok, "the generated tree does not compile:\n" + errors);
-        }
+        GeneratedSources.javac(AstTest.generated, AstTest.dir.resolve("classes"));
     }
 }

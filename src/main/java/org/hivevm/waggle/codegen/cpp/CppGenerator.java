@@ -3,7 +3,7 @@
 
 package org.hivevm.waggle.codegen.cpp;
 
-import org.hivevm.waggle.codegen.FileGenerator;
+import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.codegen.LexerGenerator;
@@ -25,37 +25,35 @@ public class CppGenerator extends GeneratorProvider {
     }
 
     @Override
-    public final LexerGenerator newLexerGenerator() {
+    protected final LexerGenerator newLexerGenerator() {
         return new CppLexerGenerator();
     }
 
     @Override
-    public final ParserGenerator newParserGenerator() {
+    protected final ParserGenerator newParserGenerator() {
         return new CppParserGenerator();
     }
 
     @Override
-    protected final FileGenerator newFileGenerator() {
-        return context -> {
-            CppTemplate.WAGGLE.render(context.options());
+    protected final void emitRuntime(Options options) {
+        CppTemplate.WAGGLE.render(options);
 
-            CppTemplate.TOKEN.render(context.options());
-            CppTemplate.TOKEN_H.render(context.options());
-            CppTemplate.TOKENMANAGER.render(context.options());
-            CppTemplate.TOKENNANAGERERROR.render(context.options());
-            CppTemplate.TOKENNANAGERERROR_H.render(context.options());
-            CppTemplate.TOKENNANAGERHANDLER.render(context.options());
-            CppTemplate.TOKENNANAGERHANDLER_H.render(context.options());
+        CppTemplate.TOKEN.render(options);
+        CppTemplate.TOKEN_H.render(options);
+        CppTemplate.TOKENMANAGER.render(options);
+        CppTemplate.TOKENNANAGERERROR.render(options);
+        CppTemplate.TOKENNANAGERERROR_H.render(options);
+        CppTemplate.TOKENNANAGERHANDLER.render(options);
+        CppTemplate.TOKENNANAGERHANDLER_H.render(options);
 
-            CppTemplate.READER.render(context.options());
-            CppTemplate.STRINGREADER.render(context.options());
-            CppTemplate.STRINGREADER_H.render(context.options());
+        CppTemplate.READER.render(options);
+        CppTemplate.STRINGREADER.render(options);
+        CppTemplate.STRINGREADER_H.render(options);
 
-            CppTemplate.PARSEEXCEPTION.render(context.options());
-            CppTemplate.PARSEEXCEPTION_H.render(context.options());
-            CppTemplate.PARSERHANDLER.render(context.options());
-            CppTemplate.PARSERHANDLER_H.render(context.options());
-        };
+        CppTemplate.PARSEEXCEPTION.render(options);
+        CppTemplate.PARSEEXCEPTION_H.render(options);
+        CppTemplate.PARSERHANDLER.render(options);
+        CppTemplate.PARSERHANDLER_H.render(options);
     }
 
     @Override

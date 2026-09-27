@@ -10,7 +10,8 @@ import org.hivevm.source.Renderer.MatchRenderer;
 import org.hivevm.source.Renderer.TextRenderer;
 import org.hivevm.source.Renderer.VarRenderer;
 
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A builder class for constructing a tree of renderers that can dynamically generate output based
@@ -22,26 +23,25 @@ import java.util.Stack;
  */
 class RendererBuilder {
 
-    private static final String DEFAULT = "_";
-
     private final String template;
-    private final Stack<Renderer> stack;
+    /** The open blocks, innermost last; the root list renderer is always the first. */
+    private final List<Renderer> stack;
 
     /**
      * Constructs a new instance of the RendererBuilder for the named template.
      */
     public RendererBuilder(String template) {
         this.template = template;
-        this.stack = new Stack<Renderer>();
-        this.stack.push(new ListRenderer());
+        this.stack = new ArrayList<>();
+        this.stack.add(new ListRenderer());
     }
 
     /**
      * Adds renderer to current list or for-each renderer
      */
     protected final <R extends Renderer> R addRenderer(R renderer) {
-        var peek = stack.peek();
-        if (peek instanceof ListRenderer(java.util.List<Renderer> nodes)) {
+        var peek = stack.getLast();
+        if (peek instanceof ListRenderer(List<Renderer> nodes)) {
             nodes.add(renderer);
         } else if (peek instanceof ForEachRenderer forech) {
             forech.renderer().nodes().add(renderer);
@@ -57,8 +57,8 @@ class RendererBuilder {
     }
 
     /**
-     * Adds a block of text to the renderer. The provided text will be handled as raw content and
-     * included in the rendered output as-is, without any additional processing or interpretation.
+     * Changes the indentation of the lines that follow by {@code intend} levels; a negative value
+     * outdents.
      */
     public final RendererBuilder setIntend(int intend) {
         addRenderer(new IndentRenderer(intend));
@@ -92,11 +92,11 @@ class RendererBuilder {
      */
     public final RendererBuilder addMatch(String expression) {
         var renderer = addRenderer(new MatchRenderer());
-        stack.push(renderer);
+        stack.add(renderer);
 
         var list = new ListRenderer();
         renderer.nodes().put(expression, list);
-        stack.push(list);
+        stack.add(list);
 
         return this;
     }
@@ -112,17 +112,17 @@ class RendererBuilder {
         if ((stack.size() < 2) || !(stack.get(stack.size() - 2) instanceof MatchRenderer)) {
             throw new TemplateException("//@elif or //@else outside an //@if");
         }
-        stack.pop();
-        var peek = (MatchRenderer) stack.peek();
+        stack.removeLast();
+        var peek = (MatchRenderer) stack.getLast();
         var renderer = new ListRenderer();
         // The branches sit in a map: a second //@else, or an //@elif repeating a condition, used to
         // replace the earlier branch instead of being reported.
-        if (peek.nodes().putIfAbsent(expression != null ? expression : DEFAULT, renderer) != null) {
+        if (peek.nodes().putIfAbsent(expression != null ? expression : MatchRenderer.DEFAULT, renderer) != null) {
             throw new TemplateException(expression != null
                     ? "//@elif(" + expression + ") repeats a condition of its //@if"
                     : "a second //@else in one //@if");
         }
-        stack.push(renderer);
+        stack.add(renderer);
         return this;
     }
 
@@ -134,7 +134,7 @@ class RendererBuilder {
      */
     public final RendererBuilder addForeach(String param) {
         var renderer = addRenderer(new ForEachRenderer(param));
-        stack.push(renderer);
+        stack.add(renderer);
         return this;
     }
 
@@ -147,7 +147,7 @@ class RendererBuilder {
             throw new TemplateException(template
                     + ": //@fi or //@end without a matching //@if or //@foreach");
         }
-        stack.pop();
+        stack.removeLast();
         return this;
     }
 
@@ -163,6 +163,6 @@ class RendererBuilder {
             throw new TemplateException(template + ": " + (stack.size() - 1)
                     + " block(s) left open — a //@fi or //@end is missing");
         }
-        return stack.pop();
+        return stack.removeLast();
     }
 }

@@ -8,8 +8,8 @@
 package org.hivevm.waggle.codegen.cpp;
 
 import org.hivevm.waggle.api.OptionsContext;
-import org.hivevm.source.Context;
 import org.hivevm.source.LinePrinter;
+import org.hivevm.source.TemplateSet;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.model.NodeScope;
@@ -30,7 +30,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
     @Override
     public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
-        // NODE_FACTORY is rejected in emitRuntime.
+        // NODE_FACTORY is rejected in validate.
         printer.println(nodeClass + " *" + ScopeVariables.node(ns) + " = new " + nodeClass + "("
                 + ns.getNodeDescriptor().getNodeId() + ");");
 
@@ -65,7 +65,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
     @Override
     public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
-        printer.println("} catch (...) {"); // " + ns.exceptionVar + ") {");
+        printer.println("} catch (...) {");
         printer.println("  if (" + ScopeVariables.closed(ns) + ") {");
         printer.println("    jjtree.clearNodeScope(" + ScopeVariables.node(ns) + ");");
         printer.println("    " + ScopeVariables.closed(ns) + " = false;");
@@ -98,11 +98,11 @@ public class CppTreeEmitter implements TreeEmitter {
         generateVisitors(context, tree, data);
 
         // TreeClasses
-        generateNode(context, tree);
-        generateNodeInterface(context, tree);
-        generateTree(context, tree);
+        renderWithVisitorTypes(CppTemplate.NODE, context, tree);
+        renderWithVisitorTypes(CppTemplate.NODE_H, context, tree);
+        renderWithVisitorTypes(CppTemplate.TREE, context, tree);
         generateTreeNodes(context, tree, data.getNodesToGenerate());
-        generateOneTreeInterface(context, tree, data.getNodesToGenerate());
+        generateOneTreeInterface(context, data.getNodesToGenerate());
     }
 
     private void generateTreeState(Options context) {
@@ -117,7 +117,6 @@ public class CppTreeEmitter implements TreeEmitter {
                 .set("LABEL", i -> data.getNodeIds().get(i));
         options.add("NODE_NAMES", data.getNodeNames().size())
                 .set("ORDINAL", i -> i)
-                .set("label", i -> data.getNodeNames().get(i))
                 .set("CHARS", i -> CppTreeEmitter.toCharArray(data.getNodeNames().get(i)));
         options.set(Waggle.CPP_DEFINE, context.getParserName().toUpperCase(Locale.ROOT));
 
@@ -153,18 +152,20 @@ public class CppTreeEmitter implements TreeEmitter {
      * Sets the three visitor-type options on a render context, computing the return type once
      * instead of the three repeated {@code getVisitorReturnType} lookups the call sites used to do.
      */
-    private static void applyVisitorTypes(Context optionMap, TreeOptions tree) {
+    private static void applyVisitorTypes(OptionsContext optionMap, TreeOptions tree) {
         var returnType = CppTreeEmitter.getVisitorReturnType(tree);
         optionMap.set(Waggle.VISITOR_RETURN_TYPE, returnType);
         optionMap.set(Waggle.VISITOR_DATA_TYPE, CppTreeEmitter.getVisitorArgumentType(tree));
         optionMap.set(Waggle.VISITOR_RETURN_TYPE_VOID, returnType.equals("void"));
     }
 
-    private void generateNode(Options context, TreeOptions tree) {
-        var optionMap = OptionsContext.of(context);
-        CppTreeEmitter.applyVisitorTypes(optionMap, tree);
+    /** Renders a tree runtime file that needs nothing beyond the visitor types. */
+    private static void renderWithVisitorTypes(TemplateSet.Source<Options> template, Options context,
+                                               TreeOptions tree) {
+        var options = OptionsContext.of(context);
+        CppTreeEmitter.applyVisitorTypes(options, tree);
 
-        CppTemplate.NODE.render(optionMap);
+        template.render(options);
     }
 
     private void generateTreeNodes(Options context, TreeOptions tree, Set<String> nodesToGenerate) {
@@ -184,28 +185,8 @@ public class CppTreeEmitter implements TreeEmitter {
         }
     }
 
-    /**
-     * The base class the generated node classes extend. Defaults to the generated {@code Node}, so
-     * that a grammar which does not supply a NODE_CLASS still yields compilable node classes.
-     */
-    private void generateNodeInterface(Options context, TreeOptions tree) {
+    private void generateOneTreeInterface(Options context, Set<String> nodesToGenerate) {
         var optionMap = OptionsContext.of(context);
-        CppTreeEmitter.applyVisitorTypes(optionMap, tree);
-
-        CppTemplate.NODE_H.render(optionMap);
-    }
-
-    private void generateTree(Options context, TreeOptions tree) {
-        var optionMap = OptionsContext.of(context);
-        CppTreeEmitter.applyVisitorTypes(optionMap, tree);
-        optionMap.set(Waggle.NODE_TYPE, "Tree");
-
-        CppTemplate.TREE.render(optionMap);
-    }
-
-    private void generateOneTreeInterface(Options context, TreeOptions tree, Set<String> nodesToGenerate) {
-        var optionMap = OptionsContext.of(context);
-        CppTreeEmitter.applyVisitorTypes(optionMap, tree);
         optionMap.add("NODES", nodesToGenerate).set("NODES_NAME", v -> v);
 
         CppTemplate.TREE_ONE.render(optionMap, context.getParserName());

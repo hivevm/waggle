@@ -3,8 +3,6 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.api.ParserBuilder;
-
 import org.hivevm.waggle.api.Language;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -193,15 +191,7 @@ class MultiTargetGenerationTest {
     }
 
     private static Path generate(Language language, Path dir, String grammar) throws IOException {
-        var source = dir.resolve("Example.waggle");
-        Files.writeString(source, grammar);
-
-        var target = dir.resolve("out-" + language);
-        new ParserBuilder()
-                .setLanguage(language)
-                .setParserFile(source.toFile())
-                .setTargetDir(target.toFile())
-                .build().parse();
-        return target;
+        return GeneratedSources.generate(dir.resolve("Example.waggle"), grammar, language,
+                dir.resolve("out-" + language));
     }
 }

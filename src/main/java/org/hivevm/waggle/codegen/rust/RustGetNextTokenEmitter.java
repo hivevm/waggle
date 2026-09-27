@@ -35,11 +35,11 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
                     + "u64 & (1u64 << self.cur_char)) != 0) || ((self.cur_char >> 6) == 1 && (0x"
                     + Long.toHexString(upper) + "u64 & (1u64 << (self.cur_char & 0o77))) != 0)";
         } else if (upper == 0L) {
-            condition = "self.cur_char <= " + (int) TargetSyntax.MaxChar(lower) + " && (0x"
+            condition = "self.cur_char <= " + (int) MaxChar(lower) + " && (0x"
                     + Long.toHexString(lower) + "u64 & (1u64 << self.cur_char)) != 0";
         } else {
             condition = "self.cur_char > 63 && self.cur_char <= "
-                    + (TargetSyntax.MaxChar(upper) + 64) + " && (0x" + Long.toHexString(upper)
+                    + (MaxChar(upper) + 64) + " && (0x" + Long.toHexString(upper)
                     + "u64 & (1u64 << (self.cur_char & 0o77))) != 0";
         }
 
@@ -61,59 +61,47 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printInitialMatch(LinePrinter printer, LexerData data, int state) {
-        if (hasInitialMatch(data, state)) {
-            if (data.getDebugTokenManager()) {
-                printer.println("eprintln!(\"   Matched the empty string as {} token.\", "
-                        + "TOKEN_IMAGE[" + data.initMatch(state) + "]);");
-            }
-            printer.println("self.jjmatched_kind = " + data.initMatch(state) + ";");
-            printer.println("self.jjmatched_pos = usize::MAX;");
-            printer.println("cur_pos = 0;");
-        } else {
-            printer.println("self.jjmatched_kind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-            printer.println("self.jjmatched_pos = 0;");
-        }
+    protected void printDebugEmptyStringMatched(LinePrinter printer, int kind) {
+        printer.println("eprintln!(\"   Matched the empty string as {} token.\", "
+                + "TOKEN_IMAGE[" + kind + "]);");
     }
 
     @Override
-    protected void printCanMatchAnyChar(LinePrinter printer, LexerData data, int state) {
-        int kind = data.canMatchAnyChar(state);
-        if (hasInitialMatch(data, state)) {
-            printer.println("if self.jjmatched_pos == usize::MAX || (self.jjmatched_pos == 0"
-                    + " && self.jjmatched_kind > " + kind + ") {");
-        } else {
-            printer.println("if self.jjmatched_pos == 0 && self.jjmatched_kind > " + kind + " {");
-        }
-        printer.indent();
-
-        if (data.getDebugTokenManager()) {
-            printer.println("eprintln!(\"   Current character matched as a {} token.\", "
-                    + "TOKEN_IMAGE[" + kind + "]);");
-        }
-        printer.println("self.jjmatched_kind = " + kind + ";");
-
-        if (hasInitialMatch(data, state)) {
-            printer.println("self.jjmatched_pos = 0;");
-        }
-
-        printer.outdent();
-        printer.println("}");
+    protected void printDebugCurrentCharacterMatched(LinePrinter printer, int kind) {
+        printer.println("eprintln!(\"   Current character matched as a {} token.\", "
+                + "TOKEN_IMAGE[" + kind + "]);");
     }
 
     @Override
-    protected void printBackupBlock(LinePrinter printer, LexerData data) {
-        printer.println("if self.jjmatched_pos.wrapping_add(1) < cur_pos {");
-        printer.indent();
+    protected void printDebugPuttingBack(LinePrinter printer) {
+        printer.println("eprintln!(\"   Putting back {} characters into the input stream.\", "
+                + charsPastMatch() + ");");
+    }
 
-        if (data.getDebugTokenManager()) {
-            printer.println("eprintln!(\"   Putting back {} characters into the input stream.\", "
-                    + "cur_pos - self.jjmatched_pos.wrapping_add(1));");
-        }
+    @Override
+    protected String curPos() {
+        return "cur_pos";
+    }
 
-        printer.println("self.input_stream.backup(cur_pos - self.jjmatched_pos.wrapping_add(1));");
-        printer.outdent();
-        printer.println("}");
+    /** The position is unsigned: one before 0 wraps around. */
+    @Override
+    protected String noMatchPos() {
+        return "usize::MAX";
+    }
+
+    @Override
+    protected String isNoMatchPos() {
+        return this.syntax.matchedPos() + " == usize::MAX";
+    }
+
+    @Override
+    protected String matchLength() {
+        return this.syntax.matchedPos() + ".wrapping_add(1)";
+    }
+
+    @Override
+    protected String charsPastMatch() {
+        return curPos() + " - " + matchLength();
     }
 
     @Override
@@ -257,6 +245,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     /** Rust needs braces around the body of an {@code if}. */
+    @Override
     protected void printNewLexState(LinePrinter printer) {
         printer.println("if JJNEW_LEX_STATE[self.jjmatched_kind as usize] != -1 {");
         printer.println("   self.cur_lex_state = JJNEW_LEX_STATE[self.jjmatched_kind as usize];");

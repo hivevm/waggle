@@ -34,15 +34,11 @@ class JavaParserGenerator extends ParserGenerator {
         options.add(Waggle.JAVA_IMPORTS, data.options().get(Waggle.JAVA_IMPORTS))
                 .set(Waggle.JAVA_IMPORTS + "_VALUE", i -> i);
 
-        options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
-                .set("TOKEN_MASKS_LA1_INDEX", i -> i)
-                .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : (32 * i) + " + ");
-
         JavaTemplate.PARSER.render(options);
     }
 
     @Override
-    protected String generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
+    protected void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
         Token t = p.getFirstToken();
         setup_token(t);
         printLeadingComments(printer, t);
@@ -60,12 +56,11 @@ class JavaParserGenerator extends ParserGenerator {
         printer.print(") throws ParseException");
 
         printer.print(" {");
-        return null;
     }
 
     /** Wraps the body of a production in the DEPTH_LIMIT guard and the DEBUG_PARSER trace. */
     @Override
-    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String returnType, Consumer<LinePrinter> consumer) {
+    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer) {
         if (data.getDepthLimit() > 0) {
             printer.println("if(++jj_depth > " + data.getDepthLimit() + ") {");
             printer.indent();
@@ -138,9 +133,6 @@ class JavaParserGenerator extends ParserGenerator {
 
     @Override
     protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
-        if (internalName(e).startsWith("jj_scan_token"))
-            return;
-
         printer.println("private boolean jj_3" + internalName(e) + "() {");
         printer.indent();
 
@@ -158,15 +150,7 @@ class JavaParserGenerator extends ParserGenerator {
             printer.indent();
         }
 
-        Expansion jj3_expansion = null;
-        if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {
-            if (data.getErrorReporting()) {
-                printer.print("if (!jj_rescan) ");
-            }
-            printer.println("trace_call(\"" + Encoding.escapeUnicode(np.getLhs(), Language.JAVA)
-                    + "(LOOKING AHEAD...)\");");
-            jj3_expansion = e;
-        }
+        Expansion jj3_expansion = traceLookingAhead(data, e, "", printer);
 
         phase3().emit(data, jj3_expansion, e, count, printer);
 

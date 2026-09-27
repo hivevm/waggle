@@ -8,6 +8,7 @@
 package org.hivevm.waggle.lexer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,12 +30,10 @@ public class NfaState {
     int lookingFor;
     public int usefulEpsilonMoves = 0;
     public int inNextOf;
-    public int lexState;
     public int nonAsciiMethod = -1;
     public int kindToPrint = Integer.MAX_VALUE;
-    public boolean dummy = false;
     public boolean isComposite = false;
-    public int[] compositeStates = null;
+    int[] compositeStates = null;
     boolean isFinal = false;
     public final List<Integer> loByteVec;
     public int[] nonAsciiMoveIndices;
@@ -46,7 +45,6 @@ public class NfaState {
     NfaState(NfaStateData data) {
         this.data = data;
         this.id = data.addAllState(this);
-        this.lexState = data.getStateIndex();
         this.lookingFor = data.global.getCurrentKind();
         this.loByteVec = new ArrayList<>();
         this.nonAsciiMoveIndices = new int[0];
@@ -57,29 +55,24 @@ public class NfaState {
         retVal.isFinal = this.isFinal;
         retVal.kind = this.kind;
         retVal.lookingFor = this.lookingFor;
-        retVal.lexState = this.lexState;
         retVal.inNextOf = this.inNextOf;
         retVal.MergeMoves(this);
         return retVal;
     }
 
-    private static void InsertInOrder(List<NfaState> v, NfaState s) {
+    /** Inserts {@code s} by id unless it is there already; ids are unique within a lexical state. */
+    private static boolean InsertInOrder(List<NfaState> v, NfaState s) {
         int j;
 
         for (j = 0; j < v.size(); j++) {
             if (v.get(j).id > s.id)
                 break;
             else if (v.get(j).id == s.id)
-                return;
+                return false;
         }
 
         v.add(j, s);
-    }
-
-    private static char[] ExpandCharArr(char[] oldArr, int incr) {
-        char[] ret = new char[oldArr.length + incr];
-        System.arraycopy(oldArr, 0, ret, 0, oldArr.length);
-        return ret;
+        return true;
     }
 
     void AddMove(NfaState newState) {
@@ -88,7 +81,7 @@ public class NfaState {
     }
 
     private void AddASCIIMove(char c) {
-        this.asciiMoves[c / 64] |= (1L << (c % 64));
+        Bits.set(this.asciiMoves, c);
     }
 
     void AddChar(char c) {
@@ -110,7 +103,7 @@ public class NfaState {
         int len = this.charMoves.length;
 
         if (this.charMoves[len - 1] != 0) {
-            this.charMoves = NfaState.ExpandCharArr(this.charMoves, 10);
+            this.charMoves = Arrays.copyOf(this.charMoves, this.charMoves.length + 10);
             len += 10;
         }
 
@@ -156,7 +149,7 @@ public class NfaState {
         int len = this.rangeMoves.length;
 
         if (this.rangeMoves[len - 1] != 0) {
-            this.rangeMoves = NfaState.ExpandCharArr(this.rangeMoves, 20);
+            this.rangeMoves = Arrays.copyOf(this.rangeMoves, this.rangeMoves.length + 20);
             len += 20;
         }
 
@@ -186,39 +179,28 @@ public class NfaState {
 
     // From hereon down all the functions are used for code generation
 
-    private static boolean EqualCharArr(char[] arr1, char[] arr2) {
-        if (arr1 == arr2)
-            return true;
-
-        if ((arr1 != null) && (arr2 != null) && (arr1.length == arr2.length)) {
-            for (int i = arr1.length; i-- > 0; ) {
-                if (arr1[i] != arr2[i])
-                    return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
     private boolean closureDone = false;
 
     /**
      * This function computes the closure and also updates the kind so that any time there is a move
      * to this state, it can go on epsilon to a new state in the epsilon moves that might have a
-     * lower kind of token number for the same length.
+     * lower kind of token number for the same length. Returns whether an epsilon move was added,
+     * in which case the closure has to be computed again.
+     *
+     * @param mark the states this pass has visited, by id
      */
-
-    private void EpsilonClosure(NfaStateData data) {
+    private boolean EpsilonClosure(boolean[] mark) {
         int i;
 
-        if (this.closureDone || data.mark[this.id])
-            return;
+        if (this.closureDone || mark[this.id])
+            return false;
 
-        data.mark[this.id] = true;
+        mark[this.id] = true;
 
         // Recursively do closure
+        boolean grown = false;
         for (i = 0; i < this.epsilonMoves.size(); i++) {
-            this.epsilonMoves.get(i).EpsilonClosure(data);
+            grown |= this.epsilonMoves.get(i).EpsilonClosure(mark);
         }
 
         // Indexed, not iterated: InsertInOrder below grows the very list being walked, which a
@@ -228,9 +210,8 @@ public class NfaState {
 
             for (i = 0; i < tmp.epsilonMoves.size(); i++) {
                 NfaState tmp1 = tmp.epsilonMoves.get(i);
-                if (tmp1.UsefulState() && !this.epsilonMoves.contains(tmp1)) {
-                    NfaState.InsertInOrder(this.epsilonMoves, tmp1);
-                    data.done = false;
+                if (tmp1.UsefulState() && NfaState.InsertInOrder(this.epsilonMoves, tmp1)) {
+                    grown = true;
                 }
             }
 
@@ -238,8 +219,9 @@ public class NfaState {
                 this.kind = tmp.kind;
         }
 
-        if (HasTransitions() && !this.epsilonMoves.contains(this))
+        if (HasTransitions())
             NfaState.InsertInOrder(this.epsilonMoves, this);
+        return grown;
     }
 
     private boolean UsefulState() {
@@ -317,31 +299,26 @@ public class NfaState {
         return newState;
     }
 
-    private NfaState GetEquivalentRunTimeState(NfaStateData data) {
-        Outer:
-        for (int i = data.getAllStateCount(); i-- > 0; ) {
-            NfaState other = data.getAllState(i);
+    private NfaState GetEquivalentRunTimeState() {
+        for (int i = this.data.getAllStateCount(); i-- > 0; ) {
+            NfaState other = this.data.getAllState(i);
 
-            if ((this != other) && (other.stateName != -1) && (this.kindToPrint
-                    == other.kindToPrint)
-                    && (this.asciiMoves[0] == other.asciiMoves[0]) && (this.asciiMoves[1]
-                    == other.asciiMoves[1])
-                    && NfaState.EqualCharArr(this.charMoves, other.charMoves)
-                    && NfaState.EqualCharArr(this.rangeMoves, other.rangeMoves)) {
-                if (this.next == other.next)
-                    return other;
-                else if (((this.next != null) && (other.next != null))
-                        && (this.next.epsilonMoves.size() == other.next.epsilonMoves.size())) {
-                    for (int j = 0; j < this.next.epsilonMoves.size(); j++) {
-                        if (this.next.epsilonMoves.get(j) != other.next.epsilonMoves.get(j)) {
-                            continue Outer;
-                        }
-                    }
-                    return other;
-                }
+            if ((this != other) && (other.stateName != -1) && (this.kindToPrint == other.kindToPrint)
+                    && sameMoves(other) && ((this.next == other.next)
+                    || ((this.next != null) && (other.next != null)
+                    && this.next.epsilonMoves.equals(other.next.epsilonMoves)))) {
+                return other;
             }
         }
         return null;
+    }
+
+    /** Whether the two states move on the same characters. */
+    private boolean sameMoves(NfaState other) {
+        return (this.asciiMoves[0] == other.asciiMoves[0])
+                && (this.asciiMoves[1] == other.asciiMoves[1])
+                && Arrays.equals(this.charMoves, other.charMoves)
+                && Arrays.equals(this.rangeMoves, other.rangeMoves);
     }
 
     // generates code (without outputting it) and returns the name used.
@@ -356,16 +333,16 @@ public class NfaState {
         }
 
         if ((this.stateName == -1) && HasTransitions()) {
-            NfaState tmp = GetEquivalentRunTimeState(this.data);
+            NfaState tmp = GetEquivalentRunTimeState();
 
             if (tmp != null) {
                 this.stateName = tmp.stateName;
-                this.dummy = true;
                 return;
             }
 
             this.stateName = this.data.addIndexedState(this);
-            GenerateNextStatesCode();
+            if (this.next.usefulEpsilonMoves > 0)
+                this.next.GetEpsilonMovesString();
         }
     }
 
@@ -374,35 +351,27 @@ public class NfaState {
             NfaState tmp = data.getAllState(i);
 
             if (!tmp.closureDone)
-                tmp.OptimizeEpsilonMoves(data, true);
+                tmp.OptimizeEpsilonMoves(true);
         }
 
         for (int index = 0; index < data.getAllStateCount(); index++) {
             NfaState tmp = data.getAllState(index);
             if (!tmp.closureDone)
-                tmp.OptimizeEpsilonMoves(data, false);
+                tmp.OptimizeEpsilonMoves(false);
         }
     }
 
-    private void OptimizeEpsilonMoves(NfaStateData data, boolean optReqd) {
+    private void OptimizeEpsilonMoves(boolean optReqd) {
         int i;
 
         // First do epsilon closure
-        data.done = false;
-        while (!data.done) {
-            if ((data.mark == null) || (data.mark.length < data.getAllStateCount()))
-                data.mark = new boolean[data.getAllStateCount()];
+        boolean[] mark;
+        do {
+            mark = new boolean[this.data.getAllStateCount()];
+        } while (EpsilonClosure(mark));
 
-            for (i = data.getAllStateCount(); i-- > 0; ) {
-                data.mark[i] = false;
-            }
-
-            data.done = true;
-            EpsilonClosure(data);
-        }
-
-        for (i = data.getAllStateCount(); i-- > 0; ) {
-            data.getAllState(i).closureDone = data.mark[data.getAllState(i).id];
+        for (i = this.data.getAllStateCount(); i-- > 0; ) {
+            this.data.getAllState(i).closureDone = mark[this.data.getAllState(i).id];
         }
 
         // Warning : The following piece of code is just an optimization.
@@ -420,12 +389,8 @@ public class NfaState {
             for (i = 0; optReqd && (i < this.epsilonMoves.size()); i++) {
                 if ((tmp1 = this.epsilonMoves.get(i)).HasTransitions()) {
                     for (j = i + 1; j < this.epsilonMoves.size(); j++) {
-                        if ((tmp2 = this.epsilonMoves.get(j)).HasTransitions() && (
-                                (tmp1.asciiMoves[0] == tmp2.asciiMoves[0])
-                                        && (tmp1.asciiMoves[1] == tmp2.asciiMoves[1])
-                                        && NfaState.EqualCharArr(
-                                        tmp1.charMoves, tmp2.charMoves)
-                                        && NfaState.EqualCharArr(tmp1.rangeMoves, tmp2.rangeMoves))) {
+                        if ((tmp2 = this.epsilonMoves.get(j)).HasTransitions()
+                                && tmp1.sameMoves(tmp2)) {
                             if (equivStates == null) {
                                 equivStates = new ArrayList<>();
                                 equivStates.add(tmp1);
@@ -445,9 +410,9 @@ public class NfaState {
                     }
                     String tmp = sb.toString();
 
-                    if ((newState = data.equivStatesTable.get(tmp)) == null) {
+                    if ((newState = this.data.equivStatesTable.get(tmp)) == null) {
                         newState = CreateEquivState(equivStates);
-                        data.equivStatesTable.put(tmp, newState);
+                        this.data.equivStatesTable.put(tmp, newState);
                     }
 
                     this.epsilonMoves.remove(i--);
@@ -498,48 +463,48 @@ public class NfaState {
         }
     }
 
-    private void GenerateNextStatesCode() {
-        if (this.next.usefulEpsilonMoves > 0)
-            this.next.GetEpsilonMovesString();
-    }
-
-    public String GetEpsilonMovesString() {
-        int[] stateNames = new int[this.usefulEpsilonMoves];
-        int cnt = 0;
-
+    String GetEpsilonMovesString() {
         if (this.epsilonMovesString != null)
             return this.epsilonMovesString;
 
-        if (this.usefulEpsilonMoves > 0) {
-            NfaState tempState;
-            var sb = new StringBuilder("{ ");
-            for (NfaState element : this.epsilonMoves) {
-                if ((tempState = element).HasTransitions()) {
-                    if (tempState.stateName == -1)
-                        tempState.GenerateCode();
+        int[] stateNames = new int[this.usefulEpsilonMoves];
+        int cnt = 0;
 
-                    this.data.getIndexedState(tempState.stateName).inNextOf++;
-                    stateNames[cnt] = tempState.stateName;
-                    sb.append(tempState.stateName).append(", ");
-                    if ((cnt++ > 0) && ((cnt % 16) == 0))
-                        sb.append("\n");
+        if (this.usefulEpsilonMoves > 0) {
+            for (NfaState element : this.epsilonMoves) {
+                if (element.HasTransitions()) {
+                    if (element.stateName == -1)
+                        element.GenerateCode();
+
+                    this.data.getIndexedState(element.stateName).inNextOf++;
+                    stateNames[cnt++] = element.stateName;
                 }
             }
-
-            sb.append("};");
-            this.epsilonMovesString = sb.toString();
+            this.epsilonMovesString = NfaState.stateSetKey(Arrays.copyOf(stateNames, cnt));
         }
 
         this.usefulEpsilonMoves = cnt;
-        if ((this.epsilonMovesString != null) && (this.data.getNextStates(this.epsilonMovesString)
-                == null)) {
-            int[] statesToPut = new int[this.usefulEpsilonMoves];
-
-            System.arraycopy(stateNames, 0, statesToPut, 0, cnt);
-            this.data.setNextStates(this.epsilonMovesString, statesToPut);
+        if ((this.epsilonMovesString != null)
+                && (this.data.getNextStates(this.epsilonMovesString) == null)) {
+            this.data.setNextStates(this.epsilonMovesString, Arrays.copyOf(stateNames, cnt));
         }
 
         return this.epsilonMovesString;
+    }
+
+    /**
+     * The key a set of state names is known by: {@code "{ a, b, };"}, with a line break after every
+     * sixteenth name. The key orders hash tables whose order reaches the generated lexer, so its
+     * format must not change.
+     */
+    static String stateSetKey(int[] stateNames) {
+        var sb = new StringBuilder("{ ");
+        for (int i = 0; i < stateNames.length; i++) {
+            sb.append(stateNames[i]).append(", ");
+            if (((i + 1) % 16) == 0)
+                sb.append("\n");
+        }
+        return sb.append("};").toString();
     }
 
     private boolean CanMoveUsingChar(char c) {
@@ -549,7 +514,7 @@ public class NfaState {
             return c == this.matchSingleChar;
 
         if (c < 128)
-            return ((this.asciiMoves[c / 64] & (1L << (c % 64))) != 0L);
+            return Bits.test(this.asciiMoves, c);
 
         // Just check directly if there is a move for this char
         if ((this.charMoves != null) && (this.charMoves[0] != 0)) {
@@ -596,37 +561,6 @@ public class NfaState {
         return retVal;
     }
 
-    static boolean EqualLoByteVectors(List<Integer> vec1, List<Integer> vec2) {
-        if ((vec1 == null) || (vec2 == null))
-            return false;
-
-        if (vec1 == vec2)
-            return true;
-
-        if (vec1.size() != vec2.size())
-            return false;
-
-        for (int i = 0; i < vec1.size(); i++) {
-            if (vec1.get(i).intValue() != vec2.get(i).intValue())
-                return false;
-        }
-        return true;
-    }
-
-    static boolean EqualNonAsciiMoveIndices(int[] moves1, int[] moves2) {
-        if (moves1 == moves2)
-            return true;
-
-        if ((moves1 == null) || (moves2 == null) || (moves1.length != moves2.length))
-            return false;
-
-        for (int i = 0; i < moves1.length; i++) {
-            if (moves1[i] != moves2[i])
-                return false;
-        }
-        return true;
-    }
-
     static int[] GetStateSetIndicesForUse(NfaStateData data, String arrayString) {
         int[] ret;
         int[] set = data.getNextStates(arrayString);
@@ -644,19 +578,16 @@ public class NfaState {
 
     /** The single ASCII move of {@code byteNum}, or -1 when there is not exactly one. */
     public final int onlyOneAsciiMove(int byteNum) {
-        return NfaState.OnlyOneBitSet(this.asciiMoves[byteNum]);
-    }
-
-    static int OnlyOneBitSet(long l) {
+        long l = this.asciiMoves[byteNum];
         return (Long.bitCount(l) == 1) ? Long.numberOfTrailingZeros(l) : -1;
     }
 
-    static int ElemOccurs(int elem, int[] arr) {
-        for (int i = arr.length; i-- > 0; ) {
-            if (arr[i] == elem)
-                return i;
+    static boolean contains(int[] arr, int elem) {
+        for (int e : arr) {
+            if (e == elem)
+                return true;
         }
-        return -1;
+        return false;
     }
 
     static boolean Intersect(NfaStateData data, String set1, String set2) {
@@ -685,6 +616,6 @@ public class NfaState {
         if ((this.next == null) || (this.next.epsilonMovesString == null))
             return false;
         int[] set = this.data.getNextStates(this.next.epsilonMovesString);
-        return NfaState.ElemOccurs(this.stateName, set) >= 0;
+        return NfaState.contains(set, this.stateName);
     }
 }

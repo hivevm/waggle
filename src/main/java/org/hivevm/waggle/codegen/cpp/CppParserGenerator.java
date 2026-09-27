@@ -50,7 +50,7 @@ class CppParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected String generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
+    protected void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
         Token t = p.getFirstToken();
 
         setup_token(t);
@@ -65,19 +65,18 @@ class CppParserGenerator extends ParserGenerator {
         printer.print(")");
 
         printer.print(" {");
-        // The value returned on error: 0 converts to most basic types.
-        return (returnType == null) ? "" : "0";
     }
 
     /** Wraps the body of a production in the DEPTH_LIMIT guard and the DEBUG_PARSER trace. */
     @Override
-    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, String default_return, Consumer<LinePrinter> consumer) {
+    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer) {
         boolean hasReturnErr = false;
         boolean voidReturn = (p.getReturnTypeToken() == null);
         if ((data.getDepthLimit() > 0) && !voidReturn) {
             String method_name = p.getLhs();
             printer.println("\n#if !defined ERROR_RET_" + method_name);
-            printer.println("#define ERROR_RET_" + method_name + " " + default_return);
+            // The value returned on error: 0 converts to most basic types.
+            printer.println("#define ERROR_RET_" + method_name + " 0");
             printer.println("#endif");
             printer.println("#define __ERROR_RET__ ERROR_RET_" + method_name);
             hasReturnErr = true;
@@ -129,9 +128,6 @@ class CppParserGenerator extends ParserGenerator {
 
     @Override
     protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
-        if (internalName(e).startsWith("jj_scan_token"))
-            return;
-
         printer.println(" inline bool jj_3" + internalName(e) + "()");
         printer.println(" {\n");
         printer.println("    if (jj_done) return true;");
@@ -139,15 +135,7 @@ class CppParserGenerator extends ParserGenerator {
             printer.println("#define __ERROR_RET__ true");
         }
 
-        Expansion jj3_expansion = null;
-        if (data.getDebugLookahead() && (e.parent() instanceof NormalProduction np)) {
-            String prefix = "    ";
-            if (data.getErrorReporting())
-                prefix += "if (!jj_rescan) ";
-            printer.println(prefix + "trace_call(\"" + Encoding.escapeUnicode(np.getLhs(), Language.CPP)
-                    + "(LOOKING AHEAD...)\");");
-            jj3_expansion = e;
-        }
+        Expansion jj3_expansion = traceLookingAhead(data, e, "    ", printer);
 
         phase3().emit(data, jj3_expansion, e, count, printer);
 

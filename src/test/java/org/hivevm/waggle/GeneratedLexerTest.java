@@ -4,7 +4,6 @@
 package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.api.ParserBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,20 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
-import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Runs a generated Java lexer on input, where the other tests only compile it or read its source.
@@ -232,31 +223,9 @@ class GeneratedLexerTest {
     }
 
     private static GeneratedLexer compile(Path dir, String name, String grammar) throws Exception {
-        Files.createDirectories(dir);
-        var source = dir.resolve(name);
-        Files.writeString(source, grammar);
-
-        var target = dir.resolve("generated");
-        new ParserBuilder().setLanguage(Language.JAVA).setTargetDir(target.toFile())
-                .setParserFile(source.toFile()).build().parse();
-
-        List<File> sources;
-        try (Stream<Path> paths = Files.walk(target)) {
-            sources = paths.filter(p -> p.toString().endsWith(".java")).map(Path::toFile)
-                    .collect(Collectors.toList());
-        }
-
-        var classes = Files.createDirectories(dir.resolve("classes"));
-        var compiler = ToolProvider.getSystemJavaCompiler();
-        var diagnostics = new DiagnosticCollector<JavaFileObject>();
-        try (var files = compiler.getStandardFileManager(diagnostics, null, null)) {
-            var ok = compiler.getTask(null, files, diagnostics, List.of("-d", classes.toString()),
-                    null, files.getJavaFileObjectsFromFiles(sources)).call();
-            assertTrue(ok, "the generated code does not compile:\n" + diagnostics.getDiagnostics());
-        }
-
-        var loader = new URLClassLoader(new java.net.URL[] {classes.toUri().toURL()},
-                GeneratedLexerTest.class.getClassLoader());
+        var target = GeneratedSources.generate(dir.resolve(name), grammar, Language.JAVA,
+                dir.resolve("generated"));
+        var loader = GeneratedSources.javac(target, dir.resolve("classes"));
         var lexer = loader.loadClass("org.example.Lexer");
         var stream = loader.loadClass("org.example.JavaCharStream");
         var provider = loader.loadClass("org.example.StringProvider");

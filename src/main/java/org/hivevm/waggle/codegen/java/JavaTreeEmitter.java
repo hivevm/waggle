@@ -103,7 +103,7 @@ public class JavaTreeEmitter implements TreeEmitter {
                 .set("NODES_ORDINAL", i -> i)
                 .set("NODES_LABEL", i -> data.getNodeIds().get(i));
 
-        JavaTemplate.NODETYPE.render(options, context.getParserName());
+        JavaTemplate.NODETYPE.render(options);
     }
 
     private void generateVisitors(Options context, TreeOptions tree, TreeModel data) {

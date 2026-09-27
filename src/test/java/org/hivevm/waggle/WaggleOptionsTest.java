@@ -3,20 +3,27 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.api.Waggle;
-
-import org.hivevm.waggle.api.WaggleOptions;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.hivevm.waggle.api.ParserOptions;
+import org.hivevm.waggle.api.Waggle;
+import org.hivevm.waggle.api.WaggleOptions;
 import org.hivevm.waggle.diag.DiagnosticSink;
 import org.hivevm.waggle.diag.Diagnostics;
+import org.hivevm.waggle.tree.TreeOptions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
- * Tests for option handling.
+ * The option map, and the typed views that read it (ADR-0019).
+ *
+ * <p>The views sit beside the map rather than replacing it: templates read option keys by name
+ * (ADR-0005), so the name-keyed environment is the template contract.
  */
 class WaggleOptionsTest {
 
@@ -50,6 +57,54 @@ class WaggleOptionsTest {
         options.setOption(diagnostics(), null, null, Waggle.LOOKAHEAD, 5);
 
         assertEquals(5, options.getLookahead());
+    }
+
+    @Test
+    void theDefaultsSurviveTheView() {
+        var parser = ParserOptions.from(new WaggleOptions());
+
+        assertEquals(1, parser.lookahead(), "LL(1) is the default");
+        assertTrue(parser.errorReporting());
+        assertTrue(parser.sanityCheck());
+        assertFalse(parser.debugParser());
+        assertFalse(parser.noDfa());
+        assertEquals(0, parser.depthLimit());
+    }
+
+    @Test
+    void aChangedOptionReachesTheView() {
+        var options = new WaggleOptions();
+        options.setOption(diagnostics(), null, null, Waggle.LOOKAHEAD, 3);
+        options.setOption(diagnostics(), null, null, Waggle.DEBUG_PARSER, Boolean.TRUE);
+
+        var parser = ParserOptions.from(options);
+
+        assertEquals(3, parser.lookahead());
+        assertTrue(parser.debugParser());
+    }
+
+    /** A list written with spaces after its commas names the same nodes as one without. */
+    @Test
+    void customNodeNamesAreTrimmed() {
+        var options = new WaggleOptions();
+        options.setOption(diagnostics(), null, null, Waggle.NODE_CUSTOM, "Foo, Bar ,");
+
+        assertEquals(Set.of("ASTFoo", "ASTBar"), TreeOptions.from(options).customNodes());
+    }
+
+    /** Option names are case-insensitive in every locale: "error_reporting" is ERROR_REPORTING. */
+    @Test
+    void optionNamesDoNotDependOnTheDefaultLocale() {
+        var saved = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            var options = new WaggleOptions();
+            options.setOption(diagnostics(), null, null, "error_reporting", Boolean.FALSE);
+
+            assertFalse(ParserOptions.from(options).errorReporting());
+        } finally {
+            Locale.setDefault(saved);
+        }
     }
 
     /** Option warnings belong to the caller's diagnostics; tests keep them off the console. */

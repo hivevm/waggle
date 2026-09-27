@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 
 /**
  * Tree code reaches the parser through one hook, and nothing else (ADR-0016).
@@ -25,11 +27,29 @@ import java.io.StringWriter;
  */
 class TreeEmissionTest {
 
+    /** A printer onto a writer that ignores indentation. */
+    private static final class Wrapper extends PrintWriter implements LinePrinter {
+
+        Wrapper(Writer writer) {
+            super(writer);
+        }
+
+        @Override
+        public LinePrinter indent() {
+            return this;
+        }
+
+        @Override
+        public LinePrinter outdent() {
+            return this;
+        }
+    }
+
     /** With no tree, the hook is what a back end without tree support also gets: nothing. */
     @Test
     void theEmptyDecoratorWritesNothing() {
         var writer = new StringWriter();
-        var printer = LinePrinter.wrap(writer);
+        var printer = new Wrapper(writer);
 
         ExpansionDecorator.NONE.beforeProduction(null, printer);
         ExpansionDecorator.NONE.beforeExpansion(null, printer);

@@ -17,6 +17,8 @@ import java.util.Set;
  */
 public interface SemanticRequest {
 
+    Options options();
+
     Diagnostics diagnostics();
 
     /** Restarts the token count at 1: kind 0 is always end of input. */

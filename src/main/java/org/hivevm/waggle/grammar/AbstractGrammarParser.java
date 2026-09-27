@@ -47,14 +47,12 @@ abstract class AbstractGrammarParser implements ParserConstants {
         this.inLocalLA = 0;
     }
 
-    /**
-     * Gets the options.
-     */
-    public WaggleOptions getOptions() {
-        throw new UnsupportedOperationException();
+    /** The options of this generation; a grammar's {@code options} block writes into them. */
+    protected final WaggleOptions getOptions() {
+        return this.data.options();
     }
 
-    public void initialize(GrammarData data) {
+    final void initialize(GrammarData data) {
         this.data = data;
     }
 
@@ -109,122 +107,44 @@ abstract class AbstractGrammarParser implements ParserConstants {
         }
     }
 
-    private static boolean hexchar(char ch) {
-        if (((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F'))) {
-            return true;
-        }
-        return (ch >= 'a') && (ch <= 'f');
-    }
-
-    private static int hexval(char ch) {
-        if ((ch >= '0') && (ch <= '9'))
-            return (ch) - ('0');
-        if ((ch >= 'A') && (ch <= 'F'))
-            return ((ch) - ('A')) + 10;
-        return ((ch) - ('a')) + 10;
-    }
-
+    /**
+     * The value of a string literal: the quotes dropped, the escapes resolved.
+     *
+     * <p>Only the escapes STRING_LITERAL admits reach here — {@code n t b r f \ ' "} and octal: the
+     * character stream resolves a Unicode escape before the lexer runs.
+     */
     protected String remove_escapes_and_quotes(Token t, String str) {
-        StringBuilder retval = new StringBuilder();
+        var retval = new StringBuilder();
         int index = 1;
-        char ch, ch1;
-        int ordinal;
         while (index < (str.length() - 1)) {
-            if (str.charAt(index) != '\\') {
-                retval.append(str.charAt(index));
-                index++;
+            char ch = str.charAt(index++);
+            if (ch != '\\') {
+                retval.append(ch);
                 continue;
             }
-            index++;
-            ch = str.charAt(index);
-            if (ch == 'b') {
-                retval.append('\b');
-                index++;
-                continue;
-            }
-            if (ch == 't') {
-                retval.append('\t');
-                index++;
-                continue;
-            }
-            if (ch == 'n') {
-                retval.append('\n');
-                index++;
-                continue;
-            }
-            if (ch == 'f') {
-                retval.append('\f');
-                index++;
-                continue;
-            }
-            if (ch == 'r') {
-                retval.append('\r');
-                index++;
-                continue;
-            }
-            if (ch == '"') {
-                retval.append('\"');
-                index++;
-                continue;
-            }
-            if (ch == '\'') {
-                retval.append('\'');
-                index++;
-                continue;
-            }
-            if (ch == '\\') {
-                retval.append('\\');
-                index++;
-                continue;
-            }
-            if ((ch >= '0') && (ch <= '7')) {
-                ordinal = (ch) - ('0');
-                index++;
-                ch1 = str.charAt(index);
-                if ((ch1 >= '0') && (ch1 <= '7')) {
-                    ordinal = ((ordinal * 8) + (ch1)) - ('0');
-                    index++;
-                    ch1 = str.charAt(index);
-                    if ((ch <= '3') && (ch1 >= '0') && (ch1 <= '7')) {
-                        ordinal = ((ordinal * 8) + (ch1)) - ('0');
+            ch = str.charAt(index++);
+            switch (ch) {
+                case 'b' -> retval.append('\b');
+                case 't' -> retval.append('\t');
+                case 'n' -> retval.append('\n');
+                case 'f' -> retval.append('\f');
+                case 'r' -> retval.append('\r');
+                case '"', '\'', '\\' -> retval.append(ch);
+                default -> {
+                    int ordinal = ch - '0';
+                    char ch1 = str.charAt(index);
+                    if ((ch1 >= '0') && (ch1 <= '7')) {
+                        ordinal = ((ordinal * 8) + ch1) - '0';
                         index++;
-                    }
-                }
-                retval.append((char) ordinal);
-                continue;
-            }
-            if (ch == 'u') {
-                index++;
-                ch = str.charAt(index);
-                if (AbstractGrammarParser.hexchar(ch)) {
-                    ordinal = AbstractGrammarParser.hexval(ch);
-                    index++;
-                    ch = str.charAt(index);
-                    if (AbstractGrammarParser.hexchar(ch)) {
-                        ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
-                        index++;
-                        ch = str.charAt(index);
-                        if (AbstractGrammarParser.hexchar(ch)) {
-                            ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
+                        ch1 = str.charAt(index);
+                        if ((ch <= '3') && (ch1 >= '0') && (ch1 <= '7')) {
+                            ordinal = ((ordinal * 8) + ch1) - '0';
                             index++;
-                            ch = str.charAt(index);
-                            if (AbstractGrammarParser.hexchar(ch)) {
-                                ordinal = (ordinal * 16) + AbstractGrammarParser.hexval(ch);
-                                index++;
-                                continue;
-                            }
                         }
                     }
+                    retval.append((char) ordinal);
                 }
-                diagnostics().error(t,
-                        "Encountered non-hex character '" + ch + "' at position " + index
-                                + " of string "
-                                + "- Unicode escape must have 4 hex digits after it.");
-                return retval.toString();
             }
-            diagnostics().error(t,
-                    "Illegal escape sequence '\\" + ch + "' at position " + index + " of string.");
-            return retval.toString();
         }
         return retval.toString();
     }

@@ -40,7 +40,7 @@ public class NfaMoveEmitter {
         printer.indent();
 
         if (data.generatedStates() == 0) {
-            printer.println("return curPos;");
+            printer.println("return " + curPos() + ";");
             printer.outdent();
             printer.println("}");
             return;
@@ -50,28 +50,24 @@ public class NfaMoveEmitter {
             this.syntax.printMoveNfaMixedPrologue(printer);
         }
 
-        printer.println("int startsAt = 0;");
-        printer.println("jjnewStateCnt = " + data.generatedStates() + ";");
-        printer.println("int i = 1;");
-        printer.println("jjstateSet[0] = startState;");
+        printMoveNfaLocals(printer, data);
 
         if (debug) {
             this.syntax.printDebugStartingNfa(printer);
-            this.syntax.printDebugCurrentCharacter(printer, data);
+            this.syntax.printDebugCurrentCharacter(printer, data.global);
         }
 
-        printer.println("int kind = " + noKind + ";");
+        printKindInit(printer, noKind);
         this.syntax.printForEver(printer);
         printer.indent();
-        printer.println("if (++jjround == " + noKind + ")");
-        printer.println("    ReInitRounds();");
+        printNextRound(printer, noKind);
 
-        printer.println("if (curChar < 64) {");
+        printer.println("if " + curCharBelow(64) + " {");
         printer.indent();
         DumpAsciiMoves(printer, data, 0);
         printer.outdent();
 
-        printer.println("} else if (curChar < 128) {");
+        printer.println("} else if " + curCharBelow(128) + " {");
         printer.indent();
         DumpAsciiMoves(printer, data, 1);
         printer.outdent();
@@ -82,12 +78,7 @@ public class NfaMoveEmitter {
         printer.outdent();
         printer.println("}");
 
-        printer.println("if (kind != " + noKind + ") {");
-        printer.println("    jjmatchedKind = kind;");
-        printer.println("    jjmatchedPos = curPos;");
-        printer.println("    kind = " + noKind + ";");
-        printer.println("}");
-        printer.println("curPos++;");
+        printCommitKind(printer, noKind);
 
         if (debug) {
             this.syntax.printDebugCurrentlyMatched(printer);
@@ -102,7 +93,7 @@ public class NfaMoveEmitter {
         this.syntax.printReadCharOrLeave(printer, data);
 
         if (debug) {
-            this.syntax.printDebugCurrentCharacter(printer, data);
+            this.syntax.printDebugCurrentCharacter(printer, data.global);
         }
         printer.outdent();
         printer.println("}");
@@ -131,8 +122,7 @@ public class NfaMoveEmitter {
         }
 
         for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (element.stateName == -1)
-                    || element.dummy || (state.stateName == element.stateName)
+            if ((state == element) || (state.stateName == element.stateName)
                     || (element.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
@@ -208,7 +198,7 @@ public class NfaMoveEmitter {
             if (onlyState) {
                 printer.println("kind = " + state.kindToPrint + ";");
             } else {
-                this.syntax.printIf(printer, this.syntax.kindIsWeakerThan(state.kindToPrint));
+                this.syntax.printIf(printer, "kind > " + state.kindToPrint);
                 printer.indent();
                 printer.println("kind = " + state.kindToPrint + ";");
                 printer.outdent();
@@ -288,7 +278,7 @@ public class NfaMoveEmitter {
             return;
         }
 
-        List<List<NfaState>> partition = PartitionStatesSetForAscii(data, nameSet, byteNum);
+        List<List<NfaState>> partition = data.asciiPartition(nameSet, byteNum);
 
         var cases = new ArrayList<String>();
         int keyState = data.compositeStateName(key);
@@ -378,8 +368,7 @@ public class NfaMoveEmitter {
         boolean nextIntersects = state.selfLoop() && state.isComposite;
 
         for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (element.stateName == -1) || element.dummy || (state.stateName
-                    == element.stateName)
+            if ((state == element) || (state.stateName == element.stateName)
                     || (element.nonAsciiMethod == -1)) {
                 continue;
             }
@@ -428,7 +417,7 @@ public class NfaMoveEmitter {
             printer.outdent();
             this.syntax.printEndIf(printer);
 
-            this.syntax.printIfNoBlock(printer, this.syntax.kindIsWeakerThan(state.kindToPrint));
+            this.syntax.printIfNoBlock(printer, "kind > " + state.kindToPrint);
             printer.indent();
             printer.println("kind = " + state.kindToPrint + ";");
             printer.outdent();
@@ -458,8 +447,7 @@ public class NfaMoveEmitter {
         boolean nextIntersects = state.selfLoop();
 
         for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
-                    == temp1.stateName)
+            if ((state == temp1) || (state.stateName == temp1.stateName)
                     || (temp1.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
@@ -488,7 +476,7 @@ public class NfaMoveEmitter {
                 printer.println("{");
             }
 
-            this.syntax.printIf(printer, this.syntax.kindIsWeakerThan(state.kindToPrint));
+            this.syntax.printIf(printer, "kind > " + state.kindToPrint);
             printer.indent();
             printer.println("kind = " + state.kindToPrint + ";");
             printer.outdent();
@@ -511,8 +499,7 @@ public class NfaMoveEmitter {
                                                    NfaState state) {
         boolean nextIntersects = state.selfLoop();
         for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (temp1.stateName == -1) || temp1.dummy || (state.stateName
-                    == temp1.stateName)
+            if ((state == temp1) || (state.stateName == temp1.stateName)
                     || (temp1.nonAsciiMethod == -1)) {
                 continue;
             }
@@ -530,7 +517,7 @@ public class NfaMoveEmitter {
         if (state.kindToPrint != Integer.MAX_VALUE) {
             printer.println("{");
             printer.indent();
-            this.syntax.printIf(printer, this.syntax.kindIsWeakerThan(state.kindToPrint));
+            this.syntax.printIf(printer, "kind > " + state.kindToPrint);
             printer.indent();
             printer.println("kind = " + state.kindToPrint + ";");
             printer.outdent();
@@ -547,7 +534,7 @@ public class NfaMoveEmitter {
     }
 
     protected void DumpAsciiMoves(LinePrinter printer, NfaStateData data, int byteNum) {
-        boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
+        boolean[] dumped = new boolean[data.stateNameCount()];
 
         DumpHeadForCase(printer, byteNum);
 
@@ -556,13 +543,7 @@ public class NfaMoveEmitter {
         }
 
         for (var element : data.getAllStates()) {
-            if (dumped[element.stateName] || (element.lexState != data.getStateIndex())
-                    || !element.HasTransitions() || element.dummy
-                    || (element.stateName == -1)) {
-                continue;
-            }
-
-            if (element.asciiMoves[byteNum] == 0L) {
+            if (dumped[element.stateName] || (element.asciiMoves[byteNum] == 0L)) {
                 continue;
             }
 
@@ -575,7 +556,7 @@ public class NfaMoveEmitter {
     }
 
     protected void DumpCharAndRangeMoves(LinePrinter printer, NfaStateData data) {
-        boolean[] dumped = new boolean[Math.max(data.generatedStates(), data.dummyStateIndex + 1)];
+        boolean[] dumped = new boolean[data.stateNameCount()];
 
         DumpHeadForCase(printer, -1);
 
@@ -583,16 +564,10 @@ public class NfaMoveEmitter {
             DumpCompositeStatesNonAsciiMoves(printer, data, s, dumped);
         }
 
-        for (var i = 0; i < data.getAllStateCount(); i++) {
-            var temp = data.getAllState(i);
-            if ((temp.stateName == -1) || dumped[temp.stateName]
-                    || (temp.lexState != data.getStateIndex())
-                    || !temp.HasTransitions() || temp.dummy) {
+        for (var temp : data.getAllStates()) {
+            if (dumped[temp.stateName] || (temp.nonAsciiMethod == -1)) {
                 continue;
             }
-
-            if (temp.nonAsciiMethod == -1)
-                continue;
 
             var cases = new ArrayList<String>();
             dumped[temp.stateName] = true;
@@ -603,59 +578,6 @@ public class NfaMoveEmitter {
         }
 
         this.syntax.printDefaultAndEndLoop(printer, true);
-    }
-
-    protected List<List<NfaState>> PartitionStatesSetForAscii(NfaStateData data, int[] states, int byteNum) {
-        var cardinalities = new int[states.length];
-        var original = new ArrayList<NfaState>();
-        var partition = new ArrayList<List<NfaState>>();
-        NfaState tmp;
-        int cnt = 0;
-        for (int i = 0; i < states.length; i++) {
-            tmp = data.getAllState(states[i]);
-
-            if (tmp.asciiMoves[byteNum] != 0L) {
-                int j;
-                int p = Long.bitCount(tmp.asciiMoves[byteNum]);
-
-                for (j = 0; j < i; j++) {
-                    if (cardinalities[j] <= p) {
-                        break;
-                    }
-                }
-
-                for (int k = i; k > j; k--) {
-                    cardinalities[k] = cardinalities[k - 1];
-                }
-
-                cardinalities[j] = p;
-                original.add(j, tmp);
-                cnt++;
-            }
-        }
-
-        while (!original.isEmpty()) {
-            tmp = original.getFirst();
-            original.remove(tmp);
-
-            long bitVec = tmp.asciiMoves[byteNum];
-            List<NfaState> subSet = new ArrayList<>();
-            subSet.add(tmp);
-
-            for (int j = 0; j < original.size(); j++) {
-                NfaState tmp1 = original.get(j);
-
-                if ((tmp1.asciiMoves[byteNum] & bitVec) == 0L) {
-                    bitVec |= tmp1.asciiMoves[byteNum];
-                    subSet.add(tmp1);
-                    original.remove(j--);
-                }
-            }
-
-            partition.add(subSet);
-        }
-
-        return partition;
     }
 
     /**
@@ -697,7 +619,46 @@ public class NfaMoveEmitter {
         }
     }
 
-    /** See {@link #this.syntax.printMoveNfaMixedPrologue(LinePrinter)}. */
+    /** The position the NFA has reached. */
+    protected String curPos() {
+        return "curPos";
+    }
+
+    /** The loop's locals, and the start state as the only state of the first round. */
+    protected void printMoveNfaLocals(LinePrinter printer, NfaStateData data) {
+        printer.println("int startsAt = 0;");
+        printer.println("jjnewStateCnt = " + data.generatedStates() + ";");
+        printer.println("int i = 1;");
+        printer.println("jjstateSet[0] = startState;");
+    }
+
+    /** The kind matched in the current round, none yet. */
+    protected void printKindInit(LinePrinter printer, String noKind) {
+        printer.println("int kind = " + noKind + ";");
+    }
+
+    /** Starts a round; the round counter wraps before it reaches {@code noKind}. */
+    protected void printNextRound(LinePrinter printer, String noKind) {
+        printer.println("if (++jjround == " + noKind + ")");
+        printer.println("    ReInitRounds();");
+    }
+
+    /** The test that the current character is below {@code bound}. */
+    protected String curCharBelow(int bound) {
+        return "(curChar < " + bound + ")";
+    }
+
+    /** Takes over the kind this round matched, and moves on by a character. */
+    protected void printCommitKind(LinePrinter printer, String noKind) {
+        printer.println("if (kind != " + noKind + ") {");
+        printer.println("    jjmatchedKind = kind;");
+        printer.println("    jjmatchedPos = curPos;");
+        printer.println("    kind = " + noKind + ";");
+        printer.println("}");
+        printer.println("curPos++;");
+    }
+
+    /** See {@link TargetSyntax#printMoveNfaMixedPrologue(LinePrinter)}. */
     protected void printMoveNfaMixedEpilogue(LinePrinter printer) {
         printer.print("""
                 if (jjmatchedPos > strPos)
