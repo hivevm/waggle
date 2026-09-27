@@ -121,15 +121,15 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("matched_token = self.jj_fill_token();");
 
         if (data.hasSpecial()) {
-            printer.println("matched_token.special = special_token.take();");
+            printer.println("matched_token.special = std::mem::take(&mut special_tokens);");
         }
         if (data.hasTokenActions()) {
-            printer.println("self.token_lexical_actions(&mut matched_token);");
+            printer.println("self.token_lexical_actions(&mut matched_token)?;");
         }
         if (data.maxLexStates() > 1) {
             printNewLexState(printer);
         }
-        printer.println("return matched_token;");
+        printer.println("return Ok(matched_token);");
     }
 
     @Override
@@ -147,31 +147,24 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
             printer.println("if " + RustLexerGenerator.bitVectorTest("JJTO_SPECIAL") + " {");
             printer.indent();
 
-            // Link the new special token behind the previous one: it points back at its
-            // predecessor, and the predecessor's "next" holds it. Both ends are shared, so the
-            // chain is Rc<RefCell<Token>> rather than the raw references Java gets away with.
-            printer.println("let token = Rc::new(RefCell::new(self.jj_fill_token()));");
-            printer.println("if let Some(previous) = special_token.take() {");
-            printer.println("    token.borrow_mut().special = Some(Rc::clone(&previous));");
-            printer.println("    previous.borrow_mut().next = Some(Rc::clone(&token));");
-            printer.println("}");
-            printer.println("special_token = Some(Rc::clone(&token));");
-
+            // The next token owns the special tokens before it (ADR-0030); Java chains them.
+            printer.println("let token = self.jj_fill_token();");
             if (data.hasSkipActions()) {
-                printer.println("self.skip_lexical_actions(Some(&token.borrow()));");
+                printer.println("self.skip_lexical_actions(Some(&token))?;");
             }
+            printer.println("special_tokens.push(token);");
 
             printer.outdent();
 
             if (data.hasSkipActions()) {
                 printer.println("} else {");
-                printer.println("    self.skip_lexical_actions(None);");
+                printer.println("    self.skip_lexical_actions(None)?;");
                 printer.println("}");
             } else {
                 printer.println("}");
             }
         } else if (data.hasSkipActions()) {
-            printer.println("self.skip_lexical_actions(None);");
+            printer.println("self.skip_lexical_actions(None)?;");
         }
 
         if (data.maxLexStates() > 1) {
@@ -186,7 +179,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     @Override
     protected void printMoreBranch(LinePrinter printer, LexerData data) {
         if (data.hasMoreActions()) {
-            printer.println("self.more_lexical_actions();");
+            printer.println("self.more_lexical_actions()?;");
         } else if (data.hasSkipActions() || data.hasTokenActions()) {
             printer.println("self.jjimage_len += self.jjmatched_pos.wrapping_add(1);");
         }
@@ -244,18 +237,22 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
                         error_after = self.input_stream.get_image();
                     }
                 }
-                // This used to return Token::empty(), which is <EOF>: the rest of the input was
-                // silently dropped. The message is the Java lexer's.
+                // A value, not a panic (ADR-0030); it used to be Token::empty(), which is <EOF>,
+                // so the rest of the input was silently dropped. The message is the Java lexer's.
                 let encountered = if eof_seen {
                     String::from("<EOF> ")
                 } else {
                     let c = char::from_u32(self.cur_char).unwrap_or(char::REPLACEMENT_CHARACTER);
-                    format!("\\"{}\\" ({}), ", c.escape_default(), self.cur_char)
+                    format!("\\"{}\\" ({}), ", add_escapes(&c.to_string()), self.cur_char)
                 };
-                panic!(
-                    "Lexical error at line {}, column {}.  Encountered: {}after : \\"{}\\"",
-                    error_line, error_column, encountered, error_after.escape_default()
-                );
+                return Err(LexicalError {
+                    line: error_line,
+                    column: error_column,
+                    message: format!(
+                        "Lexical error at line {}, column {}.  Encountered: {}after : \\"{}\\"",
+                        error_line, error_column, encountered, add_escapes(&error_after)
+                    ),
+                });
                 """);
     }
 

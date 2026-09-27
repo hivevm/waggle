@@ -256,9 +256,9 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                 syntax().consumeToken(printer);
                 if (re.getLabel().isEmpty()) {
                     String label = data.getNameOfToken(re.getOrdinal());
-                    printer.print(label != null ? label : "" + re.getOrdinal());
+                    printer.print(label != null ? syntax().tokenName(label) : "" + re.getOrdinal());
                 } else {
-                    printer.print(re.getLabel());
+                    printer.print(syntax().tokenName(re.getLabel()));
                 }
                 syntax().consumeTokenEnd(re, printer);
             }
@@ -363,7 +363,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
                     var cases = new ArrayList<String>();
                     for (int kind : step.tokens()) {
                         String name = data.getNameOfToken(kind);
-                        cases.add((name == null) ? "" + kind : name);
+                        cases.add((name == null) ? "" + kind : syntax().tokenName(name));
                     }
                     lookahead().oneToken(printer, state, action, data.getCacheTokens(), cases);
                     state = LookaheadState.OPENSWITCH;

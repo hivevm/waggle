@@ -79,14 +79,23 @@ class MultiTargetGenerationTest {
     }
 
     /**
-     * The Rust parser struct must declare the {@code jj_ntk} field it assigns to.
+     * The Rust parser must define every method it calls on itself. It once assigned to a jj_ntk
+     * field the struct did not declare; since ADR-0030 the parser has no such field, and
+     * RustParserTest compiles and runs it where rustc is at hand.
      */
     @Test
-    void rustDeclaresWhatItAssigns(@TempDir Path dir) throws IOException {
+    void rustDeclaresWhatItCalls(@TempDir Path dir) throws IOException {
         var target = generate(Language.RUST, dir);
         var parser = Files.readString(target.resolve("example").resolve("parser.rs"));
-        assertTrue(parser.contains("jj_ntk:"),
-                "the Rust parser struct has no jj_ntk field, but the code assigns to it");
+        var calls = java.util.regex.Pattern.compile("self\\.(\\w+)\\(").matcher(parser);
+        int count = 0;
+        while (calls.find()) {
+            count++;
+            var method = calls.group(1);
+            assertTrue(parser.contains("fn " + method + "("),
+                    "the Rust parser calls " + method + " but does not define it");
+        }
+        assertTrue(count > 0, "the Rust parser calls nothing on itself");
     }
 
     /**

@@ -44,6 +44,11 @@ public interface ParserSyntax {
         printer.println("xsp = jj_scanpos;");
     }
 
+    /** A token's name as the parser writes it: its constant, unless the target has to escape it. */
+    default String tokenName(String name) {
+        return name;
+    }
+
     /**
      * How a token is named in a scan call: by its constant when it has a name, by its ordinal
      * otherwise.

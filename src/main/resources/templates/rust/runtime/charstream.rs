@@ -4,6 +4,10 @@
 //
 // Derived from JavaCC 7.0.12: src/main/resources/templates/JavaCharStream.template
 
+// Generated code: names follow the grammar and JavaCC, and not every item is used by every grammar.
+#![allow(dead_code, non_snake_case, non_upper_case_globals, unused_imports, unused_mut)]
+#![allow(unused_variables, unused_assignments, unused_parens, unreachable_code)]
+
 use std::marker::PhantomData;
 
 /// The input of the lexer, read one character at a time.
@@ -50,9 +54,19 @@ impl<'a> CharStream<'a> {
 
 	/// Reads the first character of a token.
 	pub fn begin_token(&mut self) -> Result<char, std::io::Error> {
-		let c = self.read_char()?;
-		self.token_begin = self.pos as usize;
-		Ok(c)
+		match self.read_char() {
+			Ok(c) => {
+				self.token_begin = self.pos as usize;
+				Ok(c)
+			}
+			Err(error) => {
+				// <EOF> begins at the last character, as in Java.
+				if self.pos >= 0 {
+					self.token_begin = self.pos as usize;
+				}
+				Err(error)
+			}
+		}
 	}
 
 	/// Reads the next character, or fails at the end of the input, where the position stays.

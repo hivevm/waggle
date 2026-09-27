@@ -1,16 +1,34 @@
 // Copyright 2024 HiveVM.ORG. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Generated code: names follow the grammar and JavaCC, and not every item is used by every grammar.
+#![allow(dead_code, non_snake_case, non_upper_case_globals, unused_imports, unused_mut)]
+#![allow(unused_variables, unused_assignments, unused_parens, unreachable_code, unused_labels)]
+
 use crate::__RUST_MODULE__::charstream::CharStream;
-use crate::__RUST_MODULE__::token::Token;
+use crate::__RUST_MODULE__::token::{add_escapes, Token};
 //@if(DEBUG_TOKEN_MANAGER)
 use crate::__RUST_MODULE__::parserconstants::TOKEN_IMAGE;
 //@fi
 use std::cmp;
-//@if(HAS_SPECIAL)
-use std::cell::RefCell;
-use std::rc::Rc;
-//@fi
+use std::fmt;
+
+/// Input no token matches, or a lexer that went round an empty match for ever (ADR-0030). The
+/// message is the Java lexer's.
+#[derive(Clone, Debug)]
+pub struct LexicalError {
+	pub line: usize,
+	pub column: usize,
+	pub message: String,
+}
+
+impl fmt::Display for LexicalError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(&self.message)
+	}
+}
+
+impl std::error::Error for LexicalError {}
 
 //@foreach(LOHI_BYTES)
 const JJBIT_VEC__LOHI_BYTES_INDEX__: [u64; __LOHI_BYTES_LENGTH__] = [__LOHI_BYTES_VALUE__];
@@ -155,8 +173,10 @@ impl<'a> Lexer<'a> {
 			end_column = begin_column;
 //@fi
 		} else {
+			// No literal is empty, so "" stands for "none" here, except for <EOF>: its image is
+			// empty, as in Java. Reading it from the input gave the text before it.
 			let im: &str = JJSTR_LITERAL_IMAGES[self.jjmatched_kind as usize];
-			cur_token_image = if im.is_empty() {
+			cur_token_image = if im.is_empty() && self.jjmatched_kind != 0 {
 				self.input_stream.get_image()
 			} else {
 				im.to_string()
@@ -169,8 +189,10 @@ impl<'a> Lexer<'a> {
 //@fi
 		}
 //@else
+		// No literal is empty, so "" stands for "none" here, except for <EOF>: its image is empty,
+		// as in Java. Reading it from the input gave the text before it.
 		let im: &str = JJSTR_LITERAL_IMAGES[self.jjmatched_kind as usize];
-		let cur_token_image = if im == "" {
+		let cur_token_image = if im.is_empty() && self.jjmatched_kind != 0 {
 			self.input_stream.get_image()
 		} else {
 			im.to_string()
@@ -196,10 +218,10 @@ impl<'a> Lexer<'a> {
 //@fi
 	}
 
-	pub fn get_next_token(&mut self) -> Token {
+	pub fn get_next_token(&mut self) -> Result<Token, LexicalError> {
 //@if(HAS_SPECIAL)
-		// The special tokens form a doubly linked chain, so they are shared and mutable.
-		let mut special_token: Option<Rc<RefCell<Token>>> = None;
+		// The special tokens read before the next token, which owns them.
+		let mut special_tokens: Vec<Token> = Vec::new();
 //@fi
 		let mut matched_token: Token;
 		let mut cur_pos: usize = 0;
@@ -216,33 +238,38 @@ impl<'a> Lexer<'a> {
 				self.jjmatched_pos = usize::MAX;
 				matched_token = self.jj_fill_token();
 //@if(HAS_SPECIAL)
-				matched_token.special = special_token.take();
+				matched_token.special = std::mem::take(&mut special_tokens);
 //@fi
 			//@invoke(DUMP_GET_NEXT_TOKEN)
 		}
 	}
 
-	fn skip_lexical_actions(&mut self, matched_token: Option<&Token>) {
+	// The actions fail only when an empty match repeats for ever, which Java reports as a
+	// TokenMgrError out of the same place.
+	fn skip_lexical_actions(&mut self, matched_token: Option<&Token>) -> Result<(), LexicalError> {
 		match self.jjmatched_kind {
 			//@invoke(DUMP_SKIP_ACTIONS)
 			_ => {}
 		}
+		Ok(())
 	}
 
-	fn more_lexical_actions(&mut self) {
+	fn more_lexical_actions(&mut self) -> Result<(), LexicalError> {
 		self.length_of_match = self.jjmatched_pos.wrapping_add(1);
 		self.jjimage_len += self.length_of_match;
 		match self.jjmatched_kind {
 			//@invoke(DUMP_MORE_ACTIONS)
 			_ => {}
 		}
+		Ok(())
 	}
 
-	fn token_lexical_actions(&mut self, matched_token: &mut Token) {
+	fn token_lexical_actions(&mut self, matched_token: &mut Token) -> Result<(), LexicalError> {
 		match self.jjmatched_kind {
 			//@invoke(DUMP_TOKEN_ACTIONS)
 			_ => {}
 		}
+		Ok(())
 	}
 
 //@if(DEBUG_TOKEN_MANAGER)

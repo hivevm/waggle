@@ -189,36 +189,36 @@ class RustCompilesTest {
     @Test
     void generatedRustCompilesWithANonAsciiFinalState(@TempDir Path dir)
             throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.NON_ASCII_FINAL_STATE, "unit", dir);
+        assertCompiles(RustCompilesTest.NON_ASCII_FINAL_STATE, "unit", dir);
     }
 
     @Test
     void generatedRustCompilesWithTokenManagerTrace(@TempDir Path dir)
             throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.TRACE, "kw", dir);
+        assertCompiles(RustCompilesTest.TRACE, "kw", dir);
     }
 
     @Test
     void generatedRustCompilesWithSpecialTokens(@TempDir Path dir)
             throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.SPECIAL_TOKENS, "spec", dir);
+        assertCompiles(RustCompilesTest.SPECIAL_TOKENS, "spec", dir);
     }
 
     @Test
     void generatedRustCompilesWithLexicalActions(@TempDir Path dir)
             throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.LEXICAL_ACTIONS, "act", dir);
+        assertCompiles(RustCompilesTest.LEXICAL_ACTIONS, "act", dir);
     }
 
     @Test
     void generatedRustCompiles(@TempDir Path dir) throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.KEYWORDS, "kw", dir);
+        assertCompiles(RustCompilesTest.KEYWORDS, "kw", dir);
     }
 
     @Test
     void generatedRustCompilesWithCompositeNonAsciiStates(@TempDir Path dir)
             throws IOException, InterruptedException {
-        assertLexerCompiles(RustCompilesTest.NON_ASCII, "str", dir);
+        assertCompiles(RustCompilesTest.NON_ASCII, "str", dir);
     }
 
     /**
@@ -251,7 +251,7 @@ class RustCompilesTest {
     /** The token-image table lost the entry of an unlabelled token: {@code [ "<EOF>", , … ]}. */
     @Test
     void unlabelledTokenCompiles(@TempDir Path dir) throws IOException, InterruptedException {
-        assertLexerCompiles(GeneratedCodeCompilesTest.UNLABELLED_TOKEN, "unlabelled", dir);
+        assertCompiles(GeneratedCodeCompilesTest.UNLABELLED_TOKEN, "unlabelled", dir);
     }
 
     /**
@@ -311,11 +311,8 @@ class RustCompilesTest {
                 "expected a " + expected + "-not-supported message, got: " + failure.getMessage());
     }
 
-    /**
-     * The parser is not covered yet: it still emits Java. Only the lexer and what it depends on go
-     * through rustc.
-     */
-    private static void assertLexerCompiles(String grammar, String module, Path dir)
+    /** The lexer, the parser and what they depend on go through rustc (ADR-0030). */
+    private static void assertCompiles(String grammar, String module, Path dir)
             throws IOException, InterruptedException {
         assumeTrue(RustCompilesTest.hasCompiler(), "no Rust compiler on PATH");
 
@@ -329,12 +326,11 @@ class RustCompilesTest {
                 .setTargetDir(target.toFile())
                 .build().parse();
 
-        Files.writeString(target.resolve(module).resolve("mod.rs"),
-                "pub mod token;\npub mod charstream;\npub mod parserconstants;\npub mod lexer;\n");
+        Files.writeString(target.resolve(module).resolve("mod.rs"), RustCompilesTest.MODULES);
         var root = target.resolve("lib.rs");
         Files.writeString(root, "pub mod " + module + ";\n");
 
-        var process = new ProcessBuilder("rustc", "--edition", "2021", "--crate-type", "lib",
+        var process = new ProcessBuilder("rustc", "--edition", "2024", "--crate-type", "lib",
                 "--emit=metadata", "lib.rs")
                 .directory(target.toFile())
                 .redirectErrorStream(true)
@@ -343,6 +339,10 @@ class RustCompilesTest {
 
         assertEquals(0, process.waitFor(), "the generated Rust does not compile:\n" + output);
     }
+
+    /** The modules of a generated grammar. */
+    private static final String MODULES =
+            "pub mod token;\npub mod charstream;\npub mod parserconstants;\npub mod lexer;\npub mod parser;\n";
 
     /** What a generated Rust program printed, and how it ended. */
     record Run(String out, String err, int status) {
@@ -362,8 +362,7 @@ class RustCompilesTest {
                 .setTargetDir(target.toFile())
                 .build().parse();
 
-        Files.writeString(target.resolve(module.replace("r#", "")).resolve("mod.rs"),
-                "pub mod token;\npub mod charstream;\npub mod parserconstants;\npub mod lexer;\n");
+        Files.writeString(target.resolve(module.replace("r#", "")).resolve("mod.rs"), RustCompilesTest.MODULES);
         var literal = new StringBuilder();
         input.codePoints().forEach(cp -> literal.append(String.format("\\u{%x}", cp)));
         Files.writeString(target.resolve("main.rs"), """
@@ -374,16 +373,19 @@ class RustCompilesTest {
                 fn main() {
                     let mut lexer = Lexer::new("%s");
                     loop {
-                        let t = lexer.get_next_token();
-                        if t.kind == 0 {
-                            break;
+                        match lexer.get_next_token() {
+                            Ok(t) if t.kind == 0 => break,
+                            Ok(t) => print!("{}:{};", t.kind, t.image),
+                            Err(error) => {
+                                eprintln!("{}", error);
+                                std::process::exit(1);
+                            }
                         }
-                        print!("{}:{};", t.kind, t.image);
                     }
                 }
                 """.formatted(module, module, literal));
 
-        var build = new ProcessBuilder("rustc", "--edition", "2021", "-o", "program", "main.rs")
+        var build = new ProcessBuilder("rustc", "--edition", "2024", "-o", "program", "main.rs")
                 .directory(target.toFile()).redirectErrorStream(true).start();
         var buildOutput = new String(build.getInputStream().readAllBytes());
         assertEquals(0, build.waitFor(), "the generated Rust does not build:\n" + buildOutput);

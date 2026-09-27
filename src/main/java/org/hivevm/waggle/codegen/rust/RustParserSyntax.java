@@ -6,6 +6,7 @@ package org.hivevm.waggle.codegen.rust;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.ParserGenerator;
 import org.hivevm.waggle.model.NonTerminal;
+import org.hivevm.waggle.model.RExpression;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -15,25 +16,38 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * How Rust spells a lookahead routine (ADR-0021). The parser is a struct, so every field and every
- * routine is reached through {@code self}, and a jj_3 routine ends in a bare expression rather than
- * a statement — which is what {@link #failure(String)} wraps.
+ * How Rust spells the parser (ADR-0021, ADR-0030). The parser is a struct, so every field and every
+ * routine is reached through {@code self}; a production returns a {@code Result} and passes a
+ * failure on with {@code ?}; and a lookahead routine ends in a bare expression rather than a
+ * statement — which is what {@link #failure(String)} wraps.
+ *
+ * <p>Java leaves a decided lookahead by throwing LookaheadSuccess through every routine. A Rust
+ * routine returns true with {@code jj_ls} set instead, so wherever a routine's failure is not
+ * simply passed on — trying the next alternative, ending a loop — it checks that flag first.
  */
 final class RustParserSyntax implements ParserSyntax {
 
+    /** Leaves the routine when the lookahead is already decided. */
+    private static final String UNWIND = "if self.jj_ls {\n    return true;\n}";
+
+    @Override
+    public String tokenName(String name) {
+        return RustIdentifier.of(name);
+    }
+
     @Override
     public void declareScanPos(LinePrinter printer) {
-        printer.println("    let mut xsp: Rc<RefCell<Token>>;");
+        printer.println("let mut xsp: usize;");
     }
 
     @Override
     public void saveScanPos(LinePrinter printer) {
-        printer.println("    xsp = self.jj_scanpos.as_mut().unwrap().clone();");
+        printer.println("xsp = self.jj_scanpos;");
     }
 
     @Override
     public String tokenRef(String name, int ordinal) {
-        return (name == null) ? Integer.toString(ordinal) : name;
+        return (name == null) ? Integer.toString(ordinal) : RustIdentifier.of(name);
     }
 
     @Override
@@ -48,80 +62,93 @@ final class RustParserSyntax implements ParserSyntax {
 
     @Override
     public void failIfScanToken(LinePrinter printer, String token, String failure) {
-        printer.println("    if self.jj_scan_token(" + token + ") {");
-        printer.println("        " + failure);
-        printer.println("    }");
+        printer.println("if self.jj_scan_token(" + token + ") {");
+        printer.println("    " + failure);
+        printer.println("}");
     }
 
     @Override
     public void failIfCall(LinePrinter printer, String call, String failure) {
-        printer.println("    if " + callRef(call) + " {");
-        printer.println("        " + failure);
-        printer.println("    }");
+        printer.println("if " + callRef(call) + " {");
+        printer.println("    " + failure);
+        printer.println("}");
     }
 
     @Override
     public void beginSemanticLookahead(LinePrinter printer) {
-        printer.println("    self.jj_lookingAhead = true;");
-        printer.print("    self.jj_semLA = ");
+        printer.println("self.jj_looking_ahead = true;");
+        printer.print("self.jj_sem_la = ");
     }
 
     @Override
     public void endSemanticLookahead(LinePrinter printer) {
         printer.println(";");
-        printer.println("    self.jj_lookingAhead = false;");
+        printer.println("self.jj_looking_ahead = false;");
     }
 
     @Override
     public String semanticGuard() {
-        return "!self.jj_semLA || ";
+        return "!self.jj_sem_la || ";
     }
 
     @Override
     public void choiceAlternative(LinePrinter printer, String call, boolean semanticLookahead,
             boolean isLast, String failure) {
-        printer.print("    if ");
+        printer.print("if ");
         if (semanticLookahead) {
             printer.print(semanticGuard());
         }
         printer.println(callRef(call) + " {");
+        printer.indent();
         if (isLast) {
-            printer.println("    " + failure);
+            printer.println(failure);
+            printer.outdent();
             printer.println("}");
         } else {
-            printer.println("    self.jj_scanpos = Some(xsp.clone());");
+            printer.println(RustParserSyntax.UNWIND);
+            printer.println("self.jj_scanpos = xsp;");
         }
     }
 
     @Override
     public void endChoice(LinePrinter printer, int count) {
         for (int i = 1; i < count; i++) {
+            printer.outdent();
             printer.println("}");
         }
     }
 
     @Override
     public void scanLoop(LinePrinter printer, String call) {
-        printer.println("    loop {");
-        printer.println("        xsp = self.jj_scanpos.as_mut().unwrap().clone();");
-        printer.println("        if " + callRef(call) + " {");
-        printer.println("            self.jj_scanpos = Some(xsp.clone());");
-        printer.println("            break;");
-        printer.println("        }");
-        printer.println("    }");
+        printer.println("loop {");
+        printer.indent();
+        saveScanPos(printer);
+        printer.println("if " + callRef(call) + " {");
+        printer.indent();
+        printer.println(RustParserSyntax.UNWIND);
+        printer.println("self.jj_scanpos = xsp;");
+        printer.println("break;");
+        printer.outdent();
+        printer.println("}");
+        printer.outdent();
+        printer.println("}");
     }
 
     @Override
     public void optionalScan(LinePrinter printer, String call) {
         saveScanPos(printer);
-        printer.println("    if " + callRef(call) + " {");
-        printer.println("        self.jj_scanpos = Some(xsp.clone());");
-        printer.println("    }");
+        printer.println("if " + callRef(call) + " {");
+        printer.indent();
+        printer.println(RustParserSyntax.UNWIND);
+        printer.println("self.jj_scanpos = xsp;");
+        printer.outdent();
+        printer.println("}");
     }
 
     @Override
     public void openSemanticCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
             int index) {
+        // In parentheses, as closeSemanticCondition closes them: the grammar writes the condition.
         openConditionArm(printer, state, index, "(");
     }
 
@@ -135,7 +162,7 @@ final class RustParserSyntax implements ParserSyntax {
     private static void openConditionArm(LinePrinter printer,
             ParserGenerator.LookaheadState state, int index, String open) {
         switch (state) {
-            case NOOPENSTM -> printer.print("\nif ");
+            case NOOPENSTM -> printer.print("\nif " + open);
             case OPENIF -> {
                 printer.outdent();
                 printer.print("\n} else if " + open);
@@ -147,7 +174,7 @@ final class RustParserSyntax implements ParserSyntax {
                 if (index >= 0) {
                     printer.print("\nself.jj_la1[" + index + "] = self.jj_gen;");
                 }
-                printer.print("\nif ");
+                printer.print("\nif " + open);
             }
         }
     }
@@ -180,9 +207,10 @@ final class RustParserSyntax implements ParserSyntax {
         printer.print(" {");
     }
 
+    /** A lookahead routine returns a Result: a lexical error met while scanning is the result. */
     @Override
     public String lookaheadCall(String routine, String amount) {
-        return "self.jj_2" + routine + "(" + amount + ")";
+        return "self.jj_2" + routine + "(" + amount + ")?";
     }
 
     @Override
@@ -195,14 +223,7 @@ final class RustParserSyntax implements ParserSyntax {
         }
         if ((state == ParserGenerator.LookaheadState.OPENIF)
                 || (state == ParserGenerator.LookaheadState.NOOPENSTM)) {
-            printer.print("\nlet kind = if self.jj_nt.is_none() {");
-            printer.print("\n    u32::MAX");
-            printer.print("\n} else {");
-            printer.print("\n    self.jj_nt.clone().unwrap().borrow().kind");
-            printer.print("\n};");
-            printer.print("\nmatch ");
-            printer.print(cacheTokens ? "kind" : "(jj_ntk==-1)?jj_ntk_f():jj_ntk)");
-            printer.print(" {");
+            printer.print("\nmatch self.jj_ntk()? {");
             printer.indent();
         }
     }
@@ -211,7 +232,9 @@ final class RustParserSyntax implements ParserSyntax {
     public void caseLabels(LinePrinter printer, List<String> cases) {
         printer.outdent();
         printer.print("\n");
-        printer.print(String.join(" | ", cases));
+        // No label: a choice conflict left this alternative no token (the grammar was warned
+        // about it). Java writes a block no case reaches; Rust needs a pattern.
+        printer.print(cases.isEmpty() ? "_ if false" : String.join(" | ", cases));
         printer.print(" =>");
         printer.indent();
         printer.print(" {");
@@ -232,31 +255,29 @@ final class RustParserSyntax implements ParserSyntax {
 
     @Override
     public void consumeToken(LinePrinter printer) {
-        printer.print("try_catch = self.jj_consume_token(");
+        printer.print("self.jj_consume_token(");
+    }
+
+    /** The token, or the field the grammar takes from it ({@code t = <ID>.image}). */
+    @Override
+    public void consumeTokenEnd(RExpression re, LinePrinter printer) {
+        printer.print(re.getRhsToken() == null ? ")?;" : ")?." + re.getRhsToken().image + ";");
     }
 
     @Override
     public void noAlternativeMatched(LinePrinter printer) {
-        printer.print("""
-                
-                    let _ = self.jj_consume_token(u32::MAX);
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "ParseException",
-                    ));
-                """);
+        printer.println();
+        printer.print("return Err(self.jj_no_alternative());");
     }
 
     @Override
     public void callProduction(NonTerminal non, LinePrinter printer) {
-        printer.println("if try_catch.is_ok() {");
-        printer.print("    try_catch = self." + RustParserSyntax.toSnakeCase(non.getName()) + "(");
+        printer.print("self." + RustIdentifier.of(RustParserSyntax.toSnakeCase(non.getName())) + "(");
     }
 
     @Override
     public void callProductionEnd(LinePrinter printer) {
-        printer.println(");");
-        printer.print("}");
+        printer.print(")?;");
     }
 
     @Override
@@ -267,9 +288,7 @@ final class RustParserSyntax implements ParserSyntax {
 
     @Override
     public void breakRepetition(int labelIndex, LinePrinter printer, int offset) {
-        if (offset == 0) {
-            printer.print("\n;");
-        } else {
+        if (offset == 1) {
             printer.print("\nbreak 'label_" + labelIndex + ";");
         }
     }

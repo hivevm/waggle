@@ -147,10 +147,13 @@ to be discovered.
 * **`NODE_FACTORY` is not supported for C++.** The C++ node classes have no `jjtCreate` for a
   factory to call, so a C++ grammar that sets it is rejected.
 
-* **The Rust parser does not compile yet; the Rust lexer does.** The parser template still carries
-  unported Java (in comments and in code), so for Rust only the token manager is usable today. The
-  lexer is compiled and run in the tests, where it reads the same tokens as the Java lexer, and
-  reports a lexical error by panicking with the Java lexer's message.
+* **The Rust parser is written for Rust ([ADR-0030](docs/adr/0030-shape-of-the-generated-rust-parser.md)),
+  so a Rust grammar differs from a Java one in its types and actions.** A production returns
+  `Result<T, ParseError>` and a lexer `Result<Token, LexicalError>`; nothing panics on bad input,
+  and the messages are the Java ones. A parameter is still written type first (`Item(i32 depth) :
+  i32`) and comes out as `depth: i32`; an action returns with `return Ok(value);`. What a semantic
+  lookahead calls is a method the project adds to the parser in an `impl` block of its own. The
+  tests run the Rust parser against the Java parser of the same grammar.
 
 * **Characters beyond U+FFFF.** The automaton knows 16-bit characters. Java reads such a character
   as its two UTF-16 surrogates; C++ and Rust read it as U+FFFD, as they do a malformed UTF-8

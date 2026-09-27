@@ -533,12 +533,12 @@ class RustLexerGenerator extends LexerGenerator {
 
     @Override
     public void printEofTokenActions(LinePrinter printer) {
-        printer.println("    self.token_lexical_actions(&mut matched_token);");
+        printer.println("    self.token_lexical_actions(&mut matched_token)?;");
     }
 
     @Override
     public void printGetNextTokenPrologue(LinePrinter printer) {
-        printer.println("    return matched_token;");
+        printer.println("    return Ok(matched_token);");
         printer.println("}");
     }
 
@@ -774,11 +774,15 @@ class RustLexerGenerator extends LexerGenerator {
 
     @Override
     public void printLoopDetected(LinePrinter printer) {
-        printer.println("        panic!(");
-        printer.println("            \"Bailing out of infinite loop caused by repeated empty "
+        printer.println("        return Err(LexicalError {");
+        printer.println("            line: " + beginLine() + ",");
+        printer.println("            column: " + beginColumn() + ",");
+        printer.println("            message: format!(");
+        printer.println("                \"Bailing out of infinite loop caused by repeated empty "
                 + "string matches at line {}, column {}.\",");
-        printer.println("            " + beginLine() + ", " + beginColumn() + "");
-        printer.println("        );");
+        printer.println("                " + beginLine() + ", " + beginColumn() + "");
+        printer.println("            ),");
+        printer.println("        });");
     }
 
     @Override
