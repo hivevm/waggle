@@ -17,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -24,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -186,6 +189,297 @@ class CppCompilesTest {
         assertTrue(lexer.contains("while ((curChar < 64 && (0x100000000ULL & (1L << curChar))"),
                 lexer.lines().filter(l -> l.contains("curChar < 64")).toList().toString());
     }
+
+    /**
+     * SwitchTo with a state that does not exist. It threw a pointer, which no
+     * {@code catch (TokenManagerError&)} catches, appended the state as one character with that
+     * code instead of its number, and the error did not keep the message it was given.
+     */
+    @Test
+    void anInvalidLexicalStateIsReportedWithItsNumber(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run(RUN, dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+                #include "TokenManagerError.h"
+
+                // SwitchTo is protected: lexical actions call it.
+                struct Probe : RunTokenManager {
+                    using RunTokenManager::RunTokenManager;
+                    void switchTo(int state) { SwitchTo(state); }
+                };
+
+                int main() {
+                    StringReader reader(JJString("ab"));
+                    Probe lexer(&reader);
+                    try {
+                        lexer.switchTo(42);
+                        std::cout << "no error";
+                    } catch (TokenManagerError& e) {
+                        std::cout << e.getMessage();
+                    }
+                }
+                """);
+        assertEquals("Error: Ignoring invalid lexical state : 42. State unchanged.", output);
+    }
+
+    /**
+     * UTF-8 input whose tokens start with a character beyond ASCII. The NFA reads decoded code
+     * points, but the reader handed it the first character of a token as a raw, sign-extended byte.
+     */
+    @Test
+    void aTokenMayStartBeyondAscii(@TempDir Path dir) throws IOException, InterruptedException {
+        var output = run(RUN, dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("\\xc3\\xa4" "b a\\xc3\\xa4 ab"));
+                    RunTokenManager lexer(&reader);
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        std::cout << t->kind() << ":" << t->image() << ";";
+                    }
+                }
+                """);
+        assertEquals("2:\u00e4b;2:a\u00e4;2:ab;", output);
+    }
+
+    /**
+     * Backing up over characters beyond ASCII: "a\u00e4c" starts "a\u00e4b", which fails at
+     * "c", so the lexer takes "a" and backs up over "\u00e4c". The reader backed up by bytes while
+     * the lexer counts characters, and so stopped inside the "\u00e4". Written once with literals,
+     * which the string-literal DFA matches, and once with lists, which only the NFA sees. The
+     * literals' images did not even compile: they were UTF-16 code units in a char array.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "< LITERAL: \"a\u00e4b\" > | < UMLAUT: \"\u00e4\" >",
+            "< LITERAL: \"a\" [\"\u00e4\"] \"b\" > | < UMLAUT: [\"\u00e4\"] >"})
+    void theLexerBacksUpOverCharactersBeyondAscii(String tokens, @TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run("""
+                grammar Run;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> | <UMLAUT> | <LITERAL> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN = %s | < WORD: (["a"-"z"])+ > ;
+                """.formatted(tokens), dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("a\\xc3\\xa4" "b a\\xc3\\xa4" "c"));
+                    RunTokenManager lexer(&reader);
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        std::cout << t->kind() << ":" << t->image() << ";";
+                    }
+                }
+                """);
+        assertEquals("2:a\u00e4b;4:a;3:\u00e4;4:c;", output);
+    }
+
+    /**
+     * A lexical error in a grammar with MORE. The error is reported after the loop that
+     * accumulates MORE, and nothing left that loop when nothing matched: the lexer went round again
+     * on the same character for ever, and at the end of the input inside a MORE as well. The
+     * handler did not count the error either, so a caller could not tell that there was one.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"a1 b", "a /* b"})
+    void aLexicalErrorEndsWithMore(String input, @TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run("""
+                grammar Run;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> )* <EOF> ;
+
+                SKIP = " " ;
+                MORE = "/*" : IN_COMMENT ;
+                SKIP <IN_COMMENT> = "*/" : DEFAULT ;
+                MORE <IN_COMMENT> = < ~[] > ;
+
+                TOKEN = < WORD: (["a"-"z"])+ > ;
+                """, dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("%s"));
+                    RunTokenManager lexer(&reader);
+                    std::cout.setstate(std::ios::failbit); // the handler prints the error
+                    std::string tokens;
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        tokens += t->image() + ";";
+                    }
+                    std::cout.clear();
+                    std::cout << tokens << "errors=" << lexer.getErrorHandler()->getErrorCount();
+                }
+                """.formatted(input));
+        assertEquals(input.equals("a1 b") ? "a;b;errors=1" : "a;errors=1", output);
+    }
+
+    /**
+     * The image of &lt;EOF&gt; is empty, as in Java. The lexer took an empty literal image for
+     * "no literal" and read it from the input: the text of the token before, or with empty input
+     * the whole uninitialised buffer.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ab"})
+    void theEndOfInputHasAnEmptyImage(String input, @TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run(RUN, dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("%s"));
+                    RunTokenManager lexer(&reader);
+                    Token* t = lexer.getNextToken();
+                    while (t->kind() != 0) {
+                        t = lexer.getNextToken();
+                    }
+                    std::cout << "[" << t->image() << "]";
+                }
+                """.formatted(input));
+        assertEquals("[]", output);
+    }
+
+    /**
+     * Input the automaton cannot represent: a code point beyond U+FFFF indexed its tables past
+     * their end, and a sequence cut off by the end of the input read stale bytes. Both are read
+     * as U+FFFD, which the list matches; the image keeps the bytes.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"a\\xf0\\x9f\\x98\\x80", "a\\xc3", "a\\xc3\" \"b", "\\x80\" \"a"})
+    void inputBeyondTheAutomatonIsReadAsAReplacementCharacter(String input, @TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run("""
+                grammar Run;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN = < WORD: (["a"-"z", "\u0100"-"\uffff"])+ > ;
+                """, dir, """
+                #include <iostream>
+                #include "RunTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    const std::string input("%s");
+                    StringReader reader(input);
+                    RunTokenManager lexer(&reader);
+                    int count = 0;
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        count++;
+                        std::cout << (t->image() == input ? "whole" : "part") << ";";
+                    }
+                    std::cout << count;
+                }
+                """.formatted(input));
+        assertEquals("whole;1", output);
+    }
+
+    /** A grammar to run: its tokens reach beyond ASCII. */
+    private static final String RUN = """
+            grammar Run;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input = ( <WORD> )* <EOF> ;
+
+            SKIP = " " ;
+
+            TOKEN = < WORD: (["a"-"z", "ä"])+ > ;
+            """;
+
+    /**
+     * Generates {@code grammar} as C++, links it with {@code main} into a program, runs it and
+     * returns what it printed.
+     */
+    static String run(String grammar, Path dir, String main)
+            throws IOException, InterruptedException {
+        assumeTrue(CppCompilesTest.hasCompiler(), "no C++ compiler on PATH");
+        assertCompiles(grammar, dir);
+
+        var target = dir.resolve("cpp");
+        Files.writeString(target.resolve("main.cpp"), main);
+        List<String> sources;
+        try (Stream<Path> paths = Files.walk(target)) {
+            sources = paths.filter(p -> p.toString().endsWith(".cc")).sorted()
+                    .map(p -> target.relativize(p).toString()).toList();
+        }
+        var command = new ArrayList<>(List.of("g++", "-std=c++17", "-g", "-o", "program", "main.cpp"));
+        command.addAll(CppCompilesTest.sanitizers());
+        command.addAll(sources);
+        var build = new ProcessBuilder(command).directory(target.toFile())
+                .redirectErrorStream(true).start();
+        var buildOutput = new String(build.getInputStream().readAllBytes());
+        assertEquals(0, build.waitFor(), "the program does not build:\n" + buildOutput);
+
+        // Into a file, not a pipe read to its end: a lexer that loops would block the read forever.
+        var log = target.resolve("program.out");
+        var builder = new ProcessBuilder(target.resolve("program").toString())
+                .directory(target.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
+        // The tokens a TokenManager returns belong to the caller, and these mains do not free them.
+        builder.environment().put("ASAN_OPTIONS", "detect_leaks=0");
+        var program = builder.start();
+        var finished = program.waitFor(60, TimeUnit.SECONDS);
+        if (!finished) {
+            program.destroyForcibly().waitFor();
+        }
+        var output = Files.readString(log, java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(finished, "the program did not end:\n" + output);
+        assertEquals(0, program.exitValue(), "the program failed:\n" + output);
+        return output;
+    }
+
+    /**
+     * AddressSanitizer and UndefinedBehaviorSanitizer, when the compiler can link them: reading past
+     * a table or a buffer is what the lexer did with input beyond ASCII, and that printed plausible
+     * output before. Every finding ends the program with a non-zero status.
+     */
+    private static List<String> sanitizers() throws IOException, InterruptedException {
+        if (CppCompilesTest.sanitizers == null) {
+            var probe = Files.createTempFile("sanitizers", ".cpp");
+            try {
+                Files.writeString(probe, "int main() { return 0; }\n");
+                var flags = List.of("-fsanitize=address,undefined", "-fno-sanitize-recover=all");
+                var command = new ArrayList<>(List.of("g++", "-o", "/dev/null", probe.toString()));
+                command.addAll(flags);
+                var process = new ProcessBuilder(command).redirectErrorStream(true).start();
+                process.getInputStream().readAllBytes();
+                CppCompilesTest.sanitizers = (process.waitFor() == 0) ? flags : List.of();
+            } finally {
+                Files.delete(probe);
+            }
+        }
+        return CppCompilesTest.sanitizers;
+    }
+
+    private static List<String> sanitizers;
 
     /**
      * Compiles every generated {@code .cc} and links them into one shared library that may not

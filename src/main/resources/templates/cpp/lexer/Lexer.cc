@@ -120,7 +120,7 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 	} else {
 		JJString im = jjstrLiteralImages[jjmatchedKind];
-		curTokenImage = (im.length() == 0) ? reader->getImage() : im;
+		curTokenImage = ((im.length() == 0) && (jjmatchedKind != 0)) ? reader->getImage() : im;
 //@if(KEEP_LINE_COLUMN)
 		if (reader->getTrackLineColumn()) {
 				beginLine = reader->getBeginLine();
@@ -131,8 +131,11 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 	}
 //@else
+	// No literal has an empty image, so "" stands for "none" here, except for <EOF>: its image is
+	// empty, as in Java. Reading it from the input gave the previous token's text, or with empty
+	// input a whole buffer of uninitialised memory.
 	JJString im = jjstrLiteralImages[jjmatchedKind];
-	curTokenImage = (im.length() == 0) ? reader->getImage() : im;
+	curTokenImage = ((im.length() == 0) && (jjmatchedKind != 0)) ? reader->getImage() : im;
 //@if(KEEP_LINE_COLUMN)
 	if (reader->getTrackLineColumn()) {
 		beginLine = reader->getBeginLine();
@@ -179,7 +182,6 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 			matchedToken->specialToken() = specialToken;
 //@fi
 			//@invoke(DUMP_GET_NEXT_TOKEN)
-		}
 		int error_line = reader->getEndLine();
 		int error_column = reader->getEndColumn();
 		JJString error_after = JJEMPTY;
@@ -240,9 +242,15 @@ void __PARSER_NAME__TokenManager::SwitchTo(int lexState)
 {
 	if (lexState >= __STATE_COUNT__ || lexState < 0) {
 		JJString message;
-		message += JJWIDE(Error: Ignoring invalid lexical state : );
-		message += lexState; message += JJWIDE(. State unchanged.);
-		throw new TokenManagerError(message, INVALID_LEXICAL_STATE);
+		message += JJWIDE(Error: Ignoring invalid lexical state :);
+		message += JJSPACE;
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
+		message += std::to_string(lexState);
+#else
+		message += std::to_wstring(lexState);
+#endif
+		message += JJWIDE(. State unchanged.);
+		throw TokenManagerError(message, INVALID_LEXICAL_STATE);
 	} else
 		curLexState = lexState;
 }

@@ -21,6 +21,7 @@ import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.SourceProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -153,9 +154,7 @@ class CppLexerGenerator extends LexerGenerator {
         LexerGenerator.printLiteralImages(data, printer, true, (kind, image) -> {
             var toPrint = new StringBuilder("static JJChar jjstrLiteralChars_" + kind + "[] = {");
             if (image != null) {
-                for (int j = 0; j < image.length(); j++) {
-                    toPrint.append("0x").append(Integer.toHexString(image.charAt(j))).append(", ");
-                }
+                toPrint.append(CppLexerGenerator.charElements(image));
             }
             return toPrint.append("0};").toString(); // the terminating null char
         });
@@ -355,7 +354,7 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     public void printReadCharAfterGuard(LinePrinter printer) {
-        printer.println("   curChar = reader->readChar();");
+        printer.println("   curChar = reader->read(); // UTF8: as the NFA reads it");
     }
 
     @Override
@@ -382,11 +381,22 @@ class CppLexerGenerator extends LexerGenerator {
         printer.println("    fprintf(debugStream, \"   No string literal matches possible.\");");
     }
 
-    // Used by the CPP code generatror
     private static void printCharArray(LinePrinter printer, String s) {
-        for (int i = 0; i < s.length(); i++) {
-            printer.print("0x" + Integer.toHexString(s.charAt(i)) + ", ");
+        printer.print(CppLexerGenerator.charElements(s));
+    }
+
+    /**
+     * The elements of a JJChar array that holds {@code s}, each followed by ", ". The reader hands
+     * the lexer UTF-8, so the text is UTF-8 too; it used to be written as UTF-16 code units, which
+     * do not fit a char beyond ASCII and did not compile.
+     */
+    private static String charElements(String s) {
+        var elements = new StringBuilder();
+        for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
+            elements.append((b >= 0) ? "0x" + Integer.toHexString(b)
+                    : String.format("'\\x%02x'", b & 0xff)).append(", ");
         }
+        return elements.toString();
     }
 
     private static void getTextAsChars(String text, LinePrinter printer) {
@@ -518,6 +528,12 @@ class CppLexerGenerator extends LexerGenerator {
         printer.println("image = jjimage;");
         printer.println("image.clear();");
         printer.println("jjimageLen = 0;");
+    }
+
+    /** An EOF action: the image is a std::basic_string, which has no setLength. */
+    @Override
+    public void printImageReset(LinePrinter printer) {
+        printer.println("      image.clear();");
     }
 
     @Override

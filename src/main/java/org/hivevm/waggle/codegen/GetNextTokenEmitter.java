@@ -254,7 +254,7 @@ public class GetNextTokenEmitter {
     }
 
     /** Nothing matched: report where the input went wrong. */
-    protected void printLexicalErrorEpilogue(LinePrinter printer) {
+    protected void printLexicalErrorEpilogue(LinePrinter printer, LexerData data) {
         printer.outdent();
         printer.print("""
                 }
@@ -373,7 +373,7 @@ public class GetNextTokenEmitter {
                 }
             }
 
-            printLexicalErrorEpilogue(printer);
+            printLexicalErrorEpilogue(printer, data);
         }
 
         if (data.hasMore()) {

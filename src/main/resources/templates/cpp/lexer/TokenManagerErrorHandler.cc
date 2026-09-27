@@ -20,12 +20,14 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 
 void TokenManagerErrorHandler::lexicalError(bool EOFSeen, int lexState, int errorLine, int errorColumn, JJString errorAfter, JJChar curChar) {
+	error_count++; // as ParserErrorHandler does: the count is how a caller learns of the error
 	JJOUT
         << JJWIDE(Lexical error at)  << JJSPACE << errorLine << JJWIDE(:) << errorColumn << JJWIDE(.)
         << JJWIDE( Encountered:)  << JJSPACE << curChar <<JJWIDE( after:)  << JJSPACE << errorAfter << JJWIDE(.) << std::endl;
 }
 
 void TokenManagerErrorHandler::lexicalError(const JJString& errorMessage) {
+	error_count++;
 	JJOUT << errorMessage << std::endl;
 }
 

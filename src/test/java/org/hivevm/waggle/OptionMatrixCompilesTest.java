@@ -25,7 +25,10 @@ import java.util.stream.Stream;
  */
 class OptionMatrixCompilesTest {
 
-    /** Tree building, a syntactic lookahead, a production with a parameter and a result, states. */
+    /**
+     * Tree building, a syntactic lookahead, a production with a parameter and a result, states and
+     * an action on end of input.
+     */
     static final String GRAMMAR = """
             grammar Matrix;
 
@@ -57,6 +60,8 @@ class OptionMatrixCompilesTest {
 
             SPECIAL_TOKEN <IN_COMMENT> = < COMMENT: "*/" > : DEFAULT ;
             MORE <IN_COMMENT> = < ~[] > ;
+
+            TOKEN <*> = < EOF > <? { } ?> ;
 
             TOKEN =
               < COLON: ":" >

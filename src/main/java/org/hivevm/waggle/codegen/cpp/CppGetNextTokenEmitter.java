@@ -214,8 +214,17 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("}");
     }
 
-    /** The C++ token manager reports the lexical error from its template, not from here. */
+    /**
+     * Closes the branch for a match. The C++ token manager reports the lexical error from its
+     * template, after the loop that accumulates MORE, so nothing matching leaves that loop. It used
+     * to go round again on the same character: every lexical error hung the lexer.
+     */
     @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer) {
+    protected void printLexicalErrorEpilogue(LinePrinter printer, LexerData data) {
+        printer.outdent();
+        printer.println("}");
+        if (data.hasMore()) {
+            printer.println("break;");
+        }
     }
 }

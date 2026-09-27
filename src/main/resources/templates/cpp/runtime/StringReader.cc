@@ -87,8 +87,8 @@ int StringReader::getBufline(int pos) {
 
 void StringReader::init() {
 	buffer = new JJChar[INITIAL_BUFFER_SIZE];
-	bufline = new int[INITIAL_BUFFER_SIZE];
-	bufcolumn = new int[INITIAL_BUFFER_SIZE];
+	bufline = new int[INITIAL_BUFFER_SIZE](); // zero: the EOF of an empty input is at 0:0, as in Java
+	bufcolumn = new int[INITIAL_BUFFER_SIZE]();
 	bufpos = -1;
 	bufsize = INITIAL_BUFFER_SIZE;
 	tokenBegin = 0;
@@ -103,18 +103,33 @@ void StringReader::init() {
 	trackLineColumn = true;
 }
 
+// "amount" counts characters, as the lexer does: with UTF-8 input one character can be up to
+// four bytes, so backing up by bytes left the reader inside a character.
 void StringReader::backup(int amount) {
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
+	while (amount-- > 0) {
+		unsigned char b;
+		do { // un-read continuation bytes up to and including the lead byte
+			b = (unsigned char) buffer[bufpos];
+			inBuf++;
+			if (--bufpos < 0) {
+				bufpos += bufsize;
+			}
+		} while ((b & 0xc0) == 0x80);
+	}
+#else
 	inBuf += amount; bufpos -= amount;
 	if (bufpos < 0) {
 		bufpos += bufsize;
 	}
+#endif
 }
 
 uint32_t StringReader::beginToken() {
 	tokenBegin = -1;
 	uint32_t c = readChar();
 	tokenBegin = bufpos;
-	return c;
+	return decode(c); // the NFA reads code points, so the first one must be one too
 }
 
 uint32_t StringReader::readChar() {
@@ -149,6 +164,20 @@ JJString StringReader::getImage() {
 }
 
 JJString StringReader::getSuffix(int len) {
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
+	// "len" counts characters, as in backup: turn it into the bytes they take.
+	int bytes = 0;
+	for (int chars = 0; chars < len; bytes++) {
+		int pos = bufpos - bytes;
+		if (pos < 0) {
+			pos += bufsize;
+		}
+		if ((((unsigned char) buffer[pos]) & 0xc0) != 0x80) {
+			chars++;
+		}
+	}
+	len = bytes;
+#endif
 	if ((bufpos + 1) >= len) {
 		return JJString(buffer + bufpos - len + 1, len);
 	}
@@ -207,8 +236,8 @@ void StringReader::adjustBeginLineColumn(int newLine, int newCol) {
 
 void StringReader::expandBuff(bool wrapAround) {
 	JJChar *newbuffer = new JJChar[bufsize + 2048];
-	int *newbufline = new int[bufsize + 2048];
-	int *newbufcolumn = new int[bufsize + 2048];
+	int *newbufline = new int[bufsize + 2048]();
+	int *newbufcolumn = new int[bufsize + 2048]();
 
 	if (wrapAround) {
 		ArrayCopy(buffer, tokenBegin, newbuffer, 0, bufsize - tokenBegin);
@@ -304,33 +333,48 @@ void StringReader::updateLineColumn(uint32_t c) {
 
 //  TOL: Support UTF-8
 uint32_t StringReader::read() {
-	uint32_t c = readChar();
+	return decode(readChar());
+}
 
-	// 1 byte
-	if((c & 0x80) == 0)
+// The character whose UTF-8 encoding starts with the byte c, reading the rest of it.
+//
+// The automaton knows the characters up to U+FFFF: its tables are indexed by the high byte of a
+// 16-bit character, and a code point beyond read past their end. Such a code point, and a sequence
+// that is malformed or cut off by the end of the input, is read as U+FFFD. The image keeps the
+// bytes as they were. A byte that cannot continue the sequence is left for the next character; the
+// end of the input used to be read as stale bytes of the buffer.
+uint32_t StringReader::decode(uint32_t c) {
+	static constexpr uint32_t REPLACEMENT = 0xfffd;
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
+	c &= 0xff; // JJChar is a signed char on most platforms
+	int more;
+	if (c < 0x80) {
 		return c;
-	// 2 byte
-	if((c & 0xe0) == 0xc0) {
-		c = ((c & 0x1f) << 6);
-		return c + (readChar() & 0x3f);
+	} else if ((c & 0xe0) == 0xc0) {
+		more = 1;
+		c &= 0x1f;
+	} else if ((c & 0xf0) == 0xe0) {
+		more = 2;
+		c &= 0x0f;
+	} else if ((c & 0xf8) == 0xf0) {
+		more = 3;
+		c &= 0x07;
+	} else {
+		return REPLACEMENT; // a continuation byte, or no UTF-8 at all
 	}
-
-	// 3 byte
-	if((c & 0xf0) == 0xe0) {
-		c = ((c & 0x0f) << 6);
-		c += (readChar() & 0x3f);
-		c <<= 6;
-		return c + (readChar() & 0x3f);
+	while (more-- > 0) {
+		if (endOfInput()) {
+			return REPLACEMENT;
+		}
+		uint32_t b = readChar() & 0xff;
+		if ((b & 0xc0) != 0x80) {
+			backup(1);
+			return REPLACEMENT;
+		}
+		c = (c << 6) | (b & 0x3f);
 	}
-
-	// 4 byte
-	// (c & 0xf08) == 0xf0
-	c = ((c & 0x07) << 6);
-	c += (readChar() & 0x3f);
-	c <<= 6;
-	c += (readChar() & 0x3f);
-	c <<= 6;
-	return c + (readChar() & 0x3f);
+#endif
+	return (c > 0xffff) ? REPLACEMENT : c;
 }
 
 //@if(CPP_NAMESPACE)

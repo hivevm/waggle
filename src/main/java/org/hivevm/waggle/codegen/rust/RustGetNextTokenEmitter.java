@@ -209,7 +209,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer) {
+    protected void printLexicalErrorEpilogue(LinePrinter printer, LexerData data) {
         printer.outdent();
         printer.println("}");
         printer.println("""

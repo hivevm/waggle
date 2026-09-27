@@ -43,6 +43,7 @@ public:
 
 	//  TOL: Support UTF-8
 	uint32_t read();
+	uint32_t decode(uint32_t c);
 
 	/**
 	 * Backs up the input stream by amount steps. Lexer calls this method if it

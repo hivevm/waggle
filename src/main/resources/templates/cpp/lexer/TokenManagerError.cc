@@ -51,6 +51,7 @@ TokenManagerError::TokenManagerError() {
 	errorCode = -1;
 }
 TokenManagerError::TokenManagerError(const JJString & message, int reason) {
+	this->message = message;
 	errorCode = reason;
 }
 TokenManagerError::TokenManagerError(bool EOFSeen, int lexState, int errorLine, int errorColumn, const JJString& errorAfter, JJChar curChar, int reason) {
