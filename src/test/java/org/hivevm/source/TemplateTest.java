@@ -55,10 +55,15 @@ class TemplateTest {
         assertFalse(out.contains("yes"), out);
     }
 
+    /**
+     * A condition on a name the environment does not have is an error. It used to be false, so a
+     * key that was never set dropped its block: VISITOR_RETURN_TYPE_VOID, set for the node classes
+     * but not for Node, turned a void jjtAccept into one returning a value.
+     */
     @Test
-    void ifIsSkippedWhenAbsent() {
-        var out = render("//@if(FLAG)\nyes\n//@fi\n", Map.of());
-        assertFalse(out.contains("yes"), out);
+    void ifOnAnUnknownNameFails() {
+        var e = assertThrows(TemplateException.class, () -> render("//@if(FLAG)\nyes\n//@fi\n", Map.of()));
+        assertTrue(e.getMessage().contains("FLAG"), e.getMessage());
     }
 
     /** An //@else without an //@if is a template error, not an EmptyStackException. */
@@ -87,9 +92,19 @@ class TemplateTest {
     }
 
     @Test
-    void negatedConditionRendersWhenFlagIsAbsent() {
-        var out = render("//@if(!FLAG)\nyes\n//@fi\n", Map.of());
-        assertTrue(out.contains("yes"), "negated condition did not render: " + out);
+    void negatedConditionOnAnUnknownNameFails() {
+        assertThrows(TemplateException.class, () -> render("//@if(!FLAG)\nyes\n//@fi\n", Map.of()));
+        assertThrows(TemplateException.class,
+                () -> render("//@if(A)\na\n//@elif(FLAG)\nb\n//@fi\n", Map.of("A", false)));
+    }
+
+    /** The branches of an //@if are keyed by condition; a repeated one replaced the first. */
+    @Test
+    void aRepeatedBranchFails() {
+        assertThrows(TemplateException.class,
+                () -> render("//@if(A)\na\n//@elif(A)\nb\n//@fi\n", Map.of("A", true)));
+        assertThrows(TemplateException.class,
+                () -> render("//@if(A)\na\n//@else\nb\n//@else\nc\n//@fi\n", Map.of("A", true)));
     }
 
     @Test
@@ -173,5 +188,17 @@ class TemplateTest {
     void foreachRepeatsItsBody() {
         var out = render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", 3));
         assertEquals(3, out.lines().filter(l -> l.equals("x")).count(), out);
+    }
+
+    @Test
+    void foreachOverAnUnknownNameFails() {
+        assertThrows(TemplateException.class, () -> render("//@foreach(ITEMS)\nx\n//@end\n", Map.of()));
+    }
+
+    /** Neither a count nor an iterable: an array or a map rendered nothing. */
+    @Test
+    void foreachOverSomethingNotIterableFails() {
+        assertThrows(TemplateException.class,
+                () -> render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", new int[] {1, 2})));
     }
 }

@@ -132,6 +132,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
     private void generateNode(Options context, TreeOptions tree) {
         var options = OptionsContext.of(context);
+        options.set(Waggle.VISITOR_RETURN_TYPE_VOID, tree.visitorReturn().equals("void"));
         options.set(Waggle.VISITOR_DATA_TYPE, JavaTreeEmitter.visitorDataType(tree));
 
         JavaTemplate.NODE.render(options);

@@ -115,7 +115,13 @@ class RendererBuilder {
         stack.pop();
         var peek = (MatchRenderer) stack.peek();
         var renderer = new ListRenderer();
-        peek.nodes().put(expression != null ? expression : DEFAULT, renderer);
+        // The branches sit in a map: a second //@else, or an //@elif repeating a condition, used to
+        // replace the earlier branch instead of being reported.
+        if (peek.nodes().putIfAbsent(expression != null ? expression : DEFAULT, renderer) != null) {
+            throw new TemplateException(expression != null
+                    ? "//@elif(" + expression + ") repeats a condition of its //@if"
+                    : "a second //@else in one //@if");
+        }
         stack.push(renderer);
         return this;
     }

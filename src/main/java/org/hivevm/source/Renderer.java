@@ -143,6 +143,9 @@ interface Renderer {
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
+            if (!environment.has(list)) {
+                throw new TemplateException("Unknown //@foreach list '" + list + "'");
+            }
             var result = environment.get(list);
             if (result instanceof Integer integer) {
                 for (var i = 0; i < integer; i++) {
@@ -152,6 +155,11 @@ interface Renderer {
                 for (var elem : iterable) {
                     renderer.render(printer, new ListEnv(environment, elem));
                 }
+            } else {
+                // Rendering nothing for a value that is neither a count nor a list would drop the
+                // block as silently as an unknown name did.
+                throw new TemplateException("//@foreach list '" + list + "' is neither a count nor an iterable: "
+                        + (result == null ? "null" : result.getClass().getName()));
             }
         }
     }
@@ -161,8 +169,11 @@ interface Renderer {
             return !validate(expression.substring(1), environment);
         }
 
-        if (!environment.has(expression))
-            return false;
+        // An unknown name used to be false: a misspelt or never-set key silently dropped its block
+        // (or kept the //@if(!X) one), which yields source that does not compile far from the cause.
+        if (!environment.has(expression)) {
+            throw new TemplateException("Unknown condition '" + expression + "'");
+        }
 
         return switch (environment.get(expression)) {
             case String text when !text.isEmpty() -> true;
