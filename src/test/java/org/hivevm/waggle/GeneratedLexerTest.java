@@ -102,6 +102,54 @@ class GeneratedLexerTest {
     }
 
     /**
+     * After "-" the literal DFA hands over to the NFA in the set {T1, T3}, and that set was named
+     * after the T3 state that the start state also reaches on its own. The move code of the set
+     * then ran for that state too: "c--" lexed as T3, which cannot start with "c".
+     */
+    @Test
+    void aStopSetIsNotNamedAfterAStateReachedOnItsOwn(@TempDir Path dir) throws Exception {
+        var lexer = compile(dir, "Named.waggle", """
+                grammar Named;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <T1> | <T2> | <T3> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN = < T1: ~[" "] "-" "->" > | < T2: "->" > | < T3: ("-")+ > ;
+                """);
+        assertEquals(List.of("error"), lexer.tokens("c--"));
+        assertEquals(List.of("<T3>:--", "\"->\":->", "<T1>:c-->"), lexer.tokens("-- -> c-->"));
+    }
+
+    /**
+     * With case ignored, a range that starts inside a block of letters, not at its first letter,
+     * got no other case: ["B"-"Z"] did not match "c".
+     */
+    @Test
+    void anIgnoredCaseFoldsARangeStartingInsideABlock(@TempDir Path dir) throws Exception {
+        var lexer = compile(dir, "Range.waggle", """
+                grammar Range;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <UP> | <LOW> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN [IGNORE_CASE] = < UP: "#" ["B"-"Z"] > | < LOW: "@" ["b"-"y"] > ;
+                """);
+        assertEquals(List.of("<UP>:#c", "<UP>:#Z", "<LOW>:@C", "<LOW>:@y"), lexer.tokens("#c #Z @C @y"));
+        assertEquals(List.of("error"), lexer.tokens("#a"));
+        assertEquals(List.of("error"), lexer.tokens("@Z"));
+    }
+
+    /**
      * A negated list in a choice, with case ignored: the lists of a choice are merged into one,
      * and the negation used to be removed before the case was folded, so folding the complement
      * put the excluded "a" back in as the other case of "A".

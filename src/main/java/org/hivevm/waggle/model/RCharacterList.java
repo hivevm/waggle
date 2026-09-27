@@ -229,7 +229,7 @@ public final class RCharacterList extends RExpression {
 
                 /* Add ranges for which lower case is different. */
                 for (; ; ) {
-                    while (l > RCharacterList.diffLowerCaseRanges[j]) {
+                    while (l > RCharacterList.diffLowerCaseRanges[j + 1]) {
                         j += 2;
                     }
 
@@ -296,7 +296,7 @@ public final class RCharacterList extends RExpression {
 
                 /* Add ranges for which upper case is different. */
                 j = 0;
-                while (l > RCharacterList.diffUpperCaseRanges[j]) {
+                while (l > RCharacterList.diffUpperCaseRanges[j + 1]) {
                     j += 2;
                 }
 

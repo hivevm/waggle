@@ -197,7 +197,6 @@ record Nfa(NfaState start, NfaState end) {
      * Computes NFA start state sets for string literal matching.
      */
     private static void generateNfaStartStates(NfaStateData data, NfaState initialState) {
-        boolean[] seen = new boolean[data.generatedStates()];
         Map<String, String> stateSets = new LinkedHashMap<>();
         String stateSetString = "";
         int i, j, kind, jjmatchedPos = 0;
@@ -278,19 +277,12 @@ record Nfa(NfaState start, NfaState end) {
                     continue;
                 }
 
-                int p;
-                if (stateSets.get(stateSetString) == null) {
-                    stateSets.put(stateSetString, stateSetString);
-                    for (p = 0; p < newStates.size(); p++) {
-                        if (seen[newStates.get(p).stateName]) {
-                            newStates.get(p).inNextOf++;
-                        } else {
-                            seen[newStates.get(p).stateName] = true;
-                        }
-                    }
-                } else {
-                    for (p = 0; p < newStates.size(); p++) {
-                        seen[newStates.get(p).stateName] = true;
+                // A stop set is one more set its states occur in, as a next set is. A state that
+                // occurs in another set as well must not name the composite state of this one:
+                // the move code of that name would then run for the other set too.
+                if (stateSets.putIfAbsent(stateSetString, stateSetString) == null) {
+                    for (NfaState state : newStates) {
+                        state.inNextOf++;
                     }
                 }
 
