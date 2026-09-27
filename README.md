@@ -6,6 +6,11 @@
 A parser generator is a tool that reads a grammar specification and converts it into a program that
 recognizes matches to that grammar.
 
+**Why "Waggle"?** Honeybees talk in the *waggle dance*: a forager encodes the direction and distance
+of a food source in a figure-eight run, and the other bees in the hive *parse* the dance to find it —
+a grammar that others read, which is exactly what a parser generator is about
+([hivevm.org](https://hivevm.org)).
+
 HiveVM Waggle started as a fork of JavaCC 7.0.13, but **it is no longer grammar-compatible with
 JavaCC**. It keeps JavaCC's proven conceptual model — `LL(k)` recursive-descent parsing, a token
 manager with lexical states, syntactic and semantic lookahead, tree building — while replacing the

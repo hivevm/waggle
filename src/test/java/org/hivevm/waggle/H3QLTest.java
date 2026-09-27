@@ -22,17 +22,17 @@ import org.junit.jupiter.api.Test;
  * throws (ADR-0011), the test fails honestly — which is the whole point. Re-enable it locally when
  * the sibling checkout is present.
  */
-@Disabled("Depends on external paths (../model, /data/hivevm/hql/src); enable locally")
+@Disabled("Depends on external paths (../model); enable locally")
 class H3QLTest {
 
-    public static final File WORKING_DIR = new File("../h3vm").getAbsoluteFile();
+    public static final File WORKING_DIR = new File("../model").getAbsoluteFile();
     public static final File MAIN_DIR = new File(H3QLTest.WORKING_DIR, "criteria/src/main");
 
     public static final File PARSER_JJT = new File(H3QLTest.MAIN_DIR,
             "resources/org/hivevm/criteria/parser");
     public static final File PARSER_CPP = new File(H3QLTest.MAIN_DIR, "cpp/parser");
     public static final File PARSER_JAVA = new File(H3QLTest.MAIN_DIR, "java");
-    public static final File PARSER_RUST = new File("/data/hivevm/hql/src");
+    public static final File PARSER_RUST = new File(H3QLTest.WORKING_DIR, "hivectl/src");
 
     @Test
     void testCpp() {
