@@ -28,7 +28,7 @@ interface RustDebugPrinter {
     /** "Currently matched the first N characters as a X token." */
     static void printCurrentlyMatched(LinePrinter printer, String indent) {
         printer.println(indent + "eprintln!(\"   Currently matched the first {} characters as a {} "
-                + "token.\", self.jjmatched_pos + 1, "
+                + "token.\", self.jjmatched_pos.wrapping_add(1), "
                 + "TOKEN_IMAGE[self.jjmatched_kind as usize]);");
     }
 }

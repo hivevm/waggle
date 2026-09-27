@@ -575,7 +575,7 @@ public class StringLiteralDfaEmitter {
             this.syntax.printMoveStringLiteralDfa0Signature(printer, data);
             printer.indent();
             if (data.generatedStates() > 0)
-                printer.println("return " + this.syntax.self() + "jjMoveNfa" + data.getLexerStateSuffix() + "(" + this.syntax.InitStateName(data) + ", 0);");
+                printer.println("return " + this.syntax.moveNfaCall(data, 0) + ";"); // Rust names it jj_move_nfa
             else
                 printer.println("return 1;");
             printer.outdent();

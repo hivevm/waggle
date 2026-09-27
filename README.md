@@ -147,6 +147,15 @@ to be discovered.
 * **`NODE_FACTORY` is not supported for C++.** The C++ node classes have no `jjtCreate` for a
   factory to call, so a C++ grammar that sets it is rejected.
 
+* **The Rust parser does not compile yet; the Rust lexer does.** The parser template still carries
+  unported Java (in comments and in code), so for Rust only the token manager is usable today. The
+  lexer is compiled and run in the tests, where it reads the same tokens as the Java lexer, and
+  reports a lexical error by panicking with the Java lexer's message.
+
+* **Characters beyond U+FFFF.** The automaton knows 16-bit characters. Java reads such a character
+  as its two UTF-16 surrogates; C++ and Rust read it as U+FFFD, as they do a malformed UTF-8
+  sequence in C++. The token image keeps the character in every target.
+
 
 ## Example
 

@@ -28,7 +28,7 @@ impl Token {
 		end_column: usize,
 	) -> Token {
 //@else
-	pub fn new(kind: u32, image: &'static str) -> Token {
+	pub fn new(kind: u32, image: String) -> Token {
 //@fi
 		Token {
 			kind,

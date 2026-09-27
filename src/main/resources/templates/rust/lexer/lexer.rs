@@ -230,7 +230,7 @@ impl<'a> Lexer<'a> {
 	}
 
 	fn more_lexical_actions(&mut self) {
-		self.length_of_match = self.jjmatched_pos + 1;
+		self.length_of_match = self.jjmatched_pos.wrapping_add(1);
 		self.jjimage_len += self.length_of_match;
 		match self.jjmatched_kind {
 			//@invoke(DUMP_MORE_ACTIONS)
@@ -333,7 +333,8 @@ impl<'a> Lexer<'a> {
 //@fi
 //@if(CHECK_NADD_STATES_UNARY_NEEDED)
 
-	fn jj_check_n_add_states(&mut self, start: usize) {
+	// Java and C++ overload jjCheckNAddStates; Rust cannot, so the two-state form has its own name.
+	fn jj_check_n_add_state_pair(&mut self, start: usize) {
 		self.jj_check_n_add(JJNEXT_STATES[start]);
 		self.jj_check_n_add(JJNEXT_STATES[start + 1]);
 	}

@@ -70,13 +70,10 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
         int j;
 
         if (i > 1) {
-            var atLeastOne = false;
+            // One statement per vector. The " | " between them was copied from Java's expression
+            // form, and gave "| let ..." as soon as a state had more than 128 literal kinds.
             for (j = 0; j < (maxLongsReqd - 1); j++) {
                 if (i <= (data.getMaxLenForActive(j) + 1)) {
-                    if (atLeastOne)
-                        printer.print(" | ");
-                    else
-                        atLeastOne = true;
                     printer.println("let active" + j + " = active_old" + j + " & old" + j + ";");
                 }
             }
@@ -85,7 +82,7 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
                 printer.println("let active" + j + " = active_old" + j + " & old" + j + ";");
             }
 
-            atLeastOne = false;
+            var atLeastOne = false;
             printer.print("if (");
 
             for (j = 0; j < (maxLongsReqd - 1); j++) {

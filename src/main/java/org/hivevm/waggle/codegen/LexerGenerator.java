@@ -95,10 +95,10 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         options = OptionsContext.of(data.options());
         options.add("STATES", data.getStateCount())
                 .set("STATES_INDEX", i -> i)
-                .set("STATES_NAME", data::getStateName);
+                .set("STATES_NAME", i -> identifier(data.getStateName(i)));
         options.add("TOKENS", data.getOrderedsTokens())
                 .set("TOKENS_ORDINAL", RExpression::getOrdinal)
-                .set("TOKENS_LABEL", RExpression::getLabel);
+                .set("TOKENS_LABEL", e -> identifier(e.getLabel()));
 
         var expressions = new ArrayList<RExpression>();
         for (var production : data.getTokenProductions()) {
@@ -115,6 +115,11 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     }
 
     protected abstract SourceProvider<Options> getConstantsTemplate();
+
+    /** A name from the grammar as an identifier of the target: the name itself, unless overridden. */
+    protected String identifier(String name) {
+        return name;
+    }
 
     protected abstract void generate(LexerData data, OptionsContext context);
 

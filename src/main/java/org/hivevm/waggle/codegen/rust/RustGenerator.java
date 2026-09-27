@@ -50,7 +50,7 @@ public class RustGenerator extends GeneratorProvider {
         var options = request.options();
         if (options.stringValue(Waggle.RUST_MODULE).isEmpty()) {
             options.set(Waggle.RUST_MODULE,
-                    request.getParserName().toLowerCase(Locale.ROOT));
+                    RustIdentifier.of(request.getParserName().toLowerCase(Locale.ROOT)));
         }
     }
 

@@ -37,6 +37,11 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
+    protected String identifier(String name) {
+        return RustIdentifier.of(name);
+    }
+
+    @Override
     protected GetNextTokenEmitter newGetNextTokenEmitter() {
         return new RustGetNextTokenEmitter(this, this);
     }
@@ -91,11 +96,11 @@ class RustLexerGenerator extends LexerGenerator {
 
     @Override
     public void printCheckNAddStates(LinePrinter printer, int first, int last, boolean isRange) {
-        printer.print("self.jj_check_n_add_states(" + first);
         if (isRange) {
-            printer.print(", " + last);
+            printer.println("self.jj_check_n_add_states(" + first + ", " + last + ");");
+        } else {
+            printer.println("self.jj_check_n_add_state_pair(" + first + ");");
         }
-        printer.println(");");
     }
 
     @Override
@@ -203,6 +208,9 @@ class RustLexerGenerator extends LexerGenerator {
 
         printer.outdent();
         printer.println("}");
+        printer.println("break;");
+        printer.outdent();
+        printer.println("}");
         printer.println("while_cond = i != starts_at;");
         printer.outdent();
         printer.println("}");
@@ -257,7 +265,7 @@ class RustLexerGenerator extends LexerGenerator {
     @Override
     public void printMoveStringLiteralDfa0Signature(LinePrinter printer, NfaStateData data) {
         printer.println("fn jj_move_string_literal_dfa0" + data.getLexerStateSuffix()
-                + "(&self) -> usize {");
+                + "(&mut self) -> usize {");
     }
 
     @Override
@@ -592,7 +600,7 @@ class RustLexerGenerator extends LexerGenerator {
     public void printDebugFoundMatch(LinePrinter printer) {
         printer.println("eprintln!(\"****** FOUND A {} MATCH ({}) ******\\n\", "
                 + "TOKEN_IMAGE[self.jjmatched_kind as usize], "
-                + "self.input_stream.get_suffix(self.jjmatched_pos + 1));");
+                + "self.input_stream.get_suffix(self.jjmatched_pos.wrapping_add(1)));");
     }
 
     @Override
@@ -624,6 +632,11 @@ class RustLexerGenerator extends LexerGenerator {
     @Override
     public void printSwitchOnStateSet(LinePrinter printer) {
         printer.println("i -= 1;");
+        // The shared emitters write Java's "break" to leave a case of the switch. In a Rust match
+        // arm it left the loop over the state set instead, so one state that did not move dropped
+        // all the others: "90" lexed as "9" and "0". Inside this loop, break leaves the match only.
+        printer.println("loop {");
+        printer.indent();
         printer.println("match self.jjstate_set[i] {");
     }
 

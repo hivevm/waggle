@@ -144,7 +144,7 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
                     
                     let to_ret = cmp::max(cur_pos, seen_upto);
                     if cur_pos < to_ret {
-                        let mut i = cmp::min(cur_pos, seen_upto);
+                        let mut i = to_ret - cmp::min(cur_pos, seen_upto); // as in Java and C++
                         while i > 0 {
                             let result = self.input_stream.read_char();
                             if result.is_err() {

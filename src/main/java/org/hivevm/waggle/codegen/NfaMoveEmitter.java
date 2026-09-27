@@ -524,7 +524,8 @@ public class NfaMoveEmitter {
             }
         }
 
-        printer.println("if (" + this.syntax.canMove(state) + ")");
+        // Not a bare "if (...)": Rust needs the braces that printIfNoBlock and printEndIf add.
+        this.syntax.printIfNoBlock(printer, this.syntax.canMove(state));
 
         if (state.kindToPrint != Integer.MAX_VALUE) {
             printer.println("{");
@@ -542,6 +543,7 @@ public class NfaMoveEmitter {
             printer.outdent();
             printer.println("}");
         }
+        this.syntax.printEndIf(printer);
     }
 
     protected void DumpAsciiMoves(LinePrinter printer, NfaStateData data, int byteNum) {

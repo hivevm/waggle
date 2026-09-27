@@ -103,15 +103,15 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
 
     @Override
     protected void printBackupBlock(LinePrinter printer, LexerData data) {
-        printer.println("if self.jjmatched_pos + 1 < cur_pos {");
+        printer.println("if self.jjmatched_pos.wrapping_add(1) < cur_pos {");
         printer.indent();
 
         if (data.getDebugTokenManager()) {
             printer.println("eprintln!(\"   Putting back {} characters into the input stream.\", "
-                    + "cur_pos - self.jjmatched_pos - 1);");
+                    + "cur_pos - self.jjmatched_pos.wrapping_add(1));");
         }
 
-        printer.println("self.input_stream.backup(cur_pos - self.jjmatched_pos - 1);");
+        printer.println("self.input_stream.backup(cur_pos - self.jjmatched_pos.wrapping_add(1));");
         printer.outdent();
         printer.println("}");
     }
@@ -188,7 +188,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         if (data.hasMoreActions()) {
             printer.println("self.more_lexical_actions();");
         } else if (data.hasSkipActions() || data.hasTokenActions()) {
-            printer.println("self.jjimage_len += self.jjmatched_pos + 1;");
+            printer.println("self.jjimage_len += self.jjmatched_pos.wrapping_add(1);");
         }
 
         if (data.maxLexStates() > 1) {
@@ -244,7 +244,18 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
                         error_after = self.input_stream.get_image();
                     }
                 }
-                return Token::empty();
+                // This used to return Token::empty(), which is <EOF>: the rest of the input was
+                // silently dropped. The message is the Java lexer's.
+                let encountered = if eof_seen {
+                    String::from("<EOF> ")
+                } else {
+                    let c = char::from_u32(self.cur_char).unwrap_or(char::REPLACEMENT_CHARACTER);
+                    format!("\\"{}\\" ({}), ", c.escape_default(), self.cur_char)
+                };
+                panic!(
+                    "Lexical error at line {}, column {}.  Encountered: {}after : \\"{}\\"",
+                    error_line, error_column, encountered, error_after.escape_default()
+                );
                 """);
     }
 
