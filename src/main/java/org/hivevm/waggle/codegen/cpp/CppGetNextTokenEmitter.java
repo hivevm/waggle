@@ -24,11 +24,6 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
 
     @Override
     protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        // the backup(0) is there to make the JIT happy
-        printer.println("{");
-        printer.indent();
-        printer.println("reader->backup(0);");
-
         printer.print("while (" + skipSinglesCondition(data, state) + ")");
 
         // the loop body must be braced: it advances curChar, and without the braces only the
@@ -45,9 +40,6 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
 
         printer.println("if (reader->endOfInput()) { goto EOFLoop; }");
         printer.println("curChar = reader->beginToken();");
-
-        printer.outdent();
-        printer.println("}");
 
         printer.outdent();
         printer.println("}");

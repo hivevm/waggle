@@ -73,12 +73,6 @@ const Latin1 __PARSER_NAME__TokenManager::jjKindsForStateVector(int lexState, in
 	return (cnt == 0) ? Latin1("{  }") : "{ " + names + " }";
 }
 //@fi
-//@if(HAS_LOOP)
-static int  jjemptyLineNo[__MAX_LEX_STATES__];
-static int  jjemptyColNo[__MAX_LEX_STATES__];
-static bool jjbeenHere[__MAX_LEX_STATES__];
-//@fi
-
 /** Lexer state names. */
 //@foreach(STATE_NAMES_AS_CHARS)
 static const JJChar lexStateNames_arr___STATE_NAMES_AS_CHARS_INDEX__[] =
@@ -96,6 +90,39 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 
 	void __PARSER_NAME__TokenManager::setDebugStream(FILE *ds) { debugStream = ds; }
+
+void __PARSER_NAME__TokenManager::jjCheckNAdd(int state) {
+	if (jjrounds[state] != jjround) {
+		jjstateSet[jjnewStateCnt++] = state;
+		jjrounds[state] = jjround;
+	}
+}
+
+void __PARSER_NAME__TokenManager::jjAddStates(int start, int end) {
+	for (int x = start; x <= end; x++) {
+		jjstateSet[jjnewStateCnt++] = jjnextStates[x];
+	}
+}
+
+void __PARSER_NAME__TokenManager::jjCheckNAddTwoStates(int state1, int state2) {
+	jjCheckNAdd(state1);
+	jjCheckNAdd(state2);
+}
+//@if(CHECK_NADD_STATES_DUAL_NEEDED)
+
+void __PARSER_NAME__TokenManager::jjCheckNAddStates(int start, int end) {
+	for (int x = start; x <= end; x++) {
+		jjCheckNAdd(jjnextStates[x]);
+	}
+}
+//@fi
+//@if(CHECK_NADD_STATES_UNARY_NEEDED)
+
+void __PARSER_NAME__TokenManager::jjCheckNAddStates(int start) {
+	jjCheckNAdd(jjnextStates[start]);
+	jjCheckNAdd(jjnextStates[start + 1]);
+}
+//@fi
 
 	//@invoke(DUMP_NFA_AND_DFA)
 
@@ -119,7 +146,7 @@ namespace __CPP_NAMESPACE__ {
 		}
 //@fi
 	} else {
-		JJString im = jjstrLiteralImages[jjmatchedKind];
+		const JJString& im = jjstrLiteralImages[jjmatchedKind];
 		curTokenImage = ((im.length() == 0) && (jjmatchedKind != 0)) ? reader->getImage() : im;
 //@if(KEEP_LINE_COLUMN)
 		if (reader->getTrackLineColumn()) {
@@ -134,7 +161,7 @@ namespace __CPP_NAMESPACE__ {
 	// No literal has an empty image, so "" stands for "none" here, except for <EOF>: its image is
 	// empty, as in Java. Reading it from the input gave the previous token's text, or with empty
 	// input a whole buffer of uninitialised memory.
-	JJString im = jjstrLiteralImages[jjmatchedKind];
+	const JJString& im = jjstrLiteralImages[jjmatchedKind];
 	curTokenImage = ((im.length() == 0) && (jjmatchedKind != 0)) ? reader->getImage() : im;
 //@if(KEEP_LINE_COLUMN)
 	if (reader->getTrackLineColumn()) {
@@ -185,10 +212,8 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 		int error_line = reader->getEndLine();
 		int error_column = reader->getEndColumn();
 		JJString error_after = JJEMPTY;
-		bool EOFSeen = false;
-		if (reader->endOfInput()) {
-			EOFSeen = true;
-			error_after = curPos <= 1 ? JJEMPTY : reader->getImage();
+		bool EOFSeen = reader->endOfInput();
+		if (EOFSeen) {
 			if (curChar == '\n' || curChar == '\r') {
 				error_line++;
 				error_column = 0;
@@ -196,9 +221,7 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 			else
 				error_column++;
 		}
-		if (!EOFSeen) {
-			error_after = curPos <= 1 ? JJEMPTY : reader->getImage();
-		}
+		error_after = curPos <= 1 ? JJEMPTY : reader->getImage();
 		errorHandler->lexicalError(EOFSeen, curLexState, error_line, error_column, error_after, curChar);
 	}
 }

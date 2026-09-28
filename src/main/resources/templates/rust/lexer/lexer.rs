@@ -104,35 +104,12 @@ impl<'a> Lexer<'a> {
 	}
 
 	pub fn new_from_state(text: &'a str, lex_state: i8) -> Self {
-		let mut lexer = Lexer {
-			cur_lex_state: lex_state,
-			default_lex_state: lex_state,
-			jjnew_state_cnt: 0,
-			jjround: 0,
-			jjmatched_pos: 0,
-			jjmatched_kind: 0,
-			jjrounds: [0; __STATE_SET_SIZE__],
-			jjstate_set: [0; __STATE_SET_SIZE_2__],
-			jjimage_len: 0,
-			length_of_match: 0,
-			image: String::new(),
-			cur_char: 0,
-			input_stream: CharStream::new(text),
-//@if(HAS_LOOP)
-			jjemptyLineNo: [0; __MAX_LEX_STATES__],
-			jjemptyColNo: [0; __MAX_LEX_STATES__],
-			jjbeenHere: [false; __MAX_LEX_STATES__],
-//@fi
-		};
+		let mut lexer = Self::new(text);
+		lexer.default_lex_state = lex_state;
 		lexer.re_init_rounds();
 		lexer.switch_to(lex_state);
 		lexer
 	}
-	/*
-		pub TokenManager(JavaCharStream stream) {
-		input_stream = stream;
-		}
-	*/
 
 	pub fn switch_to(&mut self, lex_state: i8) {
 		if lex_state >= __STATE_COUNT__ {

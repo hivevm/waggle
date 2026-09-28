@@ -107,6 +107,21 @@ class CppParserGenerator extends ParserGenerator {
         }
     }
 
+    /**
+     * None: a C++ parser reports an error through its ParserErrorHandler, which names the token it
+     * found and not the ones it expected, so there is nothing to record them for.
+     */
+    @Override
+    protected int maskIndex(ParserData data, int mask) {
+        return -1;
+    }
+
+    /** Never, for the same reason. */
+    @Override
+    protected boolean rescans(ParserData data) {
+        return false;
+    }
+
     @Override
     protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
         printer.println("  inline bool jj_2" + internalName(e) + "(int xla) {");
@@ -119,9 +134,6 @@ class CppParserGenerator extends ParserGenerator {
 
         printer.println("    jj_done = false;");
         printer.println("    return (!jj_3" + internalName(e) + "() || jj_done)" + ret_suffix + ";");
-        if (data.getErrorReporting()) {
-            printer.println("    { jj_save(" + (Integer.parseInt(internalName(e).substring(1)) - 1) + ", xla); }");
-        }
         printer.println("  }");
         printer.println();
     }

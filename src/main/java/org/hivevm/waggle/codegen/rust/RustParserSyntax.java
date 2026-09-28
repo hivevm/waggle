@@ -250,10 +250,17 @@ final class RustParserSyntax implements ParserSyntax {
         printer.print("self.jj_consume_token(");
     }
 
-    /** The token, or the field the grammar takes from it ({@code t = <ID>.image}). */
+    /**
+     * The token, or the field the grammar takes from it ({@code t = <ID>.image}). The parser lends
+     * the token out of its buffer, so only what the grammar assigns is copied.
+     */
     @Override
     public void consumeTokenEnd(RExpression re, LinePrinter printer) {
-        printer.print(re.getRhsToken() == null ? ")?;" : ")?." + re.getRhsToken().image + ";");
+        if (re.getLhsTokens().isEmpty()) {
+            printer.print(")?;");
+        } else {
+            printer.print(re.getRhsToken() == null ? ")?.clone();" : ")?." + re.getRhsToken().image + ".clone();");
+        }
     }
 
     @Override

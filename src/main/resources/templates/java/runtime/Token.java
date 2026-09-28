@@ -15,8 +15,8 @@ package __JAVA_PACKAGE__;
 public class Token {
 
 	/**
-	 * An integer that describes the kind of this token. This numbering system is determined by
-	 * JavaCCParser, and a table of these numbers is stored in the file ...Constants.java.
+	 * An integer that describes the kind of this token. Waggle numbers the kinds, and a table of
+	 * them is stored in the file ...Constants.java.
 	 */
 	public int kind;
 

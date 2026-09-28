@@ -185,7 +185,8 @@ impl<'a> Parser<'a> {
 		Ok(self.tokens[next].kind)
 	}
 
-	fn jj_consume_token(&mut self, kind: u32) -> Result<Token, ParseError> {
+	/// The consumed token, borrowed: it stays in the buffer, and only a grammar that keeps it copies it.
+	fn jj_consume_token(&mut self, kind: u32) -> Result<&Token, ParseError> {
 		let next = self.token + 1;
 		self.jj_fetch(next)?;
 //@if(CACHE_TOKENS)
@@ -194,7 +195,7 @@ impl<'a> Parser<'a> {
 		if self.tokens[next].kind == kind {
 			self.token = next;
 			self.jj_gen += 1;
-			return Ok(self.tokens[next].clone());
+			return Ok(&self.tokens[next]);
 		}
 		self.jj_kind = kind as i32;
 		Err(self.jj_parse_error())

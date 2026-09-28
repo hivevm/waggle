@@ -67,9 +67,8 @@ class TokenException extends RuntimeException {
 
 	/**
 	 * Replaces unprintable characters by their escaped (or unicode escaped) equivalents in the
-	 * given string
+	 * given string. Also used by the token manager's trace and by ParseException, hence not private.
 	 */
-	/** Also used by the token manager's trace, hence not private. */
 	static String addEscapes(String str) {
 		StringBuilder retval = new StringBuilder();
 		char ch;

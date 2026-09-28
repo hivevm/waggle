@@ -51,46 +51,25 @@ void MoreLexicalActions();
 //@if(HAS_TOKEN_ACTIONS)
 void TokenLexicalActions(Token *matchedToken);
 //@fi
-#define jjCheckNAdd(state)\
-do {\
-	if (jjrounds[state] != jjround)\
-	{\
-		jjstateSet[jjnewStateCnt++] = state;\
-		jjrounds[state] = jjround;\
-	}\
-} while (false)
-#define jjAddStates(start, end)\
-do {\
-	for (int x = start; x <= end; x++) {\
-		jjstateSet[jjnewStateCnt++] = jjnextStates[x];\
-	} /*while (start++ != end);*/\
-} while (false)
-#define jjCheckNAddTwoStates(state1, state2)\
-do {\
-	jjCheckNAdd(state1);\
-	jjCheckNAdd(state2);\
-} while (false)
-
-//@if(CHECK_NADD_STATES_DUAL_NEEDED)
-#define jjCheckNAddStates(start, end)\
-do {\
-	for (int x = start; x <= end; x++) {\
-		jjCheckNAdd(jjnextStates[x]);\
-	} /*while (start++ != end);*/\
-} while (false)
-
-//@fi
-//@if(CHECK_NADD_STATES_UNARY_NEEDED)
-#define jjCheckNAddStates(start)\
-do {\
-	jjCheckNAdd(jjnextStates[start]);\
-	jjCheckNAdd(jjnextStates[start + 1]);\
-} while (false)
-//@fi
 	Reader*        reader;
 
 private:
 	void ReInitRounds();
+	void jjCheckNAdd(int state);
+	void jjAddStates(int start, int end);
+	void jjCheckNAddTwoStates(int state1, int state2);
+//@if(CHECK_NADD_STATES_DUAL_NEEDED)
+	void jjCheckNAddStates(int start, int end);
+//@fi
+//@if(CHECK_NADD_STATES_UNARY_NEEDED)
+	void jjCheckNAddStates(int start);
+//@fi
+//@if(HAS_LOOP)
+	// Where each lexical state last matched the empty string, to catch a loop on it.
+	int  jjemptyLineNo[__MAX_LEX_STATES__] = {};
+	int  jjemptyColNo[__MAX_LEX_STATES__] = {};
+	bool jjbeenHere[__MAX_LEX_STATES__] = {};
+//@fi
 
 public:
 	__PARSER_NAME__TokenManager(Reader * stream, int lexState = __DEFAULT_LEX_STATE__);
@@ -107,7 +86,6 @@ protected:
 
 	int                       jjrounds[__STATE_SET_SIZE__];
 	int                       jjstateSet[__STATE_SET_SIZE_2__];
-	JJString                  jjimage;
 	JJString                  image;
 	int                       jjimageLen;
 	int                       lengthOfMatch;

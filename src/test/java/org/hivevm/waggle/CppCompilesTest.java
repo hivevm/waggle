@@ -285,6 +285,30 @@ class CppCompilesTest {
     }
 
     /**
+     * A token many times longer than the reader's buffer, which has to grow several times while the
+     * start of the token stays fixed. See {@link GeneratedLexerTest#aTokenLongerThanTheBufferIsReadWhole}.
+     */
+    @Test
+    void aTokenLongerThanTheBufferIsReadWhole(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run(GeneratedLexerTest.LONG_COMMENT, dir, """
+                #include <iostream>
+                #include "LongTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("ab /*") + JJString(100000, 'x') + JJString("*/ cd"));
+                    LongTokenManager lexer(&reader);
+                    for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        std::cout << t->kind() << ":" << t->image().size() << ":"
+                                  << t->image().substr(0, 3) << t->image().substr(t->image().size() - 2) << ";";
+                    }
+                }
+                """);
+        assertEquals("5:2:abab;3:100004:/*x*/;5:2:cdcd;", output);
+    }
+
+    /**
      * Backing up over characters beyond ASCII: "a\u00e4c" starts "a\u00e4b", which fails at
      * "c", so the lexer takes "a" and backs up over "\u00e4c". The reader backed up by bytes while
      * the lexer counts characters, and so stopped inside the "\u00e4". Written once with literals,

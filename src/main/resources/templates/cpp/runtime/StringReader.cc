@@ -9,6 +9,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
+#include <algorithm>
+
 #include "StringReader.h"
 
 static constexpr int INITIAL_BUFFER_SIZE = 4096;
@@ -234,10 +236,13 @@ void StringReader::adjustBeginLineColumn(int newLine, int newCol) {
 	column = bufcolumn[j];
 }
 
+// At least doubles, so that a long token - a comment read with MORE - costs linear rather than
+// quadratic copying.
 void StringReader::expandBuff(bool wrapAround) {
-	JJChar *newbuffer = new JJChar[bufsize + 2048];
-	int *newbufline = new int[bufsize + 2048]();
-	int *newbufcolumn = new int[bufsize + 2048]();
+	int newsize = bufsize + std::max(bufsize, 2048);
+	JJChar *newbuffer = new JJChar[newsize];
+	int *newbufline = new int[newsize]();
+	int *newbufcolumn = new int[newsize]();
 
 	if (wrapAround) {
 		ArrayCopy(buffer, tokenBegin, newbuffer, 0, bufsize - tokenBegin);
@@ -259,7 +264,7 @@ void StringReader::expandBuff(bool wrapAround) {
 	buffer = newbuffer;
 	bufline = newbufline;
 	bufcolumn = newbufcolumn;
-	bufsize += 2048;
+	bufsize = newsize;
 	available = bufsize;
 	tokenBegin = 0;
 }

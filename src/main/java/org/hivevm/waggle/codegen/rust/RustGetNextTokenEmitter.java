@@ -24,9 +24,6 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
 
     @Override
     protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        // the backup(0) is there to make the JIT happy
-        printer.println("self.input_stream.backup(0);");
-
         long lower = data.singlesToSkip(state).asciiMoves[0];
         long upper = data.singlesToSkip(state).asciiMoves[1];
         String condition;
@@ -196,35 +193,24 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("""
                 let mut error_line = self.input_stream.get_end_line();
                 let mut error_column = self.input_stream.get_end_column();
-                let mut error_after = String::new();
-                let mut eof_seen = false;
-                let result = self.input_stream.read_char();
-                if result.is_ok() {
-                    self.input_stream.backup(1);
-                } else {
-                    eof_seen = true;
-                    if cur_pos <= 1 {
-                        error_after = String::new();
-                    } else {
-                        error_after = self.input_stream.get_image();
-                    }
-                    if self.cur_char == '\\n'.try_into().unwrap()
-                        || self.cur_char == '\\r'.try_into().unwrap()
-                    {
+                let eof_seen = self.input_stream.read_char().is_err();
+                if eof_seen {
+                    if self.cur_char == '\\n' as u32 || self.cur_char == '\\r' as u32 {
                         error_line += 1;
                         error_column = 0;
                     } else {
                         error_column += 1;
                     }
-                }
-                if !eof_seen {
+                } else {
+                    // Back over the character just read and the one that failed, as Java does.
                     self.input_stream.backup(1);
-                    if cur_pos <= 1 {
-                        error_after = String::new();
-                    } else {
-                        error_after = self.input_stream.get_image();
-                    }
+                    self.input_stream.backup(1);
                 }
+                let error_after = if cur_pos <= 1 {
+                    String::new()
+                } else {
+                    self.input_stream.get_image()
+                };
                 // A value, not a panic (ADR-0030); it used to be Token::empty(), which is <EOF>,
                 // so the rest of the input was silently dropped. The message is the Java lexer's.
                 let encountered = if eof_seen {

@@ -27,15 +27,6 @@
 namespace __CPP_NAMESPACE__ {
 
 //@fi
-struct JJCalls {
-    int        gen;
-    int        arg;
-    JJCalls*   next;
-    Token*     first;
-    ~JJCalls() { if (next) delete next; }
-    JJCalls() { next = nullptr; arg = 0; gen = -1; first = nullptr; }
-};
-
 class __PARSER_NAME__ {
 public:
 	//@invoke(DUMP_NORMALPRODUCTIONS_IMPL)
@@ -64,16 +55,11 @@ public:
 
 private:
 	int                    jj_ntk;
-	JJCalls                jj_2_rtns[__JJ2_INDEX__ + 1];
-	bool                   jj_rescan;
-	int                    jj_gc;
 	Token*                 jj_scanpos;
 	Token*                 jj_lastpos;
 	int                    jj_la;
 	bool                   jj_lookingAhead;  // Whether we are looking ahead.
 	bool                   jj_semLA;
-	int                    jj_gen;
-	int                    jj_la1[__MASK_INDEX__ + 1];
 	ParserErrorHandler*    errorHandler = nullptr;
 
 protected:
@@ -115,21 +101,6 @@ Token * getToken(int index);
 int jj_ntk_f();
 //@fi
 private:
-	int jj_kind;
-//@if(ERROR_REPORTING)
-	int **jj_expentries;
-	int *jj_expentry;
-//@if(JJ2_INDEX)
-	void jj_add_error_token(int kind, int pos);
-//@fi
-
-protected:
-	/** Generate ParseException. */
-	void parseError();
-//@else
-	void parseError();
-//@fi
-private:
 	int  indent; // trace indentation
 	bool trace = __DEBUG_PARSER__;
 	bool trace_la = __DEBUG_LOOKAHEAD__;
@@ -149,12 +120,6 @@ public:
 	void disable_tracing();
 	void enable_la_tracing();
 	void disable_la_tracing();
-//@fi
-//@if(JJ2_INDEX)
-//@if(ERROR_REPORTING)
-	void jj_rescan_token();
-	void jj_save(int index, int xla);
-//@fi
 //@fi
 protected:
 //@if(USE_AST)

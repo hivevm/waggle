@@ -62,7 +62,6 @@ class JavaCharStream {
 	private int     nextCharInd     = -1;
 	private int     inBuf           = 0;
 	private int     tabSize         = 1;
-	private boolean trackLineColumn = true;
 
 	public void setTabSize(int i) {
 		this.tabSize = i;
@@ -72,53 +71,54 @@ class JavaCharStream {
 		return this.tabSize;
 	}
 
+	/**
+	 * Grows the buffer for a token that does not fit. It at least doubles, so that a long token -
+	 * a comment read with MORE - costs linear rather than quadratic copying.
+	 */
 	protected void ExpandBuff(boolean wrapAround) {
-		char[] newbuffer = new char[this.bufsize + 2048];
+		int newsize = this.bufsize + Math.max(this.bufsize, 2048);
+		char[] newbuffer = new char[newsize];
 //@if(KEEP_LINE_COLUMN)
-		int[] newbufline = new int[this.bufsize + 2048];
-		int[] newbufcolumn = new int[this.bufsize + 2048];
+		int[] newbufline = new int[newsize];
+		int[] newbufcolumn = new int[newsize];
 //@fi
-		try {
-			if (wrapAround) {
-				System.arraycopy(this.buffer, this.tokenBegin, newbuffer, 0,
-						this.bufsize - this.tokenBegin);
-				System.arraycopy(this.buffer, 0, newbuffer, this.bufsize - this.tokenBegin,
-						this.bufpos);
-				this.buffer = newbuffer;
+		if (wrapAround) {
+			System.arraycopy(this.buffer, this.tokenBegin, newbuffer, 0,
+					this.bufsize - this.tokenBegin);
+			System.arraycopy(this.buffer, 0, newbuffer, this.bufsize - this.tokenBegin,
+					this.bufpos);
+			this.buffer = newbuffer;
 //@if(KEEP_LINE_COLUMN)
-				System.arraycopy(this.bufline, this.tokenBegin, newbufline, 0,
-						this.bufsize - this.tokenBegin);
-				System.arraycopy(this.bufline, 0, newbufline, this.bufsize - this.tokenBegin,
-						this.bufpos);
-				this.bufline = newbufline;
+			System.arraycopy(this.bufline, this.tokenBegin, newbufline, 0,
+					this.bufsize - this.tokenBegin);
+			System.arraycopy(this.bufline, 0, newbufline, this.bufsize - this.tokenBegin,
+					this.bufpos);
+			this.bufline = newbufline;
 
-				System.arraycopy(this.bufcolumn, this.tokenBegin, newbufcolumn, 0,
-						this.bufsize - this.tokenBegin);
-				System.arraycopy(this.bufcolumn, 0, newbufcolumn, this.bufsize - this.tokenBegin,
-						this.bufpos);
-				this.bufcolumn = newbufcolumn;
+			System.arraycopy(this.bufcolumn, this.tokenBegin, newbufcolumn, 0,
+					this.bufsize - this.tokenBegin);
+			System.arraycopy(this.bufcolumn, 0, newbufcolumn, this.bufsize - this.tokenBegin,
+					this.bufpos);
+			this.bufcolumn = newbufcolumn;
 //@fi
-				this.bufpos += (this.bufsize - this.tokenBegin);
-			} else {
-				System.arraycopy(this.buffer, this.tokenBegin, newbuffer, 0,
-						this.bufsize - this.tokenBegin);
-				this.buffer = newbuffer;
+			this.bufpos += (this.bufsize - this.tokenBegin);
+		} else {
+			System.arraycopy(this.buffer, this.tokenBegin, newbuffer, 0,
+					this.bufsize - this.tokenBegin);
+			this.buffer = newbuffer;
 //@if(KEEP_LINE_COLUMN)
-				System.arraycopy(this.bufline, this.tokenBegin, newbufline, 0,
-						this.bufsize - this.tokenBegin);
-				this.bufline = newbufline;
+			System.arraycopy(this.bufline, this.tokenBegin, newbufline, 0,
+					this.bufsize - this.tokenBegin);
+			this.bufline = newbufline;
 
-				System.arraycopy(this.bufcolumn, this.tokenBegin, newbufcolumn, 0,
-						this.bufsize - this.tokenBegin);
-				this.bufcolumn = newbufcolumn;
+			System.arraycopy(this.bufcolumn, this.tokenBegin, newbufcolumn, 0,
+					this.bufsize - this.tokenBegin);
+			this.bufcolumn = newbufcolumn;
 //@fi
-				this.bufpos -= this.tokenBegin;
-			}
-		} catch (Exception t) {
-			throw new RuntimeException(t.getMessage());
+			this.bufpos -= this.tokenBegin;
 		}
 
-		this.available = (this.bufsize += 2048);
+		this.available = (this.bufsize = newsize);
 		this.tokenBegin = 0;
 	}
 
@@ -522,14 +522,6 @@ class JavaCharStream {
 
 		this.line = this.bufline[j];
 		this.column = this.bufcolumn[j];
-	}
-
-	boolean getTrackLineColumn() {
-		return this.trackLineColumn;
-	}
-
-	void setTrackLineColumn(boolean tlc) {
-		this.trackLineColumn = tlc;
 	}
 //@fi
 }

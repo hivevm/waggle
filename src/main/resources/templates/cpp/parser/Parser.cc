@@ -15,12 +15,6 @@
 #include "__PARSER_NAME__Tree.h"
 //@fi
 
-//@if(ERROR_REPORTING)
-//@foreach(TOKEN_MASKS)
-static unsigned int jj_la1___TOKEN_MASKS_INDEX__[] = {__TOKEN_MASKS_VALUE__};
-//@end
-//@fi
-
 
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {
@@ -48,11 +42,8 @@ void __PARSER_NAME__::ReInit(TokenManager* tokenManager)
 	token_source = tokenManager;
 	head = token = new Token;
 	jj_lookingAhead = false;
-	jj_rescan = false;
 	jj_done = false;
 	jj_scanpos = jj_lastpos = nullptr;
-	jj_gc = 0;
-	jj_kind = -1;
 	indent = 0;
 	trace = __DEBUG_PARSER__;
 //@if(CPP_STACK_LIMIT)
@@ -70,12 +61,6 @@ void __PARSER_NAME__::ReInit(TokenManager* tokenManager)
 //@if(DEPTH_LIMIT)
 	jj_depth = 0;
 	jj_depth_error = false;
-//@fi
-//@if(ERROR_REPORTING)
-	jj_gen = 0;
-//@if(MASK_INDEX)
-	for (int i = 0; i < __MASK_INDEX__; i++) jj_la1[i] = -1;
-//@fi
 //@fi
 }
 
@@ -145,21 +130,6 @@ Token * __PARSER_NAME__::jj_consume_token(int kind)
 	jj_ntk = -1;
 //@fi
 	if (token->kind() == kind) {
-//@if(ERROR_REPORTING)
-		jj_gen++;
-//@if(JJ2_INDEX)
-		if (++jj_gc > 100) {
-			jj_gc = 0;
-			for (int i = 0; i < __JJ2_INDEX__; i++) {
-				JJCalls *c = &jj_2_rtns[i];
-				while (c != nullptr) {
-					if (c->gen < jj_gen) c->first = nullptr;
-					c = c->next;
-				}
-			}
-		}
-//@fi
-//@fi
 //@if(DEBUG_PARSER)
 		trace_token(token, "");
 //@fi
@@ -169,9 +139,6 @@ Token * __PARSER_NAME__::jj_consume_token(int kind)
     jj_nt = token;
 //@fi
     token = oldToken;
-//@if(ERROR_REPORTING)
-    jj_kind = kind;
-//@fi
 //@if(CPP_STACK_LIMIT)
     if (!jj_stack_error) {
 //@fi
@@ -210,21 +177,8 @@ bool __PARSER_NAME__::jj_scan_token(int kind)
     } else {
         jj_scanpos = jj_scanpos->next();
     }
-//@if(ERROR_REPORTING)
-    if (jj_rescan) {
-        int i = 0; Token *tok = token;
-        while (tok != nullptr && tok != jj_scanpos) { i++; tok = tok->next(); }
-        if (tok != nullptr) jj_add_error_token(kind, i);
 //@if(DEBUG_LOOKAHEAD)
-    } else {
-        trace_scan(jj_scanpos, kind);
-//@fi
-    }
-//@fi
-//@if(DEBUG_LOOKAHEAD)
-//@if(!ERROR_REPORTING)
     trace_scan(jj_scanpos, kind);
-//@fi
 //@fi
     if (jj_scanpos->kind() != kind) return true;
     if (jj_la == 0 && jj_scanpos == jj_lastpos) { return jj_done = true; }
@@ -242,9 +196,6 @@ Token * __PARSER_NAME__::getNextToken()
     if (token->next() != nullptr) token = token->next();
     else token = token->next() = token_source->getNextToken();
     jj_ntk = -1;
-//@fi
-//@if(ERROR_REPORTING)
-	jj_gen++;
 //@fi
 //@if(DEBUG_PARSER)
 	trace_token(token, " (in getNextToken)");
@@ -275,22 +226,6 @@ int __PARSER_NAME__::jj_ntk_f()
         return (jj_ntk = jj_nt->kind());
 }
 
-//@fi
-//@if(ERROR_REPORTING)
-//@if(JJ2_INDEX)
-void __PARSER_NAME__::jj_add_error_token(int kind, int pos)
-{
-}
-//@fi
-
-void __PARSER_NAME__::parseError()
-{
-    JJERR << JJWIDE(Parse error at : ) << token->beginLine() << JJWIDE(:) << token->beginColumn() << JJWIDE( after token: ) << addUnicodeEscapes(token->image()) << JJWIDE( encountered: ) << addUnicodeEscapes(getToken(1)->image()) << std::endl;
-}
-//@else
-void __PARSER_NAME__::parseError()
-{
-}
 //@fi
 
 bool __PARSER_NAME__::trace_enabled()
@@ -363,40 +298,6 @@ void __PARSER_NAME__::disable_la_tracing()
 {
 }
 
-//@fi
-//@if(JJ2_INDEX)
-//@if(ERROR_REPORTING)
-void __PARSER_NAME__::jj_rescan_token()
-{
-    jj_rescan = true;
-    for (int i = 0; i < __JJ2_INDEX__; i++) {
-        JJCalls *p = &jj_2_rtns[i];
-        do {
-            if (p->gen > jj_gen) {
-                jj_la = p->arg; jj_lastpos = jj_scanpos = p->first;
-                switch (i) {
-//@foreach(JJ2_OFFSET)
-					case __JJ2_OFFSET_INDEX__: jj_3___JJ2_OFFSET_VALUE__(); break;
-//@end
-                }
-            }
-            p = p->next;
-        } while (p != nullptr);
-    }
-    jj_rescan = false;
-}
-
-void __PARSER_NAME__::jj_save(int index, int xla)
-{
-    JJCalls *p = &jj_2_rtns[index];
-    while (p->gen > jj_gen) {
-        if (p->next == nullptr) { p = p->next = new JJCalls(); break; }
-        p = p->next;
-    }
-    p->gen = jj_gen + xla - jj_la; p->first = token; p->arg = xla;
-}
-
-//@fi
 //@fi
 //@if(CPP_NAMESPACE)
 }

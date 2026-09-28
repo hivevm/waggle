@@ -191,6 +191,38 @@ class GeneratedLexerTest {
         }
     }
 
+    /**
+     * A token many times longer than the char stream's buffer: a comment accumulated with MORE keeps
+     * the start of the token fixed, so the buffer has to grow several times, each time carrying the
+     * token so far over. It grew by a fixed step, which made this quadratic.
+     */
+    @Test
+    void aTokenLongerThanTheBufferIsReadWhole(@TempDir Path dir) throws Exception {
+        var lexer = compile(dir, "Long.waggle", GeneratedLexerTest.LONG_COMMENT);
+        var body = "x".repeat(100_000);
+        assertEquals(List.of("<WORD>:ab", "\"*/\":/*" + body + "*/", "<WORD>:cd"),
+                lexer.tokens("ab /*" + body + "*/ cd"));
+    }
+
+    /** A comment read with MORE, between words. */
+    static final String LONG_COMMENT = """
+            grammar Long;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input = ( <WORD> | <COMMENT> )* <EOF> ;
+
+            SKIP = " " ;
+
+            MORE = "/*" : IN_COMMENT ;
+            TOKEN <IN_COMMENT> = < COMMENT: "*/" > : DEFAULT ;
+            MORE <IN_COMMENT> = < ~[] > ;
+
+            TOKEN = < WORD: (["a"-"z"])+ > ;
+            """;
+
     /** A compiled lexer, loaded in its own class loader. */
     private record GeneratedLexer(Constructor<?> lexer, Constructor<?> stream,
                                   Constructor<?> provider, Method next, String[] images) {

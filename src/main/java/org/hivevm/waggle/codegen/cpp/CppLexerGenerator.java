@@ -473,7 +473,6 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     public void printImageInit(LinePrinter printer) {
-        printer.println("image = jjimage;");
         printer.println("image.clear();");
         printer.println("jjimageLen = 0;");
     }

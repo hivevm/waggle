@@ -40,10 +40,8 @@ public class GetNextTokenEmitter {
 
     /** Skips over the characters that can only ever be skipped, without going through the NFA. */
     protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        // the backup(0) is there to make the JIT happy
         printer.println("try {");
         printer.indent();
-        printer.println("input_stream.backup(0);");
 
         printer.println("while (" + skipSinglesCondition(data, state) + ")");
 

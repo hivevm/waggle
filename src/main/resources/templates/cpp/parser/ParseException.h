@@ -72,23 +72,6 @@ public:
 	 * defined in the generated ...Constants class.
 	 */
 	const JJString * tokenImage;
-
-private:
-	/**
-	 * It uses "currentToken" and "expectedTokenSequences" to generate a parse
-	 * error message and returns it.  If this object has been created
-	 * due to a parse error, and you do not catch it (it gets thrown
-	 * from the parser) the correct error message
-	 * gets displayed.
-	 */
-	JJString initialise(const Token* currentToken, const int** expectedTokenSequences, const JJString* tokenImage);
-
-	/**
-	 * Used to convert raw characters to their escaped version
-	 * when these raw version cannot be used as part of an ASCII
-	 * string literal.
-	 */
-	JJString addEscapes(const JJString& str);
 };
 
 //@if(CPP_NAMESPACE)

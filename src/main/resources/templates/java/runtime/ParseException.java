@@ -122,7 +122,7 @@ public class ParseException extends java.text.ParseException {
 		Token tok = currentToken.next;
 		for (int i = 0; i < maxSize; i++) {
 			String tokenText = tok.image;
-			String escapedTokenText = ParseException.add_escapes(tokenText);
+			String escapedTokenText = TokenException.addEscapes(tokenText);
 			if (i != 0) {
 				sb.append(" ");
 			}
@@ -154,52 +154,5 @@ public class ParseException extends java.text.ParseException {
 		}
 
 		return sb.toString();
-	}
-
-
-	/**
-	 * Used to convert raw characters to their escaped version when these raw version cannot be used
-	 * as part of an ASCII string literal.
-	 */
-	static String add_escapes(String str) {
-		StringBuilder retval = new StringBuilder();
-		char ch;
-		for (int i = 0; i < str.length(); i++) {
-			switch (str.charAt(i)) {
-				case '\b':
-					retval.append("\\b");
-					continue;
-				case '\t':
-					retval.append("\\t");
-					continue;
-				case '\n':
-					retval.append("\\n");
-					continue;
-				case '\f':
-					retval.append("\\f");
-					continue;
-				case '\r':
-					retval.append("\\r");
-					continue;
-				case '\"':
-					retval.append("\\\"");
-					continue;
-				case '\'':
-					retval.append("\\'");
-					continue;
-				case '\\':
-					retval.append("\\\\");
-					continue;
-				default:
-					if (((ch = str.charAt(i)) < 0x20) || (ch > 0x7e)) {
-						String s = "0000" + Integer.toString(ch, 16);
-						retval.append("\\u").append(s.substring(s.length() - 4));
-					} else {
-						retval.append(ch);
-					}
-					continue;
-			}
-		}
-		return retval.toString();
 	}
 }
