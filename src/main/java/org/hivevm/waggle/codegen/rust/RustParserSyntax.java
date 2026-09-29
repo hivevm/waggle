@@ -48,6 +48,13 @@ final class RustParserSyntax implements ParserSyntax {
                 : RustIdentifier.of(token.name());
     }
 
+    /** A keyword label is a raw identifier here as everywhere else. */
+    @Override
+    public String scanTokenCall(TokenRef token) {
+        return "jj_scan_token(" + ((token.name() == null) ? Integer.toString(token.ordinal())
+                : RustIdentifier.of(token.name())) + ")";
+    }
+
     /** How a call to another lookahead routine is written where it is tested. */
     private static String callRef(String call) {
         return "self." + call;

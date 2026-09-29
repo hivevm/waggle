@@ -277,6 +277,34 @@ class RustParserTest {
     }
 
     /**
+     * A keyword token that a lookahead routine scans in place — a choice alternative that is just
+     * the token — is written as a raw identifier too. It was written with the bare label,
+     * {@code self.jj_scan_token(fn)}, which does not compile.
+     */
+    @Test
+    void aKeywordTokenScannedInALookaheadIsARawIdentifier(@TempDir Path dir) throws Exception {
+        var output = runRust(dir, """
+                grammar Kw;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( Item() )* <EOF> ;
+
+                Item = LOOKAHEAD(2) ( < fn > | < ID > ) < ID > | < fn > < fn > ;
+
+                SKIP = " " ;
+
+                TOKEN = < fn: "fn" > | < ID: (["a"-"z"])+ > ;
+                """, "kw", """
+                let mut parser = kw::parser::Parser::new("fn a b c fn fn");
+                print!("{}", parser.input().is_ok());
+                """);
+        assertEquals("true", output);
+    }
+
+    /**
      * Generates both parsers and runs every input through both. The Java outcome is "OK" or
      * "ERR line:column message", and the Rust main prints the same.
      */
