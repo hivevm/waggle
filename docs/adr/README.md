@@ -42,6 +42,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0026](0026-one-dependency-graph.md) | One dependency graph, stated once and tested over the whole tree | 🟡 Proposed |
 | [0027](0027-remove-the-jjtree-reference-consumer.md) | Remove the JJTree reference consumer | 🟡 Proposed |
 | [0028](0028-tree-building-is-opted-into-with-use-ast.md) | Tree building is opted into with `USE_AST` | 🟡 Proposed |
+| [0029](0029-emitters-only-write-a-finished-plan.md) | Emitters only write; the front end hands over a finished plan | 🟡 Proposed |
 | [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟡 Proposed |
 
 ## Process
