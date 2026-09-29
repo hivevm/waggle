@@ -44,6 +44,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0028](0028-tree-building-is-opted-into-with-use-ast.md) | Tree building is opted into with `USE_AST` | 🟡 Proposed |
 | [0029](0029-emitters-only-write-a-finished-plan.md) | Emitters only write; the front end hands over a finished plan | 🟡 Proposed |
 | [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟡 Proposed |
+| [0031](0031-templates-render-the-plan-recursively.md) | Templates render the plan recursively; a back end writes no control flow | 🟡 Proposed |
 
 ## Process
 
