@@ -1,0 +1,1 @@
+int jjMoveStringLiteralDfa__pos____suffix__(__params__);

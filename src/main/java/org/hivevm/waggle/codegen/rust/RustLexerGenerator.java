@@ -13,12 +13,9 @@ import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.LexState;
-import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.LexerPlan.CanMove;
-import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
-import org.hivevm.source.LinePrinter;
+import org.hivevm.waggle.lexer.LexerPlan.KindSet;
 import org.hivevm.source.TemplateSet;
 
 import java.util.ArrayList;
@@ -43,12 +40,7 @@ class RustLexerGenerator extends LexerGenerator {
 
     @Override
     protected GetNextTokenEmitter newGetNextTokenEmitter() {
-        return new RustGetNextTokenEmitter(this, this);
-    }
-
-    @Override
-    protected NfaMoveEmitter newNfaMoveEmitter() {
-        return new RustNfaMoveEmitter(this);
+        return new RustGetNextTokenEmitter(this);
     }
 
     @Override
@@ -72,41 +64,6 @@ class RustLexerGenerator extends LexerGenerator {
     // ---------------------------------------------------------------- dialect
 
     @Override
-    public void printCheckNAdd(LinePrinter printer, int state) {
-        printer.println("self.jj_check_n_add(" + state + ");");
-    }
-
-    @Override
-    public void printAddState(LinePrinter printer, int state) {
-        printer.println("self.jjstate_set[self.jjnew_state_cnt] = " + state + ";");
-        printer.println("self.jjnew_state_cnt += 1;");
-    }
-
-    @Override
-    public void printCheckNAddTwoStates(LinePrinter printer, int first, int second) {
-        printer.println("self.jj_check_n_add_two_states(" + first + ", " + second + ");");
-    }
-
-    @Override
-    public void printCheckNAddStates(LinePrinter printer, int first, int last, boolean isRange) {
-        if (isRange) {
-            printer.println("self.jj_check_n_add_states(" + first + ", " + last + ");");
-        } else {
-            printer.println("self.jj_check_n_add_state_pair(" + first + ");");
-        }
-    }
-
-    @Override
-    public void printAddStates(LinePrinter printer, int first, int last) {
-        printer.println("self.jj_add_states(" + first + ", " + last + ");");
-    }
-
-    /** A match arm does not fall through, so there is no break to emit. */
-    @Override
-    public void printBreak(LinePrinter printer, String indent) {
-    }
-
-    @Override
     public String charEquals(int c) {
         return "self.cur_char == " + c;
     }
@@ -126,38 +83,9 @@ class RustLexerGenerator extends LexerGenerator {
         return "(" + toHexString(mask) + " & l) == 0";
     }
 
-    /** Rust conditions carry no parentheses. */
-    @Override
-    public void printIf(LinePrinter printer, String condition) {
-        printer.println("if " + condition + " {");
-    }
-
-    @Override
-    public void printEndIf(LinePrinter printer) {
-        printer.println("}");
-    }
-
     @Override
     public String canMove(int method) {
         return "jj_can_move_" + method + "(hi_byte, i1, i2, l1, l2)";
-    }
-
-    /** A match arm carries all its patterns at once: they are written by printCasesOpen. */
-    @Override
-    public void printCaseLabel(LinePrinter printer, String indent, int state) {
-    }
-
-    @Override
-    public void printCasesOpen(LinePrinter printer, List<Integer> labels, String indent) {
-        if (!labels.isEmpty()) {
-            printer.println(indent + labels.stream().map(String::valueOf)
-                    .collect(Collectors.joining(" | ")) + " => {");
-        }
-    }
-
-    @Override
-    public void printCasesClose(LinePrinter printer) {
-        printer.println("}");
     }
 
     /** Rust writes the state tables as bare arrays, without the surrounding braces Java needs. */
@@ -181,41 +109,9 @@ class RustLexerGenerator extends LexerGenerator {
         return "]";
     }
 
-    /** Rust conditions carry no parentheses, and every branch is a block. */
-    @Override
-    public void printIfNoBlock(LinePrinter printer, String prefix, String condition) {
-        printer.println(prefix + condition + " {");
-    }
-
-    /** A match inside a loop, rather than a switch inside a do/while. */
-    @Override
-    public void printDefaultAndEndLoop(LinePrinter printer, boolean breakInDefault) {
-        printer.println("_ => {");
-        printer.indent();
-        if (breakInDefault) {
-            printer.println("break;");
-        }
-        printer.outdent();
-        printer.println("}");
-
-        printer.outdent();
-        printer.println("}");
-        printer.println("break;");
-        printer.outdent();
-        printer.println("}");
-        printer.println("while_cond = i != starts_at;");
-        printer.outdent();
-        printer.println("}");
-    }
-
     @Override
     public String toHexString(long value) {
         return "0x" + Long.toHexString(value);
-    }
-
-    @Override
-    protected String getNonAsciiMethod(CanMove canMove) {
-        return "_" + canMove.method();
     }
 
     @Override
@@ -254,203 +150,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printMoveStringLiteralDfa0Signature(LinePrinter printer, LexState lex) {
-        printer.println("fn jj_move_string_literal_dfa0" + lex.suffix()
-                + "(&mut self) -> usize {");
-    }
-
-    @Override
-    public void printStopAtPosSignature(LinePrinter printer, LexState lex) {
-        printer.println("fn jj_stop_at_pos(&mut self, pos: usize, kind: u32) -> usize {");
-    }
-
-    @Override
-    public String matchedKind() {
-        return "self.jjmatched_kind";
-    }
-
-    @Override
-    public String matchedPos() {
-        return "self.jjmatched_pos";
-    }
-
-    /** A Rust function returns its tail expression. */
-    @Override
-    public void printReturn(LinePrinter printer, String expression) {
-        printer.println(expression);
-    }
-
-    @Override
-    public void printDebugNoMoreStringLiteralMatches(LinePrinter printer) {
-        printer.println("eprintln!(\"   No more string literal token matches are possible.\");");
-    }
-
-    @Override
-    public void printDebugNoMoreMatches(LinePrinter printer) {
-        printer.println("eprintln!(\"No more string literal token matches are possible.\");");
-        printCurrentlyMatched(printer, "");
-    }
-
-    /** Rust logs differently. */
-    @Override
-    public void printDebugPossibleMatches(LinePrinter printer, DfaPos pos) {
-        // Java guards only the first of the two lines -- its "if" carries no braces. Wrapping both
-        // in a Rust block swallowed the second one.
-        printDebugCurrentlyMatched(printer);
-
-        var vectors = new ArrayList<String>();
-        for (int vecs = 0; vecs < pos.active().size(); vecs++) {
-            if (pos.active().get(vecs)) {
-                vectors.add("self.jj_kinds_for_bit_vector(" + vecs + ", active" + vecs
-                        + ", &mut kind_cnt)");
-            }
-        }
-
-        printer.println("let mut kind_cnt = 0;");
-        printer.println("eprintln!(\"   Possible string literal matches : {{ {} }} \", "
-                + String.join(" + &", vectors) + ");");
-    }
-
-    @Override
-    public void printReadCharGuardOpen(LinePrinter printer) {
-        printer.println("let result = self.input_stream.read_char();");
-        printer.println("if result.is_err() {");
-    }
-
-    @Override
-    public void printReadCharAfterGuard(LinePrinter printer) {
-        printer.println("self.cur_char = u32::from(result.unwrap());");
-        printer.println();
-    }
-
-    @Override
-    public void printMoveNfaSignature(LinePrinter printer, LexState lex) {
-        printer.println("fn jj_move_nfa" + lex.suffix()
-                + "(&mut self, start_state: usize, mut cur_pos: usize) -> usize {");
-    }
-
-    @Override
-    public void printMoveNfaMixedPrologue(LinePrinter printer) {
-        printer.print("""
-                let str_kind = self.jjmatched_kind;
-                let str_pos = self.jjmatched_pos;
-                let seen_upto: usize = cur_pos + 1;
-                self.input_stream.backup(seen_upto);
-                let result = self.input_stream.read_char();
-                if result.is_err() {
-                    panic!("Internal Error");
-                }
-                self.cur_char = u32::from(result.unwrap());
-                let mut cur_pos: usize = 0;
-                """);
-    }
-
-    @Override
-    public void printDebugStartingNfa(LinePrinter printer) {
-        printer.println("eprintln!(\"   Starting NFA to match one of : {}\", "
-                + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
-                + "&self.jjstate_set, 0, 1));");
-    }
-
-    @Override
-    public void printForEver(LinePrinter printer) {
-        printer.println("loop {");
-    }
-
-    @Override
-    public void printSwapStateSets(LinePrinter printer, LexState lex) {
-        printer.println("i = self.jjnew_state_cnt;");
-        printer.println("self.jjnew_state_cnt = starts_at;");
-        printer.println("starts_at = " + lex.generatedStates() + " - self.jjnew_state_cnt;");
-        printer.println("if i == starts_at {");
-        printer.println(lex.mixed() ? "    break;" : "    return cur_pos;");
-        printer.println("}");
-    }
-
-    @Override
-    public void printDebugPossibleLongerMatches(LinePrinter printer) {
-        printer.println("eprintln!(\"   Possible kinds of longer matches : {}\", "
-                + "self.jj_kinds_for_state_vector(self.cur_lex_state as usize, "
-                + "&self.jjstate_set, starts_at, i));");
-    }
-
-    @Override
-    public void printReadCharOrLeave(LinePrinter printer, LexState lex) {
-        printer.println("let result = self.input_stream.read_char();");
-        printer.println("if result.is_err() {");
-        printer.println(lex.mixed() ? "    break;" : "    return cur_pos;");
-        printer.println("}");
-        printer.println("self.cur_char = u32::from(result.unwrap());");
-    }
-
-    @Override
-    public void printDebugNoMatchPossible(LinePrinter printer) {
-        printer.println("eprintln!(\"No string literal matches possible.\");");
-    }
-
-    @Override
     public String longZero() {
         return "0";
-    }
-
-    @Override
-    public void printDebugCurrentlyMatched(LinePrinter printer) {
-        printer.println("if self.jjmatched_kind != 0 && self.jjmatched_kind != 0x"
-                + Integer.toHexString(Integer.MAX_VALUE) + " {");
-        printCurrentlyMatched(printer, "   ");
-        printer.println("}");
-    }
-
-    @Override
-    public void printSwitchOnChar(LinePrinter printer) {
-        printer.println("match self.cur_char {");
-    }
-
-    @Override
-    public void printCharCase(LinePrinter printer, int c) {
-        printer.println(c + " =>");
-    }
-
-    @Override
-    public void printCharCaseWithBody(LinePrinter printer, int c) {
-        printer.println(c + " => {");
-    }
-
-    @Override
-    public void printDefaultCaseOpen(LinePrinter printer) {
-        printer.println("_ => {");
-    }
-
-    @Override
-    public String beginLine() {
-        return "self.input_stream.get_begin_line()";
-    }
-
-    @Override
-    public String beginColumn() {
-        return "self.input_stream.get_begin_column()";
-    }
-
-    @Override
-    public String strLiteralImages() {
-        return "JJSTR_LITERAL_IMAGES";
-    }
-
-    @Override
-    public String lengthOfMatch() {
-        return "self.length_of_match";
-    }
-
-    @Override
-    public String imageLen() {
-        return "self.jjimage_len";
-    }
-
-    @Override
-    public void printPosAndActivesSignature(LinePrinter printer, LexState lex, String name,
-                                              int maxKindsReqd) {
-        printer.println("fn " + name + "(&mut self, pos: usize, " + activeParameters(maxKindsReqd)
-                + ") -> usize {");
     }
 
     @Override
@@ -469,36 +170,6 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printSwitchOnPos(LinePrinter printer) {
-        printer.println("match pos {");
-    }
-
-    @Override
-    public void printPosCase(LinePrinter printer, int pos) {
-        printer.println(pos + " => {");
-    }
-
-    @Override
-    public void printPosCaseEnd(LinePrinter printer) {
-        printer.println("}");
-    }
-
-    @Override
-    public void printPosDefault(LinePrinter printer) {
-        printer.println("_ => return " + noState() + ",");
-    }
-
-    @Override
-    public void printStopDfaBodyOpen(LinePrinter printer, boolean hasKind) {
-        printer.println(" {");
-    }
-
-    @Override
-    public void printStopDfaBodyClose(LinePrinter printer, boolean hasKind) {
-        printer.println("}");
-    }
-
-    @Override
     public String longType() {
         return "u64";
     }
@@ -513,327 +184,20 @@ class RustLexerGenerator extends LexerGenerator {
         return "self.jjStopStringLiteralDfa" + lex.suffix();
     }
 
-    @Override
-    public void printLexStateArrayOpen(LinePrinter printer, int length) {
-        printer.print("const JJNEW_LEX_STATE: [i8; " + length + "] = [");
-    }
-
-    @Override
-    public void printBitVectorOpen(LinePrinter printer, String name, int length) {
-        printer.print("const " + constantName(name) + ": [" + longType() + "; " + length + "] = [");
-    }
-
-    @Override
-    public void printArrayClose(LinePrinter printer) {
-        printer.println("];");
-    }
-
     /** {@code jjtoToken} is a constant in Rust, and constants are SCREAMING_SNAKE_CASE. */
+    @Override
+    protected String kindVectorName(KindSet set) {
+        return RustLexerGenerator.constantName(super.kindVectorName(set));
+    }
+
+    /** A name as Rust spells a constant. */
     private static String constantName(String name) {
         return name.replaceAll("(?<=[a-z])(?=[A-Z])", "_").toUpperCase(Locale.ROOT);
     }
 
-    /** An empty Rust array is written {@code []}, and its length must match. */
     @Override
-    public void printEmptyStateSet(LinePrinter printer) {
+    public String imageSeparator(int i, int last) {
+        return ",";
     }
 
-    /**
-     * Rust would see two mutable borrows of {@code self} in a single call, so the intermediate
-     * result gets a name.
-     */
-    @Override
-    public void printStartNfaBody(LinePrinter printer, LexState lex, String arguments) {
-        printer.println("    let state = " + stopStringLiteralDfaName(lex) + "(pos, " + arguments
-                + ");");
-        printer.println("    return " + moveNfaName(lex) + "(state, pos + 1);");
-    }
-
-    @Override
-    public void printNextStatesOpen(LinePrinter printer, int length) {
-        printer.print("const JJNEXT_STATES : [usize; " + length + "] = [");
-    }
-
-    @Override
-    public void printEofTokenActions(LinePrinter printer) {
-        printer.println("    self.token_lexical_actions(&mut matched_token)?;");
-    }
-
-    @Override
-    public void printGetNextTokenPrologue(LinePrinter printer) {
-        printer.println("    return Ok(matched_token);");
-        printer.println("}");
-    }
-
-    /** The template already opens {@code 'EOFLoop: loop}; this is the inner loop a MORE goes round. */
-    @Override
-    public void printEofLoop(LinePrinter printer) {
-        printer.println("loop {");
-    }
-
-    @Override
-    public void printSwitchOnLexState(LinePrinter printer) {
-        printer.println("match self.cur_lex_state {");
-    }
-
-    @Override
-    public void printLexStateCase(LinePrinter printer, int state) {
-        printer.println(state + " => {");
-    }
-
-    @Override
-    public void printLexStateCaseEnd(LinePrinter printer) {
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    public void printSwitchOnLexStateEnd(LinePrinter printer) {
-        printer.println("_ => {}");
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    public void printNoLexState(LinePrinter printer) {
-        printer.println("self.jjmatched_kind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-    }
-
-    @Override
-    public void printDebugCurrentCharacter(LinePrinter printer, boolean withLexState) {
-        printCurrentCharacter(printer, withLexState);
-    }
-
-    @Override
-    public void printMoveStringLiteralDfa0Call(LinePrinter printer, int state) {
-        printer.println("cur_pos = self.jj_move_string_literal_dfa0_" + state + "();");
-    }
-
-    @Override
-    public void printIfMatchedKind(LinePrinter printer) {
-        printer.println("if self.jjmatched_kind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + " {");
-    }
-
-    @Override
-    public void printDebugFoundMatch(LinePrinter printer) {
-        printer.println("eprintln!(\"****** FOUND A {} MATCH ({}) ******\\n\", "
-                + "TOKEN_IMAGE[self.jjmatched_kind as usize], "
-                + "self.input_stream.get_suffix(self.jjmatched_pos.wrapping_add(1)));");
-    }
-
-    @Override
-    public void printIfToToken(LinePrinter printer) {
-        printer.println("if " + bitVectorTest("JJTO_TOKEN") + " {");
-    }
-
-    @Override
-    public void printCharBits(LinePrinter printer, int byteNum) {
-        if (byteNum == 0) {
-            printer.println("let l: u64 = 1u64 << self.cur_char;");
-        } else if (byteNum == 1) {
-            printer.println("let l: u64 = 1u64 << (self.cur_char & 0o77);");
-        } else {
-            printer.println("let hi_byte: u32 = self.cur_char >> 8;");
-            printer.println("let l1: u64 = 1u64 << (hi_byte & 0o77);");
-            printer.println("let l2: u64 = 1u64 << (self.cur_char & 0o77);");
-            printer.println("let i1: usize = (hi_byte >> 6) as usize;");
-            printer.println("let i2: usize = ((self.cur_char & 0xff) >> 6) as usize;");
-        }
-    }
-
-    @Override
-    public void printMatchLoopOpen(LinePrinter printer) {
-        printer.println("let mut while_cond = true;");
-        printer.println("while while_cond {");
-    }
-
-    @Override
-    public void printSwitchOnStateSet(LinePrinter printer) {
-        printer.println("i -= 1;");
-        // The shared emitters write Java's "break" to leave a case of the switch. In a Rust match
-        // arm it left the loop over the state set instead, so one state that did not move dropped
-        // all the others: "90" lexed as "9" and "0". Inside this loop, break leaves the match only.
-        printer.println("loop {");
-        printer.indent();
-        printer.println("match self.jjstate_set[i] {");
-    }
-
-    @Override
-    public void printStartNfaWithStatesSignature(LinePrinter printer, LexState lex) {
-        printer.println();
-        printer.println("fn jjStartNfaWithStates" + lex.suffix()
-                + "(&mut self, pos: usize, kind: u32, state: usize) -> usize {");
-    }
-
-    @Override
-    public void printReadCharOrReturn(LinePrinter printer) {
-        printer.println("match self.input_stream.read_char() {");
-        printer.println("    Ok(c) => self.cur_char = u32::from(c),");
-        printer.println("    Err(_) => return pos + 1,");
-        printer.println("}");
-    }
-
-    @Override
-    public void printCanMoveEnd(LinePrinter printer) {
-        printer.println("    false");
-        printer.println("}");
-    }
-
-    @Override
-    public void printCanMoveCase(LinePrinter printer, int hiByte) {
-        printer.println(hiByte + " => {");
-    }
-
-    @Override
-    public void printCanMoveCaseEnd(LinePrinter printer) {
-        printer.println("}");
-    }
-
-    @Override
-    public void printCanMoveDefault(LinePrinter printer) {
-        printer.println("_ => {");
-    }
-
-    @Override
-    public void printCanMoveReturnBitVector(LinePrinter printer, int vector) {
-        printer.println("    return (JJBIT_VEC" + vector + "[i2] & l2) != 0;");
-    }
-
-    @Override
-    public void printCanMoveReturnTrue(LinePrinter printer) {
-        printer.println("    return true;");
-    }
-
-    @Override
-    public void printCanMoveArm(LinePrinter printer, int hiVector, int loVector, boolean testHi,
-                                   boolean testLo) {
-        if (testHi) {
-            printer.println("    if (JJBIT_VEC" + hiVector + "[i1] & l1) != 0 {");
-        }
-        if (testLo) {
-            printer.println("        if (JJBIT_VEC" + loVector + "[i2] & l2) == 0 {");
-            printer.println("            return false;");
-            printer.println("        } else {");
-        }
-        printer.println("        return true;");
-        printer.println("    }");
-    }
-
-    @Override
-    public void printImageSeparator(LinePrinter printer, int i, int last) {
-        printer.print(",");
-    }
-
-    @Override
-    public void printActionCase(LinePrinter printer, int kind) {
-        printer.println(kind + " => {");
-    }
-
-    /** A match arm falls out on its own. */
-    @Override
-    public void printActionCaseEnd(LinePrinter printer) {
-        printer.println("}");
-    }
-
-    /** The image buffer the MORE and SKIP actions append to. */
-    @Override
-    public void printImageInit(LinePrinter printer) {
-        printer.println("self.image.clear();");
-        printer.println("self.jjimage_len = 0;");
-    }
-
-    @Override
-    public void printImageAppend(LinePrinter printer, int i, boolean literal, String indent) {
-        if (literal) {
-            printer.println("self.image.push_str(" + strLiteralImages() + "[" + i + "]);");
-            printer.println(lengthOfMatch() + " = " + strLiteralImages() + "[" + i + "].len();");
-        } else {
-            // The suffix has to be read out before the borrow of self.image starts.
-            printer.println(lengthOfMatch() + " = " + matchedPos() + " + 1;");
-            printer.println("let suffix = " + inputStream() + getSuffix() + "(" + imageLen()
-                    + " + " + lengthOfMatch() + ");");
-            printer.println("self.image.push_str(&suffix);");
-        }
-    }
-
-    @Override
-    public void printImageAppendMore(LinePrinter printer, int i, boolean literal) {
-        if (literal) {
-            printer.println("self.image.push_str(" + strLiteralImages() + "[" + i + "]);");
-        } else {
-            printer.println("let suffix = " + inputStream() + getSuffix() + "(" + imageLen() + ");");
-            printer.println("self.image.push_str(&suffix);");
-        }
-    }
-
-    @Override
-    public void printImageReset(LinePrinter printer) {
-        printer.println("self.image.clear();");
-    }
-
-    @Override
-    public void printEmptyLoopCheck(LinePrinter printer, int lexState) {
-        printer.println("if " + matchedPos() + " == usize::MAX {");
-        printer.println("    if self.jjbeenHere[" + lexState + "]");
-        printer.println("        && self.jjemptyLineNo[" + lexState + "] == " + beginLine());
-        printer.println("        && self.jjemptyColNo[" + lexState + "] == " + beginColumn()
-                + "");
-        printer.println("    {");
-        printLoopDetected(printer);
-        printer.println("    }");
-        printer.println("    self.jjemptyLineNo[" + lexState + "] = " + beginLine() + ";");
-        printer.println("    self.jjemptyColNo[" + lexState + "] = " + beginColumn() + ";");
-        printer.println("    self.jjbeenHere[" + lexState + "] = true;");
-        printer.println("}");
-    }
-
-    @Override
-    public void printLoopDetected(LinePrinter printer) {
-        printer.println("        return Err(LexicalError {");
-        printer.println("            line: " + beginLine() + ",");
-        printer.println("            column: " + beginColumn() + ",");
-        printer.println("            message: format!(");
-        printer.println("                \"Bailing out of infinite loop caused by repeated empty "
-                + "string matches at line {}, column {}.\",");
-        printer.println("                " + beginLine() + ", " + beginColumn() + "");
-        printer.println("            ),");
-        printer.println("        });");
-    }
-
-    @Override
-    public String inputStream() {
-        return "self.input_stream.";
-    }
-
-    @Override
-    public String getSuffix() {
-        return "get_suffix";
-    }
-
-    /** {@code jjtoToken} and friends are constants in Rust, and the index has to be a usize. */
-    static String bitVectorTest(String table) {
-        return "(" + table + "[(self.jjmatched_kind >> 6) as usize]"
-                + " & (1u64 << (self.jjmatched_kind & 0o77))) != 0";
-    }
-
-    /**
-     * The current-character trace. Rust has no redirectable debugStream; the trace goes to stderr,
-     * which is what stderr is for.
-     */
-    private static void printCurrentCharacter(LinePrinter printer, boolean withLexState) {
-        var prefix = withLexState
-                ? "<{}>Current character : {}({}) at line {} column {}\", "
-                        + "LEX_STATE_NAMES[self.cur_lex_state as usize], "
-                : "Current character : {}({}) at line {} column {}\", ";
-        printer.println("eprintln!(\"" + prefix
-                + "char::from_u32(self.cur_char).unwrap_or('\\u{fffd}'), self.cur_char, "
-                + "self.input_stream.get_end_line(), self.input_stream.get_end_column());");
-    }
-
-    /** "Currently matched the first N characters as a X token." */
-    private static void printCurrentlyMatched(LinePrinter printer, String indent) {
-        printer.println(indent + "eprintln!(\"   Currently matched the first {} characters as a {} "
-                + "token.\", self.jjmatched_pos.wrapping_add(1), "
-                + "TOKEN_IMAGE[self.jjmatched_kind as usize]);");
-    }
 }

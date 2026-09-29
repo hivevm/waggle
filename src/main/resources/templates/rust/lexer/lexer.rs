@@ -47,9 +47,10 @@ pub const JJSTR_LITERAL_IMAGES: [&str; __LITERAL_IMAGES_LENGTH__] = [
 ];
 
 
-//@invoke(DUMP_STATIC_VAR_DECLARATIONS)
+//@apply(LEX_STATE_TABLE)
+//@apply(KIND_VECTORS)
 
-//@invoke(DUMP_STATE_SETS)
+//@apply(NEXT_STATES)
 
 //@if(DEBUG_TOKEN_MANAGER)
 const STATES_FOR_STATE: &[&[&[usize]]] = &[__STATES_FOR_STATE__];
@@ -217,7 +218,7 @@ impl<'a> Lexer<'a> {
 //@if(HAS_SPECIAL)
 				matched_token.special = std::mem::take(&mut special_tokens);
 //@fi
-			//@invoke(DUMP_GET_NEXT_TOKEN)
+			//@apply(GET_NEXT_TOKEN)
 		}
 	}
 
@@ -225,7 +226,7 @@ impl<'a> Lexer<'a> {
 	// TokenMgrError out of the same place.
 	fn skip_lexical_actions(&mut self, matched_token: Option<&Token>) -> Result<(), LexicalError> {
 		match self.jjmatched_kind {
-			//@invoke(DUMP_SKIP_ACTIONS)
+			//@apply(SKIP_ACTIONS)
 			_ => {}
 		}
 		Ok(())
@@ -235,7 +236,7 @@ impl<'a> Lexer<'a> {
 		self.length_of_match = self.jjmatched_pos.wrapping_add(1);
 		self.jjimage_len += self.length_of_match;
 		match self.jjmatched_kind {
-			//@invoke(DUMP_MORE_ACTIONS)
+			//@apply(MORE_ACTIONS)
 			_ => {}
 		}
 		Ok(())
@@ -243,7 +244,7 @@ impl<'a> Lexer<'a> {
 
 	fn token_lexical_actions(&mut self, matched_token: &mut Token) -> Result<(), LexicalError> {
 		match self.jjmatched_kind {
-			//@invoke(DUMP_TOKEN_ACTIONS)
+			//@apply(TOKEN_ACTIONS)
 			_ => {}
 		}
 		Ok(())
@@ -344,14 +345,7 @@ impl<'a> Lexer<'a> {
 	}
 //@fi
 
-	//@invoke(DUMP_NFA_AND_DFA)
+	//@apply(LEX_STATES)
 }
 
-//@foreach(NON_ASCII_TABLE)
-fn jj_can_move__NON_ASCII_TABLE_NAME__(hi_byte: u32, i1: usize, i2: usize, l1: u64, l2: u64) -> bool {
-	match hi_byte {
-		//@invoke(NON_ASCII_TABLE_METHOD)
-	}
-}
-
-//@end
+//@apply(NON_ASCII_TABLE)

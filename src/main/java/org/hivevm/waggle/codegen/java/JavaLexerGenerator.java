@@ -12,7 +12,7 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.source.LinePrinter;
+import org.hivevm.waggle.codegen.TableModel;
 import org.hivevm.source.TemplateSet;
 
 import java.util.List;
@@ -28,7 +28,7 @@ class JavaLexerGenerator extends LexerGenerator {
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data.plan().shape().images(), p));
+        options.add("LITERAL_IMAGE_ROWS", literalImages(data.plan().shape().images()));
 
         JavaTemplate.LEXER.render(options);
     }
@@ -38,8 +38,9 @@ class JavaLexerGenerator extends LexerGenerator {
         return JavaTemplate.PARSER_CONSTANTS;
     }
 
-    private static void dump_literal_images(List<String> images, LinePrinter printer) {
-        LexerGenerator.printLiteralImages(images, printer, false, (kind, image) -> {
+    /** {@code jjstrLiteralImages}: each image as a string of octal and Unicode escapes. */
+    private static List<TableModel.Row> literalImages(List<String> images) {
+        return LexerGenerator.literalImageRows(images, (kind, image) -> {
             if (image == null) {
                 return "null, ";
             }

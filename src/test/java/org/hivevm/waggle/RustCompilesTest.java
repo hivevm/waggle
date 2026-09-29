@@ -258,6 +258,31 @@ class RustCompilesTest {
     }
 
     /**
+     * A character set beyond ASCII whose low bytes are not all in the set needs a test on both
+     * bytes in jj_can_move. That arm closed one brace fewer than it opened, so the lexer did not
+     * compile.
+     */
+    @Test
+    void aSetTestedOnBothBytesCompiles(@TempDir Path dir) throws IOException, InterruptedException {
+        assertCompiles("""
+                grammar Uni;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <A> | <B> )* <EOF> ;
+
+                SKIP = " " ;
+
+                TOKEN =
+                  < A: ["\\u0100"-"\\u0110", "\\u0300"-"\\u0310"] (["a"-"z"])* >
+                | < B: ["\\u4e00"-"\\u4e7f", "\\u5000"-"\\u50ff"] >
+                ;
+                """, "uni", dir);
+    }
+
+    /**
      * A Rust project that uses "#Name" nodes supplies node.rs, treestate.rs and treeconstants.rs
      * itself. Generation must go on producing its parser — and leave those files alone. A broader
      * rejection of tree building once broke exactly this (the H3QL grammar).

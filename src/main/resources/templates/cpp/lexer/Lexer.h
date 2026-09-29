@@ -28,7 +28,7 @@ class __PARSER_NAME__TokenManager : public TokenManager {
 public:
 	FILE *debugStream;
 	void setDebugStream(FILE *ds);
-	//@invoke(DUMP_NFA_AND_DFA_HEADER)
+	//@apply(STATE_DECLS)
 	Token * jjFillToken();
 //@foreach(NON_ASCII_TABLE)
 bool jjCanMove___NON_ASCII_TABLE_NAME__(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2);

@@ -11,17 +11,20 @@ package org.hivevm.waggle.codegen;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
+import org.hivevm.waggle.grammar.Token;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.LexerPlan;
 import org.hivevm.waggle.lexer.LexerPlan.ByteMask;
 import org.hivevm.waggle.lexer.LexerPlan.CanMove;
 import org.hivevm.waggle.lexer.LexerPlan.Handoff;
+import org.hivevm.waggle.lexer.LexerPlan.ImageSource;
 import org.hivevm.waggle.lexer.LexerPlan.KindSet;
 import org.hivevm.waggle.lexer.LexerPlan.KindTable;
 import org.hivevm.waggle.lexer.LexerPlan.Tables;
-import org.hivevm.source.LinePrinter;
 import org.hivevm.source.TemplateSet;
+import org.hivevm.waggle.model.CodeText;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -29,6 +32,9 @@ import java.util.function.BiFunction;
  * The {@link LexerGenerator} class.
  */
 public abstract class LexerGenerator extends CodeGenerator<LexerData> implements TargetSyntax {
+
+    /** The lexical states, as the templates that write them read them (ADR-0031). */
+    protected static final String LEX_STATES = "LEX_STATES";
 
     protected static final String LOHI_BYTES = "LOHI_BYTES";
     protected static final String NON_ASCII_TABLE = "NON_ASCII_TABLE";
@@ -54,6 +60,10 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         super(language);
     }
 
+    protected NfaMoveEmitter newNfaMoveEmitter() {
+        return new NfaMoveEmitter(this);
+    }
+
     @Override
     public final void generate(LexerData data) {
         this.stringLiterals = newStringLiteralDfaEmitter();
@@ -65,10 +75,10 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         options.add(LexerGenerator.LOHI_BYTES, plan.tables().byteMasks())
                 .set("LOHI_BYTES_INDEX", ByteMask::index)
                 .set("LOHI_BYTES_VALUE", this::getLohiBytes);
+        // The jjCanMove functions are rendered from the plan's records (ADR-0031): they hold
+        // numbers and flags only, which every target writes alike.
         options.add(LexerGenerator.NON_ASCII_TABLE, plan.canMoves())
-                .set("NON_ASCII_TABLE_NAME", this::getNonAsciiMethod)
-                .set("NON_ASCII_TABLE_METHOD",
-                        (m, w) -> dumpNonAsciiMoveMethod(data.getParserName(), m, w));
+                .set("NON_ASCII_TABLE_NAME", CanMove::method);
 
         var shape = plan.shape();
         options.set(LexerGenerator.HAS_LOOP, shape.hasLoop());
@@ -86,20 +96,30 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         options.set(LexerGenerator.DUAL_NEED, shape.dualNeed());
         options.set(LexerGenerator.UNARY_NEED, shape.unaryNeed());
 
-        options.set("DUMP_SKIP_ACTIONS",
-                p -> this.getNextToken.dumpSkipActions(p, data.getParserName(), plan.actions().skip()));
-        options.set("DUMP_MORE_ACTIONS",
-                p -> this.getNextToken.dumpMoreActions(p, data.getParserName(), plan.actions().more()));
-        options.set("DUMP_TOKEN_ACTIONS",
-                p -> this.getNextToken.dumpTokenActions(p, data.getParserName(), plan.actions().token()));
+        options.add("SKIP_ACTIONS", plan.actions().skip().stream()
+                .map(c -> new ActionModel.SkipAction(c.kind(), c.lexState(), c.loopCheck(),
+                        !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.LITERAL))
+                .toList());
+        options.add("MORE_ACTIONS", plan.actions().more().stream()
+                .map(c -> new ActionModel.MoreAction(c.kind(), c.lexState(), c.loopCheck(),
+                        !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.LITERAL))
+                .toList());
+        options.add("TOKEN_ACTIONS", plan.actions().token().stream()
+                .map(c -> new ActionModel.TokenAction(c.kind(), c.lexState(), c.loopCheck(),
+                        !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.RESET,
+                        c.image() == ImageSource.LITERAL))
+                .toList());
 
         options.set("STATES_FOR_STATE", () -> getStatesForState(plan.tables()));
         options.set("KIND_FOR_STATE", () -> getKindForState(plan.tables()));
-        options.set("DUMP_STATE_SETS", p -> dumpStateSets(p, plan.tables()));
-        options.set("DUMP_GET_NEXT_TOKEN", p -> this.getNextToken.dumpGetNextToken(p, plan));
-        options.set("DUMP_STATIC_VAR_DECLARATIONS", p -> dumpStaticVarDeclarations(p, plan.tables()));
-        options.set("DUMP_NFA_AND_DFA", w -> plan.states().forEach(
-                state -> dump_nfa_and_dfa(new LexState(data.getParserName(), plan, state), w)));
+        options.add("NEXT_STATES", List.of(nextStates(plan.tables())));
+        options.add("GET_NEXT_TOKEN", List.of(this.getNextToken.model(plan)));
+        options.add("LEX_STATE_TABLE", lexStateTable(plan.tables()));
+        options.add("KIND_VECTORS", plan.tables().kindTables().stream()
+                .map(this::kindVector).toList());
+        options.add(LexerGenerator.LEX_STATES, plan.states().stream()
+                .map(state -> lexicalState(new LexState(data.getParserName(), plan, state)))
+                .toList());
 
         generate(data, options);
 
@@ -115,8 +135,8 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         var names = data.plan().tokenNames();
         options.add("REXPRESSION_COUNT", names.size())
                 .set("REXPRESSION_INDEX", i -> i)
-                .set("REXPRESSION_LABEL", (i, w) -> this.getNextToken.getRegExp(w, i, names, false))
-                .set("REXPRESSION_IMAGE", (i, w) -> this.getNextToken.getRegExp(w, i, names, true));
+                .set("REXPRESSION_LABEL", i -> this.getNextToken.getRegExp(i, names, false))
+                .set("REXPRESSION_IMAGE", i -> this.getNextToken.getRegExp(i, names, true));
 
         getConstantsTemplate().render(options, options.getParserName());
     }
@@ -130,59 +150,26 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
 
     protected abstract void generate(LexerData data, OptionsContext context);
 
-    protected String getNonAsciiMethod(CanMove canMove) {
-        return "" + canMove.method();
-    }
-
-    /**
-     * Emits {@code jjCanMove_N}: whether a non-ASCII character is in the state's character set. The
-     * set is stored as a two-level bit vector, indexed by the high and the low byte.
-     */
-    protected final void dumpNonAsciiMoveMethod(String parserName, CanMove canMove,
-                                                LinePrinter printer) {
-        printCanMoveSignature(printer, parserName, canMove.method());
-
-        for (var hiCase : canMove.cases()) {
-            printCanMoveCase(printer, hiCase.hiByte());
-            if (hiCase.any()) {
-                printCanMoveReturnTrue(printer);
-            } else {
-                printCanMoveReturnBitVector(printer, hiCase.mask());
-            }
-            printCanMoveCaseEnd(printer);
-        }
-
-        printCanMoveDefault(printer);
-        for (var arm : canMove.arms()) {
-            printCanMoveArm(printer, arm.hiMask(), arm.loMask(), arm.testHi(), arm.testLo());
-        }
-        printCanMoveEnd(printer);
-    }
-
     /** The emitters this back end composes; a target may supply its own (ADR-0017). */
     protected StringLiteralDfaEmitter newStringLiteralDfaEmitter() {
         return new StringLiteralDfaEmitter(this);
     }
 
-    protected NfaMoveEmitter newNfaMoveEmitter() {
-        return new NfaMoveEmitter(this);
-    }
-
     protected GetNextTokenEmitter newGetNextTokenEmitter() {
-        return new GetNextTokenEmitter(this, this);
+        return new GetNextTokenEmitter(this);
     }
 
     /**
-     * Prints the literal-image table: one entry per token kind, {@code null} for a kind without a
-     * literal. A new line starts where a line would pass 80 columns, and a missing image counts as
-     * six. Java and C++ each carried this loop, and the dead tail of JavaCC's version with it.
+     * The literal-image table as the lines it is written on: one entry per token kind, whatever
+     * the target writes for a kind without a literal. A new line starts where a line would pass 80
+     * columns, and a missing image counts as six.
      *
-     * @param linePerEntry whether every entry ends its own line, as the C++ declarations do
-     * @param entry        the text of the entry for a token kind and its image
+     * @param entry the text of the entry for a token kind and its image
      */
-    protected static void printLiteralImages(List<String> images, LinePrinter printer,
-                                             boolean linePerEntry,
-                                             BiFunction<Integer, String, String> entry) {
+    protected static List<TableModel.Row> literalImageRows(List<String> images,
+                                                          BiFunction<Integer, String, String> entry) {
+        var rows = new ArrayList<TableModel.Row>();
+        var line = new StringBuilder();
         int charCnt = 0;
         for (int kind = 0; kind < images.size(); kind++) {
             var image = images.get(kind);
@@ -190,88 +177,75 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
             boolean wrap = (image == null) ? ((charCnt += 6) > 80)
                     : ((charCnt += text.length()) >= 80);
             if (wrap) {
-                printer.println();
+                rows.add(new TableModel.Row(line.toString()));
+                line.setLength(0);
                 charCnt = 0;
             }
-
-            if (linePerEntry) {
-                printer.println(text);
-            } else {
-                printer.print(text);
-            }
+            line.append(text);
         }
+        rows.add(new TableModel.Row(line.toString()));
+        return List.copyOf(rows);
     }
 
-
-    protected final void dump_nfa_and_dfa(LexState state, LinePrinter printer) {
-        this.stringLiterals.dumpNfaStartStatesCode(printer, state);
-        this.stringLiterals.dumpDfaCode(printer, state);
-        if (state.plan().handoff() != Handoff.NONE) {
-            // ADR-0029: the arms of the NFA were decided, in output order, by the lexer stage.
-            this.nfaMoves.dumpMoveNfa(printer, state);
+    /**
+     * The code of a lexical action, laid out from the first column as the grammar wrote it;
+     * nothing when there is none.
+     */
+    private String actionCode(CodeText code) {
+        if (code.isEmpty()) {
+            return "";
         }
+        var cursor = cursorAt(code.first());
+        cursor.resetColumn();
+        var text = new StringBuilder();
+        for (Token token : code.tokens()) {
+            text.append(cursor.text(token, null));
+        }
+        return text.toString();
+    }
+
+    /** The target's view of one lexical state: its string-literal DFA, and its NFA when it has one. */
+    private NfaModel.LexicalState lexicalState(LexState state) {
+        return new NfaModel.LexicalState(this.stringLiterals.stopDfa(state),
+                this.stringLiterals.dfaCode(state),
+                (state.plan().handoff() == Handoff.NONE) ? null : moveNfa(state));
+    }
+
+    /**
+     * The NFA loop of {@code state}. The arms were decided, in output order, by the lexer stage
+     * (ADR-0029); what is spelled here is the loop around them.
+     */
+    private NfaModel.MoveNfa moveNfa(LexState state) {
+        var moves = state.plan().moves();
+        return new NfaModel.MoveNfa(state.parserName(), state.suffix(),
+                state.generatedStates(), state.mixed(), state.debug(), state.withLexState(),
+                this.nfaMoves.section(moves.low(), 0), this.nfaMoves.section(moves.high(), 1),
+                this.nfaMoves.section(moves.other(), -1));
     }
 
     /** The flattened NFA state sets the DFA jumps into, 16 per line. */
-    protected final void dumpStateSets(LinePrinter printer, Tables tables) {
-        printNextStatesOpen(printer, tables.nextStates().size());
-        printer.indent();
-
-        if (tables.nextStates().isEmpty()) {
-            printEmptyStateSet(printer);
-        } else {
-            int cnt = 0;
-            for (int element : tables.nextStates()) {
-                if ((cnt++ % 16) == 0) {
-                    printer.println();
-                }
-                printer.print(element + ", ");
-            }
-        }
-
-        printer.println();
-        printer.outdent();
-        printArrayClose(printer);
+    private static TableModel.NextStates nextStates(Tables tables) {
+        return new TableModel.NextStates(tables.nextStates().size(), TableModel.rows(
+                tables.nextStates().stream().map(String::valueOf).toList(), 16));
     }
 
-    /** The tables the lexer reads at run time: the lexical-state map and the four kind bit vectors. */
-    protected final void dumpStaticVarDeclarations(LinePrinter printer, Tables tables) {
-        if (!tables.newLexState().isEmpty()) {
-            printLexStateArrayOpen(printer, tables.newLexState().size());
-            printer.indent();
-            for (int i = 0; i < tables.newLexState().size(); i++) {
-                if ((i % 25) == 0) {
-                    printer.println();
-                }
-                printer.print(tables.newLexState().get(i) + ", ");
-            }
-            printer.println();
-            printer.outdent();
-            printArrayClose(printer);
+    /** The lexical state each kind switches to, 25 per line; none with one lexical state. */
+    private static List<TableModel.LexStateTable> lexStateTable(Tables tables) {
+        if (tables.newLexState().isEmpty()) {
+            return List.of();
         }
-
-        for (var table : tables.kindTables()) {
-            dumpBitVector(printer, table);
-        }
+        return List.of(new TableModel.LexStateTable(tables.newLexState().size(), TableModel.rows(
+                tables.newLexState().stream().map(String::valueOf).toList(), 25)));
     }
 
-    /** Emits one {@code jjto…} bit vector, 64 token kinds per element, 4 elements per line. */
-    private void dumpBitVector(LinePrinter printer, KindTable table) {
-        printBitVectorOpen(printer, kindTableName(table.set()), table.words().size());
-        printer.indent();
-        for (int i = 0; i < table.words().size(); i++) {
-            if ((i % 4) == 0) {
-                printer.println();
-            }
-            printer.print(toHexString(table.words().get(i)) + ", ");
-        }
-        printer.println();
-        printer.outdent();
-        printArrayClose(printer);
+    /** One {@code jjto…} bit vector, 64 token kinds per word, 4 words per line. */
+    private TableModel.KindVector kindVector(KindTable table) {
+        return new TableModel.KindVector(kindVectorName(table.set()), table.words().size(),
+                TableModel.rows(table.words().stream().map(this::toHexString).toList(), 4));
     }
 
     /** The name of the table that holds a kind set. */
-    private static String kindTableName(KindSet set) {
+    protected String kindVectorName(KindSet set) {
         return switch (set) {
             case TOKEN -> "jjtoToken";
             case SKIP -> "jjtoSkip";

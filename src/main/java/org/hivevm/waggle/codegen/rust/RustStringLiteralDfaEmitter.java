@@ -7,14 +7,11 @@
 
 package org.hivevm.waggle.codegen.rust;
 
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
 import org.hivevm.waggle.codegen.LexState;
 import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
 
-import java.util.List;
-import java.util.StringJoiner;
 
 
 /**
@@ -27,32 +24,15 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
         super(syntax);
     }
 
-    /** Rust always leads with "&mut self", so every parameter prepends its own comma. */
+    /** Rust always leads with "&mut self", so every parameter brings its own comma. */
     @Override
-    protected void printMoveStringLiteralDfaSignature(LinePrinter printer, LexState lex,
-                                                      DfaPos pos) {
-        printer.print("fn jj_move_string_literal_dfa" + pos.pos() + lex.suffix()
-                + "(&mut self");
+    protected String signatureParams(DfaPos pos) {
+        var params = new StringBuilder();
         for (int j : pos.params()) {
-            printer.print((pos.pos() == 1) ? ", active" + j + ": u64"
+            params.append((pos.pos() == 1) ? ", active" + j + ": u64"
                     : ", old" + j + ": u64, active_old" + j + ": u64");
         }
-
-        printer.println(") -> usize {");
-        printer.indent();
-    }
-
-    /** Rust needs a "let" per vector: an assignment is not an expression. */
-    @Override
-    protected void printActiveTest(LinePrinter printer, List<Integer> vectors) {
-        // One statement per vector. The " | " between them was copied from Java's expression
-        // form, and gave "| let ..." as soon as a state had more than 128 literal kinds.
-        var active = new StringJoiner(" | ");
-        for (int j : vectors) {
-            printer.println("let active" + j + " = active_old" + j + " & old" + j + ";");
-            active.add("active" + j);
-        }
-        printer.println("if (" + active + ") == 0 {");
+        return params.toString();
     }
 
     @Override
@@ -75,44 +55,4 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
         return "self.jj_move_string_literal_dfa" + i + lex.suffix();
     }
 
-    /**
-     * Rust has no braceless "if": the guard has to open a block, and only then may one be closed
-     * again. Closing it unconditionally left a stray brace whenever there was no guard (i == 0).
-     */
-    @Override
-    protected void printFinalKindGuardOpen(LinePrinter printer, boolean elseIf, int i, int word,
-                                           long bit) {
-        if (i != 0) {
-            printer.println((elseIf ? "else if " : "if ") + "(active" + word + " & "
-                    + this.syntax.toHexString(bit) + ") != 0 {");
-            printer.indent();
-        }
-    }
-
-    @Override
-    protected void printFinalKindGuardClose(LinePrinter printer, int i) {
-        if (i != 0) {
-            printer.outdent();
-            printer.println("}");
-        }
-    }
-
-    /** The guard, if any, is already a block. */
-    @Override
-    protected void printMatchedKindAndPos(LinePrinter printer, int kind, int i) {
-        printer.println(this.syntax.matchedKind() + " = " + kind + ";");
-        printer.println(this.syntax.matchedPos() + " = " + i + ";");
-    }
-
-    @Override
-    protected void printReturnPosition(LinePrinter printer, int pos) {
-        printer.println("return " + pos);
-    }
-
-    /** The signature above leaves out the blank line before a function, so it follows it. */
-    @Override
-    protected void printMoveStringLiteralDfaEnd(LinePrinter printer) {
-        super.printMoveStringLiteralDfaEnd(printer);
-        printer.println();
-    }
 }

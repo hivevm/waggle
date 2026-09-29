@@ -7,44 +7,16 @@
 
 package org.hivevm.waggle.codegen.cpp;
 
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
-import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerPlan;
-import org.hivevm.waggle.lexer.LexerPlan.Dispatch;
-import org.hivevm.waggle.lexer.LexerPlan.SkipSingles;
 
 /**
  * How C++ spells {@code getNextToken} (ADR-0017).
  */
 class CppGetNextTokenEmitter extends GetNextTokenEmitter {
 
-    CppGetNextTokenEmitter(TargetSyntax syntax, LexerGenerator tokens) {
-        super(syntax, tokens);
-    }
-
-    @Override
-    protected void printSkipSingles(LinePrinter printer, LexerPlan plan, SkipSingles skip) {
-        printer.print("while (" + skipSinglesCondition(skip) + ")");
-
-        // the loop body must be braced: it advances curChar, and without the braces only the
-        // end-of-input check would be repeated -- forever
-        printer.println(" {");
-        printer.indent();
-
-        if (plan.debug()) {
-            if (plan.tokenLoop().switchOnLexState()) {
-                printer.println("fprintf(debugStream, \"<%s>\" , addUnicodeEscapes(lexStateNames[curLexState]).c_str());");
-            }
-            printer.println("fprintf(debugStream, \"Skipping character : %c(%d)\\n\", curChar, (int)curChar);");
-        }
-
-        printer.println("if (reader->endOfInput()) { goto EOFLoop; }");
-        printer.println("curChar = reader->beginToken();");
-
-        printer.outdent();
-        printer.println("}");
+    CppGetNextTokenEmitter(TargetSyntax syntax) {
+        super(syntax);
     }
 
     @Override
@@ -52,123 +24,4 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         return "1ULL";
     }
 
-    @Override
-    protected void printDebugEmptyStringMatched(LinePrinter printer, int kind) {
-        printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
-                + kind + "]).c_str());");
-    }
-
-    @Override
-    protected void printDebugCurrentCharacterMatched(LinePrinter printer, int kind) {
-        printer.println("fprintf(debugStream, \"   Current character matched as a %s token.\\n\", addUnicodeEscapes(tokenImages["
-                + kind + "]).c_str());");
-    }
-
-    @Override
-    protected void printDebugPuttingBack(LinePrinter printer) {
-        printer.println("fprintf(debugStream, "
-                + "\"   Putting back %d characters into the input stream.\\n\", (curPos - jjmatchedPos - 1));");
-    }
-
-    @Override
-    protected void printTokenBranch(LinePrinter printer, Dispatch dispatch) {
-        printer.println("matchedToken = jjFillToken();");
-
-        if (dispatch.special()) {
-            printer.println("matchedToken->specialToken() = specialToken;");
-        }
-        if (dispatch.tokenActions()) {
-            printer.println("TokenLexicalActions(matchedToken);");
-        }
-        if (dispatch.newLexState()) {
-            printNewLexState(printer);
-        }
-        printer.println("return matchedToken;");
-    }
-
-    @Override
-    protected void printSkipBranch(LinePrinter printer, Dispatch dispatch) {
-        if (dispatch.moreBranch()) {
-            printer.print("else if ((jjtoSkip[jjmatchedKind >> 6] & (1ULL << (jjmatchedKind & 077))) != 0L)");
-        } else {
-            printer.print("else");
-        }
-
-        printer.println(" {");
-        printer.indent();
-
-        if (dispatch.special()) {
-            printer.println("if ((jjtoSpecial[jjmatchedKind >> 6] & "
-                    + "(1ULL << (jjmatchedKind & 077))) != 0L) {");
-            printer.indent();
-
-            printer.println("matchedToken = jjFillToken();");
-            printer.println("if (specialToken == nullptr)");
-            printer.println("    specialToken = matchedToken;");
-            printer.println("else {");
-            printer.println("    matchedToken->specialToken() = specialToken;");
-            printer.println("    specialToken = (specialToken->next() = matchedToken);");
-            printer.println("}");
-
-            if (dispatch.skipActions()) {
-                printer.println("SkipLexicalActions(matchedToken);");
-            }
-
-            printer.outdent();
-            printer.println("}");
-
-            if (dispatch.skipActions()) {
-                printer.println("else");
-                printer.println("    SkipLexicalActions(nullptr);");
-            }
-        } else if (dispatch.skipActions()) {
-            printer.println("SkipLexicalActions(nullptr);");
-        }
-
-        if (dispatch.newLexState()) {
-            printNewLexState(printer);
-        }
-
-        printer.println("goto EOFLoop;");
-        printer.outdent();
-        printer.println("}");
-    }
-
-    @Override
-    protected void printMoreBranch(LinePrinter printer, LexerPlan plan, Dispatch dispatch) {
-        if (dispatch.moreActions()) {
-            printer.println("MoreLexicalActions();");
-        } else if (dispatch.moreImageLen()) {
-            printer.println("jjimageLen += jjmatchedPos + 1;");
-        }
-
-        if (dispatch.newLexState()) {
-            printNewLexState(printer);
-        }
-        printer.println("curPos = 0;");
-        printer.println("jjmatchedKind = 0x" + Integer.toHexString(Integer.MAX_VALUE) + ";");
-
-        printer.println("if (!reader->endOfInput()) {");
-        printer.println("    curChar = reader->read(); // UTF8: Support Unicode");
-
-        if (plan.debug()) {
-            this.syntax.printDebugCurrentCharacter(printer, plan.tokenLoop().switchOnLexState());
-        }
-        printer.println("    continue;");
-        printer.println("}");
-    }
-
-    /**
-     * Closes the branch for a match. The C++ token manager reports the lexical error from its
-     * template, after the loop that accumulates MORE, so nothing matching leaves that loop. It used
-     * to go round again on the same character: every lexical error hung the lexer.
-     */
-    @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer, Dispatch dispatch) {
-        printer.outdent();
-        printer.println("}");
-        if (dispatch.moreBranch()) {
-            printer.println("break;");
-        }
-    }
 }

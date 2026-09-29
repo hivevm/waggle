@@ -1,0 +1,1 @@
+//@if(first)//@else, //@fi         jjKindsForBitVector(__index__, active__index__).c_str() 

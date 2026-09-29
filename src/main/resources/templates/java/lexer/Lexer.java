@@ -20,13 +20,13 @@ class Lexer {
 //@foreach(LOHI_BYTES)
 	static long[] jjbitVec__LOHI_BYTES_INDEX__ = {__LOHI_BYTES_VALUE__};
 //@end
-	//@invoke(DUMP_NFA_AND_DFA)
+	//@apply(LEX_STATES)
 
 	/**
 	 * Token literal values.
 	 */
 	public static String[] jjstrLiteralImages = {
-		//@invoke(DUMP_LITERAL_IMAGES)
+		//@apply(LITERAL_IMAGE_ROWS)
 	};
 
 	protected Token jjFillToken() {
@@ -79,17 +79,9 @@ class Lexer {
 		return t;
 	}
 
-	//@invoke(DUMP_STATE_SETS)
+	//@apply(NEXT_STATES)
 
-//@foreach(NON_ASCII_TABLE)
-	private static boolean jjCanMove___NON_ASCII_TABLE_NAME__(int hiByte, int i1, int i2, long l1, long l2) {
-		switch (hiByte) {
-			//@invoke(NON_ASCII_TABLE_METHOD)
-			return false;
-		}
-	}
-
-//@end
+	//@apply(NON_ASCII_TABLE)
 
 	int curLexState = __DEFAULT_LEX_STATE__;
 	int defaultLexState = __DEFAULT_LEX_STATE__;
@@ -122,7 +114,7 @@ class Lexer {
 //@if(HAS_SPECIAL)
 				matchedToken.specialToken = specialToken;
 //@fi
-			//@invoke(DUMP_GET_NEXT_TOKEN)
+			//@apply(GET_NEXT_TOKEN)
 		}
 	}
 
@@ -189,7 +181,7 @@ class Lexer {
 //@fi
 	void SkipLexicalActions(Token matchedToken) {
 		switch (jjmatchedKind) {
-//@invoke(DUMP_SKIP_ACTIONS)
+//@apply(SKIP_ACTIONS)
 			default:
 				break;
 		}
@@ -198,7 +190,7 @@ class Lexer {
 	void MoreLexicalActions() {
 		jjimageLen += (jjmatchedPos + 1);
 		switch (jjmatchedKind) {
-//@invoke(DUMP_MORE_ACTIONS)
+//@apply(MORE_ACTIONS)
 			default:
 				break;
 		}
@@ -206,7 +198,7 @@ class Lexer {
 
 	void TokenLexicalActions(Token matchedToken) {
 		switch (jjmatchedKind) {
-//@invoke(DUMP_TOKEN_ACTIONS)
+//@apply(TOKEN_ACTIONS)
 			default:
 				break;
 		}
@@ -308,7 +300,8 @@ class Lexer {
 			"__STATE_NAMES_VALUE__",
 //@end
 	};
-	//@invoke(DUMP_STATIC_VAR_DECLARATIONS)
+	//@apply(LEX_STATE_TABLE)
+	//@apply(KIND_VECTORS)
 
 	private       JavaCharStream input_stream;
 	private final int[]          jjrounds   = new int[__STATE_SET_SIZE__];

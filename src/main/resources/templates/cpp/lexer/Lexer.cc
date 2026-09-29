@@ -18,13 +18,20 @@
 //@foreach(LOHI_BYTES)
 static const unsigned long long jjbitVec__LOHI_BYTES_INDEX__[] = { __LOHI_BYTES_VALUE__ };
 //@end
-//@invoke(DUMP_STR_LITERAL_IMAGES)
+//@if(LITERAL_IMAGE_COUNT)
+//@apply(LITERAL_IMAGE_ROWS)
+static const JJString jjstrLiteralImages[] = {
+//@apply(LITERAL_IMAGE_REFS)
+};
+//@else
+static const JJString jjstrLiteralImages[] = {};
+//@fi
 
-//@invoke(DUMP_STATE_SETS)
+//@apply(NEXT_STATES)
 
 //@if(DEBUG_TOKEN_MANAGER)
-//@invoke(DUMP_STATES_FOR_STATE_CPP)
-//@invoke(DUMP_STATES_FOR_KIND)
+//@apply(STATES_FOR_STATE_CPP)
+//@apply(KIND_FOR_STATE_CPP)
 
 static int jjKindCnt = 0;
 
@@ -84,7 +91,8 @@ lexStateNames_arr___MAX_LEX_STATES_INDEX__,
 //@end
 };
 
-//@invoke(DUMP_STATIC_VAR_DECLARATIONS)
+//@apply(LEX_STATE_TABLE)
+//@apply(KIND_VECTORS)
 //@if(CPP_NAMESPACE)
 namespace __CPP_NAMESPACE__ {
 //@fi
@@ -124,7 +132,7 @@ void __PARSER_NAME__TokenManager::jjCheckNAddStates(int start) {
 }
 //@fi
 
-	//@invoke(DUMP_NFA_AND_DFA)
+	//@apply(LEX_STATES)
 
 	Token * __PARSER_NAME__TokenManager::jjFillToken() {
 	Token *t;
@@ -183,9 +191,7 @@ void __PARSER_NAME__TokenManager::jjCheckNAddStates(int start) {
 
 	return t;
 }
-//@foreach(NON_ASCII_TABLE)
-__NON_ASCII_TABLE_METHOD__
-//@end
+//@apply(NON_ASCII_TABLE)
 /** Get the next Token. */
 Token * __PARSER_NAME__TokenManager::getNextToken() {
 //@if(HAS_SPECIAL)
@@ -208,7 +214,7 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 //@if(HAS_SPECIAL)
 			matchedToken->specialToken() = specialToken;
 //@fi
-			//@invoke(DUMP_GET_NEXT_TOKEN)
+		//@apply(GET_NEXT_TOKEN)
 		int error_line = reader->getEndLine();
 		int error_column = reader->getEndColumn();
 		JJString error_after = JJEMPTY;
@@ -228,15 +234,40 @@ Token * __PARSER_NAME__TokenManager::getNextToken() {
 
 //@if(HAS_SKIP_ACTIONS)
 
-//@invoke(DUMP_SKIP_ACTIONS)
+
+void __PARSER_NAME__TokenManager::SkipLexicalActions(Token *matchedToken){
+   switch(jjmatchedKind)
+   {
+//@apply(SKIP_ACTIONS)
+      default:
+         break;
+   }
+}
 //@fi
 //@if(HAS_MORE_ACTIONS)
 
-//@invoke(DUMP_MORE_ACTIONS)
+
+void __PARSER_NAME__TokenManager::MoreLexicalActions(){
+   jjimageLen += (lengthOfMatch = jjmatchedPos + 1);
+   switch(jjmatchedKind)
+   {
+//@apply(MORE_ACTIONS)
+      default:
+         break;
+   }
+}
 //@fi
 //@if(HAS_TOKEN_ACTIONS)
 
-//@invoke(DUMP_TOKEN_ACTIONS)
+
+void __PARSER_NAME__TokenManager::TokenLexicalActions(Token *matchedToken){
+   switch(jjmatchedKind)
+   {
+//@apply(TOKEN_ACTIONS)
+      default:
+         break;
+   }
+}
 //@fi
 
 /** Reinitialise parser. */

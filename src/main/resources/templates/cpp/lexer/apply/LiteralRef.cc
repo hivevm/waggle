@@ -1,0 +1,1 @@
+jjstrLiteralChars___kind__, 
