@@ -8,10 +8,13 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.lexer.NfaState;
-import org.hivevm.waggle.lexer.NfaStateData;
+import org.hivevm.waggle.lexer.LexerPlan.Accept;
+import org.hivevm.waggle.lexer.LexerPlan.Guard;
+import org.hivevm.waggle.lexer.LexerPlan.Move;
+import org.hivevm.waggle.lexer.LexerPlan.MoveArm;
+import org.hivevm.waggle.lexer.LexerPlan.NextStates;
+import org.hivevm.waggle.lexer.LexerPlan.NfaMoves;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,35 +29,32 @@ public class NfaMoveEmitter {
     /** How the target spells what this emitter prints. Composed, not inherited (ADR-0017). */
     protected final TargetSyntax syntax;
 
+    /** The indentation of the labels of a composite state of which one member moves. */
+    private static final String COMPOSITE_INDENT = "               ";
+
     public NfaMoveEmitter(TargetSyntax syntax) {
         this.syntax = syntax;
     }
 
     /** Emits {@code jjMoveNfa}, the interpreter loop of the generated NFA. */
-    protected void dumpMoveNfa(LinePrinter printer, NfaStateData data) {
-        boolean debug = data.global.getDebugTokenManager();
+    protected void dumpMoveNfa(LinePrinter printer, LexState lex) {
+        boolean debug = lex.debug();
+        NfaMoves moves = lex.plan().moves();
         String noKind = "0x" + Integer.toHexString(Integer.MAX_VALUE);
 
         printer.println();
-        this.syntax.printMoveNfaSignature(printer, data);
+        this.syntax.printMoveNfaSignature(printer, lex);
         printer.indent();
 
-        if (data.generatedStates() == 0) {
-            printer.println("return " + curPos() + ";");
-            printer.outdent();
-            printer.println("}");
-            return;
-        }
-
-        if (data.isMixedState()) {
+        if (lex.mixed()) {
             this.syntax.printMoveNfaMixedPrologue(printer);
         }
 
-        printMoveNfaLocals(printer, data);
+        printMoveNfaLocals(printer, lex);
 
         if (debug) {
             this.syntax.printDebugStartingNfa(printer);
-            this.syntax.printDebugCurrentCharacter(printer, data.global);
+            this.syntax.printDebugCurrentCharacter(printer, lex.withLexState());
         }
 
         printKindInit(printer, noKind);
@@ -64,17 +64,17 @@ public class NfaMoveEmitter {
 
         printer.println("if " + curCharBelow(64) + " {");
         printer.indent();
-        DumpAsciiMoves(printer, data, 0);
+        DumpAsciiMoves(printer, moves.low(), 0);
         printer.outdent();
 
         printer.println("} else if " + curCharBelow(128) + " {");
         printer.indent();
-        DumpAsciiMoves(printer, data, 1);
+        DumpAsciiMoves(printer, moves.high(), 1);
         printer.outdent();
 
         printer.println("} else {");
         printer.indent();
-        DumpCharAndRangeMoves(printer, data);
+        DumpCharAndRangeMoves(printer, moves.other());
         printer.outdent();
         printer.println("}");
 
@@ -84,21 +84,21 @@ public class NfaMoveEmitter {
             this.syntax.printDebugCurrentlyMatched(printer);
         }
 
-        this.syntax.printSwapStateSets(printer, data);
+        this.syntax.printSwapStateSets(printer, lex);
 
         if (debug) {
             this.syntax.printDebugPossibleLongerMatches(printer);
         }
 
-        this.syntax.printReadCharOrLeave(printer, data);
+        this.syntax.printReadCharOrLeave(printer, lex);
 
         if (debug) {
-            this.syntax.printDebugCurrentCharacter(printer, data.global);
+            this.syntax.printDebugCurrentCharacter(printer, lex.withLexState());
         }
         printer.outdent();
         printer.println("}");
 
-        if (data.isMixedState()) {
+        if (lex.mixed()) {
             printMoveNfaMixedEpilogue(printer);
         }
 
@@ -107,515 +107,305 @@ public class NfaMoveEmitter {
     }
 
     /**
-     * @param cases      labels the caller has already collected for this very body -- Java writes
-     *                   each one out on the spot and lets them fall through, Rust has to join them
-     *                   into a single match arm, so there may only ever be one list per body
+     * The body of an arm with a single ASCII move. Which of the three shapes it has was decided
+     * when the move was planned (ADR-0029); this writes the one it is.
+     *
+     * @param labels     the labels of the arm: Java has written each one out already and lets
+     *                   them fall through, Rust joins them into a single match arm here
      * @param openIndent the indentation of that joined arm
      */
-    protected void DumpAsciiMove(LinePrinter printer, NfaStateData data, NfaState state, int byteNum,
-                               boolean[] dumped, boolean use_state_name, List<String> cases,
-                               String openIndent) {
-        boolean nextIntersects = state.selfLoop() && state.isComposite;
-        boolean onlyState = true;
-        if (use_state_name) {
-            this.syntax.printCaseLabel(printer, cases, state.stateName);
-        }
-
-        for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (state.stateName == element.stateName)
-                    || (element.asciiMoves[byteNum] == 0L)) {
-                continue;
-            }
-
-            if (onlyState && ((state.asciiMoves[byteNum] & element.asciiMoves[byteNum]) != 0L)) {
-                onlyState = false;
-            }
-
-            if (!nextIntersects && data.intersects(element.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
-                nextIntersects = true;
-            }
-
-            if (!dumped[element.stateName] && !element.isComposite && (state.asciiMoves[byteNum]
-                    == element.asciiMoves[byteNum])
-                    && (state.kindToPrint == element.kindToPrint)
-                    && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
-                    || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString != null)
-                    && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
-                dumped[element.stateName] = true;
-                this.syntax.printCaseLabel(printer, cases, element.stateName);
-            }
-        }
-
-        this.syntax.printCasesOpen(printer, cases, openIndent);
-
+    protected void DumpAsciiMove(LinePrinter printer, Move move, List<Integer> labels,
+                                 String openIndent) {
+        this.syntax.printCasesOpen(printer, labels, openIndent);
         printer.indent();
 
-        int oneBit = state.onlyOneAsciiMove(byteNum);
-        if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL)
-                && (((state.next == null) || (state.next.usefulEpsilonMoves == 0))
-                && (state.kindToPrint != Integer.MAX_VALUE))) {
-            String kindCheck = "";
-
-            if (!onlyState) {
-                kindCheck = " && kind > " + state.kindToPrint;
-            }
-
-            String condition = (oneBit != -1)
-                    ? this.syntax.charEquals((64 * byteNum) + oneBit)
-                    : this.syntax.bitIsSet(state.asciiMoves[byteNum]);
-
-            this.syntax.printIfNoBlock(printer, condition + kindCheck);
-            printer.indent();
-            printer.println("kind = " + state.kindToPrint + ";");
-            printer.outdent();
-            this.syntax.printEndIf(printer);
-            this.syntax.printBreak(printer, "");
-
-            printer.outdent();
-            if (!cases.isEmpty()) {
-                this.syntax.printCasesClose(printer);
-            }
-            return;
-        }
-
-        boolean hasIf = false;
-        if (state.kindToPrint != Integer.MAX_VALUE) {
-            if (oneBit != -1) {
-                this.syntax.printIf(printer, this.syntax.charNotEquals((64 * byteNum) + oneBit));
+        switch (move.shape()) {
+            case ACCEPT -> {
+                this.syntax.printIfNoBlock(printer, condition(move.guard()) + raises(move.accept()));
                 printer.indent();
-                printer.println("break;");
+                printKind(printer, move.accept());
                 printer.outdent();
-                printer.println("}");
-            } else if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-                this.syntax.printIf(printer, this.syntax.bitIsClear(state.asciiMoves[byteNum]));
-                printer.indent();
-                printer.println("break;");
-                printer.outdent();
-                printer.println("}");
+                this.syntax.printEndIf(printer);
+                this.syntax.printBreak(printer, "");
             }
-
-            if (onlyState) {
-                printer.println("kind = " + state.kindToPrint + ";");
-            } else {
-                this.syntax.printIf(printer, "kind > " + state.kindToPrint);
-                printer.indent();
-                printer.println("kind = " + state.kindToPrint + ";");
-                printer.outdent();
-                printer.println("}");
+            case MATCH -> {
+                if (!(move.guard() instanceof Guard.Always)) {
+                    this.syntax.printIf(printer, negated(move.guard()));
+                    printer.indent();
+                    printer.println("break;");
+                    printer.outdent();
+                    printer.println("}");
+                }
+                printAccept(printer, move.accept());
+                printNextStates(printer, move.next());
+                this.syntax.printBreak(printer, "");
             }
-        } else if (oneBit != -1) {
-            this.syntax.printIfNoBlock(printer, this.syntax.charEquals((64 * byteNum) + oneBit));
-            hasIf = true;
-            printer.indent();
-        } else if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-            this.syntax.printIfNoBlock(printer, this.syntax.bitIsSet(state.asciiMoves[byteNum]));
-            hasIf = true;
-            printer.indent();
-        }
-
-        printNextStates(printer, data, state, nextIntersects);
-
-        if (hasIf) {
-            printer.outdent();
-        }
-
-        this.syntax.printBreak(printer, "");
-
-        if (hasIf) {
-            this.syntax.printEndIf(printer);
+            case ADVANCE -> {
+                boolean guarded = !(move.guard() instanceof Guard.Always);
+                if (guarded) {
+                    this.syntax.printIfNoBlock(printer, condition(move.guard()));
+                    printer.indent();
+                }
+                printNextStates(printer, move.next());
+                if (guarded) {
+                    printer.outdent();
+                }
+                this.syntax.printBreak(printer, "");
+                if (guarded) {
+                    this.syntax.printEndIf(printer);
+                }
+            }
         }
 
         printer.outdent();
-        // Close exactly what printCasesOpen opened -- it is driven by the labels, not by
-        // use_state_name. Rust lost the closing brace of every arm whose only labels came
-        // from the states merged into it.
-        if (!cases.isEmpty()) {
+        // Close exactly what printCasesOpen opened -- it is driven by the labels. Rust lost the
+        // closing brace of every arm whose only labels came from the states merged into it.
+        if (!labels.isEmpty()) {
             this.syntax.printCasesClose(printer);
         }
     }
 
-    protected void DumpCompositeStatesAsciiMoves(LinePrinter printer, NfaStateData data, String key, int byteNum, boolean[] dumped) {
-        int i;
-        int[] nameSet = data.getNextStates(key);
+    /** The body of an arm with a single move beyond ASCII; see {@link #DumpAsciiMove}. */
+    protected void DumpNonAsciiMove(LinePrinter printer, Move move, List<Integer> labels) {
+        this.syntax.printCasesOpen(printer, labels, "");
 
-        if ((nameSet.length == 1) || dumped[data.compositeStateName(key)]) {
-            return;
-        }
+        switch (move.shape()) {
+            case ACCEPT -> {
+                this.syntax.printIfNoBlock(printer, condition(move.guard()) + raises(move.accept()));
+                printer.indent();
+                printKind(printer, move.accept());
+                printer.outdent();
+                this.syntax.printEndIf(printer);
+                this.syntax.printBreak(printer, "");
+                // This branch used to return without closing what printCasesOpen opened. Java and
+                // C++ never noticed -- their case labels carry no braces -- but every Rust match
+                // arm that took it was left hanging open.
+            }
+            case MATCH -> {
+                this.syntax.printIfNoBlock(printer, negated(move.guard()));
+                printer.indent();
+                printer.println("break;");
+                printer.outdent();
+                this.syntax.printEndIf(printer);
 
-        NfaState toBePrinted = null;
-        int neededStates = 0;
-        NfaState tmp;
+                printAcceptNoBlock(printer, move.accept());
 
-        for (i = 0; i < nameSet.length; i++) {
-            tmp = data.getAllState(nameSet[i]);
-
-            if (tmp.asciiMoves[byteNum] != 0L) {
-                if (neededStates++ == 1) {
-                    break;
-                } else {
-                    toBePrinted = tmp;
-                }
-            } else {
-                dumped[tmp.stateName] = true;
+                printer.indent();
+                printNextStates(printer, move.next());
+                this.syntax.printBreak(printer, "");
+                printer.outdent();
+            }
+            case ADVANCE -> {
+                this.syntax.printIfNoBlock(printer, condition(move.guard()));
+                printer.indent();
+                printNextStates(printer, move.next());
+                this.syntax.printBreak(printer, "");
+                printer.outdent();
+                this.syntax.printEndIf(printer);
             }
         }
 
-        if (neededStates == 0) {
-            return;
-        }
-
-        if (neededStates == 1) {
-            var cases = new ArrayList<String>();
-            this.syntax.printCaseLabel(printer, cases, "               ", data.compositeStateName(key));
-            if (!dumped[toBePrinted.stateName] && (toBePrinted.inNextOf > 1)) {
-                this.syntax.printCaseLabel(printer, cases, "               ", toBePrinted.stateName);
-            }
-
-            dumped[toBePrinted.stateName] = true;
-            DumpAsciiMove(printer, data, toBePrinted, byteNum, dumped, false, cases,
-                    "               ");
-            return;
-        }
-
-        List<List<NfaState>> partition = data.asciiPartition(nameSet, byteNum);
-
-        var cases = new ArrayList<String>();
-        int keyState = data.compositeStateName(key);
-        this.syntax.printCaseLabel(printer, cases, keyState);
-        this.syntax.printCasesOpen(printer, cases);
-        printer.indent();
-        if (keyState < data.generatedStates()) {
-            dumped[keyState] = true;
-        }
-
-        for (i = 0; i < partition.size(); i++) {
-            List<NfaState> subSet = partition.get(i);
-
-            for (int j = 0; j < subSet.size(); j++) {
-                DumpAsciiMoveForCompositeState(printer, data, subSet.get(j), byteNum, j != 0);
-            }
-        }
-
-        this.syntax.printBreak(printer, "");
-        printer.outdent();
-        this.syntax.printCasesClose(printer);
-    }
-
-    protected void DumpCompositeStatesNonAsciiMoves(LinePrinter printer, NfaStateData data,
-                                                  String key, boolean[] dumped) {
-        int[] nameSet = data.getNextStates(key);
-        if ((nameSet.length == 1) || dumped[data.compositeStateName(key)]) {
-            return;
-        }
-
-        NfaState toBePrinted = null;
-        int neededStates = 0;
-        NfaState tmp;
-
-        for (int j : nameSet) {
-            tmp = data.getAllState(j);
-            if (tmp.nonAsciiMethod != -1) {
-                if (neededStates++ == 1) {
-                    break;
-                } else {
-                    toBePrinted = tmp;
-                }
-            } else {
-                dumped[tmp.stateName] = true;
-            }
-        }
-
-        if (neededStates == 0) {
-            return;
-        }
-
-        if (neededStates == 1) {
-            var cases = new ArrayList<String>();
-            this.syntax.printCaseLabel(printer, cases, data.compositeStateName(key));
-            if (!dumped[toBePrinted.stateName] && (toBePrinted.inNextOf > 1)) {
-                this.syntax.printCaseLabel(printer, cases, toBePrinted.stateName);
-            }
-
-            dumped[toBePrinted.stateName] = true;
-            DumpNonAsciiMove(printer, data, toBePrinted, dumped, cases);
-            return;
-        }
-
-        var cases = new ArrayList<String>();
-        int keyState = data.compositeStateName(key);
-        this.syntax.printCaseLabel(printer, cases, keyState);
-        this.syntax.printCasesOpen(printer, cases);
-        if (keyState < data.generatedStates()) {
-            dumped[keyState] = true;
-        }
-
-        for (int j : nameSet) {
-            tmp = data.getAllState(j);
-
-            if (tmp.nonAsciiMethod != -1) {
-                DumpNonAsciiMoveForCompositeState(printer, data, tmp);
-            }
-        }
-
-        this.syntax.printBreak(printer, "    ");
-        this.syntax.printCasesClose(printer);
-    }
-
-    /** @param cases see {@link #DumpAsciiMove} -- one list per body, never two. */
-    protected void DumpNonAsciiMove(LinePrinter printer, NfaStateData data, NfaState state,
-                                  boolean[] dumped, List<String> cases) {
-        boolean nextIntersects = state.selfLoop() && state.isComposite;
-
-        for (NfaState element : data.getAllStates()) {
-            if ((state == element) || (state.stateName == element.stateName)
-                    || (element.nonAsciiMethod == -1)) {
-                continue;
-            }
-
-            if (!nextIntersects && data.intersects(element.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
-                nextIntersects = true;
-            }
-
-            if (!dumped[element.stateName] && !element.isComposite && (state.nonAsciiMethod == element.nonAsciiMethod)
-                    && (state.kindToPrint == element.kindToPrint)
-                    && ((state.next.epsilonMovesString == element.next.epsilonMovesString)
-                    || ((state.next.epsilonMovesString != null) && (element.next.epsilonMovesString
-                    != null)
-                    && state.next.epsilonMovesString.equals(element.next.epsilonMovesString)))) {
-                dumped[element.stateName] = true;
-                this.syntax.printCaseLabel(printer, cases, element.stateName);
-            }
-        }
-
-        this.syntax.printCasesOpen(printer, cases);
-
-        if ((state.next == null) || (state.next.usefulEpsilonMoves <= 0)) {
-            String kindCheck = " && kind > " + state.kindToPrint;
-
-            this.syntax.printIfNoBlock(printer, this.syntax.canMove(state) + kindCheck);
-            printer.indent();
-            printer.println("kind = " + state.kindToPrint + ";");
-            printer.outdent();
-            this.syntax.printEndIf(printer);
-            this.syntax.printBreak(printer, "");
-
-            // This branch used to return without closing what printCasesOpen opened. Java and C++
-            // never noticed -- their case labels carry no braces -- but every Rust match arm that
-            // took it was left hanging open.
-            if (!cases.isEmpty()) {
-                this.syntax.printCasesClose(printer);
-            }
-            return;
-        }
-
-        if (state.kindToPrint != Integer.MAX_VALUE) {
-            this.syntax.printIfNoBlock(printer, "!" + this.syntax.canMove(state));
-            printer.indent();
-            printer.println("break;");
-            printer.outdent();
-            this.syntax.printEndIf(printer);
-
-            this.syntax.printIfNoBlock(printer, "kind > " + state.kindToPrint);
-            printer.indent();
-            printer.println("kind = " + state.kindToPrint + ";");
-            printer.outdent();
-            this.syntax.printEndIf(printer);
-        } else {
-            this.syntax.printIfNoBlock(printer, this.syntax.canMove(state));
-        }
-        printer.indent();
-
-        printNextStates(printer, data, state, nextIntersects);
-
-        this.syntax.printBreak(printer, "");
-
-        printer.outdent();
-
-        if (state.kindToPrint == Integer.MAX_VALUE) {
-            this.syntax.printEndIf(printer);
-        }
-
-        if (!cases.isEmpty()) {
+        if (!labels.isEmpty()) {
             this.syntax.printCasesClose(printer);
         }
     }
 
-    protected void DumpAsciiMoveForCompositeState(LinePrinter printer, NfaStateData data,
-                                                NfaState state, int byteNum, boolean elseNeeded) {
-        boolean nextIntersects = state.selfLoop();
-
-        for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (state.stateName == temp1.stateName)
-                    || (temp1.asciiMoves[byteNum] == 0L)) {
-                continue;
-            }
-
-            if (!nextIntersects && data.intersects(temp1.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
-                nextIntersects = true;
-                break;
-            }
-        }
-
-        boolean hasIf = false;
-        if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
-            int oneBit = state.onlyOneAsciiMove(byteNum);
-
-            var cond = (elseNeeded ? "else if " : "if ");
-            this.syntax.printIfNoBlock(printer, cond, (oneBit != -1)
-                    ? this.syntax.charEquals((64 * byteNum) + oneBit)
-                    : this.syntax.bitIsSet(state.asciiMoves[byteNum]));
-            hasIf = true;
+    /** One member of a composite state, in an if-else chain over the ASCII characters. */
+    protected void DumpAsciiMoveForCompositeState(LinePrinter printer, Move move) {
+        boolean guarded = !(move.guard() instanceof Guard.Always);
+        if (guarded) {
+            this.syntax.printIfNoBlock(printer, move.elseIf() ? "else if " : "if ",
+                    condition(move.guard()));
         }
         printer.indent();
 
-        if (state.kindToPrint != Integer.MAX_VALUE) {
-            if (state.asciiMoves[byteNum] != 0xffffffffffffffffL) {
+        if (move.accept() != null) {
+            if (guarded) {
                 printer.println("{");
             }
-
-            this.syntax.printIf(printer, "kind > " + state.kindToPrint);
-            printer.indent();
-            printer.println("kind = " + state.kindToPrint + ";");
-            printer.outdent();
-            printer.println("}");
+            printAccept(printer, move.accept());
         }
 
-        printNextStates(printer, data, state, nextIntersects);
+        printNextStates(printer, move.next());
 
         printer.outdent();
-        if ((state.asciiMoves[byteNum] != 0xffffffffffffffffL) && (state.kindToPrint != Integer.MAX_VALUE)) {
+        if (guarded && (move.accept() != null)) {
             printer.println("}");
         }
 
-        if (hasIf) {
+        if (guarded) {
             this.syntax.printEndIf(printer);
         }
     }
 
-    protected void DumpNonAsciiMoveForCompositeState(LinePrinter printer, NfaStateData data,
-                                                   NfaState state) {
-        boolean nextIntersects = state.selfLoop();
-        for (NfaState temp1 : data.getAllStates()) {
-            if ((state == temp1) || (state.stateName == temp1.stateName)
-                    || (temp1.nonAsciiMethod == -1)) {
-                continue;
-            }
-
-            if (!nextIntersects && data.intersects(temp1.next.epsilonMovesString,
-                    state.next.epsilonMovesString)) {
-                nextIntersects = true;
-                break;
-            }
-        }
-
+    /** One member of a composite state, beyond ASCII. */
+    protected void DumpNonAsciiMoveForCompositeState(LinePrinter printer, Move move) {
         // Not a bare "if (...)": Rust needs the braces that printIfNoBlock and printEndIf add.
-        this.syntax.printIfNoBlock(printer, this.syntax.canMove(state));
+        this.syntax.printIfNoBlock(printer, condition(move.guard()));
 
-        if (state.kindToPrint != Integer.MAX_VALUE) {
+        if (move.accept() != null) {
             printer.println("{");
             printer.indent();
-            this.syntax.printIf(printer, "kind > " + state.kindToPrint);
-            printer.indent();
-            printer.println("kind = " + state.kindToPrint + ";");
-            printer.outdent();
-            printer.println("}");
+            printAccept(printer, move.accept());
         }
 
-        printNextStates(printer, data, state, nextIntersects);
+        printNextStates(printer, move.next());
 
-        if (state.kindToPrint != Integer.MAX_VALUE) {
+        if (move.accept() != null) {
             printer.outdent();
             printer.println("}");
         }
         this.syntax.printEndIf(printer);
     }
 
-    protected void DumpAsciiMoves(LinePrinter printer, NfaStateData data, int byteNum) {
-        boolean[] dumped = new boolean[data.stateNameCount()];
+    /** The test a move is taken under. */
+    private String condition(Guard guard) {
+        return switch (guard) {
+            case Guard.OneChar g -> this.syntax.charEquals(g.c());
+            case Guard.Mask g -> this.syntax.bitIsSet(g.mask());
+            case Guard.NonAscii g -> this.syntax.canMove(g.method());
+            // A move that is taken for every character of its group is written without a test;
+            // reaching this would mean the plan and the shape disagree.
+            case Guard.Always g -> throw new IllegalStateException("an unguarded move has no test");
+        };
+    }
 
+    /** The same test the other way round, for a move that leaves the arm when it does not hold. */
+    private String negated(Guard guard) {
+        return switch (guard) {
+            case Guard.OneChar g -> this.syntax.charNotEquals(g.c());
+            case Guard.Mask g -> this.syntax.bitIsClear(g.mask());
+            case Guard.NonAscii g -> "!" + this.syntax.canMove(g.method());
+            case Guard.Always g -> throw new IllegalStateException("an unguarded move has no test");
+        };
+    }
+
+    /** What a move that only accepts adds to its condition to yield to a lower kind. */
+    private static String raises(Accept accept) {
+        return accept.raise() ? " && kind > " + accept.kind() : "";
+    }
+
+    private static void printKind(LinePrinter printer, Accept accept) {
+        printer.println("kind = " + accept.kind() + ";");
+    }
+
+    /**
+     * Takes the kind: outright when the move is the only one on its characters, and otherwise only
+     * when it beats the kind the round has already matched.
+     *
+     * <p>The guarded form comes out as a block, which Java and C++ write with braces.
+     */
+    private void printAccept(LinePrinter printer, Accept accept) {
+        if (!accept.raise()) {
+            printKind(printer, accept);
+            return;
+        }
+        this.syntax.printIf(printer, "kind > " + accept.kind());
+        printer.indent();
+        printKind(printer, accept);
+        printer.outdent();
+        printer.println("}");
+    }
+
+    /**
+     * The same over a single statement, which Java and C++ write without braces. The two forms are
+     * how JavaCC wrote them; they differ in the generated source, not in what it does.
+     */
+    private void printAcceptNoBlock(LinePrinter printer, Accept accept) {
+        this.syntax.printIfNoBlock(printer, "kind > " + accept.kind());
+        printer.indent();
+        printKind(printer, accept);
+        printer.outdent();
+        this.syntax.printEndIf(printer);
+    }
+
+    /** The labels of an arm: the leading ones at {@code leadIndent}, the merged ones without. */
+    private void printLabels(LinePrinter printer, MoveArm arm, String leadIndent) {
+        for (int i = 0; i < arm.labels().size(); i++) {
+            this.syntax.printCaseLabel(printer, (i < arm.leading()) ? leadIndent : "",
+                    arm.labels().get(i));
+        }
+    }
+
+    protected void DumpAsciiMoves(LinePrinter printer, List<MoveArm> arms, int byteNum) {
         DumpHeadForCase(printer, byteNum);
 
-        for (String s : data.compositeStateTable.keySet()) {
-            DumpCompositeStatesAsciiMoves(printer, data, s, byteNum, dumped);
-        }
-
-        for (var element : data.getAllStates()) {
-            if (dumped[element.stateName] || (element.asciiMoves[byteNum] == 0L)) {
-                continue;
+        for (MoveArm arm : arms) {
+            switch (arm.shape()) {
+                case COMPOSITE -> {
+                    this.syntax.printCaseLabel(printer, "", arm.labels().getFirst());
+                    this.syntax.printCasesOpen(printer, arm.labels(), "");
+                    printer.indent();
+                    for (Move move : arm.moves()) {
+                        DumpAsciiMoveForCompositeState(printer, move);
+                    }
+                    this.syntax.printBreak(printer, "");
+                    printer.outdent();
+                    this.syntax.printCasesClose(printer);
+                }
+                case COMPOSITE_ONE -> {
+                    printLabels(printer, arm, NfaMoveEmitter.COMPOSITE_INDENT);
+                    DumpAsciiMove(printer, arm.moves().getFirst(), arm.labels(),
+                            NfaMoveEmitter.COMPOSITE_INDENT);
+                }
+                case SINGLE -> {
+                    printLabels(printer, arm, "");
+                    DumpAsciiMove(printer, arm.moves().getFirst(), arm.labels(), "");
+                }
             }
-
-            var cases = new ArrayList<String>();
-            dumped[element.stateName] = true;
-            DumpAsciiMove(printer, data, element, byteNum, dumped, true, cases, "");
         }
 
         this.syntax.printDefaultAndEndLoop(printer, (byteNum != 0) && (byteNum != 1));
     }
 
-    protected void DumpCharAndRangeMoves(LinePrinter printer, NfaStateData data) {
-        boolean[] dumped = new boolean[data.stateNameCount()];
-
+    protected void DumpCharAndRangeMoves(LinePrinter printer, List<MoveArm> arms) {
         DumpHeadForCase(printer, -1);
 
-        for (String s : data.compositeStateTable.keySet()) {
-            DumpCompositeStatesNonAsciiMoves(printer, data, s, dumped);
-        }
-
-        for (var temp : data.getAllStates()) {
-            if (dumped[temp.stateName] || (temp.nonAsciiMethod == -1)) {
-                continue;
+        for (MoveArm arm : arms) {
+            switch (arm.shape()) {
+                case COMPOSITE -> {
+                    this.syntax.printCaseLabel(printer, "", arm.labels().getFirst());
+                    this.syntax.printCasesOpen(printer, arm.labels(), "");
+                    for (Move move : arm.moves()) {
+                        DumpNonAsciiMoveForCompositeState(printer, move);
+                    }
+                    this.syntax.printBreak(printer, "    ");
+                    this.syntax.printCasesClose(printer);
+                }
+                case COMPOSITE_ONE -> {
+                    printLabels(printer, arm, "");
+                    DumpNonAsciiMove(printer, arm.moves().getFirst(), arm.labels());
+                }
+                case SINGLE -> {
+                    // The labels of the states merged into the arm come out one level deeper.
+                    this.syntax.printCaseLabel(printer, "", arm.labels().getFirst());
+                    printer.indent();
+                    for (int label : arm.labels().subList(1, arm.labels().size())) {
+                        this.syntax.printCaseLabel(printer, "", label);
+                    }
+                    DumpNonAsciiMove(printer, arm.moves().getFirst(), arm.labels());
+                    printer.outdent();
+                }
             }
-
-            var cases = new ArrayList<String>();
-            dumped[temp.stateName] = true;
-            this.syntax.printCaseLabel(printer, cases, temp.stateName);
-            printer.indent();
-            DumpNonAsciiMove(printer, data, temp, dumped, cases);
-            printer.outdent();
         }
 
         this.syntax.printDefaultAndEndLoop(printer, true);
     }
 
-    /**
-     * Emits the move into the next state set of "state". This was written out four times, verbatim,
-     * across DumpAsciiMove, DumpAsciiMoveForCompositeState, DumpNonAsciiMove and
-     * DumpNonAsciiMoveForCompositeState.
-     */
-    protected void printNextStates(LinePrinter printer, NfaStateData data, NfaState state,
-                                 boolean nextIntersects) {
-        if ((state.next == null) || (state.next.usefulEpsilonMoves <= 0)) {
+    /** Emits the move into the states a move leads to. */
+    protected void printNextStates(LinePrinter printer, NextStates next) {
+        if (next == null) {
             return;
         }
 
-        int[] stateNames = data.getNextStates(state.next.epsilonMovesString);
-
-        if (state.next.usefulEpsilonMoves == 1) {
-            if (nextIntersects) {
-                this.syntax.printCheckNAdd(printer, stateNames[0]);
-            } else {
-                this.syntax.printAddState(printer, stateNames[0]);
-            }
-            return;
-        }
-
-        if ((state.next.usefulEpsilonMoves == 2) && nextIntersects) {
-            this.syntax.printCheckNAddTwoStates(printer, stateNames[0], stateNames[1]);
-            return;
-        }
-
-        int[] indices = data.getStateSetIndices(state.next.epsilonMovesString);
-        boolean isRange = (indices[0] + 1) != indices[1];
-
-        // Whether jjCheckNAddStates is needed at all was decided in stage 4 (DfaBuilder); the
-        // template reads that flag before any of this is rendered.
-        if (nextIntersects) {
-            this.syntax.printCheckNAddStates(printer, indices[0], indices[1], isRange);
-        } else {
-            this.syntax.printAddStates(printer, indices[0], indices[1]);
+        switch (next.form()) {
+            case ADD -> this.syntax.printAddState(printer, next.first());
+            case CHECK_ADD -> this.syntax.printCheckNAdd(printer, next.first());
+            case CHECK_ADD_TWO -> this.syntax.printCheckNAddTwoStates(printer, next.first(),
+                    next.second());
+            case ADD_STATES -> this.syntax.printAddStates(printer, next.first(), next.second());
+            case CHECK_ADD_STATES -> this.syntax.printCheckNAddStates(printer, next.first(),
+                    next.second(), next.isRange());
         }
     }
 
@@ -625,9 +415,9 @@ public class NfaMoveEmitter {
     }
 
     /** The loop's locals, and the start state as the only state of the first round. */
-    protected void printMoveNfaLocals(LinePrinter printer, NfaStateData data) {
+    protected void printMoveNfaLocals(LinePrinter printer, LexState lex) {
         printer.println("int startsAt = 0;");
-        printer.println("jjnewStateCnt = " + data.generatedStates() + ";");
+        printer.println("jjnewStateCnt = " + lex.generatedStates() + ";");
         printer.println("int i = 1;");
         printer.println("jjstateSet[0] = startState;");
     }

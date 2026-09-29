@@ -9,18 +9,13 @@ package org.hivevm.waggle.codegen;
 
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.grammar.Token;
-import org.hivevm.source.LinePrinter;
 
 public abstract class CodeGenerator<D> {
 
     private final Language language;
 
-    /** Where the lexer's action code is laid out; the parser lays out each run on its own. */
-    private TokenCursor cursor;
-
     protected CodeGenerator(Language language) {
         this.language = language;
-        this.cursor = new TokenCursor(language, 0, 0);
     }
 
     protected final Language getLanguage() {
@@ -32,17 +27,5 @@ public abstract class CodeGenerator<D> {
     /** A cursor at the start of {@code t}, for one run of verbatim tokens. */
     protected final TokenCursor cursorAt(Token t) {
         return TokenCursor.at(t, this.language);
-    }
-
-    protected final void setup_token(Token t) {
-        this.cursor = cursorAt(t);
-    }
-
-    protected final void reset_column() {
-        this.cursor.resetColumn();
-    }
-
-    protected final void printToken(Token t, LinePrinter printer) {
-        this.cursor.print(t, null, printer);
     }
 }

@@ -8,10 +8,16 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
+import org.hivevm.waggle.lexer.LexerPlan.CharCase;
+import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
+import org.hivevm.waggle.lexer.LexerPlan.Exit;
+import org.hivevm.waggle.lexer.LexerPlan.Final;
+import org.hivevm.waggle.lexer.LexerPlan.Handoff;
+import org.hivevm.waggle.lexer.LexerPlan.LexStatePlan;
+import org.hivevm.waggle.lexer.LexerPlan.StopCase;
+import org.hivevm.waggle.lexer.LexerPlan.StopMatch;
 
-import java.util.Hashtable;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -29,9 +35,6 @@ public class StringLiteralDfaEmitter {
     /** How the target spells what this emitter prints. Composed, not inherited (ADR-0017). */
     protected final TargetSyntax syntax;
 
-    /** Whether {@code jjStopAtPos} has been written for this rendering. */
-    private boolean stopAtPosDumped;
-
     public StringLiteralDfaEmitter(TargetSyntax syntax) {
         this.syntax = syntax;
     }
@@ -40,118 +43,72 @@ public class StringLiteralDfaEmitter {
      * The per-state code of the string-literal DFA. All three targets share it — every place they
      * differ is a dialect hook of {@link TargetSyntax} or one of the small hooks below.
      */
-    protected void dumpDfaStates(LinePrinter printer, NfaStateData data) {
-        KindInfo info;
-        int maxLongsReqd = (data.getMaxStrKind() / 64) + 1;
-        int i, j, k;
-        boolean ifGenerated;
+    protected void dumpDfaStates(LinePrinter printer, LexState lex) {
+        boolean debug = lex.debug();
+        LexStatePlan state = lex.plan();
 
-        for (i = 0; i < data.getMaxLen(); i++) {
-            boolean startNfaNeeded = false;
+        for (DfaPos pos : state.positions()) {
+            int i = pos.pos();
 
-            printMoveStringLiteralDfaSignature(printer, data, i, maxLongsReqd);
+            printMoveStringLiteralDfaSignature(printer, lex, pos);
 
             if (i != 0) {
-                printActiveCheck(printer, data, i, maxLongsReqd);
+                printActiveCheck(printer, lex, pos);
 
-                this.syntax.printDebugPossibleMatches(printer, data, i);
+                if (debug) {
+                    this.syntax.printDebugPossibleMatches(printer, pos);
+                }
 
-                printEofBailout(printer, data, i, maxLongsReqd);
+                printEofBailout(printer, lex, pos);
             }
 
-            if ((i != 0) && data.global.getDebugTokenManager()) {
-                this.syntax.printDebugCurrentCharacter(printer, data.global);
+            if ((i != 0) && debug) {
+                this.syntax.printDebugCurrentCharacter(printer, lex.withLexState());
             }
 
             this.syntax.printSwitchOnChar(printer);
             printer.indent();
 
-            for (var entry : data.getCharPosKind(i).entrySet()) {
-                info = entry.getValue();
-                ifGenerated = false;
-                char c = entry.getKey();
-
-                if (data.isPlainSkip(info, i, c)) {
-                    continue;
+            for (CharCase charCase : pos.cases()) {
+                for (int label : charCase.labels()) {
+                    this.syntax.printCharCase(printer, label);
                 }
 
-                // Since we know key is a single character ...
-                if (data.ignoreCase()) {
-                    if (c != Character.toUpperCase(c)) {
-                        this.syntax.printCharCase(printer, Character.toUpperCase(c));
-                    }
-
-                    if (c != Character.toLowerCase(c)) {
-                        this.syntax.printCharCase(printer, Character.toLowerCase(c));
-                    }
-                }
-
-                this.syntax.printCharCaseWithBody(printer, c);
+                this.syntax.printCharCaseWithBody(printer, charCase.c());
                 printer.indent();
 
-                long matchedKind;
-                if (info.hasFinalKindCnt()) {
-                    for (j = 0; j < maxLongsReqd; j++) {
-                        if ((matchedKind = info.finalKinds[j]) == 0L) {
-                            continue;
-                        }
+                boolean ifGenerated = false;
+                for (Final kind : charCase.finals()) {
+                    printFinalKindGuardOpen(printer, ifGenerated, i, kind.word(), kind.bit());
+                    ifGenerated = true;
 
-                        for (k = 0; k < 64; k++) {
-                            if ((matchedKind & (1L << k)) == 0L) {
-                                continue;
-                            }
-
-                            printFinalKindGuardOpen(printer, ifGenerated, i, j, k);
-                            ifGenerated = true;
-
-                            int kindToPrint = data.kindToPrint(i, (j * 64) + k);
-
-                            if (!data.isSubString((j * 64) + k)) {
-                                int stateSetName = data.getStateSetName(i, (j * 64) + k);
-
-                                if (stateSetName != -1) {
-                                    printer.println("return " + startNfaWithStatesName(data) + "(" + i
-                                            + ", " + kindToPrint + ", " + stateSetName + ");");
-                                } else {
-                                    printer.println("return " + stopAtPosName() + "(" + i + ", " + kindToPrint + ");");
-                                }
-                            } else if (((data.global.initMatch(data.getStateIndex()) != 0)
-                                    && (data.global.initMatch(data.getStateIndex())
-                                    != Integer.MAX_VALUE)) || (i
-                                    != 0)) {
-                                printMatchedKindAndPos(printer, kindToPrint, i);
-                            } else {
-                                printer.println(this.syntax.matchedKind() + " = " + kindToPrint + ";");
-                            }
-
-                            printFinalKindGuardClose(printer, i);
-                        }
+                    switch (kind.action()) {
+                        case START_NFA_WITH_STATES -> printer.println("return "
+                                + startNfaWithStatesName(lex) + "(" + i + ", " + kind.kind() + ", "
+                                + kind.stateSet() + ");");
+                        case STOP_AT_POS -> printer.println("return " + stopAtPosName() + "(" + i
+                                + ", " + kind.kind() + ");");
+                        case KIND_AND_POS -> printMatchedKindAndPos(printer, kind.kind(), i);
+                        case KIND -> printer.println(this.syntax.matchedKind() + " = " + kind.kind()
+                                + ";");
                     }
+
+                    printFinalKindGuardClose(printer, i);
                 }
 
-                if (info.hasValidKindCnt()) {
+                if (charCase.next() == Exit.CALL) {
                     // The vectors of the next position: the valid kinds, preceded by the vector
                     // they are masked against from the second position on.
                     var args = new StringJoiner(", ");
-                    for (int v : StringLiteralDfaEmitter.parameterVectors(data, i + 1, maxLongsReqd)) {
-                        var validKinds = (info.validKinds[v] != 0L)
-                                ? this.syntax.toHexString(info.validKinds[v]) : this.syntax.longZero();
-                        args.add((i == 0) ? this.syntax.toHexString(info.validKinds[v]) : "active" + v + ", " + validKinds);
+                    for (var mask : charCase.masks()) {
+                        var validKinds = (mask.mask() != 0L)
+                                ? this.syntax.toHexString(mask.mask()) : this.syntax.longZero();
+                        args.add((i == 0) ? this.syntax.toHexString(mask.mask())
+                                : "active" + mask.word() + ", " + validKinds);
                     }
-                    printer.println("return " + moveStringLiteralDfaName(data, i + 1) + "(" + args + ");");
-                } else { // A very special case.
-                    if ((i == 0) && data.isMixedState()) {
-
-                        if (data.generatedStates() != 0) {
-                            printer.println("return " + moveNfaCall(data, "0") + ";");
-                        } else {
-                            printer.println("return 1;");
-                        }
-                    } else if (i != 0) // No more str literals to look for
-                    {
-                        this.syntax.printBreak(printer, "");
-                        startNfaNeeded = true;
-                    }
+                    printer.println("return " + moveStringLiteralDfaName(lex, i + 1) + "(" + args + ");");
+                } else {
+                    printExit(printer, lex, charCase.next(), i);
                 }
 
                 printer.outdent();
@@ -161,69 +118,74 @@ public class StringLiteralDfaEmitter {
             this.syntax.printDefaultCaseOpen(printer);
             printer.indent();
 
-            if (data.global.getDebugTokenManager()) {
+            if (debug) {
                 this.syntax.printDebugNoMatchPossible(printer);
             }
 
-            if (data.generatedStates() != 0) {
-                if (i == 0) {
-                    // This means no string literal is possible. Just move nfa with this guy and return.
-                    printer.println("return " + moveNfaCall(data, "0") + ";");
-                } else {
-                    this.syntax.printBreak(printer, "");
-                    startNfaNeeded = true;
+            printExit(printer, lex, pos.otherwise(), i);
+
+            printer.outdent();
+            printer.println("}");
+
+            printer.outdent();
+            printer.println("}");
+
+            if (pos.tail()) {
+                /*
+                 * Here, a string literal is successfully matched and no more string literals are
+                 * possible. So set the kind and state set upto and including this position for the
+                 * matched string.
+                 */
+                switch (state.handoff()) {
+                    case START_NFA -> this.syntax.printReturn(printer, startNfaName(lex) + "("
+                            + (i - 1) + ", " + liveVectors(pos.active()) + ")");
+                    case MOVE_NFA -> this.syntax.printReturn(printer,
+                            moveNfaCall(lex, String.valueOf(i)));
+                    case NONE -> printReturnPosition(printer, i + 1);
                 }
-            } else {
-                printer.println("return " + (i + 1) + ";");
-            }
-
-            printer.outdent();
-            printer.println("}");
-
-            printer.outdent();
-            printer.println("}");
-
-            if ((i != 0) && startNfaNeeded) {
-                if (!data.isMixedState() && (data.generatedStates() != 0)) {
-                    /*
-                     * Here, a string literal is successfully matched and no more string literals are
-                     * possible. So set the kind and state set upto and including this position for the
-                     * matched string.
-                     */
-
-                    var args = new StringJoiner(", ");
-                    for (k = 0; k < maxLongsReqd; k++) {
-                        args.add((i <= data.getMaxLenForActive(k)) ? "active" + k : this.syntax.longZero());
-                    }
-                    this.syntax.printReturn(printer, startNfaName(data) + "(" + (i - 1) + ", " + args + ")");
-                } else if (data.generatedStates() != 0)
-                    this.syntax.printReturn(printer, moveNfaCall(data, String.valueOf(i)));
-                else
-                    printReturnPosition(printer, i + 1);
             }
 
             printMoveStringLiteralDfaEnd(printer);
         }
 
-        if (!data.isMixedState() && (data.generatedStates() != 0) && data.getCreateStartNfa()) {
-            DumpStartWithStates(printer, data);
+        if (state.startNfaWithStates()) {
+            DumpStartWithStates(printer, lex);
         }
     }
 
+    /** How a case of position {@code i} ends, when it does not go on with the next position. */
+    private void printExit(LinePrinter printer, LexState lex, Exit exit, int i) {
+        switch (exit) {
+            case NONE, CALL -> {
+            }
+            case MOVE_NFA -> printer.println("return " + moveNfaCall(lex, String.valueOf(i)) + ";");
+            case BREAK -> this.syntax.printBreak(printer, "");
+            case RETURN -> printer.println("return " + (i + 1) + ";");
+        }
+    }
+
+    /** The active vectors, or zero for those that hold no literal any more. */
+    private String liveVectors(List<Boolean> live) {
+        var args = new StringJoiner(", ");
+        for (int k = 0; k < live.size(); k++) {
+            args.add(live.get(k) ? "active" + k : this.syntax.longZero());
+        }
+        return args.toString();
+    }
+
     /** The call that hands control to the NFA in its initial state at {@code position}. */
-    private String moveNfaCall(NfaStateData data, String position) {
-        return this.syntax.moveNfaName(data) + "(" + this.syntax.InitStateName(data) + ", " + position
-                + ")";
+    private String moveNfaCall(LexState lex, String position) {
+        return this.syntax.moveNfaName(lex) + "(" + lex.plan().initState() + ", " + position + ")";
     }
 
     /** The name {@code jjStartNfa<state>} is called by. */
-    protected String startNfaName(NfaStateData data) {
-        return "jjStartNfa" + data.getLexerStateSuffix();
+    protected String startNfaName(LexState lex) {
+        return "jjStartNfa" + lex.suffix();
     }
 
     /** The name {@code jjStartNfaWithStates<state>} is called by. */
-    protected String startNfaWithStatesName(NfaStateData data) {
-        return "jjStartNfaWithStates" + data.getLexerStateSuffix();
+    protected String startNfaWithStatesName(LexState lex) {
+        return "jjStartNfaWithStates" + lex.suffix();
     }
 
     /** The name {@code jjStopAtPos} is called by. */
@@ -232,8 +194,8 @@ public class StringLiteralDfaEmitter {
     }
 
     /** The name {@code jjMoveStringLiteralDfa<i><state>} is called by. */
-    protected String moveStringLiteralDfaName(NfaStateData data, int i) {
-        return "jjMoveStringLiteralDfa" + i + data.getLexerStateSuffix();
+    protected String moveStringLiteralDfaName(LexState lex, int i) {
+        return "jjMoveStringLiteralDfa" + i + lex.suffix();
     }
 
     /**
@@ -241,14 +203,15 @@ public class StringLiteralDfaEmitter {
      * the kind's bit in its active vector; Java and C++ write the guard as a braceless {@code if}
      * on the line of what it guards.
      */
-    protected void printFinalKindGuardOpen(LinePrinter printer, boolean elseIf, int i, int j, int k) {
+    protected void printFinalKindGuardOpen(LinePrinter printer, boolean elseIf, int i, int word,
+                                           long bit) {
         if (elseIf)
             printer.print("else if ");
         else if (i != 0)
             printer.print("if ");
 
         if (i != 0) {
-            printer.print("((active" + j + " & " + this.syntax.toHexString(1L << k) + ") != 0L)");
+            printer.print("((active" + word + " & " + this.syntax.toHexString(bit) + ") != 0L)");
         }
     }
 
@@ -281,100 +244,51 @@ public class StringLiteralDfaEmitter {
      * Emits {@code jjStopStringLiteralDfa}, which reports how far the string-literal DFA got, and
      * {@code jjStartNfa}, which hands the result over to the NFA.
      */
-    protected void dumpNfaStartStatesCode(LinePrinter printer, NfaStateData data) {
-        Hashtable<String, long[]>[] statesForPos = data.statesForPos;
-        if (data.getMaxStrKind() == 0) { // there is no string literal to stop on
+    protected void dumpNfaStartStatesCode(LinePrinter printer, LexState lex) {
+        LexStatePlan state = lex.plan();
+        if (state.stopDfa() == null) { // there is no string literal to stop on
             return;
         }
 
-        int maxKindsReqd = (data.getMaxStrKind() / 64) + 1;
+        int maxKindsReqd = state.words();
 
         printer.println();
-        this.syntax.printPosAndActivesSignature(printer, data,
-                "jjStopStringLiteralDfa" + data.getLexerStateSuffix(), maxKindsReqd);
+        this.syntax.printPosAndActivesSignature(printer, lex,
+                "jjStopStringLiteralDfa" + lex.suffix(), maxKindsReqd);
         printer.indent();
 
-        if (data.global.getDebugTokenManager()) {
+        if (lex.debug()) {
             this.syntax.printDebugNoMoreStringLiteralMatches(printer);
         }
 
         this.syntax.printSwitchOnPos(printer);
         printer.indent();
 
-        for (int i = 0; i < (data.getMaxLen() - 1); i++) {
-            if (statesForPos[i] == null) {
-                continue;
-            }
-
-            this.syntax.printPosCase(printer, i);
+        for (var pos : state.stopDfa()) {
+            this.syntax.printPosCase(printer, pos.pos());
             printer.indent();
 
-            for (String stateSetString : statesForPos[i].keySet()) {
-                long[] actives = statesForPos[i].get(stateSetString);
-
-                // Every key has at least one active kind, so the condition is never empty.
-                boolean condGenerated = false;
-                for (int j = 0; j < maxKindsReqd; j++) {
-                    if (actives[j] == 0L) {
-                        continue;
-                    }
-
-                    printer.print(condGenerated ? " || " : "if (");
-                    condGenerated = true;
-                    printer.print("(active" + j + " & " + this.syntax.toHexString(actives[j]) + ") != "
+            for (var stop : pos.cases()) {
+                boolean first = true;
+                for (var guard : stop.guard()) {
+                    printer.print(first ? "if (" : " || ");
+                    first = false;
+                    printer.print("(active" + guard.word() + " & "
+                            + this.syntax.toHexString(guard.mask()) + ") != "
                             + this.syntax.longZero());
                 }
 
                 printer.print(")");
 
-                var stop = data.stopKey(stateSetString);
-                int stopKind = stop.kind();
-                int matchedPos = stop.matchedPos();
-                boolean hasKind = stopKind != Integer.MAX_VALUE;
-
+                boolean hasKind = stop.match() != StopMatch.NONE;
                 this.syntax.printStopDfaBodyOpen(printer, hasKind);
                 printer.indent();
+                printStopMatch(printer, pos.pos(), stop);
 
-                if (hasKind) {
-                    if (i == 0) {
-                        printer.println(this.syntax.matchedKind() + " = " + stopKind + ";");
-
-                        int initMatch = data.global.initMatch(data.getStateIndex());
-                        if ((initMatch != 0) && (initMatch != Integer.MAX_VALUE)) {
-                            printer.println(this.syntax.matchedPos() + " = 0;");
-                        }
-                    } else if (i == matchedPos) {
-                        if (data.isSubStringAtPos(i)) {
-                            printer.println("if (" + this.syntax.matchedPos() + " != " + i + ")  {");
-                            printer.indent();
-                            printer.println(this.syntax.matchedKind() + " = " + stopKind + ";");
-                            printer.println(this.syntax.matchedPos() + " = " + i + ";");
-                            printer.outdent();
-                            printer.println("}");
-                        } else {
-                            printer.println(this.syntax.matchedKind() + " = " + stopKind + ";");
-                            printer.println(this.syntax.matchedPos() + " = " + i + ";");
-                        }
-                    } else {
-                        if (matchedPos > 0) {
-                            printer.print("if (" + this.syntax.matchedPos() + " < " + matchedPos + ")");
-                        } else {
-                            printer.print("if (" + this.syntax.matchedPos() + " == 0)");
-                        }
-                        printer.println(" {");
-                        printer.indent();
-                        printer.println(this.syntax.matchedKind() + " = " + stopKind + ";");
-                        printer.println(this.syntax.matchedPos() + " = " + matchedPos + ";");
-                        printer.outdent();
-                        printer.println("}");
-                    }
-                }
-
-                String stateSet = stop.stateSet();
-                if (stateSet.equals("null;")) {
+                if (stop.resume() == -1) {
                     printer.println("return " + this.syntax.noState() + ";");
                 } else {
-                    printer.println("return " + data.compositeStateName(stateSet) + ";");
+                    printer.println("return " + stop.resume() + ";");
                 }
 
                 printer.outdent();
@@ -393,20 +307,49 @@ public class StringLiteralDfaEmitter {
         printer.println("}");
 
         printer.println();
-        this.syntax.printPosAndActivesSignature(printer, data,
-                "jjStartNfa" + data.getLexerStateSuffix(), maxKindsReqd);
-
-        String arguments = activeArguments(maxKindsReqd);
-        if (data.isMixedState()) {
-            if (data.generatedStates() != 0) {
-                printer.println("    return " + moveNfaCall(data, "pos + 1") + ";");
-            } else {
-                printer.println("    return pos + 1;");
-            }
-        } else {
-            this.syntax.printStartNfaBody(printer, data, arguments);
-        }
+        this.syntax.printPosAndActivesSignature(printer, lex,
+                "jjStartNfa" + lex.suffix(), maxKindsReqd);
+        this.syntax.printStartNfaBody(printer, lex, activeArguments(maxKindsReqd));
         printer.println("}");
+    }
+
+    /** Records the literal a case of {@code jjStopStringLiteralDfa} found matched at {@code i}. */
+    private void printStopMatch(LinePrinter printer, int i, StopCase stop) {
+        String kind = this.syntax.matchedKind() + " = " + stop.kind() + ";";
+        switch (stop.match()) {
+            case NONE -> {
+            }
+            case FIRST -> printer.println(kind);
+            case FIRST_AFTER_EMPTY -> {
+                printer.println(kind);
+                printer.println(this.syntax.matchedPos() + " = 0;");
+            }
+            case HERE_UNLESS_MATCHED -> {
+                printer.println("if (" + this.syntax.matchedPos() + " != " + i + ")  {");
+                printer.indent();
+                printer.println(kind);
+                printer.println(this.syntax.matchedPos() + " = " + i + ";");
+                printer.outdent();
+                printer.println("}");
+            }
+            case HERE -> {
+                printer.println(kind);
+                printer.println(this.syntax.matchedPos() + " = " + i + ";");
+            }
+            case EARLIER, EARLIER_AT_FIRST -> {
+                if (stop.match() == StopMatch.EARLIER) {
+                    printer.print("if (" + this.syntax.matchedPos() + " < " + stop.matchedPos() + ")");
+                } else {
+                    printer.print("if (" + this.syntax.matchedPos() + " == 0)");
+                }
+                printer.println(" {");
+                printer.indent();
+                printer.println(kind);
+                printer.println(this.syntax.matchedPos() + " = " + stop.matchedPos() + ";");
+                printer.outdent();
+                printer.println("}");
+            }
+        }
     }
 
     /** {@code active0, active1, …} — the arguments {@code jjStartNfa} passes on. */
@@ -421,34 +364,23 @@ public class StringLiteralDfaEmitter {
      * <p>Java and C++ build a parameter list that starts empty, so each parameter after the first has
      * to prepend a comma; Rust always leads with "&mut self" and therefore overrides this wholesale.
      */
-    protected void printMoveStringLiteralDfaSignature(LinePrinter printer, NfaStateData data, int i,
-                                                      int maxLongsReqd) {
+    protected void printMoveStringLiteralDfaSignature(LinePrinter printer, LexState lex,
+                                                      DfaPos pos) {
         printer.println();
-        this.syntax.printMoveStringLiteralDfaHead(printer, data, i);
-        printer.print(StringLiteralDfaEmitter.parameterList(data, i, maxLongsReqd, this.syntax.longType()));
+        this.syntax.printMoveStringLiteralDfaHead(printer, lex, pos.pos());
+        printer.print(StringLiteralDfaEmitter.parameterList(pos, this.syntax.longType()));
         printer.println(") {");
         printer.indent();
-    }
-
-    /**
-     * The vectors {@code jjMoveStringLiteralDfa<i>} takes: those that still hold a literal long
-     * enough to reach position {@code i}. The first position takes none.
-     */
-    public static int[] parameterVectors(NfaStateData data, int i, int maxLongsReqd) {
-        return IntStream.range(0, maxLongsReqd)
-                .filter(j -> (i == 1) ? (i <= data.getMaxLenForActive(j))
-                        : (i > 1) && (i <= (data.getMaxLenForActive(j) + 1)))
-                .toArray();
     }
 
     /**
      * The parameters of {@code jjMoveStringLiteralDfa<i>} in C-like syntax, for its definition
      * and, in C++, for its declaration in the header.
      */
-    public static String parameterList(NfaStateData data, int i, int maxLongsReqd, String longType) {
+    public static String parameterList(DfaPos pos, String longType) {
         var params = new StringJoiner(", ");
-        for (int j : StringLiteralDfaEmitter.parameterVectors(data, i, maxLongsReqd)) {
-            params.add((i == 1) ? longType + " active" + j
+        for (int j : pos.params()) {
+            params.add((pos.pos() == 1) ? longType + " active" + j
                     : longType + " old" + j + ", " + longType + " active" + j);
         }
         return params.toString();
@@ -462,22 +394,22 @@ public class StringLiteralDfaEmitter {
      * cannot express, since an assignment is not a value there. Rust therefore overrides this and
      * emits a "let" per vector first.
      */
-    protected final void printActiveCheck(LinePrinter printer, NfaStateData data, int i,
-                                          int maxLongsReqd) {
+    protected final void printActiveCheck(LinePrinter printer, LexState lex, DfaPos pos) {
+        int i = pos.pos();
         if (i > 1) {
-            printActiveTest(printer, StringLiteralDfaEmitter.parameterVectors(data, i, maxLongsReqd));
+            printActiveTest(printer, pos.params());
             printer.indent();
 
-            if (!data.isMixedState() && (data.generatedStates() != 0)) {
-                var args = new StringJoiner(", ");
-                for (int j = 0; j < maxLongsReqd; j++) {
-                    args.add((i <= (data.getMaxLenForActive(j) + 1)) ? "old" + j : this.syntax.longZero());
+            switch (lex.plan().handoff()) {
+                case START_NFA -> {
+                    var args = new StringJoiner(", ");
+                    for (int j = 0; j < pos.old().size(); j++) {
+                        args.add(pos.old().get(j) ? "old" + j : this.syntax.longZero());
+                    }
+                    printer.println("return " + startNfaName(lex) + "(" + (i - 2) + ", " + args + ");");
                 }
-                printer.println("return " + startNfaName(data) + "(" + (i - 2) + ", " + args + ");");
-            } else if (data.generatedStates() != 0) {
-                printer.println("return " + moveNfaCall(data, String.valueOf(i - 1)) + ";");
-            } else {
-                printer.println("return " + i + ";");
+                case MOVE_NFA -> printer.println("return " + moveNfaCall(lex, String.valueOf(i - 1)) + ";");
+                case NONE -> printer.println("return " + i + ";");
             }
             printer.outdent();
             printer.println("}");
@@ -488,7 +420,7 @@ public class StringLiteralDfaEmitter {
      * Opens the block taken when none of the literals still active at this position survives:
      * each vector is masked against the one of the previous position.
      */
-    protected void printActiveTest(LinePrinter printer, int[] vectors) {
+    protected void printActiveTest(LinePrinter printer, List<Integer> vectors) {
         var masked = new StringJoiner(" | ");
         for (int j : vectors) {
             masked.add("(active" + j + " &= old" + j + ")");
@@ -500,35 +432,24 @@ public class StringLiteralDfaEmitter {
      * Reads the next character and, when the input is exhausted, bails out of the string-literal DFA.
      * The guard around the read differs per target (try/catch, endOfInput, Result), the body does not.
      */
-    protected void printEofBailout(LinePrinter printer, NfaStateData data, int i, int maxLongsReqd) {
-        int k;
+    protected void printEofBailout(LinePrinter printer, LexState lex, DfaPos pos) {
+        int i = pos.pos();
 
         this.syntax.printReadCharGuardOpen(printer);
         printer.indent();
 
-        if (!data.isMixedState() && (data.generatedStates() != 0)) {
-            printer.print(this.syntax.stopStringLiteralDfaName(data) + "(" + (i - 1) + ", ");
-            for (k = 0; k < (maxLongsReqd - 1); k++) {
-                if (i <= data.getMaxLenForActive(k)) {
-                    printer.print("active" + k + ", ");
-                } else {
-                    printer.print(this.syntax.longZero() + ", ");
+        switch (lex.plan().handoff()) {
+            case START_NFA -> {
+                printer.println(this.syntax.stopStringLiteralDfaName(lex) + "(" + (i - 1) + ", "
+                        + liveVectors(pos.active()) + ");");
+                if (lex.debug()) {
+                    this.syntax.printDebugCurrentlyMatched(printer);
                 }
+                printer.println("return " + i + ";");
             }
-
-            if (i <= data.getMaxLenForActive(k))
-                printer.println("active" + k + ");");
-            else
-                printer.println(this.syntax.longZero() + ");");
-
-            if (data.global.getDebugTokenManager()) {
-                this.syntax.printDebugCurrentlyMatched(printer);
-            }
-            printer.println("return " + i + ";");
-        } else if (data.generatedStates() != 0)
-            printer.println("return " + moveNfaCall(data, String.valueOf(i - 1)) + ";");
-        else
-            printer.println("return " + i + ";");
+            case MOVE_NFA -> printer.println("return " + moveNfaCall(lex, String.valueOf(i - 1)) + ";");
+            case NONE -> printer.println("return " + i + ";");
+        }
 
         printer.outdent();
         printer.println("}");
@@ -540,13 +461,13 @@ public class StringLiteralDfaEmitter {
      * the declarations, the field names and the shape of a "return" ever differed. What is left per
      * target is the state machine itself.
      */
-    protected void dumpDfaCode(LinePrinter printer, NfaStateData data) {
-        if (data.getMaxLen() == 0) {
+    protected void dumpDfaCode(LinePrinter printer, LexState lex) {
+        if (lex.plan().positions().isEmpty()) {
             printer.println();
-            this.syntax.printMoveStringLiteralDfa0Signature(printer, data);
+            this.syntax.printMoveStringLiteralDfa0Signature(printer, lex);
             printer.indent();
-            if (data.generatedStates() > 0)
-                printer.println("return " + moveNfaCall(data, "0") + ";");
+            if (lex.plan().handoff() != Handoff.NONE)
+                printer.println("return " + moveNfaCall(lex, "0") + ";");
             else
                 printer.println("return 1;");
             printer.outdent();
@@ -554,33 +475,32 @@ public class StringLiteralDfaEmitter {
             return;
         }
 
-        if (!this.stopAtPosDumped) {
-            this.syntax.printStopAtPosSignature(printer, data);
+        if (lex.plan().stopAtPos()) {
+            this.syntax.printStopAtPosSignature(printer, lex);
             printer.indent();
             printer.println(this.syntax.matchedKind() + " = kind;");
             printer.println(this.syntax.matchedPos() + " = pos;");
 
-            if (data.global.getDebugTokenManager()) {
+            if (lex.debug()) {
                 this.syntax.printDebugNoMoreMatches(printer);
             }
 
             this.syntax.printReturn(printer, "pos + 1");
             printer.outdent();
             printer.println("}");
-            this.stopAtPosDumped = true;
         }
 
-        dumpDfaStates(printer, data);
+        dumpDfaStates(printer, lex);
     }
 
     /**
      * Emits {@code jjStartNfaWithStates}: the string-literal DFA matched, but the NFA may still find
      * a longer match, so hand it the state it left off in.
      */
-    protected void DumpStartWithStates(LinePrinter printer, NfaStateData data) {
-        boolean debug = data.global.getDebugTokenManager();
+    protected void DumpStartWithStates(LinePrinter printer, LexState lex) {
+        boolean debug = lex.debug();
 
-        this.syntax.printStartNfaWithStatesSignature(printer, data);
+        this.syntax.printStartNfaWithStatesSignature(printer, lex);
         printer.indent();
         printer.println(this.syntax.matchedKind() + " = kind;");
         printer.println(this.syntax.matchedPos() + " = pos;");
@@ -592,10 +512,10 @@ public class StringLiteralDfaEmitter {
         this.syntax.printReadCharOrReturn(printer);
 
         if (debug) {
-            this.syntax.printDebugCurrentCharacter(printer, data.global);
+            this.syntax.printDebugCurrentCharacter(printer, lex.withLexState());
         }
 
-        printer.println("return " + this.syntax.moveNfaName(data) + "(state, pos + 1);");
+        printer.println("return " + this.syntax.moveNfaName(lex) + "(state, pos + 1);");
         printer.outdent();
         printer.println("}");
     }

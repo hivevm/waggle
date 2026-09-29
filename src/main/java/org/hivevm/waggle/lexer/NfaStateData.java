@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * The {@link NfaStateData} class.
  */
-public class NfaStateData {
+class NfaStateData {
 
     public final LexerData global;
 
@@ -39,18 +39,25 @@ public class NfaStateData {
     int[][] intermediateMatchedPos;
 
     /**
-     * Deliberately a {@link Hashtable}: {@code StringLiteralDfaEmitter} walks this table's
-     * {@code keySet()} and writes one {@code jjStopStringLiteralDfa} branch per key, so the table's
-     * iteration order is the order of those branches in the generated token manager. A
-     * {@code LinkedHashMap} here reorders those branches, which is a change to the emitted parser -
-     * and to the checked-in bootstrap parser (ADR-0009) - not a cleanup.
+     * Deliberately a {@link Hashtable}: {@code LexerPlanner} walks this table's {@code keySet()}
+     * and plans one {@code jjStopStringLiteralDfa} branch per key, so the table's iteration order
+     * is the order of those branches in the generated token manager. A {@code LinkedHashMap} here
+     * reorders those branches, which is a change to the emitted parser - and to the checked-in
+     * bootstrap parser (ADR-0009) - not a cleanup.
      */
-    public Hashtable<String, long[]>[] statesForPos;
+    Hashtable<String, long[]>[] statesForPos;
     /**
      * Per position, the string literals that continue with a character there, keyed by that
      * character. Sorted by it, since the string-literal DFA emits one case per key in this order.
      */
     final List<TreeMap<Character, KindInfo>> charPosKind;
+    /**
+     * Per position, the cases of the string-literal DFA, recorded by {@link DfaBuilder#getDfaCode}
+     * as it registers their state sets (ADR-0029).
+     */
+    final List<List<LexerPlan.CharCase>> dfaCases = new ArrayList<>();
+    /** The NFA moves, recorded by {@link DfaBuilder#getMoveNfa}; null without an NFA. */
+    LexerPlan.NfaMoves moves;
 
     /**
      * Package-private, not public: the same value was reachable both as this field and through
@@ -495,7 +502,7 @@ public class NfaStateData {
     }
 
     /** What a key of {@link #statesForPos} holds. */
-    public final StopKey stopKey(String key) {
+    final StopKey stopKey(String key) {
         return StopKey.parse(key);
     }
 
@@ -503,7 +510,7 @@ public class NfaStateData {
      * A key of {@link #statesForPos}: the kind the string-literal DFA has matched when it stops, the
      * position it matched it at, and the state set the NFA resumes in ({@code "null;"} for none).
      */
-    public record StopKey(int kind, int matchedPos, String stateSet) {
+    record StopKey(int kind, int matchedPos, String stateSet) {
 
         String key() {
             return this.kind + ", " + this.matchedPos + ", " + this.stateSet;

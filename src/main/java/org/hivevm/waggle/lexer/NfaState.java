@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * The state of a Non-deterministic Finite Automaton.
  */
-public class NfaState {
+class NfaState {
 
     public final long[] asciiMoves = new long[2];
     char[] charMoves = null;

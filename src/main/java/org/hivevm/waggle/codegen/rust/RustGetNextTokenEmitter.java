@@ -11,7 +11,9 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerData;
+import org.hivevm.waggle.lexer.LexerPlan;
+import org.hivevm.waggle.lexer.LexerPlan.Dispatch;
+import org.hivevm.waggle.lexer.LexerPlan.SkipSingles;
 
 /**
  * How Rust spells {@code getNextToken} (ADR-0017).
@@ -23,28 +25,24 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        long lower = data.singlesToSkip(state).asciiMoves[0];
-        long upper = data.singlesToSkip(state).asciiMoves[1];
-        String condition;
-        if ((lower != 0L) && (upper != 0L)) {
-            condition = "(self.cur_char < 64 && (0x" + Long.toHexString(lower)
-                    + "u64 & (1u64 << self.cur_char)) != 0) || ((self.cur_char >> 6) == 1 && (0x"
-                    + Long.toHexString(upper) + "u64 & (1u64 << (self.cur_char & 0o77))) != 0)";
-        } else if (upper == 0L) {
-            condition = "self.cur_char <= " + (int) MaxChar(lower) + " && (0x"
-                    + Long.toHexString(lower) + "u64 & (1u64 << self.cur_char)) != 0";
-        } else {
-            condition = "self.cur_char > 63 && self.cur_char <= "
-                    + (MaxChar(upper) + 64) + " && (0x" + Long.toHexString(upper)
-                    + "u64 & (1u64 << (self.cur_char & 0o77))) != 0";
-        }
+    protected void printSkipSingles(LinePrinter printer, LexerPlan plan, SkipSingles skip) {
+        String lower = "0x" + Long.toHexString(skip.lower()) + "u64";
+        String upper = "0x" + Long.toHexString(skip.upper()) + "u64";
+        String condition = switch (skip.range()) {
+            case BOTH -> "(self.cur_char < 64 && (" + lower
+                    + " & (1u64 << self.cur_char)) != 0) || ((self.cur_char >> 6) == 1 && ("
+                    + upper + " & (1u64 << (self.cur_char & 0o77))) != 0)";
+            case LOWER -> "self.cur_char <= " + skip.maxChar() + " && (" + lower
+                    + " & (1u64 << self.cur_char)) != 0";
+            case UPPER -> "self.cur_char > 63 && self.cur_char <= " + skip.maxChar() + " && ("
+                    + upper + " & (1u64 << (self.cur_char & 0o77))) != 0";
+        };
 
         printer.println("while " + condition + " {");
         printer.indent();
 
-        if (data.getDebugTokenManager()) {
-            printDebugSkippingCharacter(printer, data);
+        if (plan.debug()) {
+            printDebugSkippingCharacter(printer, plan.tokenLoop().switchOnLexState());
         }
 
         // begin_token yields a Result; running out of input ends the token loop.
@@ -102,24 +100,24 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printTokenBranch(LinePrinter printer, LexerData data) {
+    protected void printTokenBranch(LinePrinter printer, Dispatch dispatch) {
         printer.println("matched_token = self.jj_fill_token();");
 
-        if (data.hasSpecial()) {
+        if (dispatch.special()) {
             printer.println("matched_token.special = std::mem::take(&mut special_tokens);");
         }
-        if (data.hasTokenActions()) {
+        if (dispatch.tokenActions()) {
             printer.println("self.token_lexical_actions(&mut matched_token)?;");
         }
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
         printer.println("return Ok(matched_token);");
     }
 
     @Override
-    protected void printSkipBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMore()) {
+    protected void printSkipBranch(LinePrinter printer, Dispatch dispatch) {
+        if (dispatch.moreBranch()) {
             printer.print("else if " + RustLexerGenerator.bitVectorTest("JJTO_SKIP"));
         } else {
             printer.print("else");
@@ -128,31 +126,31 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println(" {");
         printer.indent();
 
-        if (data.hasSpecial()) {
+        if (dispatch.special()) {
             printer.println("if " + RustLexerGenerator.bitVectorTest("JJTO_SPECIAL") + " {");
             printer.indent();
 
             // The next token owns the special tokens before it (ADR-0030); Java chains them.
             printer.println("let token = self.jj_fill_token();");
-            if (data.hasSkipActions()) {
+            if (dispatch.skipActions()) {
                 printer.println("self.skip_lexical_actions(Some(&token))?;");
             }
             printer.println("special_tokens.push(token);");
 
             printer.outdent();
 
-            if (data.hasSkipActions()) {
+            if (dispatch.skipActions()) {
                 printer.println("} else {");
                 printer.println("    self.skip_lexical_actions(None)?;");
                 printer.println("}");
             } else {
                 printer.println("}");
             }
-        } else if (data.hasSkipActions()) {
+        } else if (dispatch.skipActions()) {
             printer.println("self.skip_lexical_actions(None)?;");
         }
 
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
 
@@ -162,14 +160,14 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printMoreBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMoreActions()) {
+    protected void printMoreBranch(LinePrinter printer, LexerPlan plan, Dispatch dispatch) {
+        if (dispatch.moreActions()) {
             printer.println("self.more_lexical_actions()?;");
-        } else if (data.hasSkipActions() || data.hasTokenActions()) {
+        } else if (dispatch.moreImageLen()) {
             printer.println("self.jjimage_len += self.jjmatched_pos.wrapping_add(1);");
         }
 
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
         printer.println("cur_pos = 0;");
@@ -187,7 +185,7 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer, LexerData data) {
+    protected void printLexicalErrorEpilogue(LinePrinter printer, Dispatch dispatch) {
         printer.outdent();
         printer.println("}");
         printer.println("""
@@ -239,8 +237,8 @@ class RustGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     /** The trace the skip loop writes for every character it throws away. */
-    protected void printDebugSkippingCharacter(LinePrinter printer, LexerData data) {
-        var prefix = (data.maxLexStates() > 1)
+    protected void printDebugSkippingCharacter(LinePrinter printer, boolean withLexState) {
+        var prefix = withLexState
                 ? "<{}>Skipping character : {}({})\", LEX_STATE_NAMES[self.cur_lex_state as usize], "
                 : "Skipping character : {}({})\", ";
         printer.println("eprintln!(\"" + prefix

@@ -61,6 +61,7 @@ public class LexerBuilder {
         }
         warnAboutUnlabelledTokens(request);
         pruneLiteralImages(data);
+        data.plan = LexerPlanner.plan(data);
         return data;
     }
 

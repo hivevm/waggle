@@ -12,15 +12,18 @@ import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
-import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.model.RExpression;
+import org.hivevm.waggle.lexer.LexerPlan;
+import org.hivevm.waggle.lexer.LexerPlan.ByteMask;
+import org.hivevm.waggle.lexer.LexerPlan.CanMove;
+import org.hivevm.waggle.lexer.LexerPlan.Handoff;
+import org.hivevm.waggle.lexer.LexerPlan.KindSet;
+import org.hivevm.waggle.lexer.LexerPlan.KindTable;
+import org.hivevm.waggle.lexer.LexerPlan.Tables;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.TemplateSet;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.IntToLongFunction;
 
 /**
  * The {@link LexerGenerator} class.
@@ -58,62 +61,62 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         this.getNextToken = newGetNextTokenEmitter();
 
         var options = OptionsContext.of(data.options());
-        options.add(LexerGenerator.LOHI_BYTES, data.getLohiByte())
-                .set("LOHI_BYTES_INDEX", i -> i)
-                .set("LOHI_BYTES_VALUE", i -> getLohiBytes(data, i));
-        options.add(LexerGenerator.NON_ASCII_TABLE, data.getNonAsciiTableForMethod())
+        LexerPlan plan = data.plan();
+        options.add(LexerGenerator.LOHI_BYTES, plan.tables().byteMasks())
+                .set("LOHI_BYTES_INDEX", ByteMask::index)
+                .set("LOHI_BYTES_VALUE", this::getLohiBytes);
+        options.add(LexerGenerator.NON_ASCII_TABLE, plan.canMoves())
                 .set("NON_ASCII_TABLE_NAME", this::getNonAsciiMethod)
-                .set("NON_ASCII_TABLE_METHOD", (s, w) -> dumpNonAsciiMoveMethod(data, s, w));
+                .set("NON_ASCII_TABLE_METHOD",
+                        (m, w) -> dumpNonAsciiMoveMethod(data.getParserName(), m, w));
 
-        options.set(LexerGenerator.HAS_LOOP, data.hasLoop());
-        options.set(LexerGenerator.HAS_SPECIAL, data.hasSpecial());
+        var shape = plan.shape();
+        options.set(LexerGenerator.HAS_LOOP, shape.hasLoop());
+        options.set(LexerGenerator.HAS_SPECIAL, shape.hasSpecial());
 
-        options.set(LexerGenerator.HAS_EMPTY_MATCH, data.hasEmptyMatch());
+        options.set(LexerGenerator.HAS_EMPTY_MATCH, shape.hasEmptyMatch());
 
-        options.set(LexerGenerator.DEFAULT_LEX_STATE, data.defaultLexState());
-        options.set(LexerGenerator.MAX_LEX_STATES, data.maxLexStates());
-        options.add(LexerGenerator.STATE_NAMES, data.getStateNames())
+        options.set(LexerGenerator.DEFAULT_LEX_STATE, shape.defaultLexState());
+        options.set(LexerGenerator.MAX_LEX_STATES, shape.lexStates());
+        options.add(LexerGenerator.STATE_NAMES, shape.stateNames())
                 .set(LexerGenerator.STATE_NAMES + "_VALUE", i -> i);
-        options.set(LexerGenerator.STATE_COUNT, data.maxLexStates());
-        options.set(LexerGenerator.STATE_SET_SIZE, data.stateSetSize());
-        options.set(LexerGenerator.STATE_SET_SIZE + "_2", data.stateSetSize() * 2);
-        options.set(LexerGenerator.DUAL_NEED, data.jjCheckNAddStatesDualNeeded());
-        options.set(LexerGenerator.UNARY_NEED, data.jjCheckNAddStatesUnaryNeeded());
+        options.set(LexerGenerator.STATE_COUNT, shape.lexStates());
+        options.set(LexerGenerator.STATE_SET_SIZE, shape.stateSetSize());
+        options.set(LexerGenerator.STATE_SET_SIZE + "_2", shape.stateSetSize() * 2);
+        options.set(LexerGenerator.DUAL_NEED, shape.dualNeed());
+        options.set(LexerGenerator.UNARY_NEED, shape.unaryNeed());
 
-        options.set("DUMP_SKIP_ACTIONS", p -> this.getNextToken.dumpSkipActions(p, data));
-        options.set("DUMP_MORE_ACTIONS", p -> this.getNextToken.dumpMoreActions(p, data));
-        options.set("DUMP_TOKEN_ACTIONS", p -> this.getNextToken.dumpTokenActions(p, data));
+        options.set("DUMP_SKIP_ACTIONS",
+                p -> this.getNextToken.dumpSkipActions(p, data.getParserName(), plan.actions().skip()));
+        options.set("DUMP_MORE_ACTIONS",
+                p -> this.getNextToken.dumpMoreActions(p, data.getParserName(), plan.actions().more()));
+        options.set("DUMP_TOKEN_ACTIONS",
+                p -> this.getNextToken.dumpTokenActions(p, data.getParserName(), plan.actions().token()));
 
-        options.set("STATES_FOR_STATE", () -> getStatesForState(data));
-        options.set("KIND_FOR_STATE", () -> this.getNextToken.getKindForState(data));
-        options.set("DUMP_STATE_SETS", p -> dumpStateSets(p, data));
-        options.set("DUMP_GET_NEXT_TOKEN", p -> this.getNextToken.dumpGetNextToken(p, data));
-        options.set("DUMP_STATIC_VAR_DECLARATIONS", p -> dumpStaticVarDeclarations(p, data));
-        options.set("DUMP_NFA_AND_DFA", w ->
-                data.getStateNames().forEach(name -> dump_nfa_and_dfa(data.getStateData(name), w))
-        );
+        options.set("STATES_FOR_STATE", () -> getStatesForState(plan.tables()));
+        options.set("KIND_FOR_STATE", () -> getKindForState(plan.tables()));
+        options.set("DUMP_STATE_SETS", p -> dumpStateSets(p, plan.tables()));
+        options.set("DUMP_GET_NEXT_TOKEN", p -> this.getNextToken.dumpGetNextToken(p, plan));
+        options.set("DUMP_STATIC_VAR_DECLARATIONS", p -> dumpStaticVarDeclarations(p, plan.tables()));
+        options.set("DUMP_NFA_AND_DFA", w -> plan.states().forEach(
+                state -> dump_nfa_and_dfa(new LexState(data.getParserName(), plan, state), w)));
 
         generate(data, options);
 
         // Generate Constants
         options = OptionsContext.of(data.options());
-        options.add("STATES", data.maxLexStates())
+        options.add("STATES", shape.lexStates())
                 .set("STATES_INDEX", i -> i)
-                .set("STATES_NAME", i -> identifier(data.getStateName(i)));
-        options.add("TOKENS", data.getOrderedsTokens())
-                .set("TOKENS_ORDINAL", RExpression::getOrdinal)
-                .set("TOKENS_LABEL", e -> identifier(e.getLabel()));
+                .set("STATES_NAME", i -> identifier(shape.stateNames().get(i)));
+        options.add("TOKENS", data.plan().namedTokens())
+                .set("TOKENS_ORDINAL", LexerPlan.NamedToken::ordinal)
+                .set("TOKENS_LABEL", e -> identifier(e.label()));
 
-        var expressions = new ArrayList<RExpression>();
-        for (var production : data.getTokenProductions()) {
-            for (var spec : production.getRespecs()) {
-                expressions.add(spec.rexp);
-            }
-        }
-        options.add("REXPRESSION_COUNT", expressions.size() + 1)
+        var names = data.plan().tokenNames();
+        options.add("REXPRESSION_COUNT", names.size())
                 .set("REXPRESSION_INDEX", i -> i)
-                .set("REXPRESSION_LABEL", (i, w) -> this.getNextToken.getRegExp(w, i, expressions, false))
-                .set("REXPRESSION_IMAGE", (i, w) -> this.getNextToken.getRegExp(w, i, expressions, true));
+                .set("REXPRESSION_LABEL", (i, w) -> this.getNextToken.getRegExp(w, i, names, false))
+                .set("REXPRESSION_IMAGE", (i, w) -> this.getNextToken.getRegExp(w, i, names, true));
 
         getConstantsTemplate().render(options, options.getParserName());
     }
@@ -127,35 +130,31 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
 
     protected abstract void generate(LexerData data, OptionsContext context);
 
-    protected String getNonAsciiMethod(NfaState state) {
-        return "" + state.nonAsciiMethod;
+    protected String getNonAsciiMethod(CanMove canMove) {
+        return "" + canMove.method();
     }
 
     /**
      * Emits {@code jjCanMove_N}: whether a non-ASCII character is in the state's character set. The
      * set is stored as a two-level bit vector, indexed by the high and the low byte.
      */
-    protected final void dumpNonAsciiMoveMethod(LexerData data, NfaState state, LinePrinter printer) {
-        printCanMoveSignature(printer, data, state);
+    protected final void dumpNonAsciiMoveMethod(String parserName, CanMove canMove,
+                                                LinePrinter printer) {
+        printCanMoveSignature(printer, parserName, canMove.method());
 
-        for (int j = 0; j < state.loByteVec.size(); j += 2) {
-            printCanMoveCase(printer, state.loByteVec.get(j));
-            int vector = state.loByteVec.get(j + 1);
-            if (data.hasAllBitsSet(vector)) {
+        for (var hiCase : canMove.cases()) {
+            printCanMoveCase(printer, hiCase.hiByte());
+            if (hiCase.any()) {
                 printCanMoveReturnTrue(printer);
             } else {
-                printCanMoveReturnBitVector(printer, vector);
+                printCanMoveReturnBitVector(printer, hiCase.mask());
             }
             printCanMoveCaseEnd(printer);
         }
 
         printCanMoveDefault(printer);
-        for (int j = state.nonAsciiMoveIndices.length; j > 0; j -= 2) {
-            int hiVector = state.nonAsciiMoveIndices[j - 2];
-            int loVector = state.nonAsciiMoveIndices[j - 1];
-            printCanMoveArm(printer, hiVector, loVector,
-                    !data.hasAllBitsSet(hiVector),
-                    !data.hasAllBitsSet(loVector));
+        for (var arm : canMove.arms()) {
+            printCanMoveArm(printer, arm.hiMask(), arm.loMask(), arm.testHi(), arm.testLo());
         }
         printCanMoveEnd(printer);
     }
@@ -181,12 +180,12 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
      * @param linePerEntry whether every entry ends its own line, as the C++ declarations do
      * @param entry        the text of the entry for a token kind and its image
      */
-    protected static void printLiteralImages(LexerData data, LinePrinter printer,
+    protected static void printLiteralImages(List<String> images, LinePrinter printer,
                                              boolean linePerEntry,
                                              BiFunction<Integer, String, String> entry) {
         int charCnt = 0;
-        for (int kind = 0; kind < data.getImageCount(); kind++) {
-            var image = data.getImage(kind);
+        for (int kind = 0; kind < images.size(); kind++) {
+            var image = images.get(kind);
             var text = entry.apply(kind, image);
             boolean wrap = (image == null) ? ((charCnt += 6) > 80)
                     : ((charCnt += text.length()) >= 80);
@@ -204,34 +203,29 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     }
 
 
-    protected final void dump_nfa_and_dfa(NfaStateData stateData, LinePrinter printer) {
-        if (stateData.hasNFA() && !stateData.isMixedState())
-            this.stringLiterals.dumpNfaStartStatesCode(printer, stateData);
-        this.stringLiterals.dumpDfaCode(printer, stateData);
-        if (stateData.hasNFA()) {
-            // ADR-0012: no NFA-state preparation here — stage 4 (DfaBuilder.getMoveNfa, run from
-            // LexerBuilder for every hasNFA state) already rearranged the states, populated
-            // global.kinds / global.statesForState, and fixed the state sets on these very objects.
-            this.nfaMoves.dumpMoveNfa(printer, stateData);
+    protected final void dump_nfa_and_dfa(LexState state, LinePrinter printer) {
+        this.stringLiterals.dumpNfaStartStatesCode(printer, state);
+        this.stringLiterals.dumpDfaCode(printer, state);
+        if (state.plan().handoff() != Handoff.NONE) {
+            // ADR-0029: the arms of the NFA were decided, in output order, by the lexer stage.
+            this.nfaMoves.dumpMoveNfa(printer, state);
         }
     }
 
     /** The flattened NFA state sets the DFA jumps into, 16 per line. */
-    protected final void dumpStateSets(LinePrinter printer, LexerData data) {
-        printNextStatesOpen(printer, data);
+    protected final void dumpStateSets(LinePrinter printer, Tables tables) {
+        printNextStatesOpen(printer, tables.nextStates().size());
         printer.indent();
 
-        if (data.getOrderedStateSet().isEmpty()) {
+        if (tables.nextStates().isEmpty()) {
             printEmptyStateSet(printer);
         } else {
             int cnt = 0;
-            for (int[] set : data.getOrderedStateSet()) {
-                for (int element : set) {
-                    if ((cnt++ % 16) == 0) {
-                        printer.println();
-                    }
-                    printer.print(element + ", ");
+            for (int element : tables.nextStates()) {
+                if ((cnt++ % 16) == 0) {
+                    printer.println();
                 }
+                printer.print(element + ", ");
             }
         }
 
@@ -241,78 +235,69 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     }
 
     /** The tables the lexer reads at run time: the lexical-state map and the four kind bit vectors. */
-    protected final void dumpStaticVarDeclarations(LinePrinter printer, LexerData data) {
-        if (data.maxLexStates() > 1) {
-            printLexStateArrayOpen(printer, data);
+    protected final void dumpStaticVarDeclarations(LinePrinter printer, Tables tables) {
+        if (!tables.newLexState().isEmpty()) {
+            printLexStateArrayOpen(printer, tables.newLexState().size());
             printer.indent();
-            for (int i = 0; i < data.maxOrdinal(); i++) {
+            for (int i = 0; i < tables.newLexState().size(); i++) {
                 if ((i % 25) == 0) {
                     printer.println();
                 }
-                String state = data.newLexState(i);
-                printer.print((state == null ? -1 : data.getStateIndex(state)) + ", ");
+                printer.print(tables.newLexState().get(i) + ", ");
             }
             printer.println();
             printer.outdent();
             printArrayClose(printer);
         }
 
-        if (data.hasSkip() || data.hasMore() || data.hasSpecial()) {
-            dumpBitVector(printer, data, "jjtoToken", data::toToken);
-        }
-        if (data.hasSkip() || data.hasSpecial()) {
-            dumpBitVector(printer, data, "jjtoSkip", data::toSkip);
-        }
-        if (data.hasSpecial()) {
-            dumpBitVector(printer, data, "jjtoSpecial", data::toSpecial);
-        }
-        if (data.hasMore()) {
-            dumpBitVector(printer, data, "jjtoMore", data::toMore);
+        for (var table : tables.kindTables()) {
+            dumpBitVector(printer, table);
         }
     }
 
     /** Emits one {@code jjto…} bit vector, 64 token kinds per element, 4 elements per line. */
-    private void dumpBitVector(LinePrinter printer, LexerData data, String name,
-                               IntToLongFunction bits) {
-        printBitVectorOpen(printer, data, name);
+    private void dumpBitVector(LinePrinter printer, KindTable table) {
+        printBitVectorOpen(printer, kindTableName(table.set()), table.words().size());
         printer.indent();
-        for (int i = 0; i < ((data.maxOrdinal() / 64) + 1); i++) {
+        for (int i = 0; i < table.words().size(); i++) {
             if ((i % 4) == 0) {
                 printer.println();
             }
-            printer.print(toHexString(bits.applyAsLong(i)) + ", ");
+            printer.print(toHexString(table.words().get(i)) + ", ");
         }
         printer.println();
         printer.outdent();
         printArrayClose(printer);
     }
 
-    /** The four 64-bit words of the i-th distinct non-ASCII byte mask, as initializer text. */
-    private String getLohiBytes(LexerData data, int i) {
-        return String.join(", ",
-                toHexString(data.getLohiByte(i, 0)),
-                toHexString(data.getLohiByte(i, 1)),
-                toHexString(data.getLohiByte(i, 2)),
-                toHexString(data.getLohiByte(i, 3)));
+    /** The name of the table that holds a kind set. */
+    private static String kindTableName(KindSet set) {
+        return switch (set) {
+            case TOKEN -> "jjtoToken";
+            case SKIP -> "jjtoSkip";
+            case SPECIAL -> "jjtoSpecial";
+            case MORE -> "jjtoMore";
+        };
     }
 
-    private String getStatesForState(LexerData data) {
+    /** The four 64-bit words of a byte mask, as initializer text. */
+    private String getLohiBytes(ByteMask mask) {
+        return String.join(", ", mask.words().stream().map(this::toHexString).toList());
+    }
+
+    private String getStatesForState(Tables tables) {
         // A grammar made only of string literals has no NFA, hence no state table. The assert that
         // used to sit here claimed the opposite and blew up as soon as assertions were on.
-        if (data.getStatesForState() == null) {
+        if (!tables.nfa()) {
             return noStateSet();
         }
 
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < data.maxLexStates(); i++) {
-            if (data.getStatesForState()[i] == null) {
-                builder.append(rowOpen()).append(rowClose()).append(",");
-                continue;
-            }
+        for (var sets : tables.statesForState()) {
             builder.append(rowOpen());
-            for (int j = 0; j < data.getStatesForState()[i].length; j++) {
-                int[] stateSet = data.getStatesForState()[i][j];
-                if (stateSet == null) {
+            for (int j = 0; j < sets.size(); j++) {
+                List<Integer> stateSet = sets.get(j);
+                if (stateSet.isEmpty()) {
                     builder.append(rowOpen()).append(" ").append(j).append(" ").append(rowClose())
                             .append(",");
                     continue;
@@ -324,6 +309,32 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
                 builder.append(rowClose()).append(",");
             }
             builder.append(rowClose()).append(",");
+        }
+        return stateSet(builder);
+    }
+
+    private String getKindForState(Tables tables) {
+        if (!tables.nfa()) {
+            return noStateSet();
+        }
+
+        StringBuilder builder = new StringBuilder();
+        boolean moreThanOne = false;
+        for (var kinds : tables.kindsForState()) {
+            if (moreThanOne) {
+                builder.append(",");
+            }
+            moreThanOne = true;
+            if (kinds.isEmpty()) {
+                builder.append(rowOpen()).append(rowClose());
+            } else {
+                builder.append(rowOpen()).append(" ");
+                for (int element : kinds) {
+                    builder.append(element);
+                    builder.append(",");
+                }
+                builder.append(rowClose());
+            }
         }
         return stateSet(builder);
     }

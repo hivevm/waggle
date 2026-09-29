@@ -15,6 +15,8 @@ import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.TemplateSet;
 
+import java.util.List;
+
 /**
  * Generate lexer.
  */
@@ -26,7 +28,7 @@ class JavaLexerGenerator extends LexerGenerator {
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data, p));
+        options.set("DUMP_LITERAL_IMAGES", p -> dump_literal_images(data.plan().shape().images(), p));
 
         JavaTemplate.LEXER.render(options);
     }
@@ -36,8 +38,8 @@ class JavaLexerGenerator extends LexerGenerator {
         return JavaTemplate.PARSER_CONSTANTS;
     }
 
-    private static void dump_literal_images(LexerData data, LinePrinter printer) {
-        LexerGenerator.printLiteralImages(data, printer, false, (kind, image) -> {
+    private static void dump_literal_images(List<String> images, LinePrinter printer) {
+        LexerGenerator.printLiteralImages(images, printer, false, (kind, image) -> {
             if (image == null) {
                 return "null, ";
             }

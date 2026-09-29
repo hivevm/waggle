@@ -7,13 +7,9 @@
 
 package org.hivevm.waggle.codegen;
 
-import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
-import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.model.RExpression;
+import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Encoding;
-import org.hivevm.waggle.model.RStringLiteral;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,26 +84,20 @@ public interface TargetSyntax {
     }
 
     /** The call that tests whether a non-ASCII character can move out of "state". */
-    default String canMove(NfaState state) {
-        return "jjCanMove_" + state.nonAsciiMethod + "(hiByte, i1, i2, l1, l2)";
+    default String canMove(int method) {
+        return "jjCanMove_" + method + "(hiByte, i1, i2, l1, l2)";
     }
 
-    /** Adds one label to the case that is being built. */
-    default void printCaseLabel(LinePrinter printer, List<String> labels, int state) {
-        printCaseLabel(printer, labels, "", state);
-    }
-
-    default void printCaseLabel(LinePrinter printer, List<String> labels, String indent,
-                                  int state) {
+    /**
+     * One label of a case. Java and C++ write each label as it comes and let the labels fall
+     * through; Rust writes them all at once, in {@link #printCasesOpen}.
+     */
+    default void printCaseLabel(LinePrinter printer, String indent, int state) {
         printer.println(indent + "case " + state + ":");
     }
 
-    /** Opens the body shared by the labels collected so far. */
-    default void printCasesOpen(LinePrinter printer, List<String> labels) {
-        printCasesOpen(printer, labels, "");
-    }
-
-    default void printCasesOpen(LinePrinter printer, List<String> labels, String indent) {
+    /** Opens the body shared by the labels of a case. */
+    default void printCasesOpen(LinePrinter printer, List<Integer> labels, String indent) {
     }
 
     /** Closes that body again. */
@@ -157,7 +147,7 @@ public interface TargetSyntax {
     }
 
     /** Opens {@code jjCanMove_N}. Only C++ needs a method of its own; the others are inlined. */
-    default void printCanMoveSignature(LinePrinter printer, LexerData data, NfaState state) {
+    default void printCanMoveSignature(LinePrinter printer, String parserName, int method) {
     }
 
     /** Closes the method opened by {@link #printCanMoveSignature}. */
@@ -222,7 +212,7 @@ public interface TargetSyntax {
     }
 
     /** Opens the {@code jjnextStates} array. */
-    default void printNextStatesOpen(LinePrinter printer, LexerData data) {
+    default void printNextStatesOpen(LinePrinter printer, int length) {
         printer.print("static final int[] jjnextStates = {");
     }
 
@@ -275,9 +265,9 @@ public interface TargetSyntax {
     }
 
     /** The trace of the character the token manager is looking at. */
-    default void printDebugCurrentCharacter(LinePrinter printer, LexerData data) {
+    default void printDebugCurrentCharacter(LinePrinter printer, boolean withLexState) {
         printer.println("debugStream.println("
-                + (data.maxLexStates() > 1 ? "\"<\" + lexStateNames[curLexState] + \">\" + " : "")
+                + (withLexState ? "\"<\" + lexStateNames[curLexState] + \">\" + " : "")
                 + "\"Current character : \" + TokenException.addEscapes(String.valueOf((char) curChar)) + \" (\" + (int)curChar + \") "
                 + "at line \" + input_stream.getEndLine() + \" column \" + input_stream.getEndColumn());");
     }
@@ -303,13 +293,13 @@ public interface TargetSyntax {
     }
 
     /** Opens the array that maps a token kind to the lexical state it switches to. */
-    default void printLexStateArrayOpen(LinePrinter printer, LexerData data) {
+    default void printLexStateArrayOpen(LinePrinter printer, int length) {
         printer.println();
         printer.print("public static final int[] jjnewLexState = {");
     }
 
     /** Opens one of the {@code jjtoToken}/{@code jjtoSkip}/… bit vectors. */
-    default void printBitVectorOpen(LinePrinter printer, LexerData data, String name) {
+    default void printBitVectorOpen(LinePrinter printer, String name, int length) {
         printer.print("static final " + longType() + "[] " + name + " = {");
     }
 
@@ -328,14 +318,14 @@ public interface TargetSyntax {
      * so only C++ looks at {@code isImage}; the other back ends have no {@code REXPRESSION_IMAGE}
      * placeholder in their templates.
      */
-    default void printStringLiteralImage(LinePrinter printer, RStringLiteral literal,
+    default void printStringLiteralImage(LinePrinter printer, String image, String label,
                                            boolean isImage) {
-        printer.print("\"\\\"" + Encoding.escape(Encoding.escape(literal.getImage())) + "\\\"\"");
+        printer.print("\"\\\"" + Encoding.escape(Encoding.escape(image)) + "\\\"\"");
     }
 
     /** Separates two entries of the table. C++ emits one array per entry and needs none. */
-    default void printImageSeparator(LinePrinter printer, int i, List<RExpression> expressions) {
-        if ((i == 0) || (i < expressions.size())) { // every entry but the last, and always <EOF>
+    default void printImageSeparator(LinePrinter printer, int i, int last) {
+        if ((i == 0) || (i < last)) { // every entry but the last, and always <EOF>
             printer.print(",");
         }
     }
@@ -344,7 +334,7 @@ public interface TargetSyntax {
      * The signature of {@code jjStopStringLiteralDfa} or {@code jjStartNfa}, both of which take the
      * position and the active vectors.
      */
-    default void printPosAndActivesSignature(LinePrinter printer, NfaStateData data, String name,
+    default void printPosAndActivesSignature(LinePrinter printer, LexState lex, String name,
                                                int maxKindsReqd) {
         printer.println("private final int " + name + "(int pos, " + activeParameters(maxKindsReqd)
                 + ") {");
@@ -357,19 +347,19 @@ public interface TargetSyntax {
     }
 
     /** Hands the position the string-literal DFA stopped at over to the NFA. */
-    default void printStartNfaBody(LinePrinter printer, NfaStateData data, String arguments) {
-        printer.println("    return " + moveNfaName(data) + "(" + stopStringLiteralDfaName(data)
+    default void printStartNfaBody(LinePrinter printer, LexState lex, String arguments) {
+        printer.println("    return " + moveNfaName(lex) + "(" + stopStringLiteralDfaName(lex)
                 + "(pos, " + arguments + "), pos + 1);");
     }
 
     /** The name {@code jjMoveNfa} is called under. */
-    default String moveNfaName(NfaStateData data) {
-        return "jjMoveNfa" + data.getLexerStateSuffix();
+    default String moveNfaName(LexState lex) {
+        return "jjMoveNfa" + lex.suffix();
     }
 
     /** The name {@code jjStopStringLiteralDfa} is called under. */
-    default String stopStringLiteralDfaName(NfaStateData data) {
-        return "jjStopStringLiteralDfa" + data.getLexerStateSuffix();
+    default String stopStringLiteralDfaName(LexState lex) {
+        return "jjStopStringLiteralDfa" + lex.suffix();
     }
 
     /** The value {@code jjStopStringLiteralDfa} returns when no NFA state is left to go to. */
@@ -418,12 +408,12 @@ public interface TargetSyntax {
     }
 
     /** The declaration of the trivial jjMoveStringLiteralDfa0, used when there is nothing to match. */
-    default void printMoveStringLiteralDfa0Signature(LinePrinter printer, NfaStateData data) {
-        printer.println("private int jjMoveStringLiteralDfa0" + data.getLexerStateSuffix() + "() {");
+    default void printMoveStringLiteralDfa0Signature(LinePrinter printer, LexState lex) {
+        printer.println("private int jjMoveStringLiteralDfa0" + lex.suffix() + "() {");
     }
 
     /** The declaration of jjStopAtPos. */
-    default void printStopAtPosSignature(LinePrinter printer, NfaStateData data) {
+    default void printStopAtPosSignature(LinePrinter printer, LexState lex) {
         printer.println();
         printer.println("private int " + "jjStopAtPos(int pos, int kind) {");
     }
@@ -450,8 +440,8 @@ public interface TargetSyntax {
     }
 
     /** The declaration of jjMoveStringLiteralDfa<i>, up to the opening parenthesis. */
-    default void printMoveStringLiteralDfaHead(LinePrinter printer, NfaStateData data, int i) {
-        printer.print("private int jjMoveStringLiteralDfa" + i + data.getLexerStateSuffix() + "(");
+    default void printMoveStringLiteralDfaHead(LinePrinter printer, LexState lex, int i) {
+        printer.print("private int jjMoveStringLiteralDfa" + i + lex.suffix() + "(");
     }
 
     /** The 64-bit integer type of the target. */
@@ -464,22 +454,20 @@ public interface TargetSyntax {
      * spells its logging differently — Java concatenates, C++ builds a printf format — so this is a
      * pure dialect method.
      */
-    default void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
-        if ((i != 0) && data.global.getDebugTokenManager()) {
-            printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
-            printer.println("    debugStream.println(\"   Currently matched the first \" + " + "(jjmatchedPos + 1) + \" characters as a \" + " + tokenImages() + "[jjmatchedKind] + \" token.\");");
-            printer.println("    debugStream.println(\"   Possible string literal matches : { \"");
+    default void printDebugPossibleMatches(LinePrinter printer, DfaPos pos) {
+        printer.println("if (jjmatchedKind != 0 && jjmatchedKind != 0x" + Integer.toHexString(Integer.MAX_VALUE) + ")");
+        printer.println("    debugStream.println(\"   Currently matched the first \" + " + "(jjmatchedPos + 1) + \" characters as a \" + " + tokenImages() + "[jjmatchedKind] + \" token.\");");
+        printer.println("    debugStream.println(\"   Possible string literal matches : { \"");
 
-            for (int vecs = 0; vecs < ((data.getMaxStrKind() / 64) + 1); vecs++) {
-                if (i <= data.getMaxLenForActive(vecs)) {
-                    printer.println(" +");
-                    printer.print("         jjKindsForBitVector(" + vecs + ", ");
-                    printer.print("active" + vecs + ") ");
-                }
+        for (int vecs = 0; vecs < pos.active().size(); vecs++) {
+            if (pos.active().get(vecs)) {
+                printer.println(" +");
+                printer.print("         jjKindsForBitVector(" + vecs + ", ");
+                printer.print("active" + vecs + ") ");
             }
-
-            printer.println(" + \" } \");");
         }
+
+        printer.println(" + \" } \");");
     }
 
     /** Opens the guard around reading the next character. */
@@ -575,7 +563,7 @@ public interface TargetSyntax {
      *
      * @param preamble a line to run before the switch, or null
      */
-    default void printActionsPrologue(LinePrinter printer, LexerData data, String method,
+    default void printActionsPrologue(LinePrinter printer, String parserName, String method,
                                         String preamble) {
     }
 
@@ -589,9 +577,9 @@ public interface TargetSyntax {
     }
 
     /** What a MORE appends: it keeps the image, so there is no length to record. */
-    default void printImageAppendMore(LinePrinter printer, LexerData data, int i) {
+    default void printImageAppendMore(LinePrinter printer, int i, boolean literal) {
         printer.print("         image.append");
-        if (data.getImage(i) != null) {
+        if (literal) {
             printer.println("(" + strLiteralImages() + "[" + i + "]);");
         } else {
             printer.println("(" + inputStream() + getSuffix() + "(" + imageLen() + "));");
@@ -620,23 +608,23 @@ public interface TargetSyntax {
      * Guards against a token production that matches the empty string over and over: if the lexer is
      * back at the same line and column with nothing consumed, it is looping.
      */
-    default void printEmptyLoopCheck(LinePrinter printer, LexerData data, int i) {
+    default void printEmptyLoopCheck(LinePrinter printer, int lexState) {
         printer.println("         if (" + matchedPos() + " == -1)");
         printer.println("         {");
-        printer.println("            if (jjbeenHere[" + data.getState(i) + "] &&");
-        printer.println("                jjemptyLineNo[" + data.getState(i) + "] == " + beginLine() + " &&");
-        printer.println("                jjemptyColNo[" + data.getState(i) + "] == " + beginColumn() + ")");
+        printer.println("            if (jjbeenHere[" + lexState + "] &&");
+        printer.println("                jjemptyLineNo[" + lexState + "] == " + beginLine() + " &&");
+        printer.println("                jjemptyColNo[" + lexState + "] == " + beginColumn() + ")");
         printLoopDetected(printer);
-        printer.println("            jjemptyLineNo[" + data.getState(i) + "] = " + beginLine() + ";");
-        printer.println("            jjemptyColNo[" + data.getState(i) + "] = " + beginColumn() + ";");
-        printer.println("            jjbeenHere[" + data.getState(i) + "] = true;");
+        printer.println("            jjemptyLineNo[" + lexState + "] = " + beginLine() + ";");
+        printer.println("            jjemptyColNo[" + lexState + "] = " + beginColumn() + ";");
+        printer.println("            jjbeenHere[" + lexState + "] = true;");
         printer.println("         }");
     }
 
     /** Appends what was matched to the image being built. */
-    default void printImageAppend(LinePrinter printer, LexerData data, int i, String indent) {
+    default void printImageAppend(LinePrinter printer, int i, boolean literal, String indent) {
         printer.print(indent + "image.append");
-        if (data.getImage(i) != null) {
+        if (literal) {
             printer.println("(" + strLiteralImages() + "[" + i + "]);");
             printer.println("        " + lengthOfMatch() + " = " + strLiteralImages() + "[" + i
                     + "].length();");
@@ -647,9 +635,9 @@ public interface TargetSyntax {
     }
 
     /** The signature of {@code jjStartNfaWithStates}. */
-    default void printStartNfaWithStatesSignature(LinePrinter printer, NfaStateData data) {
+    default void printStartNfaWithStatesSignature(LinePrinter printer, LexState lex) {
         printer.println();
-        printer.println("private int jjStartNfaWithStates" + data.getLexerStateSuffix()
+        printer.println("private int jjStartNfaWithStates" + lex.suffix()
                 + "(int pos, int kind, int state) {");
     }
 
@@ -663,8 +651,8 @@ public interface TargetSyntax {
     }
 
     /** The signature of {@code jjMoveNfa}. */
-    default void printMoveNfaSignature(LinePrinter printer, NfaStateData data) {
-        printer.println("private int jjMoveNfa" + data.getLexerStateSuffix()
+    default void printMoveNfaSignature(LinePrinter printer, LexState lex) {
+        printer.println("private int jjMoveNfa" + lex.suffix()
                 + "(int startState, int curPos) {");
     }
 
@@ -697,21 +685,21 @@ public interface TargetSyntax {
      * Swaps the two halves of {@code jjstateSet} — the states reached in this round become the states
      * to advance in the next — and leaves the loop when no state is left.
      */
-    default void printSwapStateSets(LinePrinter printer, NfaStateData data) {
-        printer.println("if ((i = jjnewStateCnt) == (startsAt = " + data.generatedStates()
+    default void printSwapStateSets(LinePrinter printer, LexState lex) {
+        printer.println("if ((i = jjnewStateCnt) == (startsAt = " + lex.generatedStates()
                 + " - (jjnewStateCnt = startsAt)))");
         printer.indent();
-        printer.println(data.isMixedState() ? "break;" : "return curPos;");
+        printer.println(lex.mixed() ? "break;" : "return curPos;");
         printer.outdent();
     }
 
     /** Reads the next character; on end of input the NFA is done. */
-    default void printReadCharOrLeave(LinePrinter printer, NfaStateData data) {
+    default void printReadCharOrLeave(LinePrinter printer, LexState lex) {
         printer.println("try {");
         printer.println("    curChar = input_stream.readChar();");
         printer.println("} catch (java.io.IOException e) {");
         printer.indent();
-        printer.println(data.isMixedState() ? "break;" : "return curPos;");
+        printer.println(lex.mixed() ? "break;" : "return curPos;");
         printer.outdent();
         printer.println("}");
     }
@@ -772,13 +760,5 @@ public interface TargetSyntax {
 
     default String toHexString(long value) {
         return "0x" + Long.toHexString(value) + "L";
-    }
-
-    /** The name of the composite state the NFA starts in, or -1 when it has no epsilon moves. */
-    default int InitStateName(NfaStateData data) {
-        if (data.getInitialState().usefulEpsilonMoves == 0) {
-            return -1;
-        }
-        return data.compositeStateName(data.getInitialState().epsilonMovesString);
     }
 }

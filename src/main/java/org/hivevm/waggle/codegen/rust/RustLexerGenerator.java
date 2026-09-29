@@ -12,12 +12,12 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
+import org.hivevm.waggle.codegen.LexState;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.lexer.LexerData;
-import org.hivevm.waggle.lexer.NfaState;
-import org.hivevm.waggle.lexer.NfaStateData;
-import org.hivevm.waggle.model.RExpression;
+import org.hivevm.waggle.lexer.LexerPlan.CanMove;
+import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.source.TemplateSet;
 
@@ -61,10 +61,10 @@ class RustLexerGenerator extends LexerGenerator {
         // A jjbitVec is a 256-bit map over the low byte: always four u64. This used to be the
         // number of vectors, which is a different thing entirely and only ever matched by accident.
         options.set("LOHI_BYTES_LENGTH", 4);
-        var images = RustLexerGenerator.getStrLiteralImageList(data);
+        var images = RustLexerGenerator.getStrLiteralImageList(data.plan().shape().images());
         options.add("LITERAL_IMAGES", images).set("LITERAL_IMAGE_NAME", s -> s);
         options.set("LITERAL_IMAGES_LENGTH", images.size());
-        options.set("STATE_NAMES_LENGTH", data.getStateNames().size());
+        options.set("STATE_NAMES_LENGTH", data.plan().shape().stateNames().size());
 
         RustTemplate.LEXER.render(options);
     }
@@ -138,21 +138,20 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public String canMove(NfaState state) {
-        return "jj_can_move_" + state.nonAsciiMethod + "(hi_byte, i1, i2, l1, l2)";
+    public String canMove(int method) {
+        return "jj_can_move_" + method + "(hi_byte, i1, i2, l1, l2)";
     }
 
-    /** A match arm carries all its patterns at once, so the labels are held back. */
+    /** A match arm carries all its patterns at once: they are written by printCasesOpen. */
     @Override
-    public void printCaseLabel(LinePrinter printer, List<String> labels, String indent,
-                                  int state) {
-        labels.add("" + state);
+    public void printCaseLabel(LinePrinter printer, String indent, int state) {
     }
 
     @Override
-    public void printCasesOpen(LinePrinter printer, List<String> labels, String indent) {
+    public void printCasesOpen(LinePrinter printer, List<Integer> labels, String indent) {
         if (!labels.isEmpty()) {
-            printer.println(indent + String.join(" | ", labels) + " => {");
+            printer.println(indent + labels.stream().map(String::valueOf)
+                    .collect(Collectors.joining(" | ")) + " => {");
         }
     }
 
@@ -215,8 +214,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected String getNonAsciiMethod(NfaState state) {
-        return "_" + state.nonAsciiMethod;
+    protected String getNonAsciiMethod(CanMove canMove) {
+        return "_" + canMove.method();
     }
 
     @Override
@@ -231,10 +230,9 @@ class RustLexerGenerator extends LexerGenerator {
      * <p>This used to write JavaCC's octal escapes in a form Rust does not know, so {@code "if"}
      * came out as {@code "0o151;0o146;"} -- which compiled, and became the image of every keyword.
      */
-    private static List<String> getStrLiteralImageList(LexerData data) {
+    private static List<String> getStrLiteralImageList(List<String> images) {
         var list = new ArrayList<String>();
-        for (int i = 0; i < data.getImageCount(); i++) {
-            var image = data.getImage(i);
+        for (var image : images) {
             list.add((image == null) ? null : RustLexerGenerator.toRustStringContent(image));
         }
         return list;
@@ -256,13 +254,13 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printMoveStringLiteralDfa0Signature(LinePrinter printer, NfaStateData data) {
-        printer.println("fn jj_move_string_literal_dfa0" + data.getLexerStateSuffix()
+    public void printMoveStringLiteralDfa0Signature(LinePrinter printer, LexState lex) {
+        printer.println("fn jj_move_string_literal_dfa0" + lex.suffix()
                 + "(&mut self) -> usize {");
     }
 
     @Override
-    public void printStopAtPosSignature(LinePrinter printer, NfaStateData data) {
+    public void printStopAtPosSignature(LinePrinter printer, LexState lex) {
         printer.println("fn jj_stop_at_pos(&mut self, pos: usize, kind: u32) -> usize {");
     }
 
@@ -295,18 +293,14 @@ class RustLexerGenerator extends LexerGenerator {
 
     /** Rust logs differently. */
     @Override
-    public void printDebugPossibleMatches(LinePrinter printer, NfaStateData data, int i) {
-        if (!data.global.getDebugTokenManager()) {
-            return;
-        }
-
+    public void printDebugPossibleMatches(LinePrinter printer, DfaPos pos) {
         // Java guards only the first of the two lines -- its "if" carries no braces. Wrapping both
         // in a Rust block swallowed the second one.
         printDebugCurrentlyMatched(printer);
 
         var vectors = new ArrayList<String>();
-        for (int vecs = 0; vecs < ((data.getMaxStrKind() / 64) + 1); vecs++) {
-            if (i <= data.getMaxLenForActive(vecs)) {
+        for (int vecs = 0; vecs < pos.active().size(); vecs++) {
+            if (pos.active().get(vecs)) {
                 vectors.add("self.jj_kinds_for_bit_vector(" + vecs + ", active" + vecs
                         + ", &mut kind_cnt)");
             }
@@ -330,8 +324,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printMoveNfaSignature(LinePrinter printer, NfaStateData data) {
-        printer.println("fn jj_move_nfa" + data.getLexerStateSuffix()
+    public void printMoveNfaSignature(LinePrinter printer, LexState lex) {
+        printer.println("fn jj_move_nfa" + lex.suffix()
                 + "(&mut self, start_state: usize, mut cur_pos: usize) -> usize {");
     }
 
@@ -364,12 +358,12 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printSwapStateSets(LinePrinter printer, NfaStateData data) {
+    public void printSwapStateSets(LinePrinter printer, LexState lex) {
         printer.println("i = self.jjnew_state_cnt;");
         printer.println("self.jjnew_state_cnt = starts_at;");
-        printer.println("starts_at = " + data.generatedStates() + " - self.jjnew_state_cnt;");
+        printer.println("starts_at = " + lex.generatedStates() + " - self.jjnew_state_cnt;");
         printer.println("if i == starts_at {");
-        printer.println(data.isMixedState() ? "    break;" : "    return cur_pos;");
+        printer.println(lex.mixed() ? "    break;" : "    return cur_pos;");
         printer.println("}");
     }
 
@@ -381,10 +375,10 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printReadCharOrLeave(LinePrinter printer, NfaStateData data) {
+    public void printReadCharOrLeave(LinePrinter printer, LexState lex) {
         printer.println("let result = self.input_stream.read_char();");
         printer.println("if result.is_err() {");
-        printer.println(data.isMixedState() ? "    break;" : "    return cur_pos;");
+        printer.println(lex.mixed() ? "    break;" : "    return cur_pos;");
         printer.println("}");
         printer.println("self.cur_char = u32::from(result.unwrap());");
     }
@@ -453,7 +447,7 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printPosAndActivesSignature(LinePrinter printer, NfaStateData data, String name,
+    public void printPosAndActivesSignature(LinePrinter printer, LexState lex, String name,
                                               int maxKindsReqd) {
         printer.println("fn " + name + "(&mut self, pos: usize, " + activeParameters(maxKindsReqd)
                 + ") -> usize {");
@@ -510,24 +504,23 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public String moveNfaName(NfaStateData data) {
-        return "self.jj_move_nfa" + data.getLexerStateSuffix();
+    public String moveNfaName(LexState lex) {
+        return "self.jj_move_nfa" + lex.suffix();
     }
 
     @Override
-    public String stopStringLiteralDfaName(NfaStateData data) {
-        return "self.jjStopStringLiteralDfa" + data.getLexerStateSuffix();
+    public String stopStringLiteralDfaName(LexState lex) {
+        return "self.jjStopStringLiteralDfa" + lex.suffix();
     }
 
     @Override
-    public void printLexStateArrayOpen(LinePrinter printer, LexerData data) {
-        printer.print("const JJNEW_LEX_STATE: [i8; " + data.maxOrdinal() + "] = [");
+    public void printLexStateArrayOpen(LinePrinter printer, int length) {
+        printer.print("const JJNEW_LEX_STATE: [i8; " + length + "] = [");
     }
 
     @Override
-    public void printBitVectorOpen(LinePrinter printer, LexerData data, String name) {
-        printer.print("const " + constantName(name) + ": [" + longType() + "; "
-                + ((data.maxOrdinal() / 64) + 1) + "] = [");
+    public void printBitVectorOpen(LinePrinter printer, String name, int length) {
+        printer.print("const " + constantName(name) + ": [" + longType() + "; " + length + "] = [");
     }
 
     @Override
@@ -550,15 +543,14 @@ class RustLexerGenerator extends LexerGenerator {
      * result gets a name.
      */
     @Override
-    public void printStartNfaBody(LinePrinter printer, NfaStateData data, String arguments) {
-        printer.println("    let state = " + stopStringLiteralDfaName(data) + "(pos, " + arguments
+    public void printStartNfaBody(LinePrinter printer, LexState lex, String arguments) {
+        printer.println("    let state = " + stopStringLiteralDfaName(lex) + "(pos, " + arguments
                 + ");");
-        printer.println("    return " + moveNfaName(data) + "(state, pos + 1);");
+        printer.println("    return " + moveNfaName(lex) + "(state, pos + 1);");
     }
 
     @Override
-    public void printNextStatesOpen(LinePrinter printer, LexerData data) {
-        int length = data.getOrderedStateSet().stream().mapToInt(set -> set.length).sum();
+    public void printNextStatesOpen(LinePrinter printer, int length) {
         printer.print("const JJNEXT_STATES : [usize; " + length + "] = [");
     }
 
@@ -608,8 +600,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printDebugCurrentCharacter(LinePrinter printer, LexerData data) {
-        printCurrentCharacter(printer, data.maxLexStates() > 1);
+    public void printDebugCurrentCharacter(LinePrinter printer, boolean withLexState) {
+        printCurrentCharacter(printer, withLexState);
     }
 
     @Override
@@ -667,9 +659,9 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printStartNfaWithStatesSignature(LinePrinter printer, NfaStateData data) {
+    public void printStartNfaWithStatesSignature(LinePrinter printer, LexState lex) {
         printer.println();
-        printer.println("fn jjStartNfaWithStates" + data.getLexerStateSuffix()
+        printer.println("fn jjStartNfaWithStates" + lex.suffix()
                 + "(&mut self, pos: usize, kind: u32, state: usize) -> usize {");
     }
 
@@ -728,7 +720,7 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printImageSeparator(LinePrinter printer, int i, List<RExpression> expressions) {
+    public void printImageSeparator(LinePrinter printer, int i, int last) {
         printer.print(",");
     }
 
@@ -751,8 +743,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printImageAppend(LinePrinter printer, LexerData data, int i, String indent) {
-        if (data.getImage(i) != null) {
+    public void printImageAppend(LinePrinter printer, int i, boolean literal, String indent) {
+        if (literal) {
             printer.println("self.image.push_str(" + strLiteralImages() + "[" + i + "]);");
             printer.println(lengthOfMatch() + " = " + strLiteralImages() + "[" + i + "].len();");
         } else {
@@ -765,8 +757,8 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printImageAppendMore(LinePrinter printer, LexerData data, int i) {
-        if (data.getImage(i) != null) {
+    public void printImageAppendMore(LinePrinter printer, int i, boolean literal) {
+        if (literal) {
             printer.println("self.image.push_str(" + strLiteralImages() + "[" + i + "]);");
         } else {
             printer.println("let suffix = " + inputStream() + getSuffix() + "(" + imageLen() + ");");
@@ -780,18 +772,18 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    public void printEmptyLoopCheck(LinePrinter printer, LexerData data, int i) {
+    public void printEmptyLoopCheck(LinePrinter printer, int lexState) {
         printer.println("if " + matchedPos() + " == usize::MAX {");
-        printer.println("    if self.jjbeenHere[" + data.getState(i) + "]");
-        printer.println("        && self.jjemptyLineNo[" + data.getState(i) + "] == " + beginLine());
-        printer.println("        && self.jjemptyColNo[" + data.getState(i) + "] == " + beginColumn()
+        printer.println("    if self.jjbeenHere[" + lexState + "]");
+        printer.println("        && self.jjemptyLineNo[" + lexState + "] == " + beginLine());
+        printer.println("        && self.jjemptyColNo[" + lexState + "] == " + beginColumn()
                 + "");
         printer.println("    {");
         printLoopDetected(printer);
         printer.println("    }");
-        printer.println("    self.jjemptyLineNo[" + data.getState(i) + "] = " + beginLine() + ";");
-        printer.println("    self.jjemptyColNo[" + data.getState(i) + "] = " + beginColumn() + ";");
-        printer.println("    self.jjbeenHere[" + data.getState(i) + "] = true;");
+        printer.println("    self.jjemptyLineNo[" + lexState + "] = " + beginLine() + ";");
+        printer.println("    self.jjemptyColNo[" + lexState + "] = " + beginColumn() + ";");
+        printer.println("    self.jjbeenHere[" + lexState + "] = true;");
         printer.println("}");
     }
 

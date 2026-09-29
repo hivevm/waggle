@@ -7,8 +7,19 @@
 
 package org.hivevm.waggle.lexer;
 
+import org.hivevm.waggle.lexer.LexerPlan.Accept;
+import org.hivevm.waggle.lexer.LexerPlan.ArmShape;
+import org.hivevm.waggle.lexer.LexerPlan.CharCase;
+import org.hivevm.waggle.lexer.LexerPlan.Guard;
+import org.hivevm.waggle.lexer.LexerPlan.Move;
+import org.hivevm.waggle.lexer.LexerPlan.MoveShape;
+import org.hivevm.waggle.lexer.LexerPlan.MoveArm;
+import org.hivevm.waggle.lexer.LexerPlan.NextForm;
+import org.hivevm.waggle.lexer.LexerPlan.NextStates;
+import org.hivevm.waggle.lexer.LexerPlan.NfaMoves;
 import org.hivevm.waggle.lexer.NfaStateData.KindInfo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
@@ -20,7 +31,7 @@ import java.util.function.Predicate;
 /**
  * Computes DFA/NFA move tables and prepares the code-generation data structures.
  */
-public class DfaBuilder {
+class DfaBuilder {
 
     /**
      * Prepares DFA code data for a single lexer state (charPosKind → skip/token tables).
@@ -32,6 +43,8 @@ public class DfaBuilder {
 
         data.createStartNfa = false;
         for (int i = 0; i < data.maxLen; i++) {
+            var cases = new ArrayList<CharCase>();
+            data.dfaCases.add(cases);
             for (var entry : data.getCharPosKind(i).entrySet()) {
                 KindInfo info = entry.getValue();
                 char c = entry.getKey();
@@ -59,6 +72,7 @@ public class DfaBuilder {
                         }
                     }
                 }
+                cases.add(LexerPlanner.charCase(data, i, c, info));
             }
         }
     }
@@ -92,9 +106,8 @@ public class DfaBuilder {
         data.global.kinds[data.getStateIndex()] = kindsForStates;
         data.global.statesForState[data.getStateIndex()] = statesForState;
 
-        getMoves(data, MoveKind.ascii(0));
-        getMoves(data, MoveKind.ascii(1));
-        getMoves(data, MoveKind.NON_ASCII);
+        data.moves = new NfaMoves(data.generatedStates(), getMoves(data, MoveKind.ascii(0)),
+                getMoves(data, MoveKind.ascii(1)), getMoves(data, MoveKind.NON_ASCII));
     }
 
     // -----------------------------------------------------------------------
@@ -104,28 +117,36 @@ public class DfaBuilder {
     /**
      * One group of moves the move code dispatches on: the ASCII moves of one half of the ASCII
      * range, or the moves beyond ASCII. The three differ only in what counts as a move, when two
-     * moves are the same, and the order in which the members of a composite state are emitted.
+     * moves are the same, and the order in which the members of a composite state are emitted -
+     * for ASCII, groups of members with disjoint moves, each an if-else chain.
+     *
+     * @param byteNum the half of ASCII, or -1 beyond ASCII
      */
-    private record MoveKind(Predicate<NfaState> has, BiPredicate<NfaState, NfaState> same,
-                            BiFunction<NfaStateData, int[], List<NfaState>> order) {
+    private record MoveKind(int byteNum, Predicate<NfaState> has, BiPredicate<NfaState, NfaState> same,
+                            BiFunction<NfaStateData, int[], List<List<NfaState>>> order) {
 
         static MoveKind ascii(int byteNum) {
-            return new MoveKind(s -> s.asciiMoves[byteNum] != 0L,
+            return new MoveKind(byteNum, s -> s.asciiMoves[byteNum] != 0L,
                     (a, b) -> a.asciiMoves[byteNum] == b.asciiMoves[byteNum],
-                    (data, states) -> data.asciiPartition(states, byteNum).stream()
-                            .flatMap(List::stream).toList());
+                    (data, states) -> data.asciiPartition(states, byteNum));
         }
 
-        static final MoveKind NON_ASCII = new MoveKind(s -> s.nonAsciiMethod != -1,
+        static final MoveKind NON_ASCII = new MoveKind(-1, s -> s.nonAsciiMethod != -1,
                 (a, b) -> a.nonAsciiMethod == b.nonAsciiMethod,
                 (data, states) -> Arrays.stream(states).mapToObj(data::getAllState)
-                        .filter(s -> s.nonAsciiMethod != -1).toList());
+                        .filter(s -> s.nonAsciiMethod != -1).map(List::of).toList());
     }
 
-    private static void getMoves(NfaStateData data, MoveKind kind) {
+    /**
+     * The arms of the switch over the states for one group of moves, in output order. This one
+     * walk decides the arms and registers the state sets they move into, so the order of
+     * {@code jjnextStates} is the order of the arms (ADR-0029).
+     */
+    private static List<MoveArm> getMoves(NfaStateData data, MoveKind kind) {
+        var arms = new ArrayList<MoveArm>();
         boolean[] dumped = new boolean[data.stateNameCount()];
         for (String key : data.compositeStateTable.keySet()) {
-            getCompositeStateMoves(data, key, kind, dumped);
+            getCompositeStateMoves(data, key, kind, dumped, arms);
         }
 
         for (NfaState element : data.getAllStates()) {
@@ -134,12 +155,16 @@ public class DfaBuilder {
             }
 
             dumped[element.stateName] = true;
-            getMove(data, element, kind, dumped);
+            var labels = new ArrayList<Integer>();
+            labels.add(element.stateName);
+            Move move = getMove(data, element, kind, dumped, labels);
+            arms.add(new MoveArm(ArmShape.SINGLE, List.copyOf(labels), 1, List.of(move)));
         }
+        return List.copyOf(arms);
     }
 
     private static void getCompositeStateMoves(NfaStateData data, String key, MoveKind kind,
-                                               boolean[] dumped) {
+                                               boolean[] dumped, List<MoveArm> arms) {
         int[] nameSet = data.getNextStates(key);
 
         if ((nameSet.length == 1) || dumped[data.compositeStateName(key)]) {
@@ -168,8 +193,17 @@ public class DfaBuilder {
         }
 
         if (neededStates == 1) {
+            var labels = new ArrayList<Integer>();
+            labels.add(data.compositeStateName(key));
+            if (!dumped[toBePrinted.stateName] && (toBePrinted.inNextOf > 1)) {
+                labels.add(toBePrinted.stateName);
+            }
+            int leading = labels.size();
+
             dumped[toBePrinted.stateName] = true;
-            getMove(data, toBePrinted, kind, dumped);
+            Move move = getMove(data, toBePrinted, kind, dumped, labels);
+            arms.add(new MoveArm(ArmShape.COMPOSITE_ONE, List.copyOf(labels), leading,
+                    List.of(move)));
             return;
         }
 
@@ -178,18 +212,33 @@ public class DfaBuilder {
             dumped[keyState] = true;
         }
 
-        for (NfaState element : kind.order().apply(data, nameSet)) {
-            getMoveForCompositeState(data, element, kind);
+        var moves = new ArrayList<Move>();
+        for (List<NfaState> group : kind.order().apply(data, nameSet)) {
+            for (int j = 0; j < group.size(); j++) {
+                moves.add(getMoveForCompositeState(data, group.get(j), kind, j != 0));
+            }
         }
+        arms.add(new MoveArm(ArmShape.COMPOSITE, List.of(keyState), 1, List.copyOf(moves)));
     }
 
-    private static void getMove(NfaStateData data, NfaState state, MoveKind kind, boolean[] dumped) {
+    /**
+     * The move of a state that has an arm of its own. The states that move exactly like it and
+     * have none yet join its arm: they are added to {@code labels} and marked as dumped.
+     */
+    private static Move getMove(NfaStateData data, NfaState state, MoveKind kind, boolean[] dumped,
+                                List<Integer> labels) {
         boolean nextIntersects = state.selfLoop() && state.isComposite;
+        boolean onlyState = true;
 
         for (NfaState element : data.getAllStates()) {
             if ((state == element) || (state.stateName == element.stateName)
                     || !kind.has().test(element)) {
                 continue;
+            }
+
+            if (onlyState && (kind.byteNum() >= 0) && ((state.asciiMoves[kind.byteNum()]
+                    & element.asciiMoves[kind.byteNum()]) != 0L)) {
+                onlyState = false;
             }
 
             if (!nextIntersects && NfaState.Intersect(data, element.next.epsilonMovesString,
@@ -201,13 +250,17 @@ public class DfaBuilder {
                     && (state.kindToPrint == element.kindToPrint)
                     && Objects.equals(state.next.epsilonMovesString, element.next.epsilonMovesString)) {
                 dumped[element.stateName] = true;
+                labels.add(element.stateName);
             }
         }
 
-        registerNextStateSet(data, state, nextIntersects);
+        // Beyond ASCII no state is ever the only mover: onlyState tests the ASCII masks, which
+        // that group has none of, so it would report "only" for every state there.
+        return move(data, state, kind, (kind.byteNum() < 0) || !onlyState, false, nextIntersects);
     }
 
-    private static void getMoveForCompositeState(NfaStateData data, NfaState state, MoveKind kind) {
+    private static Move getMoveForCompositeState(NfaStateData data, NfaState state, MoveKind kind,
+                                                 boolean elseIf) {
         boolean nextIntersects = state.selfLoop();
 
         for (NfaState element : data.getAllStates()) {
@@ -222,31 +275,81 @@ public class DfaBuilder {
             }
         }
 
-        registerNextStateSet(data, state, nextIntersects);
+        // A member of a composite state shares its characters with the other members, so it never
+        // takes a kind outright either.
+        return move(data, state, kind, true, elseIf && (kind.byteNum() >= 0), nextIntersects);
+    }
+
+    private static Move move(NfaStateData data, NfaState state, MoveKind kind, boolean raise,
+                             boolean elseIf, boolean nextIntersects) {
+        var guard = guard(state, kind.byteNum());
+        var accept = (state.kindToPrint == Integer.MAX_VALUE) ? null
+                : new Accept(state.kindToPrint, raise);
+        var next = nextStates(data, state, nextIntersects);
+        return new Move(shape(guard, accept, next), guard, accept, elseIf, next);
     }
 
     /**
-     * Registers the state set a move leads to, and notes which jjCheckNAddStates variant the
-     * generated lexer needs for it. The registration order is the order of {@code jjnextStates}.
+     * What a move tests: beyond ASCII the {@code jjCanMove} function of the state, inside it the
+     * characters of its half of the range - one of them, a group of them, or all of them.
      */
-    private static void registerNextStateSet(NfaStateData data, NfaState state,
-                                             boolean nextIntersects) {
-        if ((state.next == null) || (state.next.usefulEpsilonMoves <= 0)) {
-            return;
+    private static Guard guard(NfaState state, int byteNum) {
+        if (byteNum < 0) {
+            return new Guard.NonAscii(state.nonAsciiMethod);
         }
+        long mask = state.asciiMoves[byteNum];
+        if (mask == 0xffffffffffffffffL) {
+            return new Guard.Always();
+        }
+        int oneBit = state.onlyOneAsciiMove(byteNum);
+        return (oneBit != -1) ? new Guard.OneChar((64 * byteNum) + oneBit) : new Guard.Mask(mask);
+    }
+
+    /**
+     * How the move is laid out. A move that accepts nothing only advances; one that accepts and
+     * advances has to leave the arm when its guard does not hold, and so tests the guard the other
+     * way round; one that only accepts folds the guard and the kind into a single condition.
+     */
+    private static MoveShape shape(Guard guard, Accept accept, NextStates next) {
+        if (accept == null) {
+            return MoveShape.ADVANCE;
+        }
+        return ((next == null) && !(guard instanceof Guard.Always)) ? MoveShape.ACCEPT
+                : MoveShape.MATCH;
+    }
+
+    /**
+     * The states a move leads to, and how they are added. A set of more than two, or of two that
+     * need no check, is registered in {@code jjnextStates}, in the order of this walk; the
+     * jjCheckNAddStates variant the generated lexer then needs is noted.
+     */
+    private static NextStates nextStates(NfaStateData data, NfaState state,
+                                         boolean nextIntersects) {
+        if ((state.next == null) || (state.next.usefulEpsilonMoves <= 0)) {
+            return null;
+        }
+
+        int[] stateNames = data.getNextStates(state.next.epsilonMovesString);
         int useful = state.next.usefulEpsilonMoves;
-        if ((useful == 1) || ((useful == 2) && nextIntersects)) {
-            return;
+        if (useful == 1) {
+            return new NextStates(nextIntersects ? NextForm.CHECK_ADD : NextForm.ADD,
+                    stateNames[0], -1, false);
+        }
+        if ((useful == 2) && nextIntersects) {
+            return new NextStates(NextForm.CHECK_ADD_TWO, stateNames[0], stateNames[1], false);
         }
 
         int[] indices = NfaState.GetStateSetIndicesForUse(data, state.next.epsilonMovesString);
-        if (nextIntersects) {
-            if ((indices[0] + 1) != indices[1]) {
-                data.global.jjCheckNAddStatesDualNeeded = true;
-            } else {
-                data.global.jjCheckNAddStatesUnaryNeeded = true;
-            }
+        boolean isRange = (indices[0] + 1) != indices[1];
+        if (!nextIntersects) {
+            return new NextStates(NextForm.ADD_STATES, indices[0], indices[1], isRange);
         }
+        if (isRange) {
+            data.global.jjCheckNAddStatesDualNeeded = true;
+        } else {
+            data.global.jjCheckNAddStatesUnaryNeeded = true;
+        }
+        return new NextStates(NextForm.CHECK_ADD_STATES, indices[0], indices[1], isRange);
     }
 
     // -----------------------------------------------------------------------

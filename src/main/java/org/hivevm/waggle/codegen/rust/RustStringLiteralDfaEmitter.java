@@ -10,8 +10,10 @@ package org.hivevm.waggle.codegen.rust;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.NfaStateData;
+import org.hivevm.waggle.codegen.LexState;
+import org.hivevm.waggle.lexer.LexerPlan.DfaPos;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 
@@ -27,11 +29,12 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
 
     /** Rust always leads with "&mut self", so every parameter prepends its own comma. */
     @Override
-    protected void printMoveStringLiteralDfaSignature(LinePrinter printer, NfaStateData data, int i,
-                                                      int maxLongsReqd) {
-        printer.print("fn jj_move_string_literal_dfa" + i + data.getLexerStateSuffix() + "(&mut self");
-        for (int j : StringLiteralDfaEmitter.parameterVectors(data, i, maxLongsReqd)) {
-            printer.print((i == 1) ? ", active" + j + ": u64"
+    protected void printMoveStringLiteralDfaSignature(LinePrinter printer, LexState lex,
+                                                      DfaPos pos) {
+        printer.print("fn jj_move_string_literal_dfa" + pos.pos() + lex.suffix()
+                + "(&mut self");
+        for (int j : pos.params()) {
+            printer.print((pos.pos() == 1) ? ", active" + j + ": u64"
                     : ", old" + j + ": u64, active_old" + j + ": u64");
         }
 
@@ -41,7 +44,7 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
 
     /** Rust needs a "let" per vector: an assignment is not an expression. */
     @Override
-    protected void printActiveTest(LinePrinter printer, int[] vectors) {
+    protected void printActiveTest(LinePrinter printer, List<Integer> vectors) {
         // One statement per vector. The " | " between them was copied from Java's expression
         // form, and gave "| let ..." as soon as a state had more than 128 literal kinds.
         var active = new StringJoiner(" | ");
@@ -53,13 +56,13 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
     }
 
     @Override
-    protected String startNfaName(NfaStateData data) {
-        return "self." + super.startNfaName(data);
+    protected String startNfaName(LexState lex) {
+        return "self." + super.startNfaName(lex);
     }
 
     @Override
-    protected String startNfaWithStatesName(NfaStateData data) {
-        return "self." + super.startNfaWithStatesName(data);
+    protected String startNfaWithStatesName(LexState lex) {
+        return "self." + super.startNfaWithStatesName(lex);
     }
 
     @Override
@@ -68,8 +71,8 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
     }
 
     @Override
-    protected String moveStringLiteralDfaName(NfaStateData data, int i) {
-        return "self.jj_move_string_literal_dfa" + i + data.getLexerStateSuffix();
+    protected String moveStringLiteralDfaName(LexState lex, int i) {
+        return "self.jj_move_string_literal_dfa" + i + lex.suffix();
     }
 
     /**
@@ -77,10 +80,11 @@ class RustStringLiteralDfaEmitter extends StringLiteralDfaEmitter {
      * again. Closing it unconditionally left a stray brace whenever there was no guard (i == 0).
      */
     @Override
-    protected void printFinalKindGuardOpen(LinePrinter printer, boolean elseIf, int i, int j, int k) {
+    protected void printFinalKindGuardOpen(LinePrinter printer, boolean elseIf, int i, int word,
+                                           long bit) {
         if (i != 0) {
-            printer.println((elseIf ? "else if " : "if ") + "(active" + j + " & "
-                    + this.syntax.toHexString(1L << k) + ") != 0 {");
+            printer.println((elseIf ? "else if " : "if ") + "(active" + word + " & "
+                    + this.syntax.toHexString(bit) + ") != 0 {");
             printer.indent();
         }
     }

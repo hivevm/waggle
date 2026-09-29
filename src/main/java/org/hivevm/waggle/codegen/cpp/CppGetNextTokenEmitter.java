@@ -11,7 +11,9 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.LexerData;
+import org.hivevm.waggle.lexer.LexerPlan;
+import org.hivevm.waggle.lexer.LexerPlan.Dispatch;
+import org.hivevm.waggle.lexer.LexerPlan.SkipSingles;
 
 /**
  * How C++ spells {@code getNextToken} (ADR-0017).
@@ -23,16 +25,16 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printSkipSingles(LinePrinter printer, LexerData data, int state) {
-        printer.print("while (" + skipSinglesCondition(data, state) + ")");
+    protected void printSkipSingles(LinePrinter printer, LexerPlan plan, SkipSingles skip) {
+        printer.print("while (" + skipSinglesCondition(skip) + ")");
 
         // the loop body must be braced: it advances curChar, and without the braces only the
         // end-of-input check would be repeated -- forever
         printer.println(" {");
         printer.indent();
 
-        if (data.getDebugTokenManager()) {
-            if (data.maxLexStates() > 1) {
+        if (plan.debug()) {
+            if (plan.tokenLoop().switchOnLexState()) {
                 printer.println("fprintf(debugStream, \"<%s>\" , addUnicodeEscapes(lexStateNames[curLexState]).c_str());");
             }
             printer.println("fprintf(debugStream, \"Skipping character : %c(%d)\\n\", curChar, (int)curChar);");
@@ -69,24 +71,24 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printTokenBranch(LinePrinter printer, LexerData data) {
+    protected void printTokenBranch(LinePrinter printer, Dispatch dispatch) {
         printer.println("matchedToken = jjFillToken();");
 
-        if (data.hasSpecial()) {
+        if (dispatch.special()) {
             printer.println("matchedToken->specialToken() = specialToken;");
         }
-        if (data.hasTokenActions()) {
+        if (dispatch.tokenActions()) {
             printer.println("TokenLexicalActions(matchedToken);");
         }
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
         printer.println("return matchedToken;");
     }
 
     @Override
-    protected void printSkipBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMore()) {
+    protected void printSkipBranch(LinePrinter printer, Dispatch dispatch) {
+        if (dispatch.moreBranch()) {
             printer.print("else if ((jjtoSkip[jjmatchedKind >> 6] & (1ULL << (jjmatchedKind & 077))) != 0L)");
         } else {
             printer.print("else");
@@ -95,7 +97,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println(" {");
         printer.indent();
 
-        if (data.hasSpecial()) {
+        if (dispatch.special()) {
             printer.println("if ((jjtoSpecial[jjmatchedKind >> 6] & "
                     + "(1ULL << (jjmatchedKind & 077))) != 0L) {");
             printer.indent();
@@ -108,22 +110,22 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
             printer.println("    specialToken = (specialToken->next() = matchedToken);");
             printer.println("}");
 
-            if (data.hasSkipActions()) {
+            if (dispatch.skipActions()) {
                 printer.println("SkipLexicalActions(matchedToken);");
             }
 
             printer.outdent();
             printer.println("}");
 
-            if (data.hasSkipActions()) {
+            if (dispatch.skipActions()) {
                 printer.println("else");
                 printer.println("    SkipLexicalActions(nullptr);");
             }
-        } else if (data.hasSkipActions()) {
+        } else if (dispatch.skipActions()) {
             printer.println("SkipLexicalActions(nullptr);");
         }
 
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
 
@@ -133,14 +135,14 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
-    protected void printMoreBranch(LinePrinter printer, LexerData data) {
-        if (data.hasMoreActions()) {
+    protected void printMoreBranch(LinePrinter printer, LexerPlan plan, Dispatch dispatch) {
+        if (dispatch.moreActions()) {
             printer.println("MoreLexicalActions();");
-        } else if (data.hasSkipActions() || data.hasTokenActions()) {
+        } else if (dispatch.moreImageLen()) {
             printer.println("jjimageLen += jjmatchedPos + 1;");
         }
 
-        if (data.maxLexStates() > 1) {
+        if (dispatch.newLexState()) {
             printNewLexState(printer);
         }
         printer.println("curPos = 0;");
@@ -149,8 +151,8 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
         printer.println("if (!reader->endOfInput()) {");
         printer.println("    curChar = reader->read(); // UTF8: Support Unicode");
 
-        if (data.getDebugTokenManager()) {
-            this.syntax.printDebugCurrentCharacter(printer, data);
+        if (plan.debug()) {
+            this.syntax.printDebugCurrentCharacter(printer, plan.tokenLoop().switchOnLexState());
         }
         printer.println("    continue;");
         printer.println("}");
@@ -162,10 +164,10 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
      * to go round again on the same character: every lexical error hung the lexer.
      */
     @Override
-    protected void printLexicalErrorEpilogue(LinePrinter printer, LexerData data) {
+    protected void printLexicalErrorEpilogue(LinePrinter printer, Dispatch dispatch) {
         printer.outdent();
         printer.println("}");
-        if (data.hasMore()) {
+        if (dispatch.moreBranch()) {
             printer.println("break;");
         }
     }

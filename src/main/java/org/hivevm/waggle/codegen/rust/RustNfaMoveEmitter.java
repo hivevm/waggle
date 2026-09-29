@@ -10,7 +10,7 @@ package org.hivevm.waggle.codegen.rust;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.NfaMoveEmitter;
 import org.hivevm.waggle.codegen.TargetSyntax;
-import org.hivevm.waggle.lexer.NfaStateData;
+import org.hivevm.waggle.codegen.LexState;
 
 
 /**
@@ -28,9 +28,9 @@ class RustNfaMoveEmitter extends NfaMoveEmitter {
     }
 
     @Override
-    protected void printMoveNfaLocals(LinePrinter printer, NfaStateData data) {
+    protected void printMoveNfaLocals(LinePrinter printer, LexState lex) {
         printer.println("let mut starts_at: usize = 0;");
-        printer.println("self.jjnew_state_cnt = " + data.generatedStates() + ";");
+        printer.println("self.jjnew_state_cnt = " + lex.generatedStates() + ";");
         printer.println("let mut i: usize = 1;");
         printer.println("self.jjstate_set[0] = start_state;");
     }
