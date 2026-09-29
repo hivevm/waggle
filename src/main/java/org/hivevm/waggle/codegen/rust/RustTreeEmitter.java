@@ -10,8 +10,8 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.tree.ScopePlan;
 import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
@@ -28,26 +28,26 @@ import org.hivevm.waggle.tree.TreeOptions;
 public class RustTreeEmitter implements TreeEmitter {
 
     @Override
-    public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
-        printer.println("let " + ScopeVariables.node(ns) + " = new_node(&TreeConstants::"
-                + ns.getNodeDescriptor().getNodeId() + ");");
+    public void openScope(ScopePlan ns, LinePrinter printer, TreeOptions options) {
+        printer.println("let " + ns.nodeVar() + " = new_node(&TreeConstants::"
+                + ns.nodeId() + ");");
 
-        printer.println("let mut " + ScopeVariables.closed(ns) + " = true;");
+        printer.println("let mut " + ns.closedVar() + " = true;");
 
-        printer.println("self.jjtree.open_node_scope(&" + ScopeVariables.node(ns) + ");");
+        printer.println("self.jjtree.open_node_scope(&" + ns.nodeVar() + ");");
         if (options.scopeHook())
-            printer.println("self.jjtree_open_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
+            printer.println("self.jjtree_open_node_scope(" + ns.nodeVar() + ".as_ref());");
     }
 
     @Override
-    public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
+    public void closeScope(ScopePlan ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
         printer.println(RustTreeEmitter.closeCall(ns));
         if (!isFinal) {
-            printer.println(ScopeVariables.closed(ns) + " = false;");
+            printer.println(ns.closedVar() + " = false;");
         }
         if (options.scopeHook()) {
             printer.println("if self.jjtree.is_node_created() {");
-            printer.println("  self.jjtree_close_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
+            printer.println("  self.jjtree_close_node_scope(" + ns.nodeVar() + ".as_ref());");
             printer.println("}");
         }
     }
@@ -55,28 +55,25 @@ public class RustTreeEmitter implements TreeEmitter {
     /**
      * {@link ScopeVariables#closeCall} for Rust, which has no overloads: a number of children goes to
      * {@code close_node_scope}, a condition to {@code close_node_scope_bool}. An expression that is
-     * not an integer literal is taken for a condition, and rustc rejects it if it is not a bool.
+     * not an integer literal is a condition, and rustc rejects it if it is not a bool.
      */
-    private static String closeCall(NodeScope ns) {
-        var node = ScopeVariables.node(ns);
-        var descriptor = ns.getNodeDescriptor();
-        var text = descriptor.getText();
-        if (text == null) {
-            return "self.jjtree.close_node_scope_bool(&" + node + ", true);";
-        }
-        if (descriptor.isGt()) {
-            return "self.jjtree.close_node_scope_bool(&" + node + ", self.jjtree.node_arity() > "
-                    + text.strip() + ");";
-        }
-        return text.strip().matches("\\d+")
-                ? "self.jjtree.close_node_scope(&" + node + ", " + text.strip() + ");"
-                : "self.jjtree.close_node_scope_bool(&" + node + ", " + text + ");";
+    private static String closeCall(ScopePlan ns) {
+        var node = ns.nodeVar();
+        return switch (ns.arity()) {
+            case ScopePlan.Arity.Always a -> "self.jjtree.close_node_scope_bool(&" + node + ", true);";
+            case ScopePlan.Arity.GreaterThan a -> "self.jjtree.close_node_scope_bool(&" + node
+                    + ", self.jjtree.node_arity() > " + a.text().strip() + ");";
+            case ScopePlan.Arity.Count a ->
+                    "self.jjtree.close_node_scope(&" + node + ", " + a.text().strip() + ");";
+            case ScopePlan.Arity.Condition a ->
+                    "self.jjtree.close_node_scope_bool(&" + node + ", " + a.text() + ");";
+        };
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
+    public void catchBlocks(ScopePlan ns, LinePrinter printer, TreeOptions options) {
         printer.println();
-        printer.println("if " + ScopeVariables.closed(ns) + " {");
+        printer.println("if " + ns.closedVar() + " {");
         closeScope(ns, printer, options, true);
         printer.println("}");
     }

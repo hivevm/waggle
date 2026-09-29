@@ -4,8 +4,7 @@
 package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.model.NonTerminal;
-import org.hivevm.waggle.model.RExpression;
+import org.hivevm.waggle.analysis.TokenRef;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -44,8 +43,9 @@ final class RustParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public String tokenRef(String name, int ordinal) {
-        return (name == null) ? Integer.toString(ordinal) : RustIdentifier.of(name);
+    public String tokenRef(TokenRef token) {
+        return (token.name() == null) ? Integer.toString(token.ordinal())
+                : RustIdentifier.of(token.name());
     }
 
     /** How a call to another lookahead routine is written where it is tested. */
@@ -194,11 +194,11 @@ final class RustParserSyntax implements ParserSyntax {
      * the token out of its buffer, so only what the grammar assigns is copied.
      */
     @Override
-    public void consumeTokenEnd(RExpression re, LinePrinter printer) {
-        if (re.getLhsTokens().isEmpty()) {
+    public void consumeTokenEnd(boolean discarded, String rhsField, LinePrinter printer) {
+        if (discarded) {
             printer.print(")?;");
         } else {
-            printer.print(re.getRhsToken() == null ? ")?.clone();" : ")?." + re.getRhsToken().image + ".clone();");
+            printer.print((rhsField == null) ? ")?.clone();" : ")?." + rhsField + ".clone();");
         }
     }
 
@@ -209,8 +209,8 @@ final class RustParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public void callProduction(NonTerminal non, LinePrinter printer) {
-        printer.print("self." + RustIdentifier.of(RustParserSyntax.toSnakeCase(non.getName())) + "(");
+    public void callProduction(String name, LinePrinter printer) {
+        printer.print("self." + RustIdentifier.of(RustParserSyntax.toSnakeCase(name)) + "(");
     }
 
     @Override

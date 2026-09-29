@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.codegen.cpp;
 
+import org.hivevm.waggle.analysis.PlanningProfile;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
@@ -54,6 +55,15 @@ public class CppGenerator extends GeneratorProvider {
         CppTemplate.PARSEEXCEPTION_H.render(options);
         CppTemplate.PARSERHANDLER.render(options);
         CppTemplate.PARSERHANDLER_H.render(options);
+    }
+
+    /**
+     * A C++ parser records no expected tokens: it reports an error through its
+     * ParserErrorHandler, which names the token it found and not the ones it expected.
+     */
+    @Override
+    protected final PlanningProfile planningProfile() {
+        return new PlanningProfile(false);
     }
 
     @Override

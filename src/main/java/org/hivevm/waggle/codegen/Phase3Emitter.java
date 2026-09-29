@@ -8,24 +8,16 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.analysis.ParserData;
-import org.hivevm.waggle.model.Choice;
-import org.hivevm.waggle.model.Expansion;
-import org.hivevm.waggle.model.Lookahead;
-import org.hivevm.waggle.model.NonTerminal;
-import org.hivevm.waggle.model.OneOrMore;
-import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.Sequence;
-import org.hivevm.waggle.model.ZeroOrMore;
-import org.hivevm.waggle.model.ZeroOrOne;
+import org.hivevm.waggle.analysis.Jj3Routine;
+import org.hivevm.waggle.analysis.ParserPlan;
+import org.hivevm.waggle.analysis.ScanStep;
 
 /**
- * The body of a lookahead (jj_3) routine: the walk over an expansion that decides what the routine
- * scans, and in which order.
+ * The body of a lookahead (jj_3) routine: writes the scan steps the planner decided, in order.
  *
- * <p>This walk existed three times, once per back end, as a private method of each — the same
- * expansion kinds in the same order, differing only in how a test, a backtrack and a give-up are
- * spelled (ADR-0021). It exists once now and takes a {@link ParserSyntax} for the spelling.
+ * <p>The walk over the expansion that decides what a routine scans existed three times, once per
+ * back end (ADR-0021), and then once here; it is the planner's now (ADR-0029). This writes the
+ * steps and takes a {@link ParserSyntax} for the spelling.
  *
  * <p>What a routine's header and trailer look like stays with the back end: those differ in
  * substance, not in wording.
@@ -41,106 +33,45 @@ public class Phase3Emitter {
     }
 
     /**
-     * Writes the scan for {@code e}, up to {@code count} tokens deep.
+     * Writes the body of {@code routine}.
      *
-     * @param jj3_expansion the routine this body belongs to, which decides what giving up yields
+     * @param traced the production the routine's returns trace, or {@code null}; it decides what
+     *               giving up yields
      */
-    public final void emit(ParserData data, Expansion jj3_expansion, Expansion e, int count,
+    public final void emit(ParserPlan data, String traced, Jj3Routine routine,
             LinePrinter printer) {
-        scan(data, jj3_expansion, false, e, count, printer);
-    }
+        var failure = this.syntax.failure(this.parser.genReturn(traced, true, data));
 
-    /**
-     * {@link #emit}, for one expansion of the routine.
-     *
-     * @param xspDeclared whether the scan-position local has already been declared
-     * @return whether it has been declared after this call
-     */
-    private boolean scan(ParserData data, Expansion jj3_expansion, boolean xspDeclared,
-            Expansion e, int count, LinePrinter printer) {
-        if (this.parser.internalName(e).startsWith("jj_scan_token")) {
-            return xspDeclared;
-        }
-
-        var failure = this.syntax.failure(this.parser.genReturn(jj3_expansion, true, data));
-
-        switch (e) {
-            case RExpression e_nrw -> {
-                var name = e_nrw.getLabel().isEmpty()
-                        ? data.getNameOfToken(e_nrw.getOrdinal())
-                        : e_nrw.getLabel();
-                this.syntax.failIfScanToken(printer,
-                        this.syntax.tokenRef(name, e_nrw.getOrdinal()), failure);
-            }
-            case NonTerminal e_nrw -> {
-                // All expansions of non-terminals have the "name" fields set. So
-                // there's no need to check it below for "e_nrw" and "ntexp". In
-                // fact, we rely here on the fact that the "name" fields of both these
-                // variables are the same.
-                var ntprod = e_nrw.getProd();
-                var ntexp = ntprod.getExpansion();
-                this.syntax.failIfCall(printer, this.parser.genjj_3Call(ntexp), failure);
-            }
-            case Choice e_nrw -> {
-                if (e_nrw.getChoices().size() != 1) {
-                    xspDeclared = declareScanPos(printer, xspDeclared);
-                    this.syntax.saveScanPos(printer);
-                }
-
-                for (int i = 0; i < e_nrw.getChoices().size(); i++) {
-                    var nested_seq = (Sequence) e_nrw.getChoices().get(i);
-                    var la = (Lookahead) nested_seq.getUnits().getFirst();
-                    var semanticLookahead = !la.getActionTokens().isEmpty();
-                    if (semanticLookahead) {
-                        this.syntax.beginSemanticLookahead(printer);
-                        this.parser.printTokens(la.getActionTokens(), null, printer);
-                        this.syntax.endSemanticLookahead(printer);
+        for (var step : routine.body()) {
+            switch (step) {
+                case ScanStep.DeclareScanPos d -> this.syntax.declareScanPos(printer);
+                case ScanStep.ScanToken t ->
+                        this.syntax.failIfScanToken(printer, this.syntax.tokenRef(t.token()), failure);
+                case ScanStep.FailIfCall c ->
+                        this.syntax.failIfCall(printer, this.parser.genjj_3Call(c.call()), failure);
+                case ScanStep.Choice c -> {
+                    if (c.saveScanPos()) {
+                        this.syntax.saveScanPos(printer);
                     }
-                    this.syntax.choiceAlternative(printer, this.parser.genjj_3Call(nested_seq),
-                            semanticLookahead, i == (e_nrw.getChoices().size() - 1), failure);
-                }
-                this.syntax.endChoice(printer, e_nrw.getChoices().size());
-            }
-            case Sequence e_nrw -> {
-                // We skip the first element in the following iteration since it is the
-                // Lookahead object.
-                int cnt = count;
-                for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                    var eseq = e_nrw.getUnits().get(i);
-                    xspDeclared = scan(data, jj3_expansion, xspDeclared, eseq, cnt, printer);
-                    cnt -= data.minimumSize(eseq);
-                    if (cnt <= 0) {
-                        break;
+                    for (var alternative : c.alternatives()) {
+                        var semantic = !alternative.semantic().isEmpty();
+                        if (semantic) {
+                            this.syntax.beginSemanticLookahead(printer);
+                            this.parser.printTokens(alternative.semantic(), null,
+                                    printer);
+                            this.syntax.endSemanticLookahead(printer);
+                        }
+                        this.syntax.choiceAlternative(printer,
+                                this.parser.genjj_3Call(alternative.call()), semantic,
+                                alternative.last(), failure);
                     }
+                    this.syntax.endChoice(printer, c.alternatives().size());
                 }
-            }
-            case OneOrMore e_nrw -> {
-                xspDeclared = declareScanPos(printer, xspDeclared);
-                var nested_e = e_nrw.getExpansion();
-                this.syntax.failIfCall(printer, this.parser.genjj_3Call(nested_e), failure);
-                this.syntax.scanLoop(printer, this.parser.genjj_3Call(nested_e));
-            }
-            case ZeroOrMore e_nrw -> {
-                xspDeclared = declareScanPos(printer, xspDeclared);
-                this.syntax.scanLoop(printer,
-                        this.parser.genjj_3Call(e_nrw.getExpansion()));
-            }
-            case ZeroOrOne e_nrw -> {
-                xspDeclared = declareScanPos(printer, xspDeclared);
-                this.syntax.optionalScan(printer,
-                        this.parser.genjj_3Call(e_nrw.getExpansion()));
-            }
-            default -> {
+                case ScanStep.ScanLoop l ->
+                        this.syntax.scanLoop(printer, this.parser.genjj_3Call(l.call()));
+                case ScanStep.OptionalScan o ->
+                        this.syntax.optionalScan(printer, this.parser.genjj_3Call(o.call()));
             }
         }
-        return xspDeclared;
-    }
-
-    /** Declares the scan position a lookahead backtracks to, once per routine. */
-    private boolean declareScanPos(LinePrinter printer, boolean declared) {
-        if (!declared) {
-            this.syntax.declareScanPos(printer);
-        }
-        return true;
     }
 }

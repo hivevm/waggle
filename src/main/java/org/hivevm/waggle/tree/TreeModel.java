@@ -4,11 +4,14 @@
 package org.hivevm.waggle.tree;
 
 import org.hivevm.waggle.model.NodeDescriptor;
+import org.hivevm.waggle.model.NodeScope;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -26,11 +29,18 @@ public class TreeModel {
     private final List<String> nodeIds;
     private final List<String> nodeNames;
     private final Set<String> nodesToGenerate;
+    private final Map<NodeScope, ScopePlan> scopes;
 
     public TreeModel() {
         this.nodeIds = new ArrayList<>();
         this.nodeNames = new ArrayList<>();
         this.nodesToGenerate = new LinkedHashSet<>();
+        this.scopes = new IdentityHashMap<>();
+    }
+
+    /** How the parser writes {@code scope}. */
+    public final ScopePlan scope(NodeScope scope) {
+        return this.scopes.get(scope);
     }
 
     /** The ids of all nodes ({@code JJTNAME}), in declaration order. */
@@ -49,10 +59,12 @@ public class TreeModel {
     }
 
     /**
-     * Records a node the parser opens, in the order the grammar declares it, and the node class it
-     * asks the back end to write.
+     * Records a scope the parser opens and its node, in the order the grammar declares it, and the
+     * node class it asks the back end to write.
      */
-    final void add(NodeDescriptor descriptor, TreeOptions options) {
+    final void add(NodeScope scope, TreeOptions options) {
+        this.scopes.put(scope, ScopePlan.of(scope, options));
+        var descriptor = scope.getNodeDescriptor();
         if (!this.nodeIds.contains(descriptor.getNodeId())) {
             this.nodeIds.add(descriptor.getNodeId());
             this.nodeNames.add(descriptor.getName());

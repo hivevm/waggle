@@ -8,10 +8,10 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.model.Lookahead;
+import org.hivevm.waggle.analysis.Decision;
+import org.hivevm.waggle.model.CodeText;
 import org.hivevm.waggle.model.NodeScope;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -34,37 +34,37 @@ public class LookaheadEmitter {
     }
 
     /** A lookahead of zero tokens: a semantic condition and nothing else. */
-    public final void semantic(LinePrinter printer, ParserGenerator.LookaheadState state,
-            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        this.syntax.openSemanticCondition(printer, state, index);
-        writeActionTokens(printer, la, scope);
+    public final void semantic(LinePrinter printer, Decision.Semantic step,
+            Consumer<LinePrinter> action, NodeScope scope) {
+        this.syntax.openSemanticCondition(printer, step.opening(), step.slot());
+        writeActionTokens(printer, step.condition(), scope);
         printer.print(") {"); // closes the condition and opens its block in every target
         printer.indent();
         action.accept(printer);
     }
 
     /** A lookahead of one token: a switch over the next token's kind. */
-    public final void oneToken(LinePrinter printer, ParserGenerator.LookaheadState state,
-            Consumer<LinePrinter> action, boolean cacheTokens, List<String> cases) {
-        this.syntax.openTokenSwitch(printer, state, cacheTokens);
-        this.syntax.caseLabels(printer, cases);
+    public final void oneToken(LinePrinter printer, Decision.Switch step,
+            Consumer<LinePrinter> action, boolean cacheTokens) {
+        this.syntax.openTokenSwitch(printer, step.opening(), cacheTokens);
+        this.syntax.caseLabels(printer, step.cases().stream().map(this.syntax::tokenName).toList());
         action.accept(printer);
         this.syntax.closeSwitchArm(printer);
     }
 
-    /** A lookahead of more than one token: a call to a jj_3 routine, plus any semantic condition. */
-    public final void syntactic(LinePrinter printer, ParserGenerator.LookaheadState state,
-            Consumer<LinePrinter> action, Lookahead la, NodeScope scope, int index) {
-        this.syntax.openLookaheadCondition(printer, state, index);
+    /** A lookahead of more than one token: a call to a jj_2 routine, plus any semantic condition. */
+    public final void syntactic(LinePrinter printer, Decision.Syntactic step,
+            Consumer<LinePrinter> action, NodeScope scope) {
+        this.syntax.openLookaheadCondition(printer, step.opening(), step.slot());
 
         printer.print(this.syntax.lookaheadCall(
-                this.parser.lookaheadRoutineName(la.getLaExpansion()),
-                this.syntax.lookaheadAmount(la)));
-        if (!la.getActionTokens().isEmpty()) {
+                this.parser.lookaheadRoutineName(step.routine().name()),
+                this.syntax.lookaheadAmount(step.amount())));
+        if (!step.semantic().isEmpty()) {
             // In addition, there is also a semantic lookahead. So concatenate
             // the semantic check with the syntactic one.
             printer.print(" && (");
-            writeActionTokens(printer, la, scope);
+            writeActionTokens(printer, step.semantic(), scope);
             printer.print(")");
         }
         this.syntax.closeLookaheadCondition(printer);
@@ -78,13 +78,13 @@ public class LookaheadEmitter {
      * <p>It may not be the last entry of the chain: a condition can be statically known to be
      * always true.
      */
-    public final void fallback(LinePrinter printer, ParserGenerator.LookaheadState state,
-            Consumer<LinePrinter> action, int indents, int index) {
-        this.syntax.openFallback(printer, state, index, action);
-        this.syntax.endBlocks(printer, indents);
+    public final void fallback(LinePrinter printer, Decision.Fallback fallback,
+            Consumer<LinePrinter> action) {
+        this.syntax.openFallback(printer, fallback.opening(), fallback.slot(), action);
+        this.syntax.endBlocks(printer, fallback.closeBlocks());
     }
 
-    private void writeActionTokens(LinePrinter printer, Lookahead la, NodeScope scope) {
-        this.parser.printTokens(la.getActionTokens(), scope, printer);
+    private void writeActionTokens(LinePrinter printer, CodeText code, NodeScope scope) {
+        this.parser.printTokens(code, scope, printer);
     }
 }

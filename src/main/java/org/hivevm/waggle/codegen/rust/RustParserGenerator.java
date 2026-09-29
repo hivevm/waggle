@@ -7,15 +7,14 @@ import org.hivevm.waggle.codegen.ParserSyntax;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.analysis.ParserData;
+import org.hivevm.waggle.analysis.Jj2Routine;
+import org.hivevm.waggle.analysis.Jj3Routine;
+import org.hivevm.waggle.analysis.ParserPlan;
+import org.hivevm.waggle.analysis.ProductionPlan.Signature;
 import org.hivevm.waggle.codegen.ParserGenerator;
-import org.hivevm.waggle.model.Expansion;
-import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -30,9 +29,6 @@ class RustParserGenerator extends ParserGenerator {
             "new", "from_lexer", "root_node", "get_next_token", "get_token", "lexer",
             "jjtree_open_node_scope", "jjtree_close_node_scope");
 
-    /** Whether the production being written returns nothing, so that its tail yields Ok(()). */
-    private boolean returnsUnit;
-
     public RustParserGenerator() {
         super(Language.RUST);
     }
@@ -42,8 +38,12 @@ class RustParserGenerator extends ParserGenerator {
         return new RustParserSyntax();
     }
 
+    /**
+     * Refuses what the Rust parser cannot do yet, and a production whose method name the parser
+     * already has.
+     */
     @Override
-    protected final void generate(ParserData data, OptionsContext options) {
+    protected void validate(ParserPlan data) {
         if (data.getDepthLimit() > 0) {
             // ADR-0030 keeps DEPTH_LIMIT out of the Rust parser for now: it is ported separately.
             // Fail honestly instead of emitting a parser without the guard the grammar asked for
@@ -57,14 +57,17 @@ class RustParserGenerator extends ParserGenerator {
                     "DEBUG_PARSER and DEBUG_LOOKAHEAD are not supported for the Rust target.");
         }
 
-        for (var production : data.getProductions()) {
-            var name = RustParserSyntax.toSnakeCase(production.getLhs());
+        for (var plan : data.productionPlans()) {
+            var name = RustParserSyntax.toSnakeCase(plan.signature().name());
             if (RustParserGenerator.PARSER_METHODS.contains(name) || name.startsWith("jj_")) {
-                throw new GenerationException("The production '" + production.getLhs()
+                throw new GenerationException("The production '" + plan.signature().name()
                         + "' would be the Rust method '" + name + "', which the parser has already.");
             }
         }
+    }
 
+    @Override
+    protected final void generate(ParserPlan data, OptionsContext options) {
         RustTemplate.PARSER.render(options);
     }
 
@@ -73,77 +76,35 @@ class RustParserGenerator extends ParserGenerator {
      * parameter as type then name, Rust as name then type (ADR-0030).
      */
     @Override
-    protected void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
-        Token t = p.getFirstToken();
-        setup_token(t);
-        printLeadingComments(printer, t);
+    protected void generate_phase1_head(Signature p, LinePrinter printer, ParserPlan data) {
+        Token t = p.head().first();
+        var comments = cursorAt(t);
+        comments.leadingComments(printer, t);
         printer.println();
         printer.print("pub fn ");
-        printTrailingComments(printer, t);
-        printer.print(RustIdentifier.of(RustParserSyntax.toSnakeCase(p.getLhs())) + "(&mut self");
-        for (var parameter : RustParserGenerator.parameters(p.getParameterListTokens())) {
-            printer.print(", " + parameter);
+        comments.trailingComments(printer, t);
+        printer.print(RustIdentifier.of(RustParserSyntax.toSnakeCase(p.name())) + "(&mut self");
+        for (var parameter : p.split()) {
+            printer.print(", " + RustIdentifier.of(parameter.name()) + ": " + parameter.type());
         }
 
-        this.returnsUnit = p.getReturnTypeToken() == null;
-        var type = this.returnsUnit ? "()" : p.getReturnTypeToken().image;
+        var type = (p.returnType() == null) ? "()" : p.returnType();
         printer.print(") -> Result<" + type + ", ParseError> {");
     }
 
-    /**
-     * The parameters of a production as Rust writes them. The tokens are "type name" pairs between
-     * commas; a type may itself hold commas inside angle brackets.
-     */
-    static List<String> parameters(List<Token> tokens) {
-        var parameters = new ArrayList<String>();
-        var type = new ArrayList<Token>();
-        int depth = 0;
-        for (var token : tokens) {
-            if (token.image.equals(",") && (depth == 0)) {
-                parameters.add(RustParserGenerator.parameter(type));
-                type.clear();
-                continue;
-            }
-            if (token.image.equals("<")) {
-                depth++;
-            } else if (token.image.equals(">")) {
-                depth--;
-            }
-            type.add(token);
-        }
-        if (!type.isEmpty()) {
-            parameters.add(RustParserGenerator.parameter(type));
-        }
-        return parameters;
-    }
-
-    /** One parameter: the last token names it, the tokens before are its type, spaced as written. */
-    private static String parameter(List<Token> tokens) {
-        var name = tokens.getLast().image;
-        var type = new StringBuilder();
-        for (int i = 0; i < tokens.size() - 1; i++) {
-            var token = tokens.get(i);
-            if ((i > 0) && ((token.beginLine != tokens.get(i - 1).endLine)
-                    || (token.beginColumn > tokens.get(i - 1).endColumn + 1))) {
-                type.append(' ');
-            }
-            type.append(token.image);
-        }
-        return RustIdentifier.of(name) + ": " + type;
-    }
-
+    /** A production that returns nothing yields Ok(()) at its end. */
     @Override
-    protected final void generate_phase1_tail(LinePrinter printer) {
-        if (this.returnsUnit) {
+    protected final void generate_phase1_tail(Signature p, LinePrinter printer) {
+        if (p.returnType() == null) {
             printer.println();
             printer.print("Ok(())");
         }
-        super.generate_phase1_tail(printer);
+        super.generate_phase1_tail(p, printer);
     }
 
     @Override
-    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer) {
-        // DEPTH_LIMIT and DEBUG_PARSER are rejected up front in generate(); the Rust back end emits
+    protected void generate_phase1_body(Signature p, LinePrinter printer, ParserPlan data, Consumer<LinePrinter> consumer) {
+        // DEPTH_LIMIT and DEBUG_PARSER are rejected up front in validate(); the Rust back end emits
         // neither guard code nor a trace wrapper.
         consumer.accept(printer);
     }
@@ -153,8 +114,8 @@ class RustParserGenerator extends ParserGenerator {
      * the routines return with {@code jj_ls} set. A lexical error met on the way is the result.
      */
     @Override
-    protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
-        var name = internal_name_as_snake_case(e);
+    protected void generate_phase2(Jj2Routine routine, LinePrinter printer, ParserPlan data) {
+        var name = lookaheadRoutineName(routine.name());
         printer.println("fn jj_2" + name + "(&mut self, xla: i32) -> Result<bool, ParseError> {");
         printer.println("    self.jj_la = xla;");
         printer.println("    self.jj_lastpos = self.token;");
@@ -162,8 +123,8 @@ class RustParserGenerator extends ParserGenerator {
         printer.println("    self.jj_ls = false;");
         printer.println("    let result = !self.jj_3" + name + "() || self.jj_ls;");
         printer.println("    self.jj_ls = false;");
-        if (data.getErrorReporting()) {
-            printer.println("    self.jj_save(" + (Integer.parseInt(name.substring(1)) - 1) + ", xla);");
+        if (data.recordsExpectedTokens()) {
+            printer.println("    self.jj_save(" + routine.saveSlot() + ", xla);");
         }
         printer.println("    if let Some(error) = &self.jj_lexical_error {");
         printer.println("        return Err(error.clone().into());");
@@ -174,13 +135,13 @@ class RustParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
-        printer.println("fn jj_3" + internal_name_as_snake_case(e) + "(&mut self) -> bool {");
+    protected void generate_phase3_routine(ParserPlan data, Jj3Routine routine, LinePrinter printer) {
+        printer.println("fn jj_3" + lookaheadRoutineName(routine.name()) + "(&mut self) -> bool {");
 
-        // DEPTH_LIMIT and DEBUG_LOOKAHEAD are rejected up front in generate(); the Rust back end
+        // DEPTH_LIMIT and DEBUG_LOOKAHEAD are rejected up front in validate(); the Rust back end
         // emits neither guard code nor a trace call, so no expansion is ever traced.
         printer.indent();
-        phase3().emit(data, null, e, count, printer);
+        phase3().emit(data, null, routine, printer);
         printer.println(genReturn(null, false, data));
         printer.outdent();
         printer.println("}");
@@ -189,20 +150,16 @@ class RustParserGenerator extends ParserGenerator {
 
     /**
      * A jj_3 routine ends in a bare {@code true}/{@code false} expression, where the base class
-     * emits a {@code return} statement. DEBUG_LOOKAHEAD is rejected up front in generate(), so no
+     * emits a {@code return} statement. DEBUG_LOOKAHEAD is rejected up front in validate(), so no
      * trace code is ever wrapped around it.
      */
     @Override
-    protected String genReturn(Expansion expansion, boolean value, ParserData data) {
+    protected String genReturn(String traced, boolean value, ParserPlan data) {
         return Boolean.toString(value);
     }
 
     @Override
-    protected String lookaheadRoutineName(Expansion e) {
-        return internal_name_as_snake_case(e);
-    }
-
-    private String internal_name_as_snake_case(Expansion e) {
-        return RustParserSyntax.toSnakeCase(internalName(e));
+    protected String lookaheadRoutineName(String name) {
+        return RustParserSyntax.toSnakeCase(name);
     }
 }

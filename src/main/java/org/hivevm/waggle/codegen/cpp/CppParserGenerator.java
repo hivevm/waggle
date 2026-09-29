@@ -11,10 +11,11 @@ import org.hivevm.waggle.codegen.ParserSyntax;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.analysis.ParserData;
+import org.hivevm.waggle.analysis.Jj2Routine;
+import org.hivevm.waggle.analysis.Jj3Routine;
+import org.hivevm.waggle.analysis.ParserPlan;
+import org.hivevm.waggle.analysis.ProductionPlan.Signature;
 import org.hivevm.waggle.codegen.ParserGenerator;
-import org.hivevm.waggle.model.Expansion;
-import org.hivevm.waggle.model.NormalProduction;
 import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 
@@ -35,12 +36,12 @@ class CppParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected final void generate(ParserData data, OptionsContext options) {
-        options.set("DUMP_NORMALPRODUCTIONS_IMPL", w -> data.getProductions().forEach(n -> {
-            Token returnType = n.getReturnTypeToken();
-            w.print((returnType == null ? "void" : returnType.image) + " " + n.getLhs() + "(");
-            if (!n.getParameterListTokens().isEmpty()) {
-                printTokens(n.getParameterListTokens(), null, w);
+    protected final void generate(ParserPlan data, OptionsContext options) {
+        options.set("DUMP_NORMALPRODUCTIONS_IMPL", w -> data.productionPlans().forEach(plan -> {
+            var n = plan.signature();
+            w.print(((n.returnType() == null) ? "void" : n.returnType()) + " " + n.name() + "(");
+            if (!n.parameters().isEmpty()) {
+                printTokens(n.parameters(), null, w);
             }
             w.println(");");
         }));
@@ -50,17 +51,16 @@ class CppParserGenerator extends ParserGenerator {
     }
 
     @Override
-    protected void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data) {
-        Token t = p.getFirstToken();
+    protected void generate_phase1_head(Signature p, LinePrinter printer, ParserPlan data) {
+        Token t = p.head().first();
 
-        setup_token(t);
-        printLeadingComments(printer, t);
-        Token returnType = p.getReturnTypeToken();
-        printer.print((returnType == null) ? "void" : returnType.image);
-        printTrailingComments(printer, t);
-        printer.print(" " + data.getParserName() + "::" + p.getLhs() + "(");
-        if (!p.getParameterListTokens().isEmpty()) {
-            printTokens(p.getParameterListTokens(), null, printer);
+        var comments = cursorAt(t);
+        comments.leadingComments(printer, t);
+        printer.print((p.returnType() == null) ? "void" : p.returnType());
+        comments.trailingComments(printer, t);
+        printer.print(" " + data.getParserName() + "::" + p.name() + "(");
+        if (!p.parameters().isEmpty()) {
+            printTokens(p.parameters(), null, printer);
         }
         printer.print(")");
 
@@ -69,11 +69,11 @@ class CppParserGenerator extends ParserGenerator {
 
     /** Wraps the body of a production in the DEPTH_LIMIT guard and the DEBUG_PARSER trace. */
     @Override
-    protected void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer) {
+    protected void generate_phase1_body(Signature p, LinePrinter printer, ParserPlan data, Consumer<LinePrinter> consumer) {
         boolean hasReturnErr = false;
-        boolean voidReturn = (p.getReturnTypeToken() == null);
+        boolean voidReturn = (p.returnType() == null);
         if ((data.getDepthLimit() > 0) && !voidReturn) {
-            String method_name = p.getLhs();
+            String method_name = p.name();
             printer.println("\n#if !defined ERROR_RET_" + method_name);
             // The value returned on error: 0 converts to most basic types.
             printer.println("#define ERROR_RET_" + method_name + " 0");
@@ -85,9 +85,9 @@ class CppParserGenerator extends ParserGenerator {
         if (data.getDebugParser()) {
             printer.println();
             printer.println("    JJEnter<std::function<void()>> jjenter([this]() {trace_call  (\""
-                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
+                    + Encoding.escapeUnicode(p.name(), Language.CPP) + "\"); });");
             printer.println("    JJExit <std::function<void()>> jjexit ([this]() {trace_return(\""
-                    + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
+                    + Encoding.escapeUnicode(p.name(), Language.CPP) + "\"); });");
         }
 
         consumer.accept(printer);
@@ -101,24 +101,9 @@ class CppParserGenerator extends ParserGenerator {
         }
     }
 
-    /**
-     * None: a C++ parser reports an error through its ParserErrorHandler, which names the token it
-     * found and not the ones it expected, so there is nothing to record them for.
-     */
     @Override
-    protected int maskIndex(ParserData data, int mask) {
-        return -1;
-    }
-
-    /** Never, for the same reason. */
-    @Override
-    protected boolean rescans(ParserData data) {
-        return false;
-    }
-
-    @Override
-    protected void generate_phase2(Expansion e, LinePrinter printer, ParserData data) {
-        printer.println("  inline bool jj_2" + internalName(e) + "(int xla) {");
+    protected void generate_phase2(Jj2Routine routine, LinePrinter printer, ParserPlan data) {
+        printer.println("  inline bool jj_2" + routine.name() + "(int xla) {");
         printer.println("    jj_la = xla; jj_lastpos = jj_scanpos = token;");
 
         String ret_suffix = "";
@@ -127,25 +112,25 @@ class CppParserGenerator extends ParserGenerator {
         }
 
         printer.println("    jj_done = false;");
-        printer.println("    return (!jj_3" + internalName(e) + "() || jj_done)" + ret_suffix + ";");
+        printer.println("    return (!jj_3" + routine.name() + "() || jj_done)" + ret_suffix + ";");
         printer.println("  }");
         printer.println();
     }
 
     @Override
-    protected void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer) {
-        printer.println(" inline bool jj_3" + internalName(e) + "()");
+    protected void generate_phase3_routine(ParserPlan data, Jj3Routine routine, LinePrinter printer) {
+        printer.println(" inline bool jj_3" + routine.name() + "()");
         printer.println(" {\n");
         printer.println("    if (jj_done) return true;");
         if (data.getDepthLimit() > 0) {
             printer.println("#define __ERROR_RET__ true");
         }
 
-        Expansion jj3_expansion = traceLookingAhead(data, e, "    ", printer);
+        String traced = traceLookingAhead(data, routine, "    ", printer);
 
-        phase3().emit(data, jj3_expansion, e, count, printer);
+        phase3().emit(data, traced, routine, printer);
 
-        printer.println("    " + genReturn(jj3_expansion, false, data));
+        printer.println("    " + genReturn(traced, false, data));
         if (data.getDepthLimit() > 0) {
             printer.println("#undef __ERROR_RET__");
         }

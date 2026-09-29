@@ -9,12 +9,16 @@ package org.hivevm.waggle.analysis;
 
 import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.api.GenerationException;
+import org.hivevm.waggle.model.Action;
 import org.hivevm.waggle.model.BNFProduction;
+import org.hivevm.waggle.model.CodeText;
 import org.hivevm.waggle.model.Choice;
 import org.hivevm.waggle.model.Expansion;
 import org.hivevm.waggle.model.Lookahead;
+import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.NormalProduction;
+import org.hivevm.waggle.model.Parameter;
 import org.hivevm.waggle.model.OneOrMore;
 import org.hivevm.waggle.model.RExpression;
 import org.hivevm.waggle.model.Sequence;
@@ -52,17 +56,24 @@ public class ParserPlanner {
         return ++this.rIndex;
     }
 
-    public final ParserData build(ParserRequest request, Optional<TreeModel> tree) {
+    public final ParserPlan build(ParserRequest request, Optional<TreeModel> tree,
+                                  PlanningProfile profile) {
         if (request.diagnostics().hasError()) {
             throw new GenerationException("The grammar has " + request.diagnostics().errorCount()
                     + " error(s); no parser was planned.");
         }
 
-        ParserData data = new ParserData(request, tree);
+        ParserPlan data = new ParserPlan(request, tree, profile);
         for (NormalProduction p : data.getProductions()) {
             if (p instanceof BNFProduction) {
                 buildPhase1(data, p.getExpansion());
             }
+        }
+
+        var labels = new int[1];
+        for (NormalProduction p : data.getProductions()) {
+            data.addProductionPlan(new ProductionPlan(ParserPlanner.signature(p),
+                    ParserPlanner.planNode(data, p.getExpansion(), p.getNodeScope(), labels)));
         }
 
         List<Phase3Data> phase3list = new ArrayList<>();
@@ -76,14 +87,25 @@ public class ParserPlanner {
             setupPhase3Builds(data, phase3list.get(phase3index), phase3list);
         }
 
-        for (var e : data.getExpansionCounts()) {
-            findSemanticLookahead(data, e.getKey(), e.getValue());
+        for (var e : data.phase3table.entrySet()) {
+            // An expansion that comes down to a single token needs no routine of its own.
+            if (data.scanCall(e.getKey()) instanceof ScanCall.Routine routine) {
+                var traced = (e.getKey().parent() instanceof NormalProduction np) ? np.getLhs()
+                        : null;
+                var jj3 = new Jj3Routine(routine.name(), e.getValue(), traced,
+                        ParserPlanner.scanSteps(data, e.getKey(), e.getValue()));
+                data.addJj3Routine(jj3);
+                if (ParserPlanner.evaluatesSemanticLookahead(jj3)) {
+                    data.setLookAheadNeeded(true);
+                }
+            }
         }
 
+        data.finish();
         return data;
     }
 
-    private void buildPhase1(ParserData data, Expansion e) {
+    private void buildPhase1(ParserPlan data, Expansion e) {
         switch (e) {
             case Choice choice -> {
                 Lookahead[] conds = new Lookahead[choice.getChoices().size()];
@@ -92,7 +114,7 @@ public class ParserPlanner {
                     buildPhase1(data, nestedSeq);
                     conds[i] = (Lookahead) nestedSeq.getUnits().getFirst();
                 }
-                data.setLookaheadPlan(e, buildLookahead(data, conds));
+                data.setDecision(e, buildLookahead(data, conds));
             }
             case Sequence sequence -> {
                 // The first unit is the sequence's Lookahead.
@@ -103,27 +125,97 @@ public class ParserPlanner {
             // The order matters: it numbers the jj_2 routines and the jj_la1 slots. A "(…)*" tests
             // before its body is built, "(…)+" and "[…]" after.
             case ZeroOrMore loop -> {
-                LookaheadPlan plan = buildLookahead(data, loopCondition(data, loop.getExpansion()));
-                data.setLookaheadPlan(e, plan);
+                Decision plan = buildLookahead(data, loopCondition(data, loop.getExpansion()));
+                data.setDecision(e, plan);
                 buildPhase1(data, loop.getExpansion());
             }
             case OneOrMore loop -> {
                 Lookahead[] conds = loopCondition(data, loop.getExpansion());
                 buildPhase1(data, loop.getExpansion());
-                data.setLookaheadPlan(e, buildLookahead(data, conds));
+                data.setDecision(e, buildLookahead(data, conds));
             }
             case ZeroOrOne option -> {
                 Lookahead[] conds = loopCondition(data, option.getExpansion());
                 buildPhase1(data, option.getExpansion());
-                data.setLookaheadPlan(e, buildLookahead(data, conds));
+                data.setDecision(e, buildLookahead(data, conds));
             }
             default -> {
             }
         }
     }
 
+    /** What a generator writes to declare {@code p}, taken from the grammar once. */
+    private static ProductionPlan.Signature signature(NormalProduction p) {
+        return new ProductionPlan.Signature(p.getLhs(), new CodeText(List.of(p.getFirstToken())),
+                (p.getReturnTypeToken() == null) ? null : p.getReturnTypeToken().image,
+                new CodeText(p.getParameterListTokens()),
+                Parameter.split(p.getParameterListTokens()), p.getNodeScope());
+    }
+
+    /**
+     * The plan of {@code e} and what it contains, in the order the parser is written: the loops are
+     * labelled in that order. An alternative after the one a decision defaults to is never
+     * reached, and is not planned.
+     *
+     * @param scope  the node scope the grammar code in {@code e} refers to, or {@code null}
+     * @param labels the last loop label handed out
+     */
+    private static PlanNode planNode(ParserPlan data, Expansion e, NodeScope scope, int[] labels) {
+        var own = e.getNodeScope();
+        var inner = (own != null) ? own : scope;
+        PlanNode node = switch (e) {
+            case RExpression re -> new PlanNode.Consume(new CodeText(re.getLhsTokens()),
+                    (re.getRhsToken() == null) ? null : re.getRhsToken().image,
+                    new TokenRef(re.getLabel().isEmpty()
+                            ? data.getNameOfToken(re.getOrdinal()) : re.getLabel(),
+                            re.getOrdinal()), inner);
+            case NonTerminal nt -> new PlanNode.Call(nt.getName(), new CodeText(nt.getLhsTokens()),
+                    new CodeText(nt.getArgumentTokens()), inner);
+            case Action action -> new PlanNode.Code(new CodeText(action.getActionTokens()), inner);
+            case Choice choice -> {
+                var decision = data.getDecision(e);
+                var reached = Math.min(decision.defaultAlternative() + 1, choice.getChoices().size());
+                var alternatives = new ArrayList<PlanNode>();
+                for (int i = 0; i < reached; i++) {
+                    alternatives.add(planNode(data, choice.getChoices().get(i), inner, labels));
+                }
+                yield new PlanNode.Decide(decision, List.copyOf(alternatives), true, inner);
+            }
+            case Sequence seq -> {
+                var units = new ArrayList<PlanNode>();
+                for (var unit : seq.getUnits()) {
+                    var planned = planNode(data, unit, inner, labels);
+                    if (planned != null) {
+                        units.add(planned);
+                    }
+                }
+                yield new PlanNode.Seq(List.copyOf(units));
+            }
+            case ZeroOrOne option -> new PlanNode.Decide(data.getDecision(e),
+                    List.of(planNode(data, option.getExpansion(), inner, labels)), false, inner);
+            case OneOrMore loop -> {
+                var label = ++labels[0];
+                yield new PlanNode.Repeat(label, true,
+                        planNode(data, loop.getExpansion(), inner, labels), data.getDecision(e),
+                        inner);
+            }
+            case ZeroOrMore loop -> {
+                var label = ++labels[0];
+                yield new PlanNode.Repeat(label, false,
+                        planNode(data, loop.getExpansion(), inner, labels), data.getDecision(e),
+                        inner);
+            }
+            // The leading Lookahead unit of a sequence runs as nothing.
+            default -> null;
+        };
+        if (own == null) {
+            return node;
+        }
+        return new PlanNode.Scoped(own, (node != null) ? node : new PlanNode.Seq(List.of()));
+    }
+
     /** The single condition of a loop or an option: its body's own lookahead, or the default one. */
-    private static Lookahead[] loopCondition(ParserData data, Expansion body) {
+    private static Lookahead[] loopCondition(ParserPlan data, Expansion body) {
         if (body instanceof Sequence seq) {
             return new Lookahead[]{(Lookahead) seq.getUnits().getFirst()};
         }
@@ -140,69 +232,87 @@ public class ParserPlanner {
      * and no semantic lookahead either — ends the chain; its alternative is the default.
      *
      * <p>Registers the token mask of every switch ({@code jj_la1}) and the {@code jj_2} routine of
-     * every syntactic lookahead.
+     * every syntactic lookahead, and follows the shape the chain is in from step to step.
      */
-    private static LookaheadPlan buildLookahead(ParserData data, Lookahead[] conds) {
-        var steps = new ArrayList<LookaheadPlan.Step>();
-        var inSwitch = false;
+    private static Decision buildLookahead(ParserPlan data, Lookahead[] conds) {
+        var steps = new ArrayList<Decision.Step>();
+        var opening = Decision.Opening.NOTHING;
+        int openBlocks = 0;
         int[] tokenMask = null;
         boolean[] casedValues = null;
 
         for (Lookahead la : conds) {
-            LookaheadPlan.Kind kind;
             boolean[] firstSet = null;
+            boolean semantic;
 
             if ((la.getAmount() == 0) || Semanticize.emptyExpansionExists(la.getLaExpansion())) {
                 if (la.getActionTokens().isEmpty()) {
                     break; // trivially true: this alternative is the default
                 }
-                kind = LookaheadPlan.Kind.SEMANTIC;
+                semantic = true;
             } else if ((la.getAmount() == 1) && la.getActionTokens().isEmpty()) {
                 // One token decides — unless the FIRST set runs into a semantic lookahead.
                 firstSet = new boolean[data.getTokenCount()];
-                kind = ParserPlanner.genFirstSet(data, la.getLaExpansion(), firstSet, false)
-                        ? LookaheadPlan.Kind.SYNTACTIC
-                        : LookaheadPlan.Kind.SWITCH;
+                if (!ParserPlanner.genFirstSet(data, la.getLaExpansion(), firstSet, false)) {
+                    if (opening != Decision.Opening.SWITCH) {
+                        tokenMask = new int[MaskTable.wordCount(data.getTokenCount())];
+                        casedValues = new boolean[data.getTokenCount()];
+                        openBlocks++;
+                    }
+                    steps.add(new Decision.Switch(opening,
+                            ParserPlanner.caseTokens(data, firstSet, casedValues, tokenMask)));
+                    opening = Decision.Opening.SWITCH;
+                    continue;
+                }
+                semantic = false;
             } else {
-                kind = LookaheadPlan.Kind.SYNTACTIC;
+                semantic = false;
             }
 
-            int[] tokens = null;
-            int mask = -1;
-            if (kind == LookaheadPlan.Kind.SWITCH) {
-                if (!inSwitch) {
-                    tokenMask = new int[((data.getTokenCount() - 1) / 32) + 1];
-                    casedValues = new boolean[data.getTokenCount()];
-                }
-                tokens = ParserPlanner.caseTokens(firstSet, casedValues, tokenMask);
-                inSwitch = true;
+            // An if: after a switch, it goes into the switch's default arm.
+            int slot = (opening == Decision.Opening.SWITCH)
+                    ? ParserPlanner.recorded(data, data.addMask(tokenMask)) : -1;
+            openBlocks += switch (opening) {
+                case NOTHING -> 1;
+                case IF -> 0;
+                case SWITCH -> 2;
+            };
+            if (semantic) {
+                steps.add(new Decision.Semantic(opening, slot,
+                        new CodeText(la.getActionTokens())));
             } else {
-                if (inSwitch) {
-                    mask = data.addMask(tokenMask);
-                }
-                if (kind == LookaheadPlan.Kind.SYNTACTIC) {
-                    // At this point, la.la_expansion.internal_name must be "".
-                    data.setInternalName(la.getLaExpansion(), "_" + data.addLookupAhead(la));
-                }
-                inSwitch = false;
+                // At this point, the lookahead expansion has no scan call yet.
+                var routine = data.addLookupAhead(la);
+                data.setScanCall(la.getLaExpansion(), new ScanCall.Routine(routine.name()));
+                steps.add(new Decision.Syntactic(opening, slot, routine, la.getAmount(),
+                        new CodeText(la.getActionTokens())));
             }
-            steps.add(new LookaheadPlan.Step(kind, la, tokens, mask));
+            opening = Decision.Opening.IF;
         }
 
-        return new LookaheadPlan(steps, inSwitch ? data.addMask(tokenMask) : -1);
+        var inSwitch = opening == Decision.Opening.SWITCH;
+        return new Decision(List.copyOf(steps), new Decision.Fallback(opening,
+                inSwitch ? ParserPlanner.recorded(data, data.addMask(tokenMask)) : -1,
+                inSwitch ? openBlocks + 1 : openBlocks));
     }
 
-    /** The token kinds of a FIRST set that no earlier case of the switch claimed. */
-    private static int[] caseTokens(boolean[] firstSet, boolean[] casedValues, int[] tokenMask) {
-        var tokens = new ArrayList<Integer>();
+    /** The jj_la1 slot a choice records, or -1 when the parser records no expected tokens. */
+    private static int recorded(ParserPlan data, int slot) {
+        return data.recordsExpectedTokens() ? slot : -1;
+    }
+
+    /** The tokens of a FIRST set that no earlier case of the switch claimed. */
+    private static List<TokenRef> caseTokens(ParserPlan data, boolean[] firstSet,
+                                             boolean[] casedValues, int[] tokenMask) {
+        var tokens = new ArrayList<TokenRef>();
         for (int i = 0; i < firstSet.length; i++) {
             if (firstSet[i] && !casedValues[i]) {
                 casedValues[i] = true;
                 tokenMask[i / 32] |= 1 << (i % 32);
-                tokens.add(i);
+                tokens.add(new TokenRef(data.getNameOfToken(i), i));
             }
         }
-        return tokens.stream().mapToInt(Integer::intValue).toArray();
+        return List.copyOf(tokens);
     }
 
     /**
@@ -210,7 +320,7 @@ public class ParserPlanner {
      * Returns whether a semantic lookahead has to be evaluated for the next token, or
      * {@code jj2la} if none is found.
      */
-    private static boolean genFirstSet(ParserData data, Expansion exp, boolean[] firstSet,
+    private static boolean genFirstSet(ParserPlan data, Expansion exp, boolean[] firstSet,
                                        boolean jj2la) {
         switch (exp) {
             case RExpression re -> firstSet[re.getOrdinal()] = true;
@@ -244,7 +354,7 @@ public class ParserPlanner {
         return jj2la;
     }
 
-    private void setupPhase3Builds(ParserData data, Phase3Data p3d, List<Phase3Data> phase3list) {
+    private void setupPhase3Builds(ParserPlan data, Phase3Data p3d, List<Phase3Data> phase3list) {
         switch (p3d.exp()) {
             case NonTerminal e_nrw -> generate3R(data, e_nrw.getProd().getExpansion(), p3d, phase3list);
             case Choice e_nrw -> {
@@ -273,10 +383,10 @@ public class ParserPlanner {
         }
     }
 
-    private void generate3R(ParserData data, Expansion e, Phase3Data inf,
+    private void generate3R(ParserPlan data, Expansion e, Phase3Data inf,
                             List<Phase3Data> phase3list) {
         Expansion seq = e;
-        if (data.internalName(e).isEmpty()) {
+        if (data.scanCall(e) == null) {
             while (true) {
                 if ((seq instanceof Sequence s) && s.getUnits().size() == 2) {
                     seq = s.getUnits().get(1);
@@ -288,13 +398,13 @@ public class ParserPlanner {
             }
 
             if (seq instanceof RExpression re) {
-                data.setInternalName(e, "jj_scan_token("
-                        + (re.getLabel().isEmpty() ? "" + re.getOrdinal()
-                        : re.getLabel()) + ")");
+                data.setScanCall(e, new ScanCall.Token(new TokenRef(
+                        re.getLabel().isEmpty() ? null : re.getLabel(), re.getOrdinal())));
                 return;
             }
 
-            data.setInternalName(e, "R_" + ParserPlanner.getProductionName(e) + "_" + nextRIndex());
+            data.setScanCall(e, new ScanCall.Routine(
+                    "R_" + ParserPlanner.getProductionName(e) + "_" + nextRIndex()));
         }
 
         Integer count = data.phase3table.get(e);
@@ -317,37 +427,85 @@ public class ParserPlanner {
     }
 
     /**
-     * Marks the parser as needing {@code jj_lookingAhead} when a jj_3 routine evaluates a semantic
-     * lookahead. It builds nothing: the routines are written by the back ends.
+     * The body of the jj_3 routine for {@code e}: the walk the three back ends used to make while
+     * printing, made once. A sequence stops at the unit after which {@code count} tokens are
+     * certainly scanned; an expansion that comes down to a single token is scanned by its caller.
      */
-    private void findSemanticLookahead(ParserData data, Expansion e, int count) {
-        if (data.internalName(e).startsWith("jj_scan_token")) {
+    private static List<ScanStep> scanSteps(ParserPlan data, Expansion e, int count) {
+        var body = new ArrayList<ScanStep>();
+        ParserPlanner.scanSteps(data, e, count, body);
+        return List.copyOf(body);
+    }
+
+    private static void scanSteps(ParserPlan data, Expansion e, int count, List<ScanStep> body) {
+        if (data.scanCall(e) instanceof ScanCall.Token) {
             return;
         }
 
-        if (e instanceof Choice e_nrw) {
-            Sequence nested_seq;
-            for (Expansion element : e_nrw.getChoices()) {
-                nested_seq = (Sequence) (element);
-                Lookahead la = (Lookahead) nested_seq.getUnits().getFirst();
-                if (!la.getActionTokens().isEmpty()) {
-                    // We have semantic lookahead that must be evaluated.
-                    data.setLookAheadNeeded(true);
+        switch (e) {
+            case RExpression re -> {
+                var name = re.getLabel().isEmpty()
+                        ? data.getNameOfToken(re.getOrdinal())
+                        : re.getLabel();
+                body.add(new ScanStep.ScanToken(new TokenRef(name, re.getOrdinal())));
+            }
+            case NonTerminal nt -> body.add(new ScanStep.FailIfCall(
+                    data.scanCall(nt.getProd().getExpansion())));
+            case Choice choice -> {
+                var size = choice.getChoices().size();
+                if (size != 1) {
+                    ParserPlanner.declareScanPos(body);
+                }
+                var alternatives = new ArrayList<ScanStep.Alternative>();
+                for (int i = 0; i < size; i++) {
+                    var seq = (Sequence) choice.getChoices().get(i);
+                    var la = (Lookahead) seq.getUnits().getFirst();
+                    alternatives.add(new ScanStep.Alternative(data.scanCall(seq),
+                            new CodeText(la.getActionTokens()), i == (size - 1)));
+                }
+                body.add(new ScanStep.Choice(size != 1, List.copyOf(alternatives)));
+            }
+            case Sequence seq -> {
+                // The first unit is the sequence's Lookahead.
+                int cnt = count;
+                for (int i = 1; i < seq.getUnits().size(); i++) {
+                    var unit = seq.getUnits().get(i);
+                    ParserPlanner.scanSteps(data, unit, cnt, body);
+                    cnt -= data.minimumSize(unit);
+                    if (cnt <= 0) {
+                        break;
+                    }
                 }
             }
-        } else if (e instanceof Sequence e_nrw) {
-            // We skip the first element in the following iteration since it is the
-            // Lookahead object.
-            int cnt = count;
-            for (int i = 1; i < e_nrw.getUnits().size(); i++) {
-                var eseq = e_nrw.getUnits().get(i);
-                findSemanticLookahead(data, eseq, cnt);
-                cnt -= data.minimumSize(eseq);
-                if (cnt <= 0) {
-                    break;
-                }
+            case OneOrMore loop -> {
+                ParserPlanner.declareScanPos(body);
+                var call = data.scanCall(loop.getExpansion());
+                body.add(new ScanStep.FailIfCall(call));
+                body.add(new ScanStep.ScanLoop(call));
+            }
+            case ZeroOrMore loop -> {
+                ParserPlanner.declareScanPos(body);
+                body.add(new ScanStep.ScanLoop(data.scanCall(loop.getExpansion())));
+            }
+            case ZeroOrOne option -> {
+                ParserPlanner.declareScanPos(body);
+                body.add(new ScanStep.OptionalScan(data.scanCall(option.getExpansion())));
+            }
+            default -> {
             }
         }
     }
 
+    /** Declares the scan position before its first use in a routine. */
+    private static void declareScanPos(List<ScanStep> body) {
+        if (!body.contains(new ScanStep.DeclareScanPos())) {
+            body.add(new ScanStep.DeclareScanPos());
+        }
+    }
+
+    /** Whether a routine evaluates a semantic lookahead, which needs {@code jj_lookingAhead}. */
+    private static boolean evaluatesSemanticLookahead(Jj3Routine routine) {
+        return routine.body().stream().anyMatch(step -> (step instanceof ScanStep.Choice choice)
+                && choice.alternatives().stream().anyMatch(a -> !a.semantic().isEmpty()));
+    }
 }

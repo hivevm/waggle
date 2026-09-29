@@ -4,6 +4,7 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.waggle.analysis.ParserPlanner;
+import org.hivevm.waggle.analysis.PlanningProfile;
 
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.GenerationException;
@@ -30,6 +31,11 @@ public abstract class GeneratorProvider implements Generator {
     protected abstract LexerGenerator newLexerGenerator();
 
     protected abstract ParserGenerator newParserGenerator();
+
+    /** What this back end's target can do, as far as planning the parser is concerned. */
+    protected PlanningProfile planningProfile() {
+        return PlanningProfile.DEFAULT;
+    }
 
     /** Lets a back end fill in defaults that only it can know. */
     protected void prepare(ParserRequest request) {
@@ -75,7 +81,7 @@ public abstract class GeneratorProvider implements Generator {
                 request.diagnostics());
 
         var dataLexer = new LexerBuilder().build(request);
-        var dataParser = new ParserPlanner().build(request, tree);
+        var dataParser = new ParserPlanner().build(request, tree, planningProfile());
 
         checkNamesAreFree(request.getParserName(), tree);
 
@@ -96,7 +102,7 @@ public abstract class GeneratorProvider implements Generator {
 
         var parserGenerator = newParserGenerator();
         parserGenerator.decorateWith(emitter
-                .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions))
+                .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions, tree.get()))
                 .orElse(ExpansionDecorator.NONE));
         parserGenerator.generate(dataParser);
     }

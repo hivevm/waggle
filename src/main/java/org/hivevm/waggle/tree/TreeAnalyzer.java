@@ -78,6 +78,6 @@ public interface TreeAnalyzer {
         if (scope == null) {
             return;
         }
-        model.add(scope.getNodeDescriptor(), options);
+        model.add(scope, options);
     }
 }

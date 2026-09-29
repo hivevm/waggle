@@ -12,9 +12,9 @@ import org.hivevm.source.LinePrinter;
 import org.hivevm.source.TemplateSet;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.tree.ScopePlan;
 import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
@@ -29,52 +29,53 @@ import java.util.stream.Collectors;
 public class CppTreeEmitter implements TreeEmitter {
 
     @Override
-    public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
+    public void openScope(ScopePlan ns, LinePrinter printer, TreeOptions options) {
         // NODE_FACTORY is rejected in validate.
-        printer.println(nodeClass + " *" + ScopeVariables.node(ns) + " = new " + nodeClass + "("
-                + ns.getNodeDescriptor().getNodeId() + ");");
+        var nodeClass = ns.nodeClass();
+        printer.println(nodeClass + " *" + ns.nodeVar() + " = new " + nodeClass + "("
+                + ns.nodeId() + ");");
 
-        printer.println("bool " + ScopeVariables.closed(ns) + " = true;");
+        printer.println("bool " + ns.closedVar() + " = true;");
 
         printer.println(ScopeVariables.openCall(ns));
         if (options.scopeHook())
-            printer.println("jjtreeOpenNodeScope(" + ScopeVariables.node(ns) + ");");
+            printer.println("jjtreeOpenNodeScope(" + ns.nodeVar() + ");");
 
         if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + "->jjtSetFirstToken(getToken(1));");
+            printer.println(ns.nodeVar() + "->jjtSetFirstToken(getToken(1));");
         }
         printer.print("try {");
     }
 
     @Override
-    public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
+    public void closeScope(ScopePlan ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
         printer.println(ScopeVariables.closeCall(ns));
         if (!isFinal) {
-            printer.println(ScopeVariables.closed(ns) + " = false;");
+            printer.println(ns.closedVar() + " = false;");
         }
         if (options.scopeHook()) {
             printer.println("if (jjtree.nodeCreated()) {");
-            printer.println(" jjtreeCloseNodeScope(" + ScopeVariables.node(ns) + ");");
+            printer.println(" jjtreeCloseNodeScope(" + ns.nodeVar() + ");");
             printer.println("}");
         }
 
         if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + "->jjtSetLastToken(getToken(0));");
+            printer.println(ns.nodeVar() + "->jjtSetLastToken(getToken(0));");
         }
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
+    public void catchBlocks(ScopePlan ns, LinePrinter printer, TreeOptions options) {
         printer.println("} catch (...) {");
-        printer.println("  if (" + ScopeVariables.closed(ns) + ") {");
-        printer.println("    jjtree.clearNodeScope(" + ScopeVariables.node(ns) + ");");
-        printer.println("    " + ScopeVariables.closed(ns) + " = false;");
+        printer.println("  if (" + ns.closedVar() + ") {");
+        printer.println("    jjtree.clearNodeScope(" + ns.nodeVar() + ");");
+        printer.println("    " + ns.closedVar() + " = false;");
         printer.println("  } else {");
         printer.println("    jjtree.popNode();");
         printer.println("  }");
 
         printer.println("} {");
-        printer.println("  if (" + ScopeVariables.closed(ns) + ") {");
+        printer.println("  if (" + ns.closedVar() + ") {");
         closeScope(ns, printer, options, true);
         printer.println("  }");
         printer.print("}");

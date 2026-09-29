@@ -15,7 +15,7 @@ language; only stage 5 does ([SPECIFICATION §4](SPECIFICATION.md)).
 | --- | --- | --- | --- |
 | 1 | Read | `waggle.api` | the grammar text — one `.waggle` file, tokens included ([ADR-0025](adr/0025-one-grammar-file.md)) |
 | 2 | Parse | `waggle.grammar` | the model: productions, expansions, regular expressions, node scopes |
-| 3 | Analyse | `waggle.analysis` | lookahead plans, ambiguity and sanity diagnostics |
+| 3 | Analyse | `waggle.analysis` | the `ParserPlan` — every lookahead decided ([ADR-0029](adr/0029-emitters-only-write-a-finished-plan.md)) — and ambiguity and sanity diagnostics |
 | 4 | Build the lexer | `waggle.lexer` | the NFA and the DFA, finished ([ADR-0012](adr/0012-lexer-owns-dfa-construction.md)) |
 | 5 | Generate | `waggle.codegen` | parser, token manager, tree classes, in Java, C++ or Rust |
 

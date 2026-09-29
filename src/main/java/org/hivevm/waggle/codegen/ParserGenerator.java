@@ -8,34 +8,28 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.waggle.api.OptionsContext;
-import org.hivevm.waggle.analysis.LookaheadPlan;
-
-import org.hivevm.waggle.analysis.ParserData;
+import org.hivevm.waggle.analysis.Jj2Routine;
+import org.hivevm.waggle.analysis.Jj3Routine;
+import org.hivevm.waggle.analysis.Decision;
+import org.hivevm.waggle.analysis.MaskTable;
+import org.hivevm.waggle.analysis.ParserPlan;
+import org.hivevm.waggle.analysis.PlanNode;
+import org.hivevm.waggle.analysis.ProductionPlan;
+import org.hivevm.waggle.analysis.ProductionPlan.Signature;
+import org.hivevm.waggle.analysis.ScanCall;
 
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.model.Action;
-import org.hivevm.waggle.model.Choice;
-import org.hivevm.waggle.model.Expansion;
-import org.hivevm.waggle.model.Lookahead;
+import org.hivevm.waggle.model.CodeText;
 import org.hivevm.waggle.model.NodeScope;
-import org.hivevm.waggle.model.NonTerminal;
-import org.hivevm.waggle.model.NormalProduction;
-import org.hivevm.waggle.model.OneOrMore;
-import org.hivevm.waggle.model.RExpression;
-import org.hivevm.waggle.model.Sequence;
-import org.hivevm.waggle.model.ZeroOrMore;
-import org.hivevm.waggle.model.ZeroOrOne;
-import org.hivevm.waggle.grammar.Token;
 import org.hivevm.source.LinePrinter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public abstract class ParserGenerator extends CodeGenerator<ParserData> {
+public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
 
     private ParserSyntax syntax;
     private Phase3Emitter phase3;
@@ -49,30 +43,13 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     protected static final String TOKEN_MASKS = "TOKEN_MASKS";
     protected static final String USE_AST = "USE_AST";
 
-    /**
-     * What the lookahead checker has opened so far: nothing, an if chain or a switch.
-     *
-     * <p>Public, not protected: it is part of the {@link ParserSyntax} a back end implements, and
-     * the back ends live in their own packages.
-     */
-    public enum LookaheadState {
-        NOOPENSTM,
-        OPENIF,
-        OPENSWITCH
-    }
-
-    private int labelIndex;
     private ExpansionDecorator decorator = ExpansionDecorator.NONE;
-
-    /** The plan being rendered. One generator renders one plan, so it may be held. */
-    private ParserData plan;
 
     /**
      * Constructs an instance of {@link ParserGenerator}.
      */
     protected ParserGenerator(Language language) {
         super(language);
-        this.labelIndex = 0;
     }
 
     /** What wraps a node scope, if anything does. Set once per generation. */
@@ -81,8 +58,8 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
     }
 
     @Override
-    public final void generate(ParserData data) {
-        this.plan = data;
+    public final void generate(ParserPlan data) {
+        validate(data);
         this.syntax = newParserSyntax();
         this.phase3 = new Phase3Emitter(this.syntax, this);
         this.lookahead = new LookaheadEmitter(this.syntax, this);
@@ -91,39 +68,40 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
 
         options.set(ParserGenerator.USE_AST, data.usesTree());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
-        options.set(ParserGenerator.JJ2_INDEX, data.jj2Index());
-        options.set(ParserGenerator.MASK_INDEX, data.maskIndex());
+        options.set(ParserGenerator.JJ2_INDEX, data.jj2Routines().size());
+        var masks = data.maskTable();
+        options.set(ParserGenerator.MASK_INDEX, masks.slots());
         options.set(ParserGenerator.TOKEN_COUNT, data.getTokenCount());
 
-        options.add(ParserGenerator.JJ2_OFFSET, data.jj2Index())
-                .set("JJ2_OFFSET_INDEX", i -> i)
-                .set("JJ2_OFFSET_VALUE", i -> i + 1);
-        options.add(ParserGenerator.TOKEN_MASKS, ((data.getTokenCount() - 1) / 32) + 1)
+        options.add(ParserGenerator.JJ2_OFFSET, data.jj2Routines())
+                .set("JJ2_OFFSET_INDEX", Jj2Routine::saveSlot)
+                .set("JJ2_OFFSET_VALUE", Jj2Routine::number);
+        options.add(ParserGenerator.TOKEN_MASKS, masks.wordCount())
                 .set("TOKEN_MASKS_INDEX", i -> i)
-                .set("TOKEN_MASKS_VALUE", i -> data.maskVals().stream().map(v ->
-                        "0x" + Integer.toHexString(v[i])).collect(Collectors.joining(", ")));
-        options.add(ParserGenerator.TOKEN_MASKS + "_LA1", ((data.getTokenCount() - 1) / 32) + 1)
+                .set("TOKEN_MASKS_VALUE", i -> Arrays.stream(masks.words().get(i))
+                        .mapToObj(v -> "0x" + Integer.toHexString(v))
+                        .collect(Collectors.joining(", ")));
+        options.add(ParserGenerator.TOKEN_MASKS + "_LA1", masks.wordCount())
                 .set("TOKEN_MASKS_LA1_INDEX", i -> i)
-                .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : (32 * i) + " + ");
+                .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : MaskTable.firstToken(i) + " + ");
 
         options.set("DUMP_NORMALPRODUCTIONS", w ->
-                data.getProductions().forEach(n -> generatePhase1(n, w, data)));
+                data.productionPlans().forEach(n -> generatePhase1(n, w, data)));
         options.set("DUMP_LOOKAHEADS", w ->
-                data.getLookaheads().forEach(e -> generate_phase2(e.getLaExpansion(), w, data)));
-        options.set("DUMP_EXPANSIONS", w -> data.getExpansionCounts().forEach(e -> {
-            // A lookahead that is a raw jj_scan_token needs no routine of its own.
-            if (!internalName(e.getKey()).startsWith("jj_scan_token")) {
-                generate_phase3_routine(data, e.getKey(), e.getValue(), w);
-            }
-        }));
+                data.jj2Routines().forEach(r -> generate_phase2(r, w, data)));
+        options.set("DUMP_EXPANSIONS", w ->
+                data.jj3Routines().forEach(r -> generate_phase3_routine(data, r, w)));
 
         generate(data, options);
     }
 
-    protected abstract void generate(ParserData data, OptionsContext options);
+    protected abstract void generate(ParserPlan data, OptionsContext options);
 
-    protected final int nextLabelIndex() {
-        return ++this.labelIndex;
+    /**
+     * Refuses a plan this target cannot write, before any of the parser is written; most targets
+     * can write every plan.
+     */
+    protected void validate(ParserPlan data) {
     }
 
     /**
@@ -131,30 +109,23 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
      * {@code $BOOL} in them refer to {@code scope}, when there is one. This sequence used to be
      * spelled out at every place that copies tokens into the parser.
      */
-    protected final void printTokens(List<Token> tokens, NodeScope scope, LinePrinter printer) {
-        setup_token(tokens.getFirst());
-        tokens.forEach(t -> printToken(t, scope, printer));
-        printTrailingComments(printer, tokens.getLast());
-    }
-
-    protected final void printTrailingComments(LinePrinter printer, Token t) {
-        if (t.next != null) {
-            printLeadingComments(printer, t.next);
-        }
+    protected final void printTokens(CodeText code, NodeScope scope, LinePrinter printer) {
+        var cursor = cursorAt(code.first());
+        code.tokens().forEach(t -> cursor.print(t, scope, printer));
+        cursor.trailingComments(printer, code.last());
     }
 
     /**
      * The value returned from a jj_3 lookahead routine. Shared by the Java and C++ back ends; the
      * Rust back end overrides it (snake-case production name, no {@code return ...;} wrapper).
      */
-    protected String genReturn(Expansion expansion, boolean value, ParserData data) {
+    protected String genReturn(String traced, boolean value, ParserPlan data) {
         String retval = Boolean.toString(value);
-        if (data.getDebugLookahead() && (expansion != null)) {
+        if (data.getDebugLookahead() && (traced != null)) {
             String tracecode =
-                    "trace_return(\"" + Encoding.escapeUnicode(
-                            ((NormalProduction) expansion.parent()).getLhs(), getLanguage())
+                    "trace_return(\"" + Encoding.escapeUnicode(traced, getLanguage())
                             + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
-            if (rescans(data)) {
+            if (data.recordsExpectedTokens()) {
                 tracecode = "if (!jj_rescan) " + tracecode;
             }
             return "{ " + tracecode + " return " + retval + "; }";
@@ -176,204 +147,138 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
         return this.phase3;
     }
 
-    /** The name a lookahead call uses for the routine of {@code e}; Rust snake-cases it. */
-    protected String lookaheadRoutineName(Expansion e) {
-        return internalName(e);
+    /** How this target writes a routine name the analysis gave; Rust snake-cases it. */
+    protected String lookaheadRoutineName(String name) {
+        return name;
     }
 
-    /** The name the analysis gave the lookahead routine of {@code e} (ADR-0019). */
-    protected final String internalName(Expansion e) {
-        return this.plan.internalName(e);
+    /** The call that scans: a jj_3 routine, or the token scan an expansion comes down to. */
+    protected final String genjj_3Call(ScanCall call) {
+        return switch (call) {
+            case ScanCall.Token t -> this.syntax.scanTokenCall(t.token());
+            case ScanCall.Routine r -> "jj_3" + lookaheadRoutineName(r.name()) + "()";
+        };
     }
 
-    /** The call to a jj_3 routine (or a raw {@code jj_scan_token...}). */
-    protected final String genjj_3Call(Expansion e) {
-        var name = internalName(e);
-        return name.startsWith("jj_scan_token") ? name : "jj_3" + lookaheadRoutineName(e) + "()";
-    }
-
-    private void generatePhase1(NormalProduction p, LinePrinter printer, ParserData data) {
-        generate_phase1_head(p, printer, data);
+    private void generatePhase1(ProductionPlan plan, LinePrinter printer, ParserPlan data) {
+        var signature = plan.signature();
+        generate_phase1_head(signature, printer, data);
         printer.indent();
 
-        var node_scope = p.getNodeScope();
+        var node_scope = signature.scope();
         if (node_scope != null) {
             this.decorator.beforeProduction(node_scope, printer);
         }
 
-        generate_phase1_body(p, printer, data, w ->
-                generate_phase1_expansion(data, p.getExpansion(), node_scope, printer)
-        );
+        generate_phase1_body(signature, printer, data, w -> emit(data, plan.body(), printer));
 
         if (node_scope != null) {
             this.decorator.after(node_scope, printer);
         }
 
-        generate_phase1_tail(printer);
+        generate_phase1_tail(signature, printer);
     }
 
-    protected abstract void generate_phase1_head(NormalProduction p, LinePrinter printer, ParserData data);
+    protected abstract void generate_phase1_head(Signature p, LinePrinter printer, ParserPlan data);
 
-    protected abstract void generate_phase1_body(NormalProduction p, LinePrinter printer, ParserData data, Consumer<LinePrinter> consumer);
+    protected abstract void generate_phase1_body(Signature p, LinePrinter printer, ParserPlan data, Consumer<LinePrinter> consumer);
 
-    protected void generate_phase1_tail(LinePrinter printer) {
+    protected void generate_phase1_tail(Signature p, LinePrinter printer) {
         printer.println();
         printer.outdent();
         printer.println("}");
         printer.println();
     }
 
-    protected final void generate_phase1_expansion(ParserData data, Expansion e, NodeScope ns, LinePrinter printer) {
-        var node_scope = e.getNodeScope();
-        if (node_scope != null) {
-            this.decorator.beforeExpansion(node_scope, printer);
-        }
-        var scope = node_scope != null ? node_scope : ns;
-
-        switch (e) {
-            case RExpression re -> {
+    /** Writes one planned piece of a production's body. */
+    private void emit(ParserPlan data, PlanNode node, LinePrinter printer) {
+        switch (node) {
+            case PlanNode.Consume consume -> {
                 printer.println();
-                if (!re.getLhsTokens().isEmpty()) {
-                    printTokens(re.getLhsTokens(), scope, printer);
+                if (!consume.lhs().isEmpty()) {
+                    printTokens(consume.lhs(), consume.scope(), printer);
                     printer.print(" = ");
                 }
-
                 this.syntax.consumeToken(printer);
-                if (re.getLabel().isEmpty()) {
-                    String label = data.getNameOfToken(re.getOrdinal());
-                    printer.print(label != null ? this.syntax.tokenName(label) : "" + re.getOrdinal());
-                } else {
-                    printer.print(this.syntax.tokenName(re.getLabel()));
-                }
-                this.syntax.consumeTokenEnd(re, printer);
+                printer.print(this.syntax.tokenName(consume.token()));
+                this.syntax.consumeTokenEnd(consume.lhs().isEmpty(), consume.rhsField(), printer);
             }
-            case NonTerminal e_nrw -> {
+            case PlanNode.Call call -> {
                 printer.println();
-                if (!e_nrw.getLhsTokens().isEmpty()) {
-                    printTokens(e_nrw.getLhsTokens(), scope, printer);
+                if (!call.lhs().isEmpty()) {
+                    printTokens(call.lhs(), call.scope(), printer);
                     printer.print(" = ");
                 }
-                this.syntax.callProduction(e_nrw, printer);
-                if (!e_nrw.getArgumentTokens().isEmpty()) {
-                    printTokens(e_nrw.getArgumentTokens(), scope, printer);
+                this.syntax.callProduction(call.name(), printer);
+                if (!call.arguments().isEmpty()) {
+                    printTokens(call.arguments(), call.scope(), printer);
                 }
                 this.syntax.callProductionEnd(printer);
             }
-            case Action e_nrw -> {
+            case PlanNode.Code code -> {
                 printer.println();
-                if (!e_nrw.getActionTokens().isEmpty()) {
-                    printTokens(e_nrw.getActionTokens(), scope, printer);
+                if (!code.code().isEmpty()) {
+                    printTokens(code.code(), code.scope(), printer);
                 }
             }
-            case Choice e_nrw -> {
-                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e), (p, i) -> {
-                    if (i == e_nrw.getChoices().size()) {
-                        this.syntax.noAlternativeMatched(printer);
-                    } else {
-                        generate_phase1_expansion(data, e_nrw.getChoices().get(i), scope, p);
-                    }
-                });
-            }
-            case Sequence e_nrw -> {
-                // The leading Lookahead unit renders as nothing.
-                e_nrw.getUnits().forEach(exp -> generate_phase1_expansion(data, exp, scope, printer));
-            }
-            case ZeroOrOne e_nrw -> {
-                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e), (p, i) -> {
-                    if (i == 0) {
-                        generate_phase1_expansion(data, e_nrw.getExpansion(), scope, p);
-                    }
-                });
-            }
-            case OneOrMore e_nrw -> {
+            case PlanNode.Seq seq -> seq.units().forEach(unit -> emit(data, unit, printer));
+            case PlanNode.Decide decide ->
+                    print_lookahead_checker(printer, data, decide.scope(), decide.decision(),
+                            (p, i) -> {
+                                if (i < decide.alternatives().size()) {
+                                    emit(data, decide.alternatives().get(i), p);
+                                } else if (decide.mustMatch()) {
+                                    this.syntax.noAlternativeMatched(p);
+                                }
+                            });
+            case PlanNode.Repeat repeat -> {
+                var label = repeat.label();
                 printer.println();
-                int labelIndex = nextLabelIndex();
-                this.syntax.openRepetition(labelIndex, printer);
-                generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
-                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
-                        (p, i) -> this.syntax.breakRepetition(labelIndex, p, i));
+                this.syntax.openRepetition(label, printer);
+                if (repeat.atLeastOnce()) {
+                    emit(data, repeat.body(), printer);
+                }
+                print_lookahead_checker(printer, data, repeat.scope(), repeat.decision(),
+                        (p, i) -> this.syntax.breakRepetition(label, p, i));
+                if (!repeat.atLeastOnce()) {
+                    emit(data, repeat.body(), printer);
+                }
                 printer.outdent();
                 printer.println();
                 printer.print("}");
-                this.syntax.closeRepetition(labelIndex, printer);
+                this.syntax.closeRepetition(label, printer);
             }
-            case ZeroOrMore e_nrw -> {
-                printer.println();
-                int labelIndex = nextLabelIndex();
-                this.syntax.openRepetition(labelIndex, printer);
-                print_lookahead_checker(printer, data, scope, data.getLookaheadPlan(e),
-                        (p, i) -> this.syntax.breakRepetition(labelIndex, p, i));
-                generate_phase1_expansion(data, e_nrw.getExpansion(), scope, printer);
-                printer.outdent();
-                printer.println();
-                printer.print("}");
-                this.syntax.closeRepetition(labelIndex, printer);
+            case PlanNode.Scoped scoped -> {
+                this.decorator.beforeExpansion(scoped.scope(), printer);
+                emit(data, scoped.body(), printer);
+                this.decorator.after(scoped.scope(), printer);
             }
-            default -> {
-            }
-        }
-
-        if (node_scope != null) {
-            this.decorator.after(node_scope, printer);
         }
     }
 
     /**
-     * Renders how a choice point picks its alternative, as {@link ParserBuilder} planned it: an
+     * Writes how a choice point picks its alternative, as the planner decided it: an
      * {@code if}/{@code else if} chain, with runs of one-token lookaheads folded into a switch on the
      * next token, and the default alternative last. {@code actions} emits alternative {@code i}.
      */
-    private void print_lookahead_checker(LinePrinter printer, ParserData data, NodeScope scope,
-                                         LookaheadPlan plan,
+    private void print_lookahead_checker(LinePrinter printer, ParserPlan data, NodeScope scope,
+                                         Decision decision,
                                          BiConsumer<LinePrinter, Integer> actions) {
-        var state = LookaheadState.NOOPENSTM;
-        int indentAmt = 0;
-
-        for (int index = 0; index < plan.steps().size(); index++) {
-            var step = plan.steps().get(index);
+        for (int index = 0; index < decision.steps().size(); index++) {
             var alternative = index;
             Consumer<LinePrinter> action = p -> actions.accept(p, alternative);
 
-            switch (step.kind()) {
-                case SEMANTIC -> {
-                    indentAmt += ParserGenerator.openedBlocks(state);
-                    this.lookahead.semantic(printer, state, action, step.la(), scope,
-                            maskIndex(data, step.mask()));
-                    state = LookaheadState.OPENIF;
-                }
-                case SWITCH -> {
-                    if (state != LookaheadState.OPENSWITCH) {
-                        indentAmt++;
-                    }
-                    var cases = new ArrayList<String>();
-                    for (int kind : step.tokens()) {
-                        String name = data.getNameOfToken(kind);
-                        cases.add((name == null) ? "" + kind : this.syntax.tokenName(name));
-                    }
-                    this.lookahead.oneToken(printer, state, action, data.getCacheTokens(), cases);
-                    state = LookaheadState.OPENSWITCH;
-                }
-                case SYNTACTIC -> {
-                    indentAmt += ParserGenerator.openedBlocks(state);
-                    this.lookahead.syntactic(printer, state, action, step.la(), scope,
-                            maskIndex(data, step.mask()));
-                    state = LookaheadState.OPENIF;
-                }
+            switch (decision.steps().get(index)) {
+                case Decision.Semantic step -> this.lookahead.semantic(printer, step, action, scope);
+                case Decision.Switch step ->
+                        this.lookahead.oneToken(printer, step, action, data.getCacheTokens());
+                case Decision.Syntactic step ->
+                        this.lookahead.syntactic(printer, step, action, scope);
             }
         }
 
-        this.lookahead.fallback(printer, state, p -> actions.accept(p, plan.defaultAlternative()),
-                state == LookaheadState.OPENSWITCH ? indentAmt + 1 : indentAmt,
-                maskIndex(data, plan.defaultMask()));
-    }
-
-    /** The blocks an {@code if} opens, depending on what it follows. */
-    private static int openedBlocks(LookaheadState state) {
-        return switch (state) {
-            case NOOPENSTM -> 1;
-            case OPENIF -> 0;
-            case OPENSWITCH -> 2;
-        };
+        this.lookahead.fallback(printer, decision.fallback(),
+                p -> actions.accept(p, decision.defaultAlternative()));
     }
 
     /**
@@ -381,30 +286,18 @@ public abstract class ParserGenerator extends CodeGenerator<ParserData> {
      * routine checks a production's own expansion. Returns the expansion the routine's returns
      * trace, or null when it traces nothing.
      */
-    protected final Expansion traceLookingAhead(ParserData data, Expansion e, String indent,
-                                                LinePrinter printer) {
-        if (!data.getDebugLookahead() || !(e.parent() instanceof NormalProduction np)) {
+    protected final String traceLookingAhead(ParserPlan data, Jj3Routine routine, String indent,
+                                             LinePrinter printer) {
+        var traced = routine.tracedProduction();
+        if (!data.getDebugLookahead() || (traced == null)) {
             return null;
         }
-        printer.println(indent + (rescans(data) ? "if (!jj_rescan) " : "") + "trace_call(\""
-                + Encoding.escapeUnicode(np.getLhs(), getLanguage()) + "(LOOKING AHEAD...)\");");
-        return e;
+        printer.println(indent + (data.recordsExpectedTokens() ? "if (!jj_rescan) " : "") + "trace_call(\""
+                + Encoding.escapeUnicode(traced, getLanguage()) + "(LOOKING AHEAD...)\");");
+        return traced;
     }
 
-    /**
-     * Whether the parser runs its lookahead routines again to collect the tokens it expected, which
-     * the lookahead trace must then stay silent for.
-     */
-    protected boolean rescans(ParserData data) {
-        return data.getErrorReporting();
-    }
+    protected abstract void generate_phase2(Jj2Routine routine, LinePrinter printer, ParserPlan data);
 
-    /** The jj_la1 slot to record, or -1 when there is none or ERROR_REPORTING is off. */
-    protected int maskIndex(ParserData data, int mask) {
-        return data.getErrorReporting() ? mask : -1;
-    }
-
-    protected abstract void generate_phase2(Expansion e, LinePrinter printer, ParserData data);
-
-    protected abstract void generate_phase3_routine(ParserData data, Expansion e, int count, LinePrinter printer);
+    protected abstract void generate_phase3_routine(ParserPlan data, Jj3Routine routine, LinePrinter printer);
 }

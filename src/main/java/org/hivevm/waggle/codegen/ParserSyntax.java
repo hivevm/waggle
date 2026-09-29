@@ -9,9 +9,8 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.model.Lookahead;
-import org.hivevm.waggle.model.NonTerminal;
-import org.hivevm.waggle.model.RExpression;
+import org.hivevm.waggle.analysis.Decision;
+import org.hivevm.waggle.analysis.TokenRef;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -49,12 +48,27 @@ public interface ParserSyntax {
         return name;
     }
 
+    /** A token as a production or a switch arm names it: by its constant, or by its ordinal. */
+    default String tokenName(TokenRef token) {
+        return (token.name() == null) ? Integer.toString(token.ordinal()) : tokenName(token.name());
+    }
+
     /**
      * How a token is named in a scan call: by its constant when it has a name, by its ordinal
      * otherwise.
      */
-    default String tokenRef(String name, int ordinal) {
-        return (name == null) ? Integer.toString(ordinal) : "ParserConstants." + name;
+    default String tokenRef(TokenRef token) {
+        return (token.name() == null) ? Integer.toString(token.ordinal())
+                : "ParserConstants." + token.name();
+    }
+
+    /**
+     * The call that scans a lookahead which comes down to a single token, as a routine would call
+     * it: by the grammar's label, or by ordinal. It is written bare, unlike {@link #tokenRef}.
+     */
+    default String scanTokenCall(TokenRef token) {
+        return "jj_scan_token(" + (token.name() == null ? Integer.toString(token.ordinal())
+                : token.name()) + ")";
     }
 
     /** How the abandon-the-lookahead statement is written around the value it yields. */
@@ -151,13 +165,13 @@ public interface ParserSyntax {
     // ---- the lookahead chain: if / else if / switch default ----------------------------------
 
     /** Opens the condition of a purely semantic lookahead. */
-    default void openSemanticCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
+    default void openSemanticCondition(LinePrinter printer, Decision.Opening state,
             int index) {
         openConditionArm(printer, state, index, false);
     }
 
     /** Opens the condition of a syntactic lookahead, which starts on a line of its own. */
-    default void openLookaheadCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
+    default void openLookaheadCondition(LinePrinter printer, Decision.Opening state,
             int index) {
         openConditionArm(printer, state, index, true);
     }
@@ -166,21 +180,21 @@ public interface ParserSyntax {
      * Opens one test of a lookahead chain, in whatever shape the previous one left behind. The two
      * callers above differ only in the blank line, which is why Java and C++ need one body.
      */
-    private void openConditionArm(LinePrinter printer, ParserGenerator.LookaheadState state,
+    private void openConditionArm(LinePrinter printer, Decision.Opening state,
             int index, boolean leadingBlank) {
         switch (state) {
-            case NOOPENSTM -> {
+            case NOTHING -> {
                 if (leadingBlank) {
                     printer.println();
                 }
                 printer.print("if " + conditionOpen(leadingBlank));
             }
-            case OPENIF -> {
+            case IF -> {
                 printer.println();
                 printer.outdent();
                 printer.print("} else if " + conditionOpen(leadingBlank));
             }
-            case OPENSWITCH -> {
+            case SWITCH -> {
                 printer.println(defaultArm());
                 printer.indent();
                 if (index >= 0) {
@@ -216,18 +230,18 @@ public interface ParserSyntax {
     }
 
     /** Opens the arm that runs when no lookahead matched, and writes its action. */
-    default void openFallback(LinePrinter printer, ParserGenerator.LookaheadState state, int index,
+    default void openFallback(LinePrinter printer, Decision.Opening state, int index,
             Consumer<LinePrinter> action) {
         switch (state) {
-            case NOOPENSTM -> action.accept(printer);
-            case OPENIF -> {
+            case NOTHING -> action.accept(printer);
+            case IF -> {
                 printer.println();
                 printer.outdent();
                 printer.print("} else {");
                 printer.indent();
                 action.accept(printer);
             }
-            case OPENSWITCH -> {
+            case SWITCH -> {
                 printer.println(defaultArm());
                 printer.indent();
                 if (index >= 0) {
@@ -244,8 +258,8 @@ public interface ParserSyntax {
     }
 
     /** How deep a lookahead scans, as the target spells an unbounded one. */
-    default String lookaheadAmount(Lookahead la) {
-        return Integer.toString(la.getAmount());
+    default String lookaheadAmount(int amount) {
+        return Integer.toString(amount);
     }
 
     /** The call that runs a lookahead routine. */
@@ -256,21 +270,21 @@ public interface ParserSyntax {
     /**
      * Opens the token switch a one-token lookahead compiles to.
      *
-     * <p>OPENIF opens the {@code else} and then writes the switch NOOPENSTM writes, and OPENSWITCH
+     * <p>IF opens the {@code else} and then writes the switch NOTHING writes, and SWITCH
      * writes nothing because the switch is already open. That used to be a deliberate
      * {@code switch} fall-through in every back end; stated as two conditions it needs no
      * {@code @SuppressWarnings} and no Eclipse-only marker.
      */
-    default void openTokenSwitch(LinePrinter printer, ParserGenerator.LookaheadState state,
+    default void openTokenSwitch(LinePrinter printer, Decision.Opening state,
             boolean cacheTokens) {
-        if (state == ParserGenerator.LookaheadState.OPENIF) {
+        if (state == Decision.Opening.IF) {
             printer.println();
             printer.outdent();
             printer.print("} else {");
             printer.indent();
         }
-        if ((state == ParserGenerator.LookaheadState.OPENIF)
-                || (state == ParserGenerator.LookaheadState.NOOPENSTM)) {
+        if ((state == Decision.Opening.IF)
+                || (state == Decision.Opening.NOTHING)) {
             printer.println();
             printer.println(tokenSwitch(cacheTokens));
             printer.indent();
@@ -316,8 +330,8 @@ public interface ParserSyntax {
     }
 
     /** Closes it, assigning the token to the rule's right-hand side if it has one. */
-    default void consumeTokenEnd(RExpression re, LinePrinter printer) {
-        printer.print(re.getRhsToken() == null ? ");" : ")." + re.getRhsToken().image + ";");
+    default void consumeTokenEnd(boolean discarded, String rhsField, LinePrinter printer) {
+        printer.print((rhsField == null) ? ");" : ")." + rhsField + ";");
     }
 
     /** What a choice does when none of its alternatives matched. */
@@ -328,8 +342,8 @@ public interface ParserSyntax {
     }
 
     /** Opens the call to another production. */
-    default void callProduction(NonTerminal non, LinePrinter printer) {
-        printer.print(non.getName());
+    default void callProduction(String name, LinePrinter printer) {
+        printer.print(name);
         printer.print("(");
     }
 

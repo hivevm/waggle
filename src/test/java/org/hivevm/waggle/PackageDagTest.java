@@ -173,4 +173,42 @@ class PackageDagTest {
                 "these packages are not in the dependency graph (ADR-0023):\n"
                         + String.join("\n", missing));
     }
+
+    /**
+     * The model types code generation may still name: the run of grammar code a plan points it to,
+     * what that code's {@code $NODE} and {@code $BOOL} refer to, and how an embedded block is
+     * delimited. All three are about copying the grammar's own text, which is what is left.
+     */
+    private static final List<String> VERBATIM_MODEL = List.of("CodeBlock", "CodeText", "NodeScope")
+            .stream().map(n -> PackageDagTest.W + "model." + n).toList();
+
+    /**
+     * Code generation writes the plan and does not walk the expansion tree (ADR-0029): what it may
+     * take from the model is the grammar code the plan points it to, which it lays out as it was
+     * written. It may not name an expansion, a production or a lookahead at all.
+     */
+    @Test
+    void parserEmittersReadThePlan() throws IOException {
+        var dir = PackageDagTest.SOURCES.resolve(Path.of("org", "hivevm", "waggle", "codegen"));
+        var violations = new ArrayList<String>();
+        var inspected = 0;
+        try (Stream<Path> files = Files.walk(dir)) {
+            for (Path file : (Iterable<Path>) files.filter(
+                    p -> p.toString().endsWith(".java"))::iterator) {
+                inspected++;
+                for (String line : Files.readAllLines(file)) {
+                    Matcher m = PackageDagTest.IMPORT.matcher(line.strip());
+                    if (m.matches() && m.group(1).startsWith(PackageDagTest.W + "model.")
+                            && !PackageDagTest.VERBATIM_MODEL.contains(m.group(1))) {
+                        violations.add(file.getFileName() + " -> " + m.group(1));
+                    }
+                }
+            }
+        }
+
+        assertTrue(inspected > 20, "only " + inspected + " generator sources were inspected");
+        assertTrue(violations.isEmpty(),
+                "code generation writes the plan, not the expansion tree (ADR-0029), but found:\n"
+                        + String.join("\n", violations));
+    }
 }

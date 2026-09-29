@@ -4,10 +4,9 @@
 package org.hivevm.waggle.codegen.cpp;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.codegen.ParserGenerator;
+import org.hivevm.waggle.analysis.Decision;
+import org.hivevm.waggle.analysis.TokenRef;
 import org.hivevm.waggle.codegen.ParserSyntax;
-import org.hivevm.waggle.model.Lookahead;
-import org.hivevm.waggle.model.RExpression;
 
 import java.util.List;
 
@@ -29,8 +28,8 @@ final class CppParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public String tokenRef(String name, int ordinal) {
-        return (name == null) ? Integer.toString(ordinal) : name;
+    public String tokenRef(TokenRef token) {
+        return (token.name() == null) ? Integer.toString(token.ordinal()) : token.name();
     }
 
     @Override
@@ -92,8 +91,8 @@ final class CppParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public String lookaheadAmount(Lookahead la) {
-        return (la.getAmount() == Integer.MAX_VALUE) ? "INT_MAX" : Integer.toString(la.getAmount());
+    public String lookaheadAmount(int amount) {
+        return (amount == Integer.MAX_VALUE) ? "INT_MAX" : Integer.toString(amount);
     }
 
     @Override
@@ -102,16 +101,16 @@ final class CppParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public void openTokenSwitch(LinePrinter printer, ParserGenerator.LookaheadState state,
+    public void openTokenSwitch(LinePrinter printer, Decision.Opening state,
             boolean cacheTokens) {
-        if (state == ParserGenerator.LookaheadState.OPENIF) {
+        if (state == Decision.Opening.IF) {
             printer.println();
             printer.outdent();
             printer.print("} else {");
             printer.indent();
         }
-        if ((state == ParserGenerator.LookaheadState.OPENIF)
-                || (state == ParserGenerator.LookaheadState.NOOPENSTM)) {
+        if ((state == Decision.Opening.IF)
+                || (state == Decision.Opening.NOTHING)) {
             printer.println();
             printer.print("switch (");
             printer.print(cacheTokens ? "jj_nt->kind()" : "(jj_ntk == -1) ? jj_ntk_f() : jj_ntk");
@@ -140,8 +139,8 @@ final class CppParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public void consumeTokenEnd(RExpression re, LinePrinter printer) {
-        printer.print(re.getRhsToken() == null ? ");" : ")->" + re.getRhsToken().image + ";");
+    public void consumeTokenEnd(boolean discarded, String rhsField, LinePrinter printer) {
+        printer.print((rhsField == null) ? ");" : ")->" + rhsField + ";");
     }
 
     @Override

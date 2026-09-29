@@ -10,8 +10,8 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
-import org.hivevm.waggle.model.NodeScope;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.tree.ScopePlan;
 import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
@@ -25,10 +25,11 @@ import java.util.stream.Collectors;
 public class JavaTreeEmitter implements TreeEmitter {
 
     @Override
-    public void openScope(NodeScope ns, String nodeClass, LinePrinter printer, TreeOptions options) {
-        printer.print(nodeClass + " " + ScopeVariables.node(ns) + " = ");
+    public void openScope(ScopePlan ns, LinePrinter printer, TreeOptions options) {
+        var nodeClass = ns.nodeClass();
+        printer.print(nodeClass + " " + ns.nodeVar() + " = ");
         // The factory has the signature of the node classes' own: jjtCreate(Parser, int).
-        String arguments = "(this, NodeType." + ns.getNodeDescriptor().getNodeId() + ");";
+        String arguments = "(this, NodeType." + ns.nodeId() + ");";
         if (options.nodeFactory().equals("*")) {
             // Old-style multiple-implementations.
             printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate" + arguments);
@@ -38,43 +39,43 @@ public class JavaTreeEmitter implements TreeEmitter {
             printer.println("new " + nodeClass + arguments);
         }
 
-        printer.println("boolean " + ScopeVariables.closed(ns) + " = true;");
+        printer.println("boolean " + ns.closedVar() + " = true;");
 
         printer.println(ScopeVariables.openCall(ns));
         if (options.scopeHook())
-            printer.println("jjtreeOpenNodeScope(" + ScopeVariables.node(ns) + ");");
+            printer.println("jjtreeOpenNodeScope(" + ns.nodeVar() + ");");
 
         if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + ".jjtSetFirstToken(getToken(1));");
+            printer.println(ns.nodeVar() + ".jjtSetFirstToken(getToken(1));");
         }
         printer.print("try {");
     }
 
     @Override
-    public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
+    public void closeScope(ScopePlan ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
         printer.println(ScopeVariables.closeCall(ns));
         if (!isFinal) {
-            printer.println(ScopeVariables.closed(ns) + " = false;");
+            printer.println(ns.closedVar() + " = false;");
         }
         if (options.scopeHook()) {
             printer.println("if (jjtree.nodeCreated()) {");
             printer.indent();
-            printer.println("jjtreeCloseNodeScope(" + ScopeVariables.node(ns) + ");");
+            printer.println("jjtreeCloseNodeScope(" + ns.nodeVar() + ");");
             printer.outdent();
             printer.println("}");
         }
 
         if (options.trackTokens()) {
-            printer.println(ScopeVariables.node(ns) + ".jjtSetLastToken(getToken(0));");
+            printer.println(ns.nodeVar() + ".jjtSetLastToken(getToken(0));");
         }
     }
 
     @Override
-    public void catchBlocks(NodeScope ns, LinePrinter printer, TreeOptions options) {
+    public void catchBlocks(ScopePlan ns, LinePrinter printer, TreeOptions options) {
         printer.println();
         printer.println("} finally {");
         printer.indent();
-        printer.println("if (" + ScopeVariables.closed(ns) + ") {");
+        printer.println("if (" + ns.closedVar() + ") {");
         printer.indent();
         closeScope(ns, printer, options, true);
         printer.outdent();

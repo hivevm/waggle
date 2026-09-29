@@ -34,53 +34,60 @@ import java.util.Set;
 import java.util.Optional;
 
 /**
- * The parser model the back ends render: the productions, plus everything {@link ParserPlanner}
- * decides about lookahead — how every choice point is tested ({@link LookaheadPlan}), the token
- * masks of the one-token switches ({@code jj_la1}), the syntactic lookaheads that need a
- * {@code jj_2} routine (phase 2) and the {@code jj_3} routines they call, each with the largest
- * number of tokens it is ever asked to scan (phase 3).
+ * The finished plan of a parser, which the back ends only write (ADR-0029): every production's
+ * body as {@link PlanNode}s with its choice points decided ({@link Decision}), the token masks of
+ * the one-token switches ({@link MaskTable}), the {@code jj_2} routines of the syntactic lookaheads
+ * (phase 2) and the {@code jj_3} routines they call with their bodies (phase 3). {@link
+ * ParserPlanner} builds it.
+ *
+ * <p>It was {@code ParserData}; ADR-0019 decided the name when it moved here.
  */
-public class ParserData {
+public class ParserPlan {
 
     private final ParserRequest request;
+    private final PlanningProfile profile;
 
-    private int jj2index;
     private boolean lookaheadNeeded;
 
     private final List<int[]> maskVals;
-    private final Map<Expansion, LookaheadPlan> lookaheadPlans;
+    private MaskTable maskTable;
+    private final Map<Expansion, Decision> decisions;
 
-    /** The syntactic lookaheads, each of which gets a jj_2 routine. */
+    /** The syntactic lookaheads, each of which gets a jj_2 routine, and those routines. */
     private final List<Lookahead> phase2list;
-    // LinkedHashMap (not Hashtable): iteration follows insertion order, so getExpansions() emits
-    // phase-3 routines deterministically instead of in hash-bucket order (reproducible output).
+    private final List<Jj2Routine> jj2Routines;
+    // LinkedHashMap (not Hashtable): iteration follows insertion order, so the jj_3 routines are
+    // planned deterministically instead of in hash-bucket order (reproducible output).
     final LinkedHashMap<Expansion, Integer> phase3table = new LinkedHashMap<>();
+    private final List<Jj3Routine> jj3Routines = new ArrayList<>();
+    private final List<ProductionPlan> productionPlans = new ArrayList<>();
 
     private final Optional<TreeModel> tree;
     private final ParserOptions parserOptions;
 
     /**
-     * The name the parser generator invents for each lookahead routine, and the expansions
+     * How a lookahead routine scans each expansion it reaches, and the expansions
      * {@code minimumSize} is currently inside. Both used to be fields of the expansion itself, so
      * the model carried the scratch space of a walk over it (ADR-0019).
      */
-    private final Map<Expansion, String> internalNames = new IdentityHashMap<>();
+    private final Map<Expansion, ScanCall> scanCalls = new IdentityHashMap<>();
     private final Set<Expansion> inMinimumSize =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
     /**
-     * Constructs an instance of {@link ParserData}.
+     * Constructs an instance of {@link ParserPlan}.
      */
-    ParserData(ParserRequest request, Optional<TreeModel> tree) {
+    ParserPlan(ParserRequest request, Optional<TreeModel> tree, PlanningProfile profile) {
         this.request = request;
+        this.profile = profile;
         this.tree = tree;
         this.parserOptions = ParserOptions.from(request.options());
 
-        this.jj2index = 0;
         this.lookaheadNeeded = false;
         this.maskVals = new ArrayList<>();
         this.phase2list = new ArrayList<>();
-        this.lookaheadPlans = new HashMap<>();
+        this.jj2Routines = new ArrayList<>();
+        this.decisions = new HashMap<>();
     }
 
     public final Options options() {
@@ -124,42 +131,58 @@ public class ParserData {
         return this.request.getNormalProductions();
     }
 
-    /** The name of the lookahead routine for {@code e}, or the empty string before one is given. */
-    public final String internalName(Expansion e) {
-        return this.internalNames.getOrDefault(e, "");
+    /** How a lookahead routine scans {@code e}, or {@code null} before the planner decided it. */
+    final ScanCall scanCall(Expansion e) {
+        return this.scanCalls.get(e);
     }
 
-    final void setInternalName(Expansion e, String name) {
-        this.internalNames.put(e, name);
+    final void setScanCall(Expansion e, ScanCall call) {
+        this.scanCalls.put(e, call);
     }
 
-    public final int maskIndex() {
-        return this.maskVals.size();
+    /** The token masks of the switches, once planning is done. */
+    public final MaskTable maskTable() {
+        return this.maskTable;
     }
 
-    public final List<int[]> maskVals() {
-        return this.maskVals;
+    /** Fixes what is derived from the whole plan; the planner calls it last. */
+    final void finish() {
+        this.maskTable = MaskTable.of(getTokenCount(), this.maskVals);
     }
 
     public final boolean isLookAheadNeeded() {
         return this.lookaheadNeeded;
     }
 
-    public final Iterable<Lookahead> getLookaheads() {
+    final Iterable<Lookahead> getLookaheads() {
         return this.phase2list;
     }
 
-    /** Phase-3 expansions paired with their lookahead count, in deterministic insertion order. */
-    public final Iterable<Map.Entry<Expansion, Integer>> getExpansionCounts() {
-        return this.phase3table.entrySet();
+    /** The jj_2 routines, in the order of their numbers. */
+    public final List<Jj2Routine> jj2Routines() {
+        return Collections.unmodifiableList(this.jj2Routines);
     }
 
-    public final LookaheadPlan getLookaheadPlan(Expansion e) {
-        return this.lookaheadPlans.get(e);
+    /** The jj_3 routines, in the order they were planned. */
+    public final List<Jj3Routine> jj3Routines() {
+        return Collections.unmodifiableList(this.jj3Routines);
     }
 
-    public final int jj2Index() {
-        return this.jj2index;
+    final void addJj3Routine(Jj3Routine routine) {
+        this.jj3Routines.add(routine);
+    }
+
+    /** The productions as the parser writes them, in grammar order. */
+    public final List<ProductionPlan> productionPlans() {
+        return Collections.unmodifiableList(this.productionPlans);
+    }
+
+    final void addProductionPlan(ProductionPlan plan) {
+        this.productionPlans.add(plan);
+    }
+
+    final Decision getDecision(Expansion e) {
+        return this.decisions.get(e);
     }
 
     public final boolean getDebugLookahead() {
@@ -170,19 +193,30 @@ public class ParserData {
         return this.parserOptions.errorReporting();
     }
 
+    /**
+     * Whether the parser records the tokens it expected: ERROR_REPORTING asks for it, and the
+     * target can. It decides whether a choice records its {@code jj_la1} slot and whether the
+     * lookahead routines are run again, which their trace must stay silent for.
+     */
+    public final boolean recordsExpectedTokens() {
+        return this.profile.recordsExpectedTokens() && getErrorReporting();
+    }
+
     /** Registers the token mask of a switch and returns its jj_la1 slot. */
     final int addMask(int[] maskVal) {
         this.maskVals.add(maskVal);
         return this.maskVals.size() - 1;
     }
 
-    protected final int addLookupAhead(Lookahead lookahead) {
+    final Jj2Routine addLookupAhead(Lookahead lookahead) {
         this.phase2list.add(lookahead);
-        return ++this.jj2index;
+        var routine = new Jj2Routine(this.jj2Routines.size() + 1);
+        this.jj2Routines.add(routine);
+        return routine;
     }
 
-    final void setLookaheadPlan(Expansion e, LookaheadPlan plan) {
-        this.lookaheadPlans.put(e, plan);
+    final void setDecision(Expansion e, Decision plan) {
+        this.decisions.put(e, plan);
     }
 
     protected final void setLookAheadNeeded(boolean lookaheadNeeded) {
@@ -192,7 +226,7 @@ public class ParserData {
     /*
      * Returns the minimum number of tokens that can parse to this expansion.
      */
-    public final int minimumSize(Expansion e) {
+    final int minimumSize(Expansion e) {
         return minimumSize(e, Integer.MAX_VALUE);
     }
 

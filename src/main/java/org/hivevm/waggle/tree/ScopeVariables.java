@@ -30,20 +30,21 @@ public interface ScopeVariables {
     }
 
     /** The tree-runtime call that opens the scope; the same in every target that builds trees. */
-    static String openCall(NodeScope scope) {
-        return "jjtree.openNodeScope(" + ScopeVariables.node(scope) + ");";
+    public static String openCall(ScopePlan scope) {
+        return "jjtree.openNodeScope(" + scope.nodeVar() + ");";
     }
 
-    /** The tree-runtime call that closes the scope, under the descriptor's arity condition. */
-    static String closeCall(NodeScope scope) {
-        var node = ScopeVariables.node(scope);
-        var descriptor = scope.getNodeDescriptor();
-        if (descriptor.getText() == null) {
-            return "jjtree.closeNodeScope(" + node + ", true);";
-        }
-        return descriptor.isGt()
-                ? "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + descriptor.getText() + ");"
-                : "jjtree.closeNodeScope(" + node + ", " + descriptor.getText() + ");";
+    /** The tree-runtime call that closes the scope, under its arity (Java and C++). */
+    public static String closeCall(ScopePlan scope) {
+        var node = scope.nodeVar();
+        return switch (scope.arity()) {
+            case ScopePlan.Arity.Always a -> "jjtree.closeNodeScope(" + node + ", true);";
+            case ScopePlan.Arity.GreaterThan a ->
+                    "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + a.text() + ");";
+            case ScopePlan.Arity.Count a -> "jjtree.closeNodeScope(" + node + ", " + a.text() + ");";
+            case ScopePlan.Arity.Condition a ->
+                    "jjtree.closeNodeScope(" + node + ", " + a.text() + ");";
+        };
     }
 
     private static String name(String id, NodeScope scope) {
