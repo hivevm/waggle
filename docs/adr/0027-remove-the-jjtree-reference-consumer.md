@@ -1,6 +1,6 @@
 # ADR-0027: Remove the JJTree reference consumer
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-22
 - **Deciders:** Markus Brigl
 - **Supersedes:** [ADR-0016](0016-tree-building-as-an-optional-module.md) — decision 5 only. The

@@ -1,6 +1,6 @@
 # ADR-0028: Tree building is opted into with `USE_AST`
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-23
 - **Deciders:** Markus Brigl
 - **Supersedes:** [ADR-0016](0016-tree-building-as-an-optional-module.md), in part: the rule in its

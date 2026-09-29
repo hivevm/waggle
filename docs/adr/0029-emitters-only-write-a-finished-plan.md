@@ -1,6 +1,6 @@
 # ADR-0029: Emitters only write; the front end hands over a finished plan
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-29
 - **Deciders:** Markus Brigl
 - **Supersedes:** —

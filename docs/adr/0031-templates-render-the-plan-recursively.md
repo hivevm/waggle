@@ -1,6 +1,6 @@
 # ADR-0031: Templates render the plan recursively; a back end writes no control flow
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-29
 - **Deciders:** Markus Brigl
 - **Supersedes:** —

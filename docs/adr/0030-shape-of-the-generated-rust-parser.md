@@ -1,6 +1,6 @@
 # ADR-0030: The shape of the generated Rust parser
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-24
 - **Deciders:** Markus Brigl
 - **Supersedes:** —

@@ -1,6 +1,6 @@
 # ADR-0026: One dependency graph, stated once and tested over the whole tree
 
-- **Status:** 🟡 Proposed <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
+- **Status:** 🟢 Accepted <!-- 🟡 Proposed | 🟢 Accepted | 🔴 Rejected | ⚪ Superseded by ADR-XXXX -->
 - **Date:** 2026-09-22
 - **Deciders:** Markus Brigl
 - **Supersedes:** [ADR-0013](0013-break-model-parser-dependency-cycle.md),

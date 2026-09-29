@@ -39,12 +39,12 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0023](0023-template-engine-independent-of-waggle.md) | The template engine does not depend on Waggle, and the tested DAG covers every package | 🟢 Accepted |
 | [0024](0024-javacc-heritage-vocabulary.md) | Rename the JavaCC-era names that stay inside the generator | 🟢 Accepted |
 | [0025](0025-one-grammar-file.md) | A grammar is one file; the sibling `.lex` is removed | 🟢 Accepted |
-| [0026](0026-one-dependency-graph.md) | One dependency graph, stated once and tested over the whole tree | 🟡 Proposed |
-| [0027](0027-remove-the-jjtree-reference-consumer.md) | Remove the JJTree reference consumer | 🟡 Proposed |
-| [0028](0028-tree-building-is-opted-into-with-use-ast.md) | Tree building is opted into with `USE_AST` | 🟡 Proposed |
-| [0029](0029-emitters-only-write-a-finished-plan.md) | Emitters only write; the front end hands over a finished plan | 🟡 Proposed |
-| [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟡 Proposed |
-| [0031](0031-templates-render-the-plan-recursively.md) | Templates render the plan recursively; a back end writes no control flow | 🟡 Proposed |
+| [0026](0026-one-dependency-graph.md) | One dependency graph, stated once and tested over the whole tree | 🟢 Accepted |
+| [0027](0027-remove-the-jjtree-reference-consumer.md) | Remove the JJTree reference consumer | 🟢 Accepted |
+| [0028](0028-tree-building-is-opted-into-with-use-ast.md) | Tree building is opted into with `USE_AST` | 🟢 Accepted |
+| [0029](0029-emitters-only-write-a-finished-plan.md) | Emitters only write; the front end hands over a finished plan | 🟢 Accepted |
+| [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟢 Accepted |
+| [0031](0031-templates-render-the-plan-recursively.md) | Templates render the plan recursively; a back end writes no control flow | 🟢 Accepted |
 
 ## Process
 
