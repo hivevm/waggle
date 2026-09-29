@@ -119,7 +119,7 @@ class CppLexerGenerator extends LexerGenerator {
             var rows = states.get(i);
             var lengths = new ArrayList<Integer>();
             for (int j = 0; j < rows.size(); j++) {
-                List<Integer> set = rows.get(j).isEmpty() ? List.of(j) : rows.get(j);
+                List<Integer> set = rows.get(j);
                 lengths.add(set.size());
                 printer.println("static const int stateSet_" + i + "_" + j + "[] = { "
                         + joined(set) + " };");

@@ -5,19 +5,14 @@ package org.hivevm.waggle;
 
 import org.hivevm.waggle.api.Language;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.codegen.ExpansionDecorator;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
 
 /**
  * Tree code reaches the parser through one hook, and nothing else (ADR-0016).
@@ -27,37 +22,15 @@ import java.io.Writer;
  */
 class TreeEmissionTest {
 
-    /** A printer onto a writer that ignores indentation. */
-    private static final class Wrapper extends PrintWriter implements LinePrinter {
-
-        Wrapper(Writer writer) {
-            super(writer);
-        }
-
-        @Override
-        public LinePrinter indent() {
-            return this;
-        }
-
-        @Override
-        public LinePrinter outdent() {
-            return this;
-        }
-    }
-
     /** With no tree, the hook is what a back end without tree support also gets: nothing. */
     @Test
-    void theEmptyDecoratorWritesNothing() {
-        var writer = new StringWriter();
-        var printer = new Wrapper(writer);
-
-        ExpansionDecorator.NONE.beforeProduction(null, printer);
-        ExpansionDecorator.NONE.beforeExpansion(null, printer);
-        ExpansionDecorator.NONE.after(null, printer);
-        printer.println();
-
-        assertEquals(System.lineSeparator(), writer.toString(),
-                "the no-op decorator must not emit anything of its own");
+    void theEmptyDecoratorWrapsNothing() {
+        assertNull(ExpansionDecorator.NONE.open(null, true),
+                "the no-op decorator must not open a scope of its own");
+        assertNull(ExpansionDecorator.NONE.open(null, false),
+                "the no-op decorator must not open a scope of its own");
+        assertNull(ExpansionDecorator.NONE.close(null),
+                "the no-op decorator must not close a scope of its own");
     }
 
     /**

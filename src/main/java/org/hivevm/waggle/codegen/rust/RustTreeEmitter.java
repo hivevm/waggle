@@ -7,15 +7,11 @@
 package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.waggle.api.OptionsContext;
-import org.hivevm.waggle.api.GenerationException;
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.Options;
-import org.hivevm.waggle.tree.ScopePlan;
-import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
-
+import org.hivevm.waggle.tree.TreeSupport;
 
 /**
  * Rust's tree support: the code around one node scope, and the tree runtime it calls into.
@@ -27,76 +23,10 @@ import org.hivevm.waggle.tree.TreeOptions;
  */
 public class RustTreeEmitter implements TreeEmitter {
 
+    /** The Rust nodes build none of these; the options would otherwise come out as Java. */
     @Override
-    public void openScope(ScopePlan ns, LinePrinter printer, TreeOptions options) {
-        printer.println("let " + ns.nodeVar() + " = new_node(&TreeConstants::"
-                + ns.nodeId() + ");");
-
-        printer.println("let mut " + ns.closedVar() + " = true;");
-
-        printer.println("self.jjtree.open_node_scope(&" + ns.nodeVar() + ");");
-        if (options.scopeHook())
-            printer.println("self.jjtree_open_node_scope(" + ns.nodeVar() + ".as_ref());");
-    }
-
-    @Override
-    public void closeScope(ScopePlan ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
-        printer.println(RustTreeEmitter.closeCall(ns));
-        if (!isFinal) {
-            printer.println(ns.closedVar() + " = false;");
-        }
-        if (options.scopeHook()) {
-            printer.println("if self.jjtree.is_node_created() {");
-            printer.println("  self.jjtree_close_node_scope(" + ns.nodeVar() + ".as_ref());");
-            printer.println("}");
-        }
-    }
-
-    /**
-     * {@link ScopeVariables#closeCall} for Rust, which has no overloads: a number of children goes to
-     * {@code close_node_scope}, a condition to {@code close_node_scope_bool}. An expression that is
-     * not an integer literal is a condition, and rustc rejects it if it is not a bool.
-     */
-    private static String closeCall(ScopePlan ns) {
-        var node = ns.nodeVar();
-        return switch (ns.arity()) {
-            case ScopePlan.Arity.Always a -> "self.jjtree.close_node_scope_bool(&" + node + ", true);";
-            case ScopePlan.Arity.GreaterThan a -> "self.jjtree.close_node_scope_bool(&" + node
-                    + ", self.jjtree.node_arity() > " + a.text().strip() + ");";
-            case ScopePlan.Arity.Count a ->
-                    "self.jjtree.close_node_scope(&" + node + ", " + a.text().strip() + ");";
-            case ScopePlan.Arity.Condition a ->
-                    "self.jjtree.close_node_scope_bool(&" + node + ", " + a.text() + ");";
-        };
-    }
-
-    @Override
-    public void catchBlocks(ScopePlan ns, LinePrinter printer, TreeOptions options) {
-        printer.println();
-        printer.println("if " + ns.closedVar() + " {");
-        closeScope(ns, printer, options, true);
-        printer.println("}");
-    }
-
-    /** What the Rust nodes cannot do; the options would otherwise come out as Java. */
-    @Override
-    public void validate(TreeOptions tree, TreeModel data) {
-        if (tree.visitor()) {
-            throw new GenerationException("VISITOR is not supported for the Rust target.");
-        }
-        if (!tree.nodeFactory().isEmpty()) {
-            throw new GenerationException("NODE_FACTORY is not supported for the Rust target.");
-        }
-        if (tree.trackTokens()) {
-            throw new GenerationException("TRACK_TOKENS is not supported for the Rust target.");
-        }
-
-        var excludes = tree.customNodes();
-        if (tree.buildNodeFiles()
-                && data.getNodesToGenerate().stream().anyMatch(n -> !excludes.contains(n))) {
-            throw new GenerationException("Node classes (NODE_MULTI with BUILD_NODE_FILES) are not "
-                    + "supported for the Rust target.");
-        }
+    public TreeSupport support() {
+        return new TreeSupport(false, false, false, false);
     }
 
     @Override

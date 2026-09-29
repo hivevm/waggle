@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.List;
 
 /**
  * Tests for the template engine.
@@ -217,6 +218,89 @@ class TemplateTest {
     void foreachOverSomethingNotIterableFails() {
         assertThrows(TemplateException.class,
                 () -> render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", new int[] {1, 2})));
+    }
+
+    // ---------------------------------------------------------------- apply
+
+    /** A leaf of the tree an applied template renders. */
+    record Leaf(String text) {
+    }
+
+    /** A node of it; its children are rendered by the template each of them names (ADR-0031). */
+    record Node(String name, List<Object> children) {
+    }
+
+    /** What the applied templates rendered, without the banner and the checksum around it. */
+    private static String apply(Object value, Map<String, Object> env) {
+        var values = new java.util.LinkedHashMap<String, Object>(env);
+        values.put("ROOT", value);
+        return body(new Template("/org/hivevm/source/Outer.java", "//@apply(ROOT)\n")
+                .render("Test", new MapEnv(values)));
+    }
+
+    private static String body(String rendered) {
+        var lines = new java.util.ArrayList<>(rendered.lines().skip(2)
+                .takeWhile(l -> !l.startsWith("// Checksum=")).toList());
+        while (!lines.isEmpty() && lines.getLast().isBlank()) {
+            lines.removeLast();
+        }
+        return lines.isEmpty() ? "" : String.join("\n", lines) + "\n";
+    }
+
+    @Test
+    void applyRendersTheTemplateNamedAfterTheRecordsType() {
+        assertEquals("leaf a in u;\n", apply(new Leaf("a"), Map.of("UNIT", "u")));
+    }
+
+    /** A list under one attribute renders the template of each element in turn. */
+    @Test
+    void applyRendersEveryElementOfAList() {
+        var out = apply(new Node("n", List.of(new Leaf("a"), new Leaf("b"))), Map.of("UNIT", "u"));
+        assertEquals("node n {\n    leaf a in u;\n    leaf b in u;\n}\n", out);
+    }
+
+    /** The point of the directive: a template that applies itself follows a nested structure. */
+    @Test
+    void applyRecursesIntoNestedRecords() {
+        var tree = new Node("outer", List.of(new Leaf("a"),
+                new Node("inner", List.of(new Leaf("b"))), new Leaf("c")));
+        assertEquals("""
+                node outer {
+                    leaf a in u;
+                    node inner {
+                        leaf b in u;
+                    }
+                    leaf c in u;
+                }
+                """, apply(tree, Map.of("UNIT", "u")));
+    }
+
+    /** An applied template reads the options of the generation it runs in, not only the record. */
+    @Test
+    void anAppliedTemplateStillSeesTheSurroundingEnvironment() {
+        assertTrue(apply(new Leaf("a"), Map.of("UNIT", "the-unit")).contains("the-unit"));
+    }
+
+    /** Nothing bound means nothing rendered, as an absent optional part of a plan should be. */
+    @Test
+    void applyRendersNothingForNull() {
+        var values = new java.util.HashMap<String, Object>();
+        values.put("ROOT", null);
+        assertEquals("", body(new Template("/org/hivevm/source/Outer.java", "//@apply(ROOT)\n")
+                .render("Test", new MapEnv(values))));
+    }
+
+    /** A value that is not a record has no components; rendering it would say nothing. */
+    @Test
+    void applyToSomethingThatIsNotARecordFails() {
+        assertThrows(TemplateException.class, () -> apply("plain text", Map.of("UNIT", "u")));
+    }
+
+    @Test
+    void applyToAnUnknownAttributeFails() {
+        assertThrows(TemplateException.class,
+                () -> new Template("/org/hivevm/source/Outer.java", "//@apply(NOPE)\n")
+                        .render("Test", new MapEnv(Map.of())));
     }
 
     // ---------------------------------------------------------------- errors

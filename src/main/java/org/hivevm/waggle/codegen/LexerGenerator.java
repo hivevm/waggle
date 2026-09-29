@@ -295,13 +295,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         StringBuilder builder = new StringBuilder();
         for (var sets : tables.statesForState()) {
             builder.append(rowOpen());
-            for (int j = 0; j < sets.size(); j++) {
-                List<Integer> stateSet = sets.get(j);
-                if (stateSet.isEmpty()) {
-                    builder.append(rowOpen()).append(" ").append(j).append(" ").append(rowClose())
-                            .append(",");
-                    continue;
-                }
+            for (List<Integer> stateSet : sets) {
                 builder.append(rowOpen()).append(" ");
                 for (int element : stateSet) {
                     builder.append(element).append(",");

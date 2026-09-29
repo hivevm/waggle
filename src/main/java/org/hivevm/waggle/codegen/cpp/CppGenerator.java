@@ -59,11 +59,12 @@ public class CppGenerator extends GeneratorProvider {
 
     /**
      * A C++ parser records no expected tokens: it reports an error through its
-     * ParserErrorHandler, which names the token it found and not the ones it expected.
+     * ParserErrorHandler, which names the token it found and not the ones it expected. Its
+     * DEPTH_LIMIT guard returns a value on error, so a void production goes without one.
      */
     @Override
     protected final PlanningProfile planningProfile() {
-        return new PlanningProfile(false);
+        return new PlanningProfile("C++", false, false, true, true);
     }
 
     @Override

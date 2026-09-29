@@ -29,24 +29,6 @@ public interface ScopeVariables {
         return ScopeVariables.name("c", scope);
     }
 
-    /** The tree-runtime call that opens the scope; the same in every target that builds trees. */
-    public static String openCall(ScopePlan scope) {
-        return "jjtree.openNodeScope(" + scope.nodeVar() + ");";
-    }
-
-    /** The tree-runtime call that closes the scope, under its arity (Java and C++). */
-    public static String closeCall(ScopePlan scope) {
-        var node = scope.nodeVar();
-        return switch (scope.arity()) {
-            case ScopePlan.Arity.Always a -> "jjtree.closeNodeScope(" + node + ", true);";
-            case ScopePlan.Arity.GreaterThan a ->
-                    "jjtree.closeNodeScope(" + node + ", jjtree.nodeArity() >" + a.text() + ");";
-            case ScopePlan.Arity.Count a -> "jjtree.closeNodeScope(" + node + ", " + a.text() + ");";
-            case ScopePlan.Arity.Condition a ->
-                    "jjtree.closeNodeScope(" + node + ", " + a.text() + ");";
-        };
-    }
-
     private static String name(String id, NodeScope scope) {
         var s = "000" + scope.getScopeNumber();
         return "jjt" + id + s.substring(s.length() - 3);

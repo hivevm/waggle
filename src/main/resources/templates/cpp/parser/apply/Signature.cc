@@ -1,0 +1,1 @@
+__leading____returnType____trailing__ __PARSER_NAME__::__name__(__parameters__) {

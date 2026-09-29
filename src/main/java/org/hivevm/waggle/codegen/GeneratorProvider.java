@@ -7,6 +7,7 @@ import org.hivevm.waggle.analysis.ParserPlanner;
 import org.hivevm.waggle.analysis.PlanningProfile;
 
 import org.hivevm.waggle.tree.TreeEmitter;
+import org.hivevm.waggle.analysis.ParserPlan;
 import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.api.Options;
@@ -84,13 +85,15 @@ public abstract class GeneratorProvider implements Generator {
         var dataParser = new ParserPlanner().build(request, tree, planningProfile());
 
         checkNamesAreFree(request.getParserName(), tree);
+        checkMethodsAreFree(dataParser);
 
         var emitter = tree.isPresent() ? treeSupport() : Optional.<TreeEmitter>empty();
         if (tree.isPresent() && emitter.isEmpty()) {
             throw new GenerationException(
                     "Tree building (#Node) is not supported for this target.");
         }
-        emitter.ifPresent(e -> e.validate(treeOptions, tree.get()));
+        emitter.ifPresent(e -> e.support().refuseUnsupported(treeOptions, tree.get(),
+                planningProfile().target()));
         if (emitter.isPresent() && generatesTreeRuntime(tree.get(), treeOptions)) {
             emitter.get().emitRuntime(request.options(), treeOptions, tree.get());
         }
@@ -102,9 +105,31 @@ public abstract class GeneratorProvider implements Generator {
 
         var parserGenerator = newParserGenerator();
         parserGenerator.decorateWith(emitter
-                .<ExpansionDecorator>map(e -> new TreeDecorator(e, treeOptions, tree.get()))
+                .<ExpansionDecorator>map(e -> new TreeDecorator(treeOptions, tree.get()))
                 .orElse(ExpansionDecorator.NONE));
         parserGenerator.generate(dataParser);
+    }
+
+    /** The name of the parser method a production becomes; the production's own by default. */
+    protected String methodName(String production) {
+        return production;
+    }
+
+    /** Whether the parser runtime has a method of this name already; none by default. */
+    protected boolean isRuntimeMethod(String name) {
+        return false;
+    }
+
+    /** Refuses a production whose method the parser runtime has already. */
+    private void checkMethodsAreFree(ParserPlan plan) {
+        for (var production : plan.productionPlans()) {
+            var name = methodName(production.signature().name());
+            if (isRuntimeMethod(name)) {
+                throw new GenerationException("The production '" + production.signature().name()
+                        + "' would be the " + planningProfile().target() + " method '" + name
+                        + "', which the parser has already.");
+            }
+        }
     }
 
     /** Refuses to generate anything that would overwrite one of the runtime classes. */

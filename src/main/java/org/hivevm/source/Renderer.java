@@ -164,6 +164,88 @@ interface Renderer {
         }
     }
 
+    /**
+     * A record that implements the {@link Renderer} interface to render a plan record through the
+     * template named after its type: the fourth of the operations a template engine needs to
+     * generate nested output, and the one this engine lacked (ADR-0031).
+     *
+     * <p>The attribute holds a record, or a list of them, or nothing. Each is rendered by the
+     * template {@code base} names for its type, against a {@link RecordEnv} that answers the
+     * record's components and falls back to the surrounding environment for everything else — so
+     * an applied template still reads the options.
+     *
+     * @param attribute the name the record is bound to
+     * @param base      the resource path of the applied template, with a {@code %s} for the type
+     */
+    record ApplyRenderer(String attribute, String base) implements Renderer {
+
+        @Override
+        public void render(LinePrinter printer, Environment environment) {
+            if (!environment.has(attribute)) {
+                throw new TemplateException("Unknown //@apply attribute '" + attribute + "'");
+            }
+            var value = environment.get(attribute);
+            if (value == null) {
+                return;
+            }
+            if (value instanceof Iterable<?> iterable) {
+                for (var element : iterable) {
+                    apply(printer, environment, element);
+                }
+            } else {
+                apply(printer, environment, value);
+            }
+        }
+
+        private void apply(LinePrinter printer, Environment environment, Object value) {
+            if (value == null) {
+                return;
+            }
+            if (!value.getClass().isRecord()) {
+                // Applying a template to something that has no components would render an empty
+                // file's worth of nothing, and say why only much later.
+                throw new TemplateException("//@apply(" + attribute + ") needs a record, but got "
+                        + value.getClass().getName());
+            }
+            var path = String.format(base, value.getClass().getSimpleName());
+            TemplateCache.get(path).renderInto(printer, new RecordEnv(environment, value));
+        }
+    }
+
+    /**
+     * The environment of one applied template: the components of the record it was applied to, and
+     * the surrounding environment for every other name.
+     */
+    class RecordEnv implements Environment {
+
+        private final Environment environment;
+        private final Map<String, Object> components = new LinkedHashMap<>();
+
+        private RecordEnv(Environment environment, Object record) {
+            this.environment = environment;
+            for (var component : record.getClass().getRecordComponents()) {
+                try {
+                    this.components.put(component.getName(),
+                            component.getAccessor().invoke(record));
+                } catch (ReflectiveOperationException e) {
+                    throw new TemplateException("Cannot read '" + component.getName() + "' of "
+                            + record.getClass().getName(), e);
+                }
+            }
+        }
+
+        @Override
+        public boolean has(String name) {
+            return this.components.containsKey(name) || this.environment.has(name);
+        }
+
+        @Override
+        public Object get(String name) {
+            return this.components.containsKey(name) ? this.components.get(name)
+                    : this.environment.get(name);
+        }
+    }
+
     private static boolean validate(String expression, Environment environment) {
         if (expression.startsWith("!")) { // negative condition
             return !validate(expression.substring(1), environment);

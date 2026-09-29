@@ -202,6 +202,12 @@ public class ParserPlan {
         return this.profile.recordsExpectedTokens() && getErrorReporting();
     }
 
+    /** Whether a production with this result type carries the DEPTH_LIMIT guard. */
+    final boolean guardsDepth(String returnType) {
+        return (getDepthLimit() > 0)
+                && (this.profile.guardsVoidProductions() || (returnType != null));
+    }
+
     /** Registers the token mask of a switch and returns its jj_la1 slot. */
     final int addMask(int[] maskVal) {
         this.maskVals.add(maskVal);

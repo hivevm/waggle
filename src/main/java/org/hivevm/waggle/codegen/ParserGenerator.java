@@ -17,27 +17,35 @@ import org.hivevm.waggle.analysis.PlanNode;
 import org.hivevm.waggle.analysis.ProductionPlan;
 import org.hivevm.waggle.analysis.ProductionPlan.Signature;
 import org.hivevm.waggle.analysis.ScanCall;
+import org.hivevm.waggle.analysis.ScanStep;
+import org.hivevm.waggle.analysis.TokenRef;
 
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.model.CodeText;
 import org.hivevm.waggle.model.NodeScope;
-import org.hivevm.source.LinePrinter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
 
     private ParserSyntax syntax;
-    private Phase3Emitter phase3;
-    private LookaheadEmitter lookahead;
 
     protected static final String LOOKAHEAD_NEEDED = "LOOKAHEAD_NEEDED";
+
+    /** The lookahead routines, as the templates that write them read them (ADR-0031). */
+    protected static final String JJ3_ROUTINES = "JJ3_ROUTINES";
+
+    /** The productions, as the templates that write them read them (ADR-0031). */
+    protected static final String PRODUCTIONS = "PRODUCTIONS";
     protected static final String JJ2_INDEX = "JJ2_INDEX";
     protected static final String JJ2_OFFSET = "JJ2_OFFSET";
+    protected static final String JJ2_ROUTINES = "JJ2_ROUTINES";
+    protected static final String RECORDS_EXPECTED_TOKENS = "RECORDS_EXPECTED_TOKENS";
     protected static final String MASK_INDEX = "MASK_INDEX";
     protected static final String TOKEN_COUNT = "TOKEN_COUNT";
     protected static final String TOKEN_MASKS = "TOKEN_MASKS";
@@ -59,10 +67,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
 
     @Override
     public final void generate(ParserPlan data) {
-        validate(data);
         this.syntax = newParserSyntax();
-        this.phase3 = new Phase3Emitter(this.syntax, this);
-        this.lookahead = new LookaheadEmitter(this.syntax, this);
 
         var options = OptionsContext.of(data.options());
 
@@ -85,12 +90,14 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
                 .set("TOKEN_MASKS_LA1_INDEX", i -> i)
                 .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : MaskTable.firstToken(i) + " + ");
 
-        options.set("DUMP_NORMALPRODUCTIONS", w ->
-                data.productionPlans().forEach(n -> generatePhase1(n, w, data)));
-        options.set("DUMP_LOOKAHEADS", w ->
-                data.jj2Routines().forEach(r -> generate_phase2(r, w, data)));
-        options.set("DUMP_EXPANSIONS", w ->
-                data.jj3Routines().forEach(r -> generate_phase3_routine(data, r, w)));
+        options.add(ParserGenerator.PRODUCTIONS, data.productionPlans().stream()
+                .map(n -> productionModel(n, data)).toList());
+        options.set(ParserGenerator.RECORDS_EXPECTED_TOKENS, data.recordsExpectedTokens());
+        options.add(ParserGenerator.JJ2_ROUTINES, data.jj2Routines().stream()
+                .map(r -> new Jj3Model.Jj2(lookaheadRoutineName(r.name()), r.saveSlot()))
+                .toList());
+        options.add(ParserGenerator.JJ3_ROUTINES,
+                data.jj3Routines().stream().map(r -> routineModel(data, r)).toList());
 
         generate(data, options);
     }
@@ -98,40 +105,15 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
     protected abstract void generate(ParserPlan data, OptionsContext options);
 
     /**
-     * Refuses a plan this target cannot write, before any of the parser is written; most targets
-     * can write every plan.
-     */
-    protected void validate(ParserPlan data) {
-    }
-
-    /**
-     * Prints grammar-supplied tokens verbatim, with the comments around them; {@code $NODE} and
+     * Grammar-supplied tokens verbatim, with the comments around them; {@code $NODE} and
      * {@code $BOOL} in them refer to {@code scope}, when there is one. This sequence used to be
      * spelled out at every place that copies tokens into the parser.
      */
-    protected final void printTokens(CodeText code, NodeScope scope, LinePrinter printer) {
+    protected final String code(CodeText code, NodeScope scope) {
         var cursor = cursorAt(code.first());
-        code.tokens().forEach(t -> cursor.print(t, scope, printer));
-        cursor.trailingComments(printer, code.last());
-    }
-
-    /**
-     * The value returned from a jj_3 lookahead routine. Shared by the Java and C++ back ends; the
-     * Rust back end overrides it (snake-case production name, no {@code return ...;} wrapper).
-     */
-    protected String genReturn(String traced, boolean value, ParserPlan data) {
-        String retval = Boolean.toString(value);
-        if (data.getDebugLookahead() && (traced != null)) {
-            String tracecode =
-                    "trace_return(\"" + Encoding.escapeUnicode(traced, getLanguage())
-                            + "(LOOKAHEAD " + (value ? "FAILED" : "SUCCEEDED") + ")\");";
-            if (data.recordsExpectedTokens()) {
-                tracecode = "if (!jj_rescan) " + tracecode;
-            }
-            return "{ " + tracecode + " return " + retval + "; }";
-        } else {
-            return "return " + retval + ";";
-        }
+        var text = new StringBuilder();
+        code.tokens().forEach(t -> text.append(cursor.text(t, scope)));
+        return text.append(cursor.trailingComments(code.last())).toString();
     }
 
     /**
@@ -142,10 +124,6 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
         return ParserSyntax.JAVA;
     }
 
-    /** The lookahead-routine body, shared by every target. */
-    protected final Phase3Emitter phase3() {
-        return this.phase3;
-    }
 
     /** How this target writes a routine name the analysis gave; Rust snake-cases it. */
     protected String lookaheadRoutineName(String name) {
@@ -154,150 +132,212 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
 
     /** The call that scans: a jj_3 routine, or the token scan an expansion comes down to. */
     protected final String genjj_3Call(ScanCall call) {
-        return switch (call) {
+        return this.syntax.callRef(switch (call) {
             case ScanCall.Token t -> this.syntax.scanTokenCall(t.token());
             case ScanCall.Routine r -> "jj_3" + lookaheadRoutineName(r.name()) + "()";
+        });
+    }
+
+    /**
+     * The target's view of one production: what writes its signature and its body, and the wrappers
+     * the options ask for around that body, nested (ADR-0031).
+     */
+    private ProductionModel.Production productionModel(ProductionPlan plan, ParserPlan data) {
+        var signature = plan.signature();
+        var scope = signature.scope();
+
+        ProductionModel.Wrapped inner = new ProductionModel.Body(
+                List.of(nodeModel(data, plan.body())), signature.returnType() == null);
+        if (plan.traced()) {
+            inner = new ProductionModel.Traced(
+                    Encoding.escapeUnicode(signature.name(), getLanguage()), inner);
+        }
+        if (plan.depthGuarded()) {
+            inner = new ProductionModel.DepthGuarded(data.getDepthLimit(), signature.name(), inner);
+        }
+
+        var open = (scope == null) ? null : this.decorator.open(scope, true);
+        var close = (scope == null) ? null : this.decorator.close(scope);
+        return new ProductionModel.Production(signature(signature), open != null, open, close,
+                inner, signature.returnType() == null);
+    }
+
+    /** How this target declares the production {@code p}. */
+    protected abstract ProductionModel.Signature signature(Signature p);
+
+    /** The target's view of one planned piece of a production's body. */
+    private BodyModel.Node nodeModel(ParserPlan data, PlanNode node) {
+        return switch (node) {
+            case PlanNode.Consume consume -> new BodyModel.Consume(
+                    assignment(consume.lhs(), consume.scope()),
+                    this.syntax.tokenName(consume.token()),
+                    (consume.rhsField() == null) ? "" : consume.rhsField(),
+                    consume.lhs().isEmpty());
+            case PlanNode.Call call -> new BodyModel.Call(
+                    assignment(call.lhs(), call.scope()), this.syntax.productionName(call.name()),
+                    verbatim(call.arguments(), call.scope()));
+            case PlanNode.Code code -> new BodyModel.Code(verbatim(code.code(), code.scope()));
+            case PlanNode.Seq seq -> new BodyModel.Seq(
+                    seq.units().stream().map(u -> nodeModel(data, u)).toList());
+            case PlanNode.Decide decide -> new BodyModel.Decide(
+                    chainFrom(data, decide.scope(), decide.decision(), i -> {
+                        if (i < decide.alternatives().size()) {
+                            return nodeModel(data, decide.alternatives().get(i));
+                        }
+                        return decide.mustMatch()
+                                ? new BodyModel.NoAlternative()
+                                : new BodyModel.Nothing();
+                    }, 0));
+            case PlanNode.Repeat repeat -> repeatModel(data, repeat);
+            case PlanNode.Scoped scoped -> scopedModel(data, scoped);
         };
     }
 
-    private void generatePhase1(ProductionPlan plan, LinePrinter printer, ParserPlan data) {
-        var signature = plan.signature();
-        generate_phase1_head(signature, printer, data);
-        printer.indent();
-
-        var node_scope = signature.scope();
-        if (node_scope != null) {
-            this.decorator.beforeProduction(node_scope, printer);
-        }
-
-        generate_phase1_body(signature, printer, data, w -> emit(data, plan.body(), printer));
-
-        if (node_scope != null) {
-            this.decorator.after(node_scope, printer);
-        }
-
-        generate_phase1_tail(signature, printer);
+    /** A node scope around a piece of a body, when the target builds the tree. */
+    private BodyModel.Node scopedModel(ParserPlan data, PlanNode.Scoped scoped) {
+        var open = this.decorator.open(scoped.scope(), false);
+        return new BodyModel.Scoped(open != null, open, List.of(nodeModel(data, scoped.body())),
+                this.decorator.close(scoped.scope()));
     }
 
-    protected abstract void generate_phase1_head(Signature p, LinePrinter printer, ParserPlan data);
-
-    protected abstract void generate_phase1_body(Signature p, LinePrinter printer, ParserPlan data, Consumer<LinePrinter> consumer);
-
-    protected void generate_phase1_tail(Signature p, LinePrinter printer) {
-        printer.println();
-        printer.outdent();
-        printer.println("}");
-        printer.println();
+    private BodyModel.Node repeatModel(ParserPlan data, PlanNode.Repeat repeat) {
+        var label = repeat.label();
+        var body = List.of(nodeModel(data, repeat.body()));
+        var chain = chainFrom(data, repeat.scope(), repeat.decision(),
+                i -> new BodyModel.Break(label, i != 0), 0);
+        return new BodyModel.Repeat(label, repeat.atLeastOnce() ? body : List.of(), chain,
+                repeat.atLeastOnce() ? List.of() : body);
     }
 
-    /** Writes one planned piece of a production's body. */
-    private void emit(ParserPlan data, PlanNode node, LinePrinter printer) {
-        switch (node) {
-            case PlanNode.Consume consume -> {
-                printer.println();
-                if (!consume.lhs().isEmpty()) {
-                    printTokens(consume.lhs(), consume.scope(), printer);
-                    printer.print(" = ");
-                }
-                this.syntax.consumeToken(printer);
-                printer.print(this.syntax.tokenName(consume.token()));
-                this.syntax.consumeTokenEnd(consume.lhs().isEmpty(), consume.rhsField(), printer);
-            }
-            case PlanNode.Call call -> {
-                printer.println();
-                if (!call.lhs().isEmpty()) {
-                    printTokens(call.lhs(), call.scope(), printer);
-                    printer.print(" = ");
-                }
-                this.syntax.callProduction(call.name(), printer);
-                if (!call.arguments().isEmpty()) {
-                    printTokens(call.arguments(), call.scope(), printer);
-                }
-                this.syntax.callProductionEnd(printer);
-            }
-            case PlanNode.Code code -> {
-                printer.println();
-                if (!code.code().isEmpty()) {
-                    printTokens(code.code(), code.scope(), printer);
-                }
-            }
-            case PlanNode.Seq seq -> seq.units().forEach(unit -> emit(data, unit, printer));
-            case PlanNode.Decide decide ->
-                    print_lookahead_checker(printer, data, decide.scope(), decide.decision(),
-                            (p, i) -> {
-                                if (i < decide.alternatives().size()) {
-                                    emit(data, decide.alternatives().get(i), p);
-                                } else if (decide.mustMatch()) {
-                                    this.syntax.noAlternativeMatched(p);
-                                }
-                            });
-            case PlanNode.Repeat repeat -> {
-                var label = repeat.label();
-                printer.println();
-                this.syntax.openRepetition(label, printer);
-                if (repeat.atLeastOnce()) {
-                    emit(data, repeat.body(), printer);
-                }
-                print_lookahead_checker(printer, data, repeat.scope(), repeat.decision(),
-                        (p, i) -> this.syntax.breakRepetition(label, p, i));
-                if (!repeat.atLeastOnce()) {
-                    emit(data, repeat.body(), printer);
-                }
-                printer.outdent();
-                printer.println();
-                printer.print("}");
-                this.syntax.closeRepetition(label, printer);
-            }
-            case PlanNode.Scoped scoped -> {
-                this.decorator.beforeExpansion(scoped.scope(), printer);
-                emit(data, scoped.body(), printer);
-                this.decorator.after(scoped.scope(), printer);
-            }
-        }
+    /** What the grammar assigns a result to, and the {@code =}; nothing when it assigns none. */
+    private String assignment(CodeText lhs, NodeScope scope) {
+        return lhs.isEmpty() ? "" : code(lhs, scope) + " = ";
+    }
+
+    /** A run of grammar code, or nothing when there is none. */
+    private String verbatim(CodeText code, NodeScope scope) {
+        return code.isEmpty() ? "" : code(code, scope);
     }
 
     /**
-     * Writes how a choice point picks its alternative, as the planner decided it: an
-     * {@code if}/{@code else if} chain, with runs of one-token lookaheads folded into a switch on the
-     * next token, and the default alternative last. {@code actions} emits alternative {@code i}.
+     * The target's view of one choice point: the planner's flat list of tests folded into the tree
+     * the generated blocks nest as (ADR-0031). {@code actions} writes alternative {@code i}.
      */
-    private void print_lookahead_checker(LinePrinter printer, ParserPlan data, NodeScope scope,
-                                         Decision decision,
-                                         BiConsumer<LinePrinter, Integer> actions) {
-        for (int index = 0; index < decision.steps().size(); index++) {
-            var alternative = index;
-            Consumer<LinePrinter> action = p -> actions.accept(p, alternative);
-
-            switch (decision.steps().get(index)) {
-                case Decision.Semantic step -> this.lookahead.semantic(printer, step, action, scope);
-                case Decision.Switch step ->
-                        this.lookahead.oneToken(printer, step, action, data.getCacheTokens());
-                case Decision.Syntactic step ->
-                        this.lookahead.syntactic(printer, step, action, scope);
-            }
+    private BodyModel.Chain chainFrom(ParserPlan data, NodeScope scope, Decision decision,
+                                       IntFunction<BodyModel.Node> actions, int index) {
+        var steps = decision.steps();
+        if (index >= steps.size()) {
+            return fallbackModel(decision, actions);
         }
 
-        this.lookahead.fallback(printer, decision.fallback(),
-                p -> actions.accept(p, decision.defaultAlternative()));
+        var step = steps.get(index);
+        var action = actions.apply(index);
+
+        if (step instanceof Decision.Switch) {
+            // The arms of one switch are the run of one-token tests that follows; what comes after
+            // that run is written in the switch's default arm.
+            var arms = new ArrayList<BodyModel.Arm>();
+            int next = index;
+            while ((next < steps.size()) && (steps.get(next) instanceof Decision.Switch s)) {
+                var alternative = next;
+                arms.add(arm(s.cases(), actions.apply(alternative)));
+                next++;
+            }
+            var cached = data.getCacheTokens();
+            var rest = chainFrom(data, scope, decision, actions, next);
+            return (step.opening() == Decision.Opening.IF)
+                    ? new BodyModel.ElseSwitch(cached, List.copyOf(arms), rest)
+                    : new BodyModel.Switch(cached, List.copyOf(arms), rest);
+        }
+
+        var condition = conditionOf(step, scope);
+        var rest = chainFrom(data, scope, decision, actions, index + 1);
+        return switch (step.opening()) {
+            case NOTHING -> new BodyModel.If(step instanceof Decision.Syntactic, condition,
+                    action, rest);
+            case IF -> new BodyModel.ElseIf(condition, action, rest);
+            case SWITCH -> new BodyModel.DefaultIf(slot(step) >= 0, slot(step), condition,
+                    action, rest);
+        };
     }
 
+    /** The arm that runs when no test held, in the shape the chain it closes asks for. */
+    private BodyModel.Chain fallbackModel(Decision decision,
+                                          IntFunction<BodyModel.Node> actions) {
+        var fallback = decision.fallback();
+        var action = actions.apply(decision.defaultAlternative());
+        return switch (fallback.opening()) {
+            case NOTHING -> new BodyModel.Plain(action);
+            case IF -> new BodyModel.Else(action);
+            case SWITCH -> new BodyModel.DefaultElse(fallback.slot() >= 0, fallback.slot(),
+                    action);
+        };
+    }
+
+    /** Where a choice is noted for the error message; negative where it is noted nowhere. */
+    private static int slot(Decision.Step step) {
+        return (step instanceof Decision.Semantic s) ? s.slot()
+                : ((Decision.Syntactic) step).slot();
+    }
+
+    /** What a test checks. */
+    private BodyModel.Test conditionOf(Decision.Step step, NodeScope scope) {
+        if (step instanceof Decision.Semantic semantic) {
+            return new BodyModel.SemanticTest(code(semantic.condition(), scope));
+        }
+        var syntactic = (Decision.Syntactic) step;
+        return new BodyModel.LookaheadTest(lookaheadRoutineName(syntactic.routine().name()),
+                this.syntax.lookaheadAmount(syntactic.amount()),
+                syntactic.semantic().isEmpty() ? "" : code(syntactic.semantic(), scope));
+    }
+
+    /** The labels of a switch arm. */
+    private BodyModel.Arm arm(List<TokenRef> cases, BodyModel.Node action) {
+        var labels = new ArrayList<BodyModel.CaseLabel>();
+        for (var token : cases) {
+            labels.add(new BodyModel.CaseLabel(labels.isEmpty(), this.syntax.tokenName(token)));
+        }
+        return new BodyModel.Arm(!labels.isEmpty(), List.copyOf(labels), action);
+    }
+
+
     /**
-     * Opens the DEBUG_LOOKAHEAD trace of a jj_3 routine: prints its "LOOKING AHEAD..." call when the
-     * routine checks a production's own expansion. Returns the expansion the routine's returns
-     * trace, or null when it traces nothing.
+     * The target's view of one lookahead routine: the planner's steps with every call, token and
+     * return already spelled, which is all a template needs (ADR-0031).
      */
-    protected final String traceLookingAhead(ParserPlan data, Jj3Routine routine, String indent,
-                                             LinePrinter printer) {
+    private Jj3Model.Routine routineModel(ParserPlan data, Jj3Routine routine) {
         var traced = routine.tracedProduction();
-        if (!data.getDebugLookahead() || (traced == null)) {
-            return null;
-        }
-        printer.println(indent + (data.recordsExpectedTokens() ? "if (!jj_rescan) " : "") + "trace_call(\""
-                + Encoding.escapeUnicode(traced, getLanguage()) + "(LOOKING AHEAD...)\");");
-        return traced;
+        return new Jj3Model.Routine(lookaheadRoutineName(routine.name()), traced != null,
+                (traced == null) ? "" : Encoding.escapeUnicode(traced, getLanguage()),
+                data.recordsExpectedTokens(), new Jj3Model.Trace(), new Jj3Model.Failure(), new Jj3Model.Success(),
+                routine.body().stream().map(this::stepModel).toList());
     }
 
-    protected abstract void generate_phase2(Jj2Routine routine, LinePrinter printer, ParserPlan data);
+    private Jj3Model.Step stepModel(ScanStep step) {
+        return switch (step) {
+            case ScanStep.DeclareScanPos d -> new Jj3Model.DeclareScanPos();
+            case ScanStep.ScanToken t -> new Jj3Model.ScanToken(this.syntax.tokenRef(t.token()));
+            case ScanStep.FailIfCall c -> new Jj3Model.FailIfCall(genjj_3Call(c.call()));
+            case ScanStep.Choice c ->
+                    new Jj3Model.Choice(c.saveScanPos(), alternativeModel(c.alternatives(), 0));
+            case ScanStep.ScanLoop l -> new Jj3Model.ScanLoop(genjj_3Call(l.call()));
+            case ScanStep.OptionalScan o -> new Jj3Model.OptionalScan(genjj_3Call(o.call()));
+        };
+    }
 
-    protected abstract void generate_phase3_routine(ParserPlan data, Jj3Routine routine, LinePrinter printer);
+    /**
+     * The alternatives from {@code index} on. Each one that is not the last holds the rest, so the
+     * blocks the generated code nests are the records the templates nest.
+     */
+    private Jj3Model.Alternative alternativeModel(List<ScanStep.Alternative> alternatives,
+                                                  int index) {
+        var alternative = alternatives.get(index);
+        var semantic = alternative.semantic();
+        var guarded = !semantic.isEmpty();
+        var writer = guarded ? code(semantic, null) : "";
+        return (index == (alternatives.size() - 1))
+                ? new Jj3Model.LastAlternative(genjj_3Call(alternative.call()), guarded, writer)
+                : new Jj3Model.TryAlternative(genjj_3Call(alternative.call()), guarded, writer,
+                        alternativeModel(alternatives, index + 1));
+    }
 }

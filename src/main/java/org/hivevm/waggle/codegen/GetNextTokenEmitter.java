@@ -435,7 +435,7 @@ public class GetNextTokenEmitter {
         var cursor = this.tokens.cursorAt(code.first());
         cursor.resetColumn();
         for (Token token : code.tokens()) {
-            cursor.print(token, null, printer);
+            printer.print(cursor.text(token, null));
         }
     }
 

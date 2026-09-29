@@ -28,7 +28,8 @@ public class Template {
         FI,
         END,
         VAR,
-        INVOKE
+        INVOKE,
+        APPLY
     }
 
     /**
@@ -40,7 +41,7 @@ public class Template {
             return Function.valueOf(name);
         } catch (IllegalArgumentException e) {
             throw new TemplateException(template + ": unknown directive '//@" + name.toLowerCase(Locale.ROOT)
-                    + "' — known are: if, elif, else, fi, foreach, end, invoke");
+                    + "' — known are: if, elif, else, fi, foreach, end, invoke, apply");
         }
     }
 
@@ -52,8 +53,10 @@ public class Template {
     // placeholders — "__A__ __B__" was captured as the single name "A__ " — so neither was
     // substituted. The leading "[^_()]" stays: it is what lets a name be glued to a prefix that ends
     // in an underscore, as in "jjbitVec___TOKEN_MASKS_INDEX__".
+    // A backslash before a placeholder writes it out as it stands. C++ generated with DEPTH_LIMIT
+    // defines __ERROR_RET__, which is a name of the target's own and not one of this engine's.
     private static final Pattern STATEMENT = Pattern.compile(
-            "(\\t*)//@(\\w+)(?:[ \\t]*\\(([^)]+)\\))?\\v?|__([^_()]\\w*?)__",
+            "(\\t*)//@(\\w+)(?:[ \\t]*\\(([^)]+)\\))?\\v?|\\\\(__[^_()]\\w*?__)|__([^_()]\\w*?)__",
             Pattern.MULTILINE);
 
     /**
@@ -87,6 +90,29 @@ public class Template {
     }
 
     /**
+     * Where a template applied from this one is read from, and under which extension: the directory
+     * {@code apply} next to it, and this template's own extension, so an applied template is a file
+     * of the target language like every other (ADR-0005).
+     *
+     * <p>A resource path of {@code /templates/java/parser/Parser.java} resolves a record named
+     * {@code ScanToken} to {@code /templates/java/parser/apply/ScanToken.java}. Applied templates
+     * are siblings of each other, so one that applies a further template stays in that directory
+     * rather than descending into another {@code apply}.
+     */
+    private static String applyBase(String name) {
+        int slash = name.lastIndexOf('/');
+        var directory = name.substring(0, slash + 1);
+        int dot = name.indexOf('.', slash + 1);
+        return (directory.endsWith("/apply/") ? directory : directory + "apply/") + "%s"
+                + ((dot < 0) ? "" : name.substring(dot));
+    }
+
+    /** Renders into a printer a caller already owns, for a template applied from another. */
+    final void renderInto(LinePrinter printer, Environment environment) {
+        this.renderer.render(printer, environment);
+    }
+
+    /**
      * Renders the template against {@code environment} and returns the source it produces.
      *
      * <p>It opens nothing: where the text goes is the caller's decision, expressed as an
@@ -117,9 +143,14 @@ public class Template {
             }
             offset = matcher.end();
 
-            var isFunc = matcher.group(4) == null;
+            if (matcher.group(4) != null) {
+                builder.addText(matcher.group(4)); // an escaped placeholder is text
+                continue;
+            }
+
+            var isFunc = matcher.group(5) == null;
             var func = isFunc ? matcher.group(2).toUpperCase(Locale.ROOT) : "VAR";
-            var param = matcher.group(isFunc ? 3 : 4);
+            var param = matcher.group(isFunc ? 3 : 5);
             switch (Template.parse(name, func)) {
                 case IF:
                     builder.addMatch(Template.require(name, func, param));
@@ -155,6 +186,13 @@ public class Template {
                     builder.setIntend(intend);
                     builder.addVar(param);
                     builder.setIntend(-intend);
+                    break;
+
+                case APPLY:
+                    var applyIntend = matcher.group(1).length();
+                    builder.setIntend(applyIntend);
+                    builder.addApply(Template.require(name, func, param), Template.applyBase(name));
+                    builder.setIntend(-applyIntend);
                     break;
 
                 default:

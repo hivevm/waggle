@@ -158,9 +158,9 @@ impl<'a> Parser<'a> {
 	}
 //@fi
 
-	//@invoke(DUMP_NORMALPRODUCTIONS)
-	//@invoke(DUMP_LOOKAHEADS)
-	//@invoke(DUMP_EXPANSIONS)
+	//@apply(PRODUCTIONS)
+	//@apply(JJ2_ROUTINES)
+	//@apply(JJ3_ROUTINES)
 	/// Reads tokens until the one at `index` is there.
 	fn jj_fetch(&mut self, index: usize) -> Result<(), LexicalError> {
 		if let Some(error) = &self.jj_lexical_error {

@@ -7,7 +7,6 @@
 
 package org.hivevm.waggle.codegen;
 
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.grammar.ParserConstants;
@@ -18,7 +17,8 @@ import org.hivevm.waggle.tree.ActionRewriter;
 
 /**
  * Lays out verbatim grammar code as the grammar wrote it: the line breaks and the columns between
- * the tokens, and the comments in front of them. It is spelling, not a decision (ADR-0029).
+ * the tokens, and the comments in front of them. It is spelling, not a decision (ADR-0029), and it
+ * returns the text rather than writing it, so the output model can hold it (ADR-0031 §4).
  *
  * <p>A cursor lives for one run of tokens. The position used to be a pair of fields on the
  * generator, carried from one run to the next; every run starts over with {@link #at}, so nothing
@@ -50,30 +50,29 @@ public final class TokenCursor {
         this.column = 1;
     }
 
-    /** Prints the comments in front of {@code t}, and a line break after them if they need one. */
-    public void leadingComments(LinePrinter printer, Token t) {
+    /** The comments in front of {@code t}, and a line break after them if they need one. */
+    public String leadingComments(Token t) {
         if (t.specialToken == null) {
-            return;
+            return "";
         }
-        printer.print(specialTokensOf(t));
+        var text = specialTokensOf(t);
         if ((this.column != 1) && (this.row != t.beginLine)) {
-            printer.println();
             this.row++;
             this.column = 1;
+            return text + "\n";
         }
+        return text;
     }
 
-    /** Prints the comments that follow {@code t}. */
-    public void trailingComments(LinePrinter printer, Token t) {
-        if (t.next != null) {
-            leadingComments(printer, t.next);
-        }
+    /** The comments that follow {@code t}. */
+    public String trailingComments(Token t) {
+        return (t.next != null) ? leadingComments(t.next) : "";
     }
 
-    /** Prints the token with the comments before it; {@code $NODE}/{@code $BOOL} refer to {@code ns}. */
-    public void print(Token t, NodeScope ns, LinePrinter printer) {
+    /** The token with the comments before it; {@code $NODE}/{@code $BOOL} refer to {@code ns}. */
+    public String text(Token t, NodeScope ns) {
         var text = specialTokensOf(t) + tokenOnly(t);
-        printer.print(ns != null ? ActionRewriter.rewrite(text, ns) : text);
+        return (ns != null) ? ActionRewriter.rewrite(text, ns) : text;
     }
 
     /** The special tokens (comments) in front of {@code t}, oldest first, laid out in place. */

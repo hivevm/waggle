@@ -20,7 +20,7 @@
 namespace __CPP_NAMESPACE__ {
 //@fi
 
-	//@invoke(DUMP_NORMALPRODUCTIONS)
+	//@apply(PRODUCTIONS)
 
 __PARSER_NAME__::__PARSER_NAME__(TokenManager *tokenManager)
 {

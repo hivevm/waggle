@@ -23,9 +23,9 @@ public class Parser
 	private final NodeState jjtree = new NodeState();
 //@fi
 
-	//@invoke(DUMP_NORMALPRODUCTIONS)
-	//@invoke(DUMP_LOOKAHEADS)
-	//@invoke(DUMP_EXPANSIONS)
+	//@apply(PRODUCTIONS)
+	//@apply(JJ2_ROUTINES)
+	//@apply(JJ3_ROUTINES)
 	/**
 	 * Generated Token Manager.
 	 */

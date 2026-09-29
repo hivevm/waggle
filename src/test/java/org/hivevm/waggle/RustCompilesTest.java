@@ -341,6 +341,36 @@ class RustCompilesTest {
     }
 
     /**
+     * A production is a method of the Rust parser in snake case, so one named after a method the
+     * parser has already would not compile. It is refused before anything is written.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"GetToken", "jj_scan"})
+    void rejectsAProductionNamedLikeAParserMethod(String production, @TempDir Path dir)
+            throws IOException {
+        var source = dir.resolve("Grammar.waggle");
+        Files.writeString(source, RustCompilesTest.KEYWORDS.replace("Stmt", production));
+        var target = dir.resolve("rust");
+
+        var builder = new ParserBuilder()
+                .setLanguage(Language.RUST)
+                .setParserFile(source.toFile())
+                .setTargetDir(target.toFile());
+
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(
+                org.hivevm.waggle.api.GenerationException.class, () -> builder.build().parse());
+        org.junit.jupiter.api.Assertions.assertTrue(failure.getMessage() != null
+                        && failure.getMessage().contains("which the parser has already"),
+                "expected a method-name clash, got: " + failure.getMessage());
+        try (var written = Files.exists(target) ? Files.walk(target)
+                : java.util.stream.Stream.<Path>empty()) {
+            org.junit.jupiter.api.Assertions.assertEquals(List.of(),
+                    written.filter(Files::isRegularFile).toList(),
+                    "nothing may be written for a refused grammar");
+        }
+    }
+
+    /**
      * Without NODE_SCOPE_HOOK and node classes Rust writes no tree runtime, and the check sat in the
      * code that writes it: VISITOR passed, and NODE_FACTORY and TRACK_TOKENS came out as Java.
      */

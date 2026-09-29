@@ -355,7 +355,7 @@ public class NfaMoveEmitter {
             }
         }
 
-        this.syntax.printDefaultAndEndLoop(printer, (byteNum != 0) && (byteNum != 1));
+        this.syntax.printDefaultAndEndLoop(printer, false);
     }
 
     protected void DumpCharAndRangeMoves(LinePrinter printer, List<MoveArm> arms) {

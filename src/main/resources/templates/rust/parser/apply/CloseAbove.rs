@@ -1,0 +1,1 @@
+self.jjtree.close_node_scope_bool(&__nodeVar__, self.jjtree.node_arity() > __trimmed__);

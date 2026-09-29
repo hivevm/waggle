@@ -7,12 +7,9 @@
 package org.hivevm.waggle.codegen.java;
 
 import org.hivevm.waggle.api.OptionsContext;
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.Options;
-import org.hivevm.waggle.tree.ScopePlan;
-import org.hivevm.waggle.tree.ScopeVariables;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
@@ -23,66 +20,6 @@ import java.util.stream.Collectors;
  * Java's tree support: the code around one node scope, and the tree runtime it calls into.
  */
 public class JavaTreeEmitter implements TreeEmitter {
-
-    @Override
-    public void openScope(ScopePlan ns, LinePrinter printer, TreeOptions options) {
-        var nodeClass = ns.nodeClass();
-        printer.print(nodeClass + " " + ns.nodeVar() + " = ");
-        // The factory has the signature of the node classes' own: jjtCreate(Parser, int).
-        String arguments = "(this, NodeType." + ns.nodeId() + ");";
-        if (options.nodeFactory().equals("*")) {
-            // Old-style multiple-implementations.
-            printer.println("(" + nodeClass + ")" + nodeClass + ".jjtCreate" + arguments);
-        } else if (!options.nodeFactory().isEmpty()) {
-            printer.println("(" + nodeClass + ")" + options.nodeFactory() + ".jjtCreate" + arguments);
-        } else {
-            printer.println("new " + nodeClass + arguments);
-        }
-
-        printer.println("boolean " + ns.closedVar() + " = true;");
-
-        printer.println(ScopeVariables.openCall(ns));
-        if (options.scopeHook())
-            printer.println("jjtreeOpenNodeScope(" + ns.nodeVar() + ");");
-
-        if (options.trackTokens()) {
-            printer.println(ns.nodeVar() + ".jjtSetFirstToken(getToken(1));");
-        }
-        printer.print("try {");
-    }
-
-    @Override
-    public void closeScope(ScopePlan ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
-        printer.println(ScopeVariables.closeCall(ns));
-        if (!isFinal) {
-            printer.println(ns.closedVar() + " = false;");
-        }
-        if (options.scopeHook()) {
-            printer.println("if (jjtree.nodeCreated()) {");
-            printer.indent();
-            printer.println("jjtreeCloseNodeScope(" + ns.nodeVar() + ");");
-            printer.outdent();
-            printer.println("}");
-        }
-
-        if (options.trackTokens()) {
-            printer.println(ns.nodeVar() + ".jjtSetLastToken(getToken(0));");
-        }
-    }
-
-    @Override
-    public void catchBlocks(ScopePlan ns, LinePrinter printer, TreeOptions options) {
-        printer.println();
-        printer.println("} finally {");
-        printer.indent();
-        printer.println("if (" + ns.closedVar() + ") {");
-        printer.indent();
-        closeScope(ns, printer, options, true);
-        printer.outdent();
-        printer.println("}");
-        printer.outdent();
-        printer.print("}");
-    }
 
     @Override
     public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {

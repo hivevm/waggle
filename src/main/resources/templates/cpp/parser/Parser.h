@@ -29,9 +29,9 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 class __PARSER_NAME__ {
 public:
-	//@invoke(DUMP_NORMALPRODUCTIONS_IMPL)
-	//@invoke(DUMP_LOOKAHEADS)
-	//@invoke(DUMP_EXPANSIONS)
+	//@apply(PROTOTYPES)
+	//@apply(JJ2_ROUTINES)
+	//@apply(JJ3_ROUTINES)
 
 public:
 	void setErrorHandler(ParserErrorHandler* eh) {

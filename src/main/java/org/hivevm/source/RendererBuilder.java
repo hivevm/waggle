@@ -3,6 +3,7 @@
 
 package org.hivevm.source;
 
+import org.hivevm.source.Renderer.ApplyRenderer;
 import org.hivevm.source.Renderer.ForEachRenderer;
 import org.hivevm.source.Renderer.IndentRenderer;
 import org.hivevm.source.Renderer.ListRenderer;
@@ -135,6 +136,15 @@ class RendererBuilder {
     public final RendererBuilder addForeach(String param) {
         var renderer = addRenderer(new ForEachRenderer(param));
         stack.add(renderer);
+        return this;
+    }
+
+    /**
+     * Renders the record bound to {@code attribute}, or each record of the list bound to it,
+     * through the template named after its type (ADR-0031).
+     */
+    public final RendererBuilder addApply(String attribute, String base) {
+        addRenderer(new ApplyRenderer(attribute, base));
         return this;
     }
 

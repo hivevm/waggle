@@ -64,6 +64,7 @@ public class ParserPlanner {
         }
 
         ParserPlan data = new ParserPlan(request, tree, profile);
+        ParserPlanner.refuseWhatTheTargetCannotWrite(data, profile);
         for (NormalProduction p : data.getProductions()) {
             if (p instanceof BNFProduction) {
                 buildPhase1(data, p.getExpansion());
@@ -72,8 +73,10 @@ public class ParserPlanner {
 
         var labels = new int[1];
         for (NormalProduction p : data.getProductions()) {
-            data.addProductionPlan(new ProductionPlan(ParserPlanner.signature(p),
-                    ParserPlanner.planNode(data, p.getExpansion(), p.getNodeScope(), labels)));
+            var signature = ParserPlanner.signature(p);
+            data.addProductionPlan(new ProductionPlan(signature,
+                    ParserPlanner.planNode(data, p.getExpansion(), p.getNodeScope(), labels),
+                    data.getDebugParser(), data.guardsDepth(signature.returnType())));
         }
 
         List<Phase3Data> phase3list = new ArrayList<>();
@@ -90,7 +93,8 @@ public class ParserPlanner {
         for (var e : data.phase3table.entrySet()) {
             // An expansion that comes down to a single token needs no routine of its own.
             if (data.scanCall(e.getKey()) instanceof ScanCall.Routine routine) {
-                var traced = (e.getKey().parent() instanceof NormalProduction np) ? np.getLhs()
+                var traced = (data.getDebugLookahead()
+                        && (e.getKey().parent() instanceof NormalProduction np)) ? np.getLhs()
                         : null;
                 var jj3 = new Jj3Routine(routine.name(), e.getValue(), traced,
                         ParserPlanner.scanSteps(data, e.getKey(), e.getValue()));
@@ -103,6 +107,21 @@ public class ParserPlanner {
 
         data.finish();
         return data;
+    }
+
+    /**
+     * Refuses the options a target cannot write, before anything is written (SPECIFICATION.md §3:
+     * target feature gaps are tracked, not silently produced).
+     */
+    private static void refuseWhatTheTargetCannotWrite(ParserPlan data, PlanningProfile profile) {
+        if (!profile.depthLimit() && (data.getDepthLimit() > 0)) {
+            throw new GenerationException(
+                    "DEPTH_LIMIT is not supported for the " + profile.target() + " target.");
+        }
+        if (!profile.parserTraces() && (data.getDebugParser() || data.getDebugLookahead())) {
+            throw new GenerationException("DEBUG_PARSER and DEBUG_LOOKAHEAD are not supported for"
+                    + " the " + profile.target() + " target.");
+        }
     }
 
     private void buildPhase1(ParserPlan data, Expansion e) {

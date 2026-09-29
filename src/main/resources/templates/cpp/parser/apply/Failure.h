@@ -1,0 +1,5 @@
+//@if(traced)
+{ //@if(rescan)
+if (!jj_rescan) //@fi
+trace_return("__production__(LOOKAHEAD FAILED)"); return true; }//@else
+return true;//@fi

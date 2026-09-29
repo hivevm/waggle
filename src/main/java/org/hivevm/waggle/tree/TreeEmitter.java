@@ -3,45 +3,26 @@
 
 package org.hivevm.waggle.tree;
 
-import org.hivevm.source.LinePrinter;
 import org.hivevm.waggle.api.Options;
 
-
 /**
- * Everything a target has to be able to write for a grammar that builds a tree: the code around one
- * node scope, and the tree runtime the scopes call into.
+ * Everything a target has to be able to write for a grammar that builds a tree: the options it can
+ * build, and the tree runtime the scopes call into.
  *
  * <p>A back end provides one of these, or does not support trees at all
- * ({@code Generator.treeSupport()}). The three methods around a scope used to be abstract methods on
- * {@code ParserGenerator}, so every back end had to implement them whether or not it could, and the
- * parser generator itself was where tree code was woven in (ADR-0016).
+ * ({@code Generator.treeSupport()}). The code around a scope used to be written by three abstract
+ * methods on {@code ParserGenerator}, then by three methods here; it is template text now
+ * (apply/ScopeOpen, apply/ScopeClose and the Close* records, ADR-0031).
  *
- * <p>The scopes are written from {@link TreeOptions}, the typed view of the {@code NODE_*} and
- * {@code VISITOR_*} settings. {@code emitRuntime} additionally takes the name-keyed {@link Options}
- * because it renders templates, and reading option keys by name is the template contract
- * (ADR-0005).
+ * <p>{@code emitRuntime} takes the typed {@link TreeOptions}, the view of the {@code NODE_*} and
+ * {@code VISITOR_*} settings, and the name-keyed {@link Options}, because it renders templates and
+ * reading option keys by name is the template contract (ADR-0005).
  */
 public interface TreeEmitter {
 
-    /** Opens a node scope: declares the node and the flag, and starts the guarded region. */
-    void openScope(ScopePlan scope, LinePrinter printer, TreeOptions options);
-
-    /**
-     * Closes a node scope.
-     *
-     * @param isFinal whether this is the close in the cleanup path, which must not clear the flag
-     *                again
-     */
-    void closeScope(ScopePlan scope, LinePrinter printer, TreeOptions options, boolean isFinal);
-
-    /** Ends the guarded region: unwinds the scope on failure and closes it on the way out. */
-    void catchBlocks(ScopePlan scope, LinePrinter printer, TreeOptions options);
-
-    /**
-     * Refuses the tree options this target cannot build. Runs for every grammar that builds a tree,
-     * before anything is written, whether or not the target writes a runtime for it.
-     */
-    default void validate(TreeOptions tree, TreeModel model) {
+    /** The tree options this target can build; every one of them by default. */
+    default TreeSupport support() {
+        return TreeSupport.ALL;
     }
 
     /** Writes the tree runtime: the node base, the node constants, the tree state, the visitor. */

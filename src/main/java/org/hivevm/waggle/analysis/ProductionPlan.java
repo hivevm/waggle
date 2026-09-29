@@ -13,10 +13,13 @@ import java.util.List;
  * A production as the parser writes it: its signature, which the generator copies from the
  * grammar, and its body.
  *
- * @param signature its name, result and parameters
- * @param body      what it runs
+ * @param signature    its name, result and parameters
+ * @param body         what it runs
+ * @param traced       whether DEBUG_PARSER traces its call and return
+ * @param depthGuarded whether it carries the DEPTH_LIMIT guard
  */
-public record ProductionPlan(Signature signature, PlanNode body) {
+public record ProductionPlan(Signature signature, PlanNode body, boolean traced,
+                             boolean depthGuarded) {
 
     /**
      * What a generator writes to declare the production.

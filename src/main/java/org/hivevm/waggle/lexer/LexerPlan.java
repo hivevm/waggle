@@ -450,7 +450,8 @@ public record LexerPlan(boolean debug, int kindWords, List<LexStatePlan> states,
      * @param kindsForState  per lexical state, the kind each NFA state accepts; empty when the
      *                       state has no NFA
      * @param statesForState per lexical state, the states each NFA state stands for; empty when
-     *                       the state has no NFA. A row is empty where a state stands for itself.
+     *                       the state has no NFA. A state that stands for no composite set
+     *                       stands for itself: its row is its own number.
      */
     public record Tables(List<Integer> newLexState, List<KindTable> kindTables,
                          List<ByteMask> byteMasks, List<Integer> nextStates, boolean nfa,

@@ -219,9 +219,9 @@ final class LexerPlanner {
             kindsForState.add((kinds == null) ? List.of() : Arrays.stream(kinds).boxed().toList());
 
             int[][] sets = (data.statesForState == null) ? null : data.statesForState[i];
-            statesForState.add((sets == null) ? List.of() : Arrays.stream(sets)
-                    .map(set -> (set == null) ? List.<Integer>of()
-                            : Arrays.stream(set).boxed().toList())
+            statesForState.add((sets == null) ? List.of() : IntStream.range(0, sets.length)
+                    .mapToObj(j -> ((sets[j] == null) || (sets[j].length == 0)) ? List.of(j)
+                            : Arrays.stream(sets[j]).boxed().toList())
                     .toList());
         }
         return new Tables(newLexState, List.copyOf(kindTables), List.copyOf(byteMasks),

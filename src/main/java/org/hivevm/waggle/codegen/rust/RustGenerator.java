@@ -3,6 +3,7 @@
 
 package org.hivevm.waggle.codegen.rust;
 
+import org.hivevm.waggle.analysis.PlanningProfile;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.ParserRequest;
@@ -74,4 +75,29 @@ public class RustGenerator extends GeneratorProvider {
     protected final Set<String> reservedNames() {
         return RustTemplate.SET.reservedNames();
     }
+
+    /**
+     * The Rust parser has no DEPTH_LIMIT guard and no traces yet: ADR-0030 ports them separately,
+     * and a parser without the guard the grammar asked for would not be honest.
+     */
+    @Override
+    protected final PlanningProfile planningProfile() {
+        return new PlanningProfile("Rust", true, true, false, false);
+    }
+
+    /** A production is a method of the parser, in snake case. */
+    @Override
+    protected final String methodName(String production) {
+        return RustParserSyntax.toSnakeCase(production);
+    }
+
+    /** The methods the parser has already: its API, and every {@code jj_} helper. */
+    @Override
+    protected final boolean isRuntimeMethod(String name) {
+        return RustGenerator.PARSER_METHODS.contains(name) || name.startsWith("jj_");
+    }
+
+    private static final Set<String> PARSER_METHODS = Set.of(
+            "new", "from_lexer", "root_node", "get_next_token", "get_token", "lexer",
+            "jjtree_open_node_scope", "jjtree_close_node_scope");
 }
