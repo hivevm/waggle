@@ -11,9 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -80,14 +83,29 @@ class OptionMatrixCompilesTest {
     }
 
     static String withOption(String option) {
-        if (option.isEmpty()) {
-            return GRAMMAR;
+        return option.isEmpty() ? GRAMMAR : withOptions(List.of(option));
+    }
+
+    static String withOptions(List<String> options) {
+        var grammar = GRAMMAR;
+        for (var option : options) {
+            var name = option.substring(0, option.indexOf(':'));
+            grammar = grammar.lines().filter(l -> !l.trim().startsWith(name + ":"))
+                    .reduce("", (a, b) -> a + b + "\n")
+                    .replace("  JAVA_PACKAGE: \"org.example\"",
+                            "  JAVA_PACKAGE: \"org.example\",\n  " + option);
         }
-        var name = option.substring(0, option.indexOf(':'));
-        var grammar = GRAMMAR.lines().filter(l -> !l.trim().startsWith(name + ":"))
-                .reduce("", (a, b) -> a + b + "\n");
-        return grammar.replace("  JAVA_PACKAGE: \"org.example\"",
-                "  JAVA_PACKAGE: \"org.example\",\n  " + option);
+        return grammar;
+    }
+
+    /**
+     * Every pair of variants. Options interact in the templates: KEEP_LINE_COLUMN off together with
+     * DEBUG_PARSER traced a line nothing kept, although each compiled on its own.
+     */
+    static Stream<Arguments> pairs() {
+        var options = variants().filter(o -> !o.isEmpty()).toList();
+        return IntStream.range(0, options.size()).boxed().flatMap(i -> options.subList(i + 1,
+                options.size()).stream().map(o -> Arguments.of(options.get(i), o)));
     }
 
     @ParameterizedTest(name = "Java: {0}")
@@ -108,6 +126,14 @@ class OptionMatrixCompilesTest {
             return;
         }
         CppCompilesTest.assertCompiles(withOption(option), dir);
+    }
+
+    @ParameterizedTest(name = "Java: {0} + {1}")
+    @MethodSource("pairs")
+    void javaCompilesWithTwoOptions(String first, String second, @TempDir Path dir)
+            throws Exception {
+        GeneratedCodeCompilesTest.assertGeneratedSourceCompiles(dir, "Matrix.waggle",
+                withOptions(List.of(first, second)));
     }
 
     /** A grammar that leaves JAVA_PACKAGE out goes to the unnamed package. */

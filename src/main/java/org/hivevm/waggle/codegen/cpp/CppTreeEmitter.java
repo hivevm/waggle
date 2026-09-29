@@ -133,9 +133,6 @@ public class CppTreeEmitter implements TreeEmitter {
                 .collect(Collectors.toList());
         var argumentType = CppTreeEmitter.getVisitorArgumentType(tree);
         var returnType = CppTreeEmitter.getVisitorReturnType(tree);
-        if (!tree.visitorDataType().isEmpty()) {
-            argumentType = tree.visitorDataType();
-        }
 
         var options = OptionsContext.of(context);
         options.add("NODES", nodeNames).set("NODES_TYPE", n -> "AST" + n);
@@ -169,6 +166,10 @@ public class CppTreeEmitter implements TreeEmitter {
     }
 
     private void generateTreeNodes(Options context, TreeOptions tree, Set<String> nodesToGenerate) {
+        if (!tree.buildNodeFiles()) {
+            return;
+        }
+
         var excludes = tree.customNodes();
         for (var nodeType : nodesToGenerate) {
             if (excludes.contains(nodeType)) {
@@ -199,7 +200,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
     private static String getVisitorReturnType(TreeOptions tree) {
         String ret = tree.visitorReturn();
-        return (ret == null) || ret.isEmpty() || ret.equals("Object") ? "void " : ret;
+        return (ret == null) || ret.isEmpty() || ret.equals("Object") ? "void" : ret;
     }
 
     // Used by the CPP code generatror

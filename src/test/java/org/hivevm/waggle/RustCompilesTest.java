@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Regression tests: the generated Rust must actually <em>compile</em>.
@@ -281,6 +282,50 @@ class RustCompilesTest {
     }
 
     /**
+     * A definite node takes as many children as it says, a "greater than" node only when there are
+     * more than that. Rust closed every node on all the children of its scope.
+     */
+    @Test
+    void nodeAritiesAreKept(@TempDir Path dir) throws IOException, InterruptedException {
+        assertCompiles("""
+                grammar Arity;
+
+                options {
+                  JAVA_PACKAGE: "org.example",
+                  USE_AST: true,
+                  NODE_SCOPE_HOOK: true
+                }
+
+                Input() #Root =
+                  expr() <EOF>
+                ;
+
+                expr =
+                  term() ( < PLUS > term() #Add(2) )*
+                ;
+
+                term =
+                  ( <NUMBER> #Number )+ #Many(>1)
+                | < LPAREN > expr() < RPAREN >
+                ;
+
+                SKIP = " " ;
+
+                TOKEN =
+                  < PLUS: "+" >
+                | < LPAREN: "(" >
+                | < RPAREN: ")" >
+                | < NUMBER: (["0"-"9"])+ >
+                ;
+                """, "arity", dir);
+
+        var parser = Files.readString(dir.resolve("rust").resolve("arity").resolve("parser.rs"));
+        assertTrue(parser.contains("self.jjtree.close_node_scope(&jjtn000, 2);"), parser);
+        assertTrue(parser.contains("close_node_scope_bool(&jjtn001, self.jjtree.node_arity() > 1);"),
+                parser);
+    }
+
+    /**
      * Rust has no templates for node classes or visitors: the ones it had were Java leftovers under
      * names that did not exist, so generation died with "Invalid template name". It must fail with
      * a message that says what is unsupported instead.
@@ -338,7 +383,13 @@ class RustCompilesTest {
                 .setTargetDir(target.toFile())
                 .build().parse();
 
-        Files.writeString(target.resolve(module).resolve("mod.rs"), RustCompilesTest.MODULES);
+        var modules = new StringBuilder(RustCompilesTest.MODULES);
+        for (var tree : List.of("node", "treestate", "treeconstants")) {
+            if (Files.exists(target.resolve(module).resolve(tree + ".rs"))) {
+                modules.append("pub mod ").append(tree).append(";\n");
+            }
+        }
+        Files.writeString(target.resolve(module).resolve("mod.rs"), modules);
         var root = target.resolve("lib.rs");
         Files.writeString(root, "pub mod " + module + ";\n");
 

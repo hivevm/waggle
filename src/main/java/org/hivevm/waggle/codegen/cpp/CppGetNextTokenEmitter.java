@@ -46,6 +46,11 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     }
 
     @Override
+    protected String longOne() {
+        return "1ULL";
+    }
+
+    @Override
     protected void printDebugEmptyStringMatched(LinePrinter printer, int kind) {
         printer.println("fprintf(debugStream, \"   Matched the empty string as %s token.\\n\", addUnicodeEscapes(tokenImages["
                 + kind + "]).c_str());");
@@ -82,7 +87,7 @@ class CppGetNextTokenEmitter extends GetNextTokenEmitter {
     @Override
     protected void printSkipBranch(LinePrinter printer, LexerData data) {
         if (data.hasMore()) {
-            printer.print("else if ((jjtoSkip[jjmatchedKind >> 6] & (1L << (jjmatchedKind & 077))) != 0L)");
+            printer.print("else if ((jjtoSkip[jjmatchedKind >> 6] & (1ULL << (jjmatchedKind & 077))) != 0L)");
         } else {
             printer.print("else");
         }

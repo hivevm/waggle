@@ -69,6 +69,7 @@ private:
 	int  jjemptyLineNo[__MAX_LEX_STATES__] = {};
 	int  jjemptyColNo[__MAX_LEX_STATES__] = {};
 	bool jjbeenHere[__MAX_LEX_STATES__] = {};
+	[[noreturn]] void loopDetected();
 //@fi
 
 public:

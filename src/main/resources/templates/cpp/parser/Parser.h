@@ -123,11 +123,10 @@ public:
 //@fi
 protected:
 //@if(USE_AST)
+//@if(NODE_SCOPE_HOOK)
 	virtual void jjtreeOpenNodeScope(Node * node) = 0;
 	virtual void jjtreeCloseNodeScope(Node * node) = 0;
 //@fi
-
-//@if(USE_AST)
 	TreeState jjtree;
 //@fi
 private:

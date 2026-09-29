@@ -276,7 +276,7 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     public void printLoopDetected(LinePrinter printer) {
-        printer.println("               errorHandler->lexicalError(JJString(\"(\"Error: Bailing out of infinite loop caused by repeated empty string matches \" + \"at line \" + reader->getBeginLine() + \", \" + \"column \" + reader->getBeginColumn() + \".\")), this);");
+        printer.println("               loopDetected();");
     }
 
     @Override

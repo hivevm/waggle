@@ -41,7 +41,7 @@ public class RustTreeEmitter implements TreeEmitter {
 
     @Override
     public void closeScope(NodeScope ns, LinePrinter printer, TreeOptions options, boolean isFinal) {
-        printer.println("self.jjtree.close_node_scope_bool(&" + ScopeVariables.node(ns) + ", true);");
+        printer.println(RustTreeEmitter.closeCall(ns));
         if (!isFinal) {
             printer.println(ScopeVariables.closed(ns) + " = false;");
         }
@@ -50,6 +50,27 @@ public class RustTreeEmitter implements TreeEmitter {
             printer.println("  self.jjtree_close_node_scope(" + ScopeVariables.node(ns) + ".as_ref());");
             printer.println("}");
         }
+    }
+
+    /**
+     * {@link ScopeVariables#closeCall} for Rust, which has no overloads: a number of children goes to
+     * {@code close_node_scope}, a condition to {@code close_node_scope_bool}. An expression that is
+     * not an integer literal is taken for a condition, and rustc rejects it if it is not a bool.
+     */
+    private static String closeCall(NodeScope ns) {
+        var node = ScopeVariables.node(ns);
+        var descriptor = ns.getNodeDescriptor();
+        var text = descriptor.getText();
+        if (text == null) {
+            return "self.jjtree.close_node_scope_bool(&" + node + ", true);";
+        }
+        if (descriptor.isGt()) {
+            return "self.jjtree.close_node_scope_bool(&" + node + ", self.jjtree.node_arity() > "
+                    + text.strip() + ");";
+        }
+        return text.strip().matches("\\d+")
+                ? "self.jjtree.close_node_scope(&" + node + ", " + text.strip() + ");"
+                : "self.jjtree.close_node_scope_bool(&" + node + ", " + text + ");";
     }
 
     @Override

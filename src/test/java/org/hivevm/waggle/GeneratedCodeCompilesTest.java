@@ -44,6 +44,30 @@ import java.util.stream.Stream;
 class GeneratedCodeCompilesTest {
 
     /** A plain LL(1) grammar: no syntactic LOOKAHEAD anywhere. */
+    /**
+     * Every choice is decided by a syntactic lookahead, so there is no one-token switch. The fields
+     * the jj_3 routines scan with were declared only when there was such a switch.
+     */
+    private static final String ONLY_SYNTACTIC_LOOKAHEAD = """
+            grammar OnlyScan;
+
+            options {
+              JAVA_PACKAGE: "org.example"
+            }
+
+            Input =
+              ( LOOKAHEAD(2) <A> <B> )* <A> <C> <EOF>
+            ;
+
+            SKIP = " " ;
+
+            TOKEN =
+              < A: "a" >
+            | < B: "b" >
+            | < C: "c" >
+            ;
+            """;
+
     private static final String NO_LOOKAHEAD = """
             grammar NoLookahead;
 
@@ -327,6 +351,12 @@ class GeneratedCodeCompilesTest {
     @Test
     void grammarWithoutSyntacticLookaheadCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "NoLookahead.waggle", GeneratedCodeCompilesTest.NO_LOOKAHEAD);
+    }
+
+    @Test
+    void grammarWithOnlySyntacticLookaheadCompiles(@TempDir Path dir) throws IOException {
+        assertGeneratedSourceCompiles(dir, "OnlyScan.waggle",
+                GeneratedCodeCompilesTest.ONLY_SYNTACTIC_LOOKAHEAD);
     }
 
     @Test

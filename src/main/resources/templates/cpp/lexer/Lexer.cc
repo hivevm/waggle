@@ -260,6 +260,28 @@ void __PARSER_NAME__TokenManager::ReInitRounds() {
 		jjrounds[i] = 0x80000000;
 }
 
+//@if(HAS_LOOP)
+/** Bails out of a loop of empty matches, which would never end. */
+void __PARSER_NAME__TokenManager::loopDetected()
+{
+#if (WAGGLE_CHAR_TYPE_SIZEOF == 1)
+	auto number = [](int n) { return std::to_string(n); };
+#else
+	auto number = [](int n) { return std::to_wstring(n); };
+#endif
+	JJString message;
+	message += JJWIDE(Error: Bailing out of infinite loop caused by repeated empty string matches at line);
+	message += JJSPACE;
+	message += number(reader->getBeginLine());
+	message += JJSPACE;
+	message += JJWIDE(column);
+	message += JJSPACE;
+	message += number(reader->getBeginColumn());
+	message += JJWIDE(.);
+	throw TokenManagerError(message, LOOP_DETECTED);
+}
+
+//@fi
 /** Switch to specified lex state. */
 void __PARSER_NAME__TokenManager::SwitchTo(int lexState)
 {

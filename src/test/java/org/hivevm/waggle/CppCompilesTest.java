@@ -133,6 +133,108 @@ class CppCompilesTest {
         assertCompiles(CppCompilesTest.GRAMMAR_AST, dir);
     }
 
+    /**
+     * VISITOR_DATA_TYPE "Object", Java's word for "anything". The node classes took it as
+     * {@code void *}, but the visitor was given {@code Object}, which C++ does not know.
+     */
+    @Test
+    void anObjectVisitorArgumentCompiles(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        assertCompiles(CppCompilesTest.GRAMMAR_AST.replace("  VISITOR: true",
+                "  VISITOR: true,\n  VISITOR_DATA_TYPE: \"Object\""), dir);
+    }
+
+    /**
+     * An exception thrown inside a production reaches the caller with DEBUG_PARSER on too. The
+     * trace wrapped every production in a {@code catch (...)} that swallowed it.
+     */
+    @Test
+    void theParserTraceLetsExceptionsThrough(@TempDir Path dir)
+            throws IOException, InterruptedException {
+        var output = run("""
+                grammar Thrower;
+
+                options {
+                  JAVA_PACKAGE: "org.example",
+                  DEBUG_PARSER: true
+                }
+
+                Input = <A> <? throw std::runtime_error("from the action"); ?> <EOF> ;
+
+                TOKEN = < A: "a" > ;
+                """, dir, """
+                #include <iostream>
+                #include <stdexcept>
+                #include "Thrower.h"
+                #include "ThrowerTokenManager.h"
+                #include "StringReader.h"
+
+                int main() {
+                    StringReader reader(JJString("a"));
+                    ThrowerTokenManager lexer(&reader);
+                    Thrower parser(&lexer);
+                    parser.disable_tracing();
+                    try {
+                        parser.Input();
+                        std::cout << "no error";
+                    } catch (std::runtime_error& e) {
+                        std::cout << e.what();
+                    }
+                }
+                """);
+        assertEquals("from the action", output);
+    }
+
+    /** BUILD_NODE_FILES off: the author writes the node classes, as the Java back end honours. */
+    @Test
+    void nodeFilesAreLeftOutWhenNotToBeBuilt(@TempDir Path dir) throws IOException {
+        var source = dir.resolve("Grammar.waggle");
+        Files.writeString(source, CppCompilesTest.GRAMMAR_AST.replace("  VISITOR: true",
+                "  VISITOR: true,\n  BUILD_NODE_FILES: false"));
+        var target = dir.resolve("cpp");
+        new ParserBuilder().setLanguage(Language.CPP).setParserFile(source.toFile())
+                .setTargetDir(target.toFile()).build().parse();
+
+        assertTrue(Files.isRegularFile(target.resolve("Ast.cc")), "no parser was generated");
+        assertTrue(!Files.exists(target.resolve("ASTAdd.h")), "a node class was generated");
+        assertTrue(!Files.exists(target.resolve("ASTAdd.cc")), "a node class was generated");
+    }
+
+    /**
+     * Parses into a tree. Without NODE_SCOPE_HOOK the parser declared the scope hooks pure virtual
+     * all the same, so it could not be instantiated; only compiling its sources did not show that.
+     */
+    @Test
+    void aParserWithAnAstBuildsTheTree(@TempDir Path dir) throws IOException, InterruptedException {
+        var output = run(CppCompilesTest.GRAMMAR_AST, dir, """
+                #include <iostream>
+                #include "Ast.h"
+                #include "AstTokenManager.h"
+                #include "StringReader.h"
+
+                struct Probe : Ast {
+                    using Ast::Ast;
+                    Node* root() { return jjtree.rootNode(); }
+                };
+
+                void print(const Node* node) {
+                    std::cout << node->getId() << "(";
+                    for (int i = 0; i < node->jjtGetNumChildren(); i++)
+                        print(node->jjtGetChild(i));
+                    std::cout << ")";
+                }
+
+                int main() {
+                    StringReader reader(JJString("1 + (2 + 3)"));
+                    AstTokenManager lexer(&reader);
+                    Probe parser(&lexer);
+                    parser.Input();
+                    print(parser.root());
+                }
+                """);
+        assertEquals("0(1(2()1(2()2())))", output);
+    }
+
     @Test
     void choiceWithAnEmptyAlternativeCompiles(@TempDir Path dir)
             throws IOException, InterruptedException {
@@ -186,7 +288,7 @@ class CppCompilesTest {
             }).filter(text -> text.contains("while ((curChar < 64 && (")).findFirst()
                     .orElseThrow(() -> new AssertionError("no two-mask skip loop was generated"));
         }
-        assertTrue(lexer.contains("while ((curChar < 64 && (0x100000000ULL & (1L << curChar))"),
+        assertTrue(lexer.contains("while ((curChar < 64 && (0x100000000ULL & (1ULL << curChar))"),
                 lexer.lines().filter(l -> l.contains("curChar < 64")).toList().toString());
     }
 
@@ -222,6 +324,47 @@ class CppCompilesTest {
                 }
                 """);
         assertEquals("Error: Ignoring invalid lexical state : 42. State unchanged.", output);
+    }
+
+    /**
+     * Two lexical states that switch to each other on an empty match. The check that catches this
+     * printed a string literal that did not compile, and would only have logged and gone on looping.
+     */
+    @Test
+    void aLoopOfEmptyMatchesThrows(@TempDir Path dir) throws IOException, InterruptedException {
+        var output = run("""
+                grammar Loop;
+
+                options {
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <A> )* <EOF> ;
+
+                TOKEN = < A: "a" > ;
+
+                TOKEN = < E1: ("x")? > : S2 ;
+
+                TOKEN <S2> = < E2: ("y")? > : DEFAULT ;
+                """, dir, """
+                #include <iostream>
+                #include "LoopTokenManager.h"
+                #include "StringReader.h"
+                #include "TokenManagerError.h"
+
+                int main() {
+                    StringReader reader(JJString("az"));
+                    LoopTokenManager lexer(&reader);
+                    try {
+                        for (Token* t = lexer.getNextToken(); t->kind() != 0; t = lexer.getNextToken()) {
+                        }
+                        std::cout << "no error";
+                    } catch (TokenManagerError& e) {
+                        std::cout << e.errorCode << ": " << e.getMessage();
+                    }
+                }
+                """);
+        assertTrue(output.startsWith("3: Error: Bailing out of infinite loop"), output);
     }
 
     /**

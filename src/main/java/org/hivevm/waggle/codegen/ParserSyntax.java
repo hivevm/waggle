@@ -173,22 +173,46 @@ public interface ParserSyntax {
                 if (leadingBlank) {
                     printer.println();
                 }
-                printer.print("if (");
+                printer.print("if " + conditionOpen(leadingBlank));
             }
             case OPENIF -> {
                 printer.println();
                 printer.outdent();
-                printer.print("} else if (");
+                printer.print("} else if " + conditionOpen(leadingBlank));
             }
             case OPENSWITCH -> {
-                printer.println("default: {");
+                printer.println(defaultArm());
                 printer.indent();
                 if (index >= 0) {
-                    printer.println("jj_la1[" + index + "] = jj_gen;");
+                    printer.println(recordChoice(index));
                 }
-                printer.print("if (");
+                printer.print("if " + conditionOpen(leadingBlank));
             }
         }
+    }
+
+    /**
+     * What opens a condition after its {@code if}: a syntactic lookahead's condition is closed by
+     * {@link #closeLookaheadCondition}, a semantic one by ") {" in every target.
+     */
+    default String conditionOpen(boolean syntactic) {
+        return "(";
+    }
+
+    /** Opens the arm of a token switch that no case label took. */
+    default String defaultArm() {
+        return "default: {";
+    }
+
+    /** Records that choice {@code index} was reached without matching, for the error report. */
+    default String recordChoice(int index) {
+        return "jj_la1[" + index + "] = jj_gen;";
+    }
+
+    /** Opens the switch on the kind of the next token. */
+    default String tokenSwitch(boolean cacheTokens) {
+        return "switch (" + (cacheTokens ? "jj_nt.kind" : "(jj_ntk == -1) ? jj_ntk_f() : jj_ntk")
+                + ") {";
     }
 
     /** Opens the arm that runs when no lookahead matched, and writes its action. */
@@ -204,10 +228,10 @@ public interface ParserSyntax {
                 action.accept(printer);
             }
             case OPENSWITCH -> {
-                printer.println("default: {");
+                printer.println(defaultArm());
                 printer.indent();
                 if (index >= 0) {
-                    printer.print("jj_la1[" + index + "] = jj_gen;");
+                    printer.print(recordChoice(index));
                 }
                 action.accept(printer);
             }
@@ -248,9 +272,7 @@ public interface ParserSyntax {
         if ((state == ParserGenerator.LookaheadState.OPENIF)
                 || (state == ParserGenerator.LookaheadState.NOOPENSTM)) {
             printer.println();
-            printer.print("switch (");
-            printer.print(cacheTokens ? "jj_nt.kind" : "(jj_ntk == -1) ? jj_ntk_f() : jj_ntk");
-            printer.println(") {");
+            printer.println(tokenSwitch(cacheTokens));
             printer.indent();
         }
     }

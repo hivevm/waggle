@@ -4,7 +4,6 @@
 package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.source.LinePrinter;
-import org.hivevm.waggle.codegen.ParserGenerator;
 import org.hivevm.waggle.model.NonTerminal;
 import org.hivevm.waggle.model.RExpression;
 
@@ -13,7 +12,6 @@ import java.util.regex.Pattern;
 import org.hivevm.waggle.codegen.ParserSyntax;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * How Rust spells the parser (ADR-0021, ADR-0030). The parser is a struct, so every field and every
@@ -137,61 +135,20 @@ final class RustParserSyntax implements ParserSyntax {
         printer.println("}");
     }
 
+    /** A syntactic condition needs no parenthesis, and closeLookaheadCondition writes no ")". */
     @Override
-    public void openSemanticCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
-            int index) {
-        // In parentheses, as LookaheadEmitter.semantic closes them: the grammar writes the condition.
-        openConditionArm(printer, state, index, "(");
+    public String conditionOpen(boolean syntactic) {
+        return syntactic ? "" : "(";
     }
 
     @Override
-    public void openLookaheadCondition(LinePrinter printer, ParserGenerator.LookaheadState state,
-            int index) {
-        // No parenthesis: a Rust condition needs none, and closeLookaheadCondition writes no ")".
-        openConditionArm(printer, state, index, "");
-    }
-
-    private static void openConditionArm(LinePrinter printer,
-            ParserGenerator.LookaheadState state, int index, String open) {
-        switch (state) {
-            case NOOPENSTM -> printer.print("\nif " + open);
-            case OPENIF -> {
-                printer.outdent();
-                printer.print("\n} else if " + open);
-            }
-            case OPENSWITCH -> {
-                printer.outdent();
-                printer.print("\n_ => {");
-                printer.indent();
-                if (index >= 0) {
-                    printer.print("\nself.jj_la1[" + index + "] = self.jj_gen;");
-                }
-                printer.print("\nif " + open);
-            }
-        }
+    public String defaultArm() {
+        return "_ => {";
     }
 
     @Override
-    public void openFallback(LinePrinter printer, ParserGenerator.LookaheadState state, int index,
-            Consumer<LinePrinter> action) {
-        switch (state) {
-            case NOOPENSTM -> action.accept(printer);
-            case OPENIF -> {
-                printer.outdent();
-                printer.print("\n} else {");
-                printer.indent();
-                action.accept(printer);
-            }
-            case OPENSWITCH -> {
-                printer.outdent();
-                printer.print("\n_ => {");
-                printer.indent();
-                if (index >= 0) {
-                    printer.print("\nself.jj_la1[" + index + "] = self.jj_gen;");
-                }
-                action.accept(printer);
-            }
-        }
+    public String recordChoice(int index) {
+        return "self.jj_la1[" + index + "] = self.jj_gen;";
     }
 
     @Override
@@ -206,43 +163,25 @@ final class RustParserSyntax implements ParserSyntax {
     }
 
     @Override
-    public void openTokenSwitch(LinePrinter printer, ParserGenerator.LookaheadState state,
-            boolean cacheTokens) {
-        if (state == ParserGenerator.LookaheadState.OPENIF) {
-            printer.outdent();
-            printer.print("\n} else {");
-            printer.indent();
-        }
-        if ((state == ParserGenerator.LookaheadState.OPENIF)
-                || (state == ParserGenerator.LookaheadState.NOOPENSTM)) {
-            printer.print("\nmatch self.jj_ntk()? {");
-            printer.indent();
-        }
+    public String tokenSwitch(boolean cacheTokens) {
+        return "match self.jj_ntk()? {";
     }
 
     @Override
     public void caseLabels(LinePrinter printer, List<String> cases) {
-        printer.outdent();
-        printer.print("\n");
         // No label: a choice conflict left this alternative no token (the grammar was warned
         // about it). Java writes a block no case reaches; Rust needs a pattern.
         printer.print(cases.isEmpty() ? "_ if false" : String.join(" | ", cases));
-        printer.print(" =>");
+        printer.print(" => {");
         printer.indent();
-        printer.print(" {");
     }
 
+    /** A match arm does not fall through, so it needs no break. */
     @Override
     public void closeSwitchArm(LinePrinter printer) {
-        printer.print("\n}");
-    }
-
-    @Override
-    public void endBlocks(LinePrinter printer, int indents) {
-        for (int i = 0; i < indents; i++) {
-            printer.outdent();
-            printer.print("\n}");
-        }
+        printer.println();
+        printer.outdent();
+        printer.println("}");
     }
 
     @Override

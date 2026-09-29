@@ -14,27 +14,11 @@
 namespace __CPP_NAMESPACE__ {
 //@fi
 
-Token::Token() :  _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0)
-{
-	this->_kind = 0;
-	this->_next = nullptr;
-	this->_specialToken = nullptr;
-}
+Token::Token() {}
 
-Token::Token(int kind) :  _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0) 
-{
-	this->_kind = kind;
-	this->_next = nullptr;
-	this->_specialToken = nullptr;
-}
+Token::Token(int kind) : _kind(kind) {}
 
-Token::Token(int kind, const JJString& image) : _beginLine(0), _beginColumn(0), _endLine(0), _endColumn(0) 
-{
-	this->_kind = kind;
-	this->_image = image;
-	this->_next = nullptr;
-	this->_specialToken = nullptr;
-}
+Token::Token(int kind, const JJString& image) : _kind(kind), _image(image) {}
 
 Token* Token::newToken(int kind, const JJString& image)
 {
@@ -49,12 +33,9 @@ Token* Token::newToken(int kind)
 	return newToken(kind, JJString());
 }
 
-Token::~Token() 
+Token::~Token()
 {
-	if (_specialToken) delete _specialToken;
-	this->_kind = 0;
-	this->_next = nullptr;
-	this->_specialToken = nullptr;
+	delete _specialToken;
 }
 
 

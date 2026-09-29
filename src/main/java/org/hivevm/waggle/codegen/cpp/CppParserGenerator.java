@@ -88,16 +88,10 @@ class CppParserGenerator extends ParserGenerator {
                     + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
             printer.println("    JJExit <std::function<void()>> jjexit ([this]() {trace_return(\""
                     + Encoding.escapeUnicode(p.getLhs(), Language.CPP) + "\"); });");
-            printer.println("    try {");
         }
 
         consumer.accept(printer);
 
-        if (data.getDebugParser()) {
-            printer.println();
-            printer.outdent();
-            printer.println("} catch(...) {}");
-        }
         if (!voidReturn) {
             printer.println("assert(false);");
         }

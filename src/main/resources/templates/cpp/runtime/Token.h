@@ -104,15 +104,15 @@ public:
     const void * value() const;
 
 private:
-    int       _kind;
-    int       _beginLine;
-    int       _beginColumn;
-    int       _endLine;
-    int       _endColumn;
+    int       _kind = 0;
+    int       _beginLine = 0;
+    int       _beginColumn = 0;
+    int       _endLine = 0;
+    int       _endColumn = 0;
     JJString _image;
-    Token *  _next;
-    Token *  _specialToken;
-    void *   _value;
+    Token *  _next = nullptr;
+    Token *  _specialToken = nullptr;
+    void *   _value = nullptr;
 };
 
 inline  int& 			Token::kind()				{ return _kind; }

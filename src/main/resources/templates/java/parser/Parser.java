@@ -45,7 +45,7 @@ public class Parser
 	private int                jj_depth;
 	private boolean            jj_depth_error;
 //@fi
-//@if(MASK_INDEX)
+//@if(JJ2_INDEX)
 	private Token              jj_scanpos, jj_lastpos;
 	private int                jj_la;
 //@if(LOOKAHEAD_NEEDED)
@@ -452,7 +452,11 @@ public class Parser
 			if (t.kind != 0 && !tokenImage[t.kind].equals("\"" + t.image + "\"")) {
 				System.out.print(": \"" + TokenException.addEscapes(t.image) + "\"");
 			}
+//@if(KEEP_LINE_COLUMN)
 			System.out.println(" at line " + t.beginLine + " column " + t.beginColumn + ">" + where);
+//@else
+			System.out.println(">" + where);
+//@fi
 		}
 	}
 
@@ -465,8 +469,12 @@ public class Parser
 			if (t1.kind != 0 && !tokenImage[t1.kind].equals("\"" + t1.image + "\"")) {
 				System.out.print(": \"" + TokenException.addEscapes(t1.image) + "\"");
 			}
+//@if(KEEP_LINE_COLUMN)
 			System.out.println(" at line " + t1.beginLine
 				+ " column " + t1.beginColumn + ">; Expected token: <" + tokenImage[t2] + ">");
+//@else
+			System.out.println(">; Expected token: <" + tokenImage[t2] + ">");
+//@fi
 		}
 	}
 
