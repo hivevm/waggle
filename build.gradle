@@ -1,5 +1,5 @@
 plugins {
-    id 'com.gradle.plugin-publish' version '2.1.1'
+    id 'com.gradle.plugin-publish' version '2.2.1'
     // Bootstrap: the published generator regenerates this project's own parser (ADR-0009).
     id 'org.hivevm.waggle' version '1.0.14'
     id 'java-gradle-plugin'
@@ -41,13 +41,13 @@ tasks.withType(JavaCompile).configureEach {
 
 dependencies {
     // https://mvnrepository.com/artifact/org.jspecify/jspecify
-    implementation("org.jspecify:jspecify:1.0.0")
+    implementation("org.jspecify:jspecify:1.0.1")
 
     // Use JUnit test framework//
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.3")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-launcher
-    testImplementation("org.junit.platform:junit-platform-launcher:6.0.3")
+    testImplementation("org.junit.platform:junit-platform-launcher:6.1.3")
 }
 
 
