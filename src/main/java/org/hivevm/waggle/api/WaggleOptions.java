@@ -84,7 +84,7 @@ public class WaggleOptions implements Options {
         set(Waggle.CPP_NAMESPACE, "");
         set(Waggle.CPP_STACK_LIMIT, "");
         set(Waggle.PARSER_NAME, "");
-        set(Waggle.USE_AST, Boolean.TRUE);
+        set(Waggle.USE_AST, Boolean.FALSE);
         set(Waggle.NODE_MULTI, Boolean.FALSE);
         set(Waggle.NODE_DEFAULT_VOID, Boolean.FALSE);
         set(Waggle.NODE_SCOPE_HOOK, Boolean.FALSE);

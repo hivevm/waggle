@@ -104,6 +104,26 @@ class TreeDetectionTest {
                 "the ignored node descriptors must be reported once: " + diagnostics.collected());
     }
 
+    /**
+     * A grammar that does not mention USE_AST has it off: its node descriptors are ignored, with
+     * the one warning, as if it said USE_AST: false (ADR-0028).
+     */
+    @Test
+    void useAstIsOffUnlessTheGrammarSetsIt(@TempDir Path dir) throws IOException {
+        var grammar = TreeDetectionTest.WITH_NODE.replace("  USE_AST: true,\n", "");
+        var target = generate(dir, "Noded.waggle", grammar);
+
+        assertFalse(Files.readString(target.resolve("org/example/Parser.java")).contains("jjtree"),
+                "a grammar that does not set USE_AST must not build a tree");
+        assertFalse(Files.isRegularFile(target.resolve("org/example/Node.java")),
+                "no node runtime may be written for a grammar that does not set USE_AST");
+
+        var diagnostics = diagnose(dir.resolve("diag"), "Noded.waggle", grammar);
+        assertEquals(1, diagnostics.collected().stream()
+                        .filter(d -> d.message().contains("USE_AST")).count(),
+                "the ignored node descriptors must be reported once: " + diagnostics.collected());
+    }
+
     /** A tree option the grammar will never use, next to a grammar that builds no tree. */
     private static final String IGNORED_VISITOR_OPTION = """
             grammar Plain;
