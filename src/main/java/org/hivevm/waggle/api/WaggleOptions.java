@@ -321,9 +321,7 @@ public class WaggleOptions implements Options {
 
     @Override
     public void set(String name, Object value) {
-        if (Waggle.PARSER_NAME.equalsIgnoreCase(name) && (value instanceof String text)) {
-            set(Waggle.CPP_DEFINE, text.toUpperCase(Locale.ROOT));
-        } else if (Waggle.JAVA_IMPORTS.equalsIgnoreCase(name)) {
+        if (Waggle.JAVA_IMPORTS.equalsIgnoreCase(name)) {
             value = ((value instanceof String text) && !text.isEmpty())
                     ? Arrays.asList(text.split(","))
                     : Collections.emptyList();

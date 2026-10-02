@@ -16,7 +16,6 @@ import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 import org.hivevm.waggle.tree.TreeSupport;
 
-import java.util.Locale;
 import java.util.List;
 import java.util.Set;
 
@@ -62,7 +61,6 @@ public class CppTreeEmitter implements TreeEmitter {
         options.add("NODE_NAMES", data.getNodeNames().size())
                 .set("ORDINAL", i -> i)
                 .set("CHARS", i -> CppChars.of(data.getNodeNames().get(i)));
-        options.set(Waggle.CPP_DEFINE, context.getParserName().toUpperCase(Locale.ROOT));
 
         CppTemplate.TREE_CONSTANTS.render(options, context.getParserName());
     }
@@ -75,8 +73,6 @@ public class CppTreeEmitter implements TreeEmitter {
         var options = OptionsContext.of(context);
         CppTreeEmitter.applyVisitorTypes(options, tree);
         options.add("NODES", data.visitedNodeNames()).set("NODES_TYPE", n -> "AST" + n);
-        options.set(Waggle.CPP_DEFINE, context.getParserName().toUpperCase(Locale.ROOT));
-        options.set(Waggle.NODE_MULTI, tree.multi());
 
         CppTemplate.VISITOR.render(options, context.getParserName());
     }

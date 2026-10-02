@@ -57,7 +57,6 @@ public class JavaTreeEmitter implements TreeEmitter {
         options.set(JavaTreeEmitter.VISITOR_RETURN_VALUE,
                 JavaTreeEmitter.returnValue(tree.visitorReturn(),
                         JavaTreeEmitter.visitorDataType(tree)));
-        options.set(Waggle.NODE_MULTI, tree.multi());
 
         JavaTemplate.MULTI_NODE_VISITOR.render(options);
         JavaTemplate.MULTI_NODE_DEFAULT_VISITOR.render(options);

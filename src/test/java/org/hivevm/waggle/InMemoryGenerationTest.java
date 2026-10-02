@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * A generation can be asked what it emitted, without a directory to emit into (ADR-0018).
@@ -59,11 +58,9 @@ class InMemoryGenerationTest {
         var sink = generate(language, dir);
 
         assertFalse(sink.files().isEmpty(), language + " emitted nothing");
-        var out = dir.resolve("out");
-        try (Stream<Path> paths = Files.walk(out)) {
-            assertTrue(paths.noneMatch(Files::isRegularFile),
-                    "nothing may be written to disk: " + sink.files().keySet());
-        }
+        assertFalse(Files.exists(dir.resolve("out")),
+                "nothing may be written to disk, not even the output directory: "
+                        + sink.files().keySet());
     }
 
     /** The parser is the file the whole pipeline ends in; its text is what a back end produces. */
@@ -78,6 +75,21 @@ class InMemoryGenerationTest {
         assertTrue(parser.contains("package org.example;"), parser.substring(0, 200));
         assertTrue(parser.contains("Input()"), "the grammar's production is missing");
         assertTrue(parser.contains("// Checksum="), "the checksum belongs to the rendered text");
+    }
+
+    /** The C++ include guards carry the grammar's name in upper case, also without a tree. */
+    @Test
+    void theCppHeadersAreGuardedByTheGrammarName(@TempDir Path dir) throws IOException {
+        var files = generate(Language.CPP, dir).files();
+        var guards = Map.of("Example.h", "#define WAGGLE_EXAMPLE\n",
+                "ExampleTokenManager.h", "#define WAGGLE_EXAMPLE_TOKENMANAGER\n");
+        guards.forEach((name, guard) -> {
+            var header = files.entrySet().stream()
+                    .filter(e -> Path.of(e.getKey()).getFileName().toString().equals(name))
+                    .map(Map.Entry::getValue).findFirst()
+                    .orElseThrow(() -> new AssertionError("no " + name + " among " + files.keySet()));
+            assertTrue(header.contains(guard), name + " lacks " + guard.strip());
+        });
     }
 
     /**

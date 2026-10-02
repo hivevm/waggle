@@ -85,10 +85,7 @@ public class WaggleCompiler {
                 options.set(Waggle.DEBUG_PARSER, Boolean.TRUE);
             }
 
-            // Initialize the parser data
-            createOutputDir(options.getOutputDirectory());
             Semanticize.semanticize(data);
-            options.set(Waggle.PARSER_NAME, data.getParserName());
             var generator = GeneratorProvider.generatorFor(options.getOutputLanguage());
             generator.generate(data);
         } catch (ParseException | IOException e) {
@@ -126,28 +123,6 @@ public class WaggleCompiler {
                     this.diagnostics.warningCount());
         } else {
             System.out.println("Parser generated successfully.");
-        }
-    }
-
-    private void createOutputDir(File outputDir) {
-        if (!outputDir.exists()) {
-            this.diagnostics.warning(
-                    "Output directory \"" + outputDir + "\" does not exist. Creating the directory.");
-
-            if (!outputDir.mkdirs()) {
-                this.diagnostics.error("Cannot create the output directory : " + outputDir);
-                return;
-            }
-        }
-
-        if (!outputDir.isDirectory()) {
-            this.diagnostics.error("\"" + outputDir + " is not a valid output directory.");
-            return;
-        }
-
-        if (!outputDir.canWrite()) {
-            this.diagnostics.error(
-                    "Cannot write to the output output directory : \"" + outputDir + "\"");
         }
     }
 

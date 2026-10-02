@@ -5,12 +5,15 @@ package org.hivevm.waggle.codegen.cpp;
 
 import org.hivevm.waggle.analysis.PlanningProfile;
 import org.hivevm.waggle.api.Options;
+import org.hivevm.waggle.api.ParserRequest;
+import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.codegen.GeneratorName;
 import org.hivevm.waggle.codegen.GeneratorProvider;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.codegen.ParserGenerator;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,6 +36,16 @@ public class CppGenerator extends GeneratorProvider {
     @Override
     protected final ParserGenerator newParserGenerator() {
         return new CppParserGenerator();
+    }
+
+    /**
+     * The include guards of the lexer, parser and tree headers go through CPP_DEFINE: the
+     * grammar's name in upper case.
+     */
+    @Override
+    protected final void prepare(ParserRequest request) {
+        request.options().set(Waggle.CPP_DEFINE,
+                request.getParserName().toUpperCase(Locale.ROOT));
     }
 
     @Override
