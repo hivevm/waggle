@@ -7,8 +7,6 @@
 
 package org.hivevm.waggle;
 
-import org.hivevm.waggle.api.ParserBuilder;
-
 import org.hivevm.waggle.api.Language;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -455,13 +453,15 @@ class GeneratedCodeCompilesTest {
      */
     @Test
     void keepLineColumnDrivesPositionTracking(@TempDir Path dir) throws IOException {
-        var on = generate(dir.resolve("on"), "Pos.waggle", GeneratedCodeCompilesTest.NO_LOOKAHEAD);
+        var on = GeneratedSources.generate(dir.resolve("on").resolve("Pos.waggle"),
+                GeneratedCodeCompilesTest.NO_LOOKAHEAD, Language.JAVA, dir.resolve("on").resolve("generated"));
         assertTrue(lexerOf(on).contains("t.beginLine = beginLine;"),
                 "the lexer does not track line/column, although KEEP_LINE_COLUMN defaults to true");
 
-        var off = generate(dir.resolve("off"), "Pos.waggle", GeneratedCodeCompilesTest.NO_LOOKAHEAD
-                .replace("  JAVA_PACKAGE: \"org.example\"",
-                        "  JAVA_PACKAGE: \"org.example\",\n  KEEP_LINE_COLUMN: false"));
+        var off = GeneratedSources.generate(dir.resolve("off").resolve("Pos.waggle"),
+                GeneratedCodeCompilesTest.NO_LOOKAHEAD.replace("  JAVA_PACKAGE: \"org.example\"",
+                        "  JAVA_PACKAGE: \"org.example\",\n  KEEP_LINE_COLUMN: false"),
+                Language.JAVA, dir.resolve("off").resolve("generated"));
         assertTrue(!lexerOf(off).contains("t.beginLine = beginLine;"),
                 "the lexer still tracks line/column, although KEEP_LINE_COLUMN was switched off");
     }
@@ -473,20 +473,6 @@ class GeneratedCodeCompilesTest {
                     .orElseThrow(() -> new AssertionError("no Lexer.java was generated in " + target));
             return Files.readString(lexer);
         }
-    }
-
-    private static Path generate(Path dir, String name, String grammar) throws IOException {
-        Files.createDirectories(dir);
-        var source = dir.resolve(name);
-        Files.writeString(source, grammar);
-
-        var target = dir.resolve("generated");
-        var builder = new ParserBuilder();
-        builder.setLanguage(Language.JAVA);
-        builder.setTargetDir(target.toFile());
-        builder.setParserFile(source.toFile());
-        builder.build().parse();
-        return target;
     }
 
     static void assertGeneratedSourceCompiles(Path dir, String name, String grammar)
@@ -507,13 +493,8 @@ class GeneratedCodeCompilesTest {
         var source = dir.resolve(name);
         Files.writeString(source, grammar);
 
-        var target = dir.resolve("generated");
-        var builder = new ParserBuilder();
-        builder.setLanguage(Language.JAVA);
-        builder.setTargetDir(target.toFile());
-        builder.setParserFile(source.toFile());
-        builder.setCustomNodes(customNodes);
-        builder.build().parse();
+        var target = GeneratedSources.generate(source, Language.JAVA, dir.resolve("generated"),
+                customNodes);
 
         for (var entry : extra.entrySet()) {
             var file = target.resolve(entry.getKey());

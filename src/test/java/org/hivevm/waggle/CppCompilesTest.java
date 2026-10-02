@@ -26,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -663,7 +662,7 @@ class CppCompilesTest {
      */
     static String run(String grammar, Path dir, String main)
             throws IOException, InterruptedException {
-        assumeTrue(CppCompilesTest.hasCompiler(), "no C++ compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("g++", "--version"), "no C++ compiler on PATH");
         assertCompiles(grammar, dir);
 
         var target = dir.resolve("cpp");
@@ -676,26 +675,17 @@ class CppCompilesTest {
         var command = new ArrayList<>(List.of("g++", "-std=c++17", "-g", "-o", "program", "main.cpp"));
         command.addAll(CppCompilesTest.sanitizers());
         command.addAll(sources);
-        var build = new ProcessBuilder(command).directory(target.toFile())
-                .redirectErrorStream(true).start();
-        var buildOutput = new String(build.getInputStream().readAllBytes());
-        assertEquals(0, build.waitFor(), "the program does not build:\n" + buildOutput);
+        GeneratedSources.assertBuilds(new ProcessBuilder(command).directory(target.toFile()),
+                "the program does not build");
 
-        // Into a file, not a pipe read to its end: a lexer that loops would block the read forever.
-        var log = target.resolve("program.out");
         var builder = new ProcessBuilder(target.resolve("program").toString())
-                .directory(target.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
+                .directory(target.toFile()).redirectErrorStream(true);
         // The tokens a TokenManager returns belong to the caller, and these mains do not free them.
         builder.environment().put("ASAN_OPTIONS", "detect_leaks=0");
-        var program = builder.start();
-        var finished = program.waitFor(60, TimeUnit.SECONDS);
-        if (!finished) {
-            program.destroyForcibly().waitFor();
-        }
-        var output = Files.readString(log, java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(finished, "the program did not end:\n" + output);
-        assertEquals(0, program.exitValue(), "the program failed:\n" + output);
-        return output;
+        var program = GeneratedSources.runBounded(builder, 60);
+        assertTrue(program.finished(), "the program did not end:\n" + program.out());
+        assertEquals(0, program.status(), "the program failed:\n" + program.out());
+        return program.out();
     }
 
     /**
@@ -711,9 +701,11 @@ class CppCompilesTest {
                 var flags = List.of("-fsanitize=address,undefined", "-fno-sanitize-recover=all");
                 var command = new ArrayList<>(List.of("g++", "-o", "/dev/null", probe.toString()));
                 command.addAll(flags);
-                var process = new ProcessBuilder(command).redirectErrorStream(true).start();
-                process.getInputStream().readAllBytes();
-                CppCompilesTest.sanitizers = (process.waitFor() == 0) ? flags : List.of();
+                var probed = GeneratedSources.runBounded(
+                        new ProcessBuilder(command).redirectErrorStream(true),
+                        GeneratedSources.BUILD_SECONDS);
+                CppCompilesTest.sanitizers = (probed.finished() && probed.status() == 0)
+                        ? flags : List.of();
             } finally {
                 Files.delete(probe);
             }
@@ -730,17 +722,10 @@ class CppCompilesTest {
      */
     static void assertCompiles(String grammar, Path dir)
             throws IOException, InterruptedException {
-        assumeTrue(CppCompilesTest.hasCompiler(), "no C++ compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("g++", "--version"), "no C++ compiler on PATH");
 
-        var source = dir.resolve("Grammar.waggle");
-        Files.writeString(source, grammar);
-
-        var target = dir.resolve("cpp");
-        new ParserBuilder()
-                .setLanguage(Language.CPP)
-                .setParserFile(source.toFile())
-                .setTargetDir(target.toFile())
-                .build().parse();
+        var target = GeneratedSources.generate(dir.resolve("Grammar.waggle"), grammar, Language.CPP,
+                dir.resolve("cpp"));
 
         List<String> sources;
         try (Stream<Path> paths = Files.walk(target)) {
@@ -752,19 +737,7 @@ class CppCompilesTest {
         var command = new ArrayList<>(List.of("g++", "-std=c++17", "-shared", "-fPIC",
                 "-Wl,--no-undefined", "-o", "libgrammar.so"));
         command.addAll(sources);
-        var process = new ProcessBuilder(command)
-                .directory(target.toFile())
-                .redirectErrorStream(true)
-                .start();
-        var output = new String(process.getInputStream().readAllBytes());
-        assertEquals(0, process.waitFor(), "the generated C++ does not compile or link:\n" + output);
-    }
-
-    private static boolean hasCompiler() {
-        try {
-            return new ProcessBuilder("g++", "--version").start().waitFor() == 0;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
+        GeneratedSources.assertBuilds(new ProcessBuilder(command).directory(target.toFile()),
+                "the generated C++ does not compile or link");
     }
 }

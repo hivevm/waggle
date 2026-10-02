@@ -39,7 +39,7 @@ final class GeneratedSources {
             + "pub mod parserconstants;\npub mod lexer;\npub mod parser;\n";
 
     /** How long a compiler may take; a generated program gets far less. */
-    private static final long BUILD_SECONDS = 600;
+    static final long BUILD_SECONDS = 600;
 
     private GeneratedSources() {
     }
@@ -97,11 +97,19 @@ final class GeneratedSources {
                 GeneratedSources.class.getClassLoader());
     }
 
-    /** Whether {@code command} runs and succeeds, e.g. a compiler asked for its version. */
+    /**
+     * Whether {@code command} runs and succeeds within a minute, e.g. a compiler asked for its
+     * version.
+     */
     static boolean onPath(String... command) {
         try {
-            return new ProcessBuilder(command).redirectErrorStream(true)
-                    .redirectOutput(ProcessBuilder.Redirect.DISCARD).start().waitFor() == 0;
+            var process = new ProcessBuilder(command).redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
+            if (!process.waitFor(60, TimeUnit.SECONDS)) {
+                process.destroyForcibly().waitFor();
+                return false;
+            }
+            return process.exitValue() == 0;
         } catch (IOException | InterruptedException e) {
             return false;
         }

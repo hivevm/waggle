@@ -21,7 +21,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -436,19 +435,12 @@ class RustCompilesTest {
     /** The lexer, the parser and what they depend on go through rustc (ADR-0030). */
     private static void assertCompiles(String grammar, String module, Path dir)
             throws IOException, InterruptedException {
-        assumeTrue(RustCompilesTest.hasCompiler(), "no Rust compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("rustc", "--version"), "no Rust compiler on PATH");
 
-        var source = dir.resolve("Grammar.waggle");
-        Files.writeString(source, grammar);
+        var target = GeneratedSources.generate(dir.resolve("Grammar.waggle"), grammar,
+                Language.RUST, dir.resolve("rust"));
 
-        var target = dir.resolve("rust");
-        new ParserBuilder()
-                .setLanguage(Language.RUST)
-                .setParserFile(source.toFile())
-                .setTargetDir(target.toFile())
-                .build().parse();
-
-        var modules = new StringBuilder(RustCompilesTest.MODULES);
+        var modules = new StringBuilder(GeneratedSources.RUST_MODULES);
         for (var tree : List.of("node", "treestate", "treeconstants")) {
             if (Files.exists(target.resolve(module).resolve(tree + ".rs"))) {
                 modules.append("pub mod ").append(tree).append(";\n");
@@ -458,19 +450,10 @@ class RustCompilesTest {
         var root = target.resolve("lib.rs");
         Files.writeString(root, "pub mod " + module + ";\n");
 
-        var process = new ProcessBuilder("rustc", "--edition", "2024", "--crate-type", "lib",
-                "--emit=metadata", "lib.rs")
-                .directory(target.toFile())
-                .redirectErrorStream(true)
-                .start();
-        var output = new String(process.getInputStream().readAllBytes());
-
-        assertEquals(0, process.waitFor(), "the generated Rust does not compile:\n" + output);
+        GeneratedSources.assertBuilds(new ProcessBuilder("rustc", "--edition", "2024", "--crate-type",
+                "lib", "--emit=metadata", "lib.rs").directory(target.toFile()),
+                "the generated Rust does not compile");
     }
-
-    /** The modules of a generated grammar. */
-    private static final String MODULES =
-            "pub mod token;\npub mod charstream;\npub mod parserconstants;\npub mod lexer;\npub mod parser;\n";
 
     /** What a generated Rust program printed, and how it ended. */
     record Run(String out, String err, int status) {
@@ -479,21 +462,14 @@ class RustCompilesTest {
     /** Builds the lexer of {@code grammar} with a main() that prints every token and runs it on {@code input}. */
     static Run runLexer(String grammar, String module, Path dir, String input)
             throws IOException, InterruptedException {
-        assumeTrue(RustCompilesTest.hasCompiler(), "no Rust compiler on PATH");
+        assumeTrue(GeneratedSources.onPath("rustc", "--version"), "no Rust compiler on PATH");
 
-        var source = dir.resolve("Grammar.waggle");
-        Files.writeString(source, grammar);
-        var target = dir.resolve("rust");
-        new ParserBuilder()
-                .setLanguage(Language.RUST)
-                .setParserFile(source.toFile())
-                .setTargetDir(target.toFile())
-                .build().parse();
+        var target = GeneratedSources.generate(dir.resolve("Grammar.waggle"), grammar,
+                Language.RUST, dir.resolve("rust"));
 
-        Files.writeString(target.resolve(module.replace("r#", "")).resolve("mod.rs"), RustCompilesTest.MODULES);
         var literal = new StringBuilder();
         input.codePoints().forEach(cp -> literal.append(String.format("\\u{%x}", cp)));
-        Files.writeString(target.resolve("main.rs"), """
+        var main = """
                 #![allow(warnings)]
                 mod %s;
                 use %s::lexer::Lexer;
@@ -511,31 +487,17 @@ class RustCompilesTest {
                         }
                     }
                 }
-                """.formatted(module, module, literal));
+                """.formatted(module, module, literal);
+        var program = GeneratedSources.rustProgram(target, module, main);
 
-        var build = new ProcessBuilder("rustc", "--edition", "2024", "-o", "program", "main.rs")
-                .directory(target.toFile()).redirectErrorStream(true).start();
-        var buildOutput = new String(build.getInputStream().readAllBytes());
-        assertEquals(0, build.waitFor(), "the generated Rust does not build:\n" + buildOutput);
-
-        // Into files, and bounded in time: a lexer that never reaches the end of its input prints
-        // tokens until it is stopped.
-        var outFile = target.resolve("out.txt");
-        var errFile = target.resolve("err.txt");
-        var program = new ProcessBuilder(target.resolve("program").toString())
-                .directory(target.toFile())
-                .redirectOutput(outFile.toFile()).redirectError(errFile.toFile()).start();
-        if (!program.waitFor(20, java.util.concurrent.TimeUnit.SECONDS)) {
-            program.destroyForcibly().waitFor();
-            return new Run(head(outFile), "did not end within 20 seconds", -1);
+        // Bounded in time: a lexer that never reaches the end of its input prints tokens until it
+        // is stopped.
+        var run = GeneratedSources.runBounded(
+                new ProcessBuilder(program.toString()).directory(target.toFile()), 20);
+        if (!run.finished()) {
+            return new Run(run.out(), "did not end within 20 seconds", -1);
         }
-        return new Run(head(outFile), head(errFile), program.exitValue());
-    }
-
-    private static String head(Path file) throws IOException {
-        try (var in = Files.newInputStream(file)) {
-            return new String(in.readNBytes(1 << 20), StandardCharsets.UTF_8);
-        }
+        return new Run(run.out(), run.err(), run.status());
     }
 
     /** Input the grammar does not match is a lexical error. The Rust lexer returned end of input. */
@@ -767,12 +729,4 @@ class RustCompilesTest {
 
             TOKEN = < WORD: (["a"-"z"])+ > ;
             """;
-
-    private static boolean hasCompiler() {
-        try {
-            return new ProcessBuilder("rustc", "--version").start().waitFor() == 0;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
-    }
 }
