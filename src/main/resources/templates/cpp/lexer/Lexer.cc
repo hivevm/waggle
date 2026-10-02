@@ -83,7 +83,7 @@ const Latin1 __PARSER_NAME__TokenManager::jjKindsForStateVector(int lexState, in
 /** Lexer state names. */
 //@foreach(STATE_NAMES_AS_CHARS)
 static const JJChar lexStateNames_arr___STATE_NAMES_AS_CHARS_INDEX__[] =
-{__STATE_NAMES_AS_CHARS_CHARS__, 0};
+{__STATE_NAMES_AS_CHARS_CHARS__0};
 //@end
 static const JJString lexStateNames[] = {
 //@foreach(MAX_LEX_STATES)

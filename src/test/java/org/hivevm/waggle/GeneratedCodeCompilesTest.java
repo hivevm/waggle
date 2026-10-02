@@ -11,6 +11,7 @@ import org.hivevm.waggle.api.ParserBuilder;
 
 import org.hivevm.waggle.api.Language;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.io.TempDir;
@@ -363,6 +364,20 @@ class GeneratedCodeCompilesTest {
     void treeGrammarWithoutNodeOptionsCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "TreeDefaults.waggle",
                 GeneratedCodeCompilesTest.TREE_WITHOUT_NODE_OPTIONS);
+    }
+
+    /**
+     * A visitor that returns a char. Its default return value was written as a NUL character
+     * between quotes rather than as the escape for one.
+     */
+    @Test
+    void visitorReturningCharWritesTheEscape(@TempDir Path dir) throws IOException {
+        var target = assertGeneratedSourceCompiles(dir, "TreeDefaults.waggle",
+                GeneratedCodeCompilesTest.TREE_WITHOUT_NODE_OPTIONS.replace("VISITOR: true",
+                        "VISITOR: true,\n  VISITOR_RETURN_TYPE: \"char\""), List.of(), Map.of());
+        var visitor = Files.readString(target.resolve("org/example/NodeDefaultVisitor.java"));
+        assertFalse(visitor.contains("\0"), "a NUL character in the generated visitor");
+        assertTrue(visitor.contains("return '\\u0000';"), visitor);
     }
 
     /**

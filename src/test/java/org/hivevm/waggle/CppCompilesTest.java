@@ -605,6 +605,33 @@ class CppCompilesTest {
         assertEquals("whole;1", output);
     }
 
+    /**
+     * A lexical state and a node whose names reach beyond ASCII. Their names were written as UTF-16
+     * code units into a char array, which does not compile beyond ASCII; the literal images had
+     * already been moved to UTF-8.
+     */
+    @Test
+    void namesBeyondAsciiCompile(@TempDir Path dir) throws Exception {
+        assertCompiles("""
+                grammar Names;
+
+                options {
+                  USE_AST: true,
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input #Größe = ( <WORD> )* <EOF> ;
+
+                SKIP = " " ;
+
+                MORE = "/*" : IN_ÄRGER ;
+                SKIP <IN_ÄRGER> = "*/" : DEFAULT ;
+                MORE <IN_ÄRGER> = < ~[] > ;
+
+                TOKEN = < WORD: (["a"-"z"])+ > ;
+                """, dir);
+    }
+
     /** A grammar to run: its tokens reach beyond ASCII. */
     private static final String RUN = """
             grammar Run;

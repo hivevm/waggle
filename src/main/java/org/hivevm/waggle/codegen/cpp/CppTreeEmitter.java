@@ -61,7 +61,7 @@ public class CppTreeEmitter implements TreeEmitter {
                 .set("LABEL", i -> data.getNodeIds().get(i));
         options.add("NODE_NAMES", data.getNodeNames().size())
                 .set("ORDINAL", i -> i)
-                .set("CHARS", i -> CppTreeEmitter.toCharArray(data.getNodeNames().get(i)));
+                .set("CHARS", i -> CppChars.of(data.getNodeNames().get(i)));
         options.set(Waggle.CPP_DEFINE, context.getParserName().toUpperCase(Locale.ROOT));
 
         CppTemplate.TREE_CONSTANTS.render(options, context.getParserName());
@@ -145,14 +145,5 @@ public class CppTreeEmitter implements TreeEmitter {
     private static String getVisitorReturnType(TreeOptions tree) {
         String ret = tree.visitorReturn();
         return (ret == null) || ret.isEmpty() || ret.equals("Object") ? "void" : ret;
-    }
-
-    // Used by the CPP code generatror
-    private static String toCharArray(String s) {
-        var charArray = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            charArray.append("0x").append(Integer.toHexString(s.charAt(i))).append(", ");
-        }
-        return charArray.toString();
     }
 }

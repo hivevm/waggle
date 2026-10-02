@@ -128,7 +128,7 @@ public class JavaTreeEmitter implements TreeEmitter {
             case "long" -> " 0L";
             case "double" -> " 0.0d";
             case "float" -> " 0.0f";
-            case "char" -> " '\u0000'";
+            case "char" -> " '\\u0000'";
             default -> " null";
         };
     }

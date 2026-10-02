@@ -19,7 +19,6 @@ import org.hivevm.waggle.lexer.LexerPlan.LexStatePlan;
 import org.hivevm.waggle.lexer.LexerPlan.Tables;
 import org.hivevm.source.TemplateSet;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -50,7 +49,7 @@ class CppLexerGenerator extends LexerGenerator {
         options.add("STATE_NAMES_AS_CHARS", shape.lexStates())
                 .set("STATE_NAMES_AS_CHARS_INDEX", i -> i)
                 .set("STATE_NAMES_AS_CHARS_CHARS",
-                        i -> CppLexerGenerator.getTextAsChars(shape.stateNames().get(i)));
+                        i -> CppChars.of(shape.stateNames().get(i)));
         options.set("LITERAL_IMAGE_COUNT", shape.images().size());
         options.add("LITERAL_IMAGE_ROWS", literalChars(shape.images()));
         options.add("LITERAL_IMAGE_REFS", IntStream.range(0, shape.images().size())
@@ -132,7 +131,7 @@ class CppLexerGenerator extends LexerGenerator {
     /** One {@code jjstrLiteralChars_<kind>} array per token kind. */
     private static List<CppDebugTables.LiteralChars> literalChars(List<String> images) {
         return IntStream.range(0, images.size()).mapToObj(kind -> new CppDebugTables.LiteralChars(
-                kind, (images.get(kind) == null) ? "" : charElements(images.get(kind)))).toList();
+                kind, (images.get(kind) == null) ? "" : CppChars.of(images.get(kind)))).toList();
     }
 
     /** What the header declares of what the lexer defines for a lexical state. */
@@ -149,28 +148,6 @@ class CppLexerGenerator extends LexerGenerator {
         return "unsigned long long";
     }
 
-    /**
-     * The elements of a JJChar array that holds {@code s}, each followed by ", ". The reader hands
-     * the lexer UTF-8, so the text is UTF-8 too; it used to be written as UTF-16 code units, which
-     * do not fit a char beyond ASCII and did not compile.
-     */
-    private static String charElements(String s) {
-        var elements = new StringBuilder();
-        for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
-            elements.append((b >= 0) ? "0x" + Integer.toHexString(b)
-                    : String.format("'\\x%02x'", b & 0xff)).append(", ");
-        }
-        return elements.toString();
-    }
-
-    private static String getTextAsChars(String text) {
-        List<String> chars = new ArrayList<>();
-        for (int j = 0; j < text.length(); j++) {
-            chars.add("0x" + Integer.toHexString(text.charAt(j)));
-        }
-        return String.join(", ", chars);
-    }
-
     @Override
     public String toHexString(long value) {
         return "0x" + Long.toHexString(value) + "ULL";
@@ -178,12 +155,12 @@ class CppLexerGenerator extends LexerGenerator {
 
     @Override
     public String tokenImage(String image) {
-        return CppLexerGenerator.charElements(image);
+        return CppChars.of(image);
     }
 
     @Override
     public String stringLiteralImage(String image, String label, boolean isImage) {
-        return CppLexerGenerator.charElements(isImage ? image : "<" + label + ">");
+        return CppChars.of(isImage ? image : "<" + label + ">");
     }
 
     @Override
