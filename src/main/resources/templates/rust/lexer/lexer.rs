@@ -31,7 +31,7 @@ impl fmt::Display for LexicalError {
 impl std::error::Error for LexicalError {}
 
 //@foreach(LOHI_BYTES)
-const JJBIT_VEC__LOHI_BYTES_INDEX__: [u64; __LOHI_BYTES_LENGTH__] = [__LOHI_BYTES_VALUE__];
+const JJBIT_VEC__LOHI_BYTES_INDEX__: [u64; 4] = [__LOHI_BYTES_VALUE__];
 //@end
 
 pub const LEX_STATE_NAMES: [&str; __STATE_NAMES_LENGTH__] = [
@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
 	}
 
 	pub fn switch_to(&mut self, lex_state: i8) {
-		if lex_state >= __STATE_COUNT__ {
+		if lex_state >= __MAX_LEX_STATES__ {
 			panic!(
 				"Error: Ignoring invalid lexical state : {}. State unchanged.",
 				lex_state

@@ -1,4 +1,4 @@
-//@if(call)
+//@if(callNext)
 return __callNext__;
 //@fi
 //@if(moveNfa)

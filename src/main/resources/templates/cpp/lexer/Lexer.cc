@@ -316,7 +316,7 @@ void __PARSER_NAME__TokenManager::loopDetected()
 /** Switch to specified lex state. */
 void __PARSER_NAME__TokenManager::SwitchTo(int lexState)
 {
-	if (lexState >= __STATE_COUNT__ || lexState < 0) {
+	if (lexState >= __MAX_LEX_STATES__ || lexState < 0) {
 		JJString message;
 		message += JJWIDE(Error: Ignoring invalid lexical state :);
 		message += JJSPACE;

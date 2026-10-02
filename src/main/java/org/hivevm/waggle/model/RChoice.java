@@ -38,9 +38,4 @@ public final class RChoice extends RExpression {
         }
         return choice;
     }
-
-    @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
 }

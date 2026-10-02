@@ -22,6 +22,8 @@ import org.hivevm.waggle.analysis.TokenRef;
 
 import org.hivevm.waggle.api.Encoding;
 import org.hivevm.waggle.api.Language;
+import org.hivevm.waggle.api.Waggle;
+import org.hivevm.waggle.grammar.Token;
 import org.hivevm.waggle.model.CodeText;
 import org.hivevm.waggle.model.NodeScope;
 
@@ -31,25 +33,26 @@ import java.util.List;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
-public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
+public abstract class ParserGenerator {
 
-    private ParserSyntax syntax;
-
-    protected static final String LOOKAHEAD_NEEDED = "LOOKAHEAD_NEEDED";
+    private static final String LOOKAHEAD_NEEDED = "LOOKAHEAD_NEEDED";
 
     /** The lookahead routines, as the templates that write them read them (ADR-0031). */
-    protected static final String JJ3_ROUTINES = "JJ3_ROUTINES";
+    private static final String JJ3_ROUTINES = "JJ3_ROUTINES";
 
     /** The productions, as the templates that write them read them (ADR-0031). */
-    protected static final String PRODUCTIONS = "PRODUCTIONS";
-    protected static final String JJ2_INDEX = "JJ2_INDEX";
-    protected static final String JJ2_OFFSET = "JJ2_OFFSET";
-    protected static final String JJ2_ROUTINES = "JJ2_ROUTINES";
-    protected static final String RECORDS_EXPECTED_TOKENS = "RECORDS_EXPECTED_TOKENS";
-    protected static final String MASK_INDEX = "MASK_INDEX";
-    protected static final String TOKEN_COUNT = "TOKEN_COUNT";
-    protected static final String TOKEN_MASKS = "TOKEN_MASKS";
-    protected static final String USE_AST = "USE_AST";
+    private static final String PRODUCTIONS = "PRODUCTIONS";
+    private static final String JJ2_INDEX = "JJ2_INDEX";
+    private static final String JJ2_OFFSET = "JJ2_OFFSET";
+    private static final String JJ2_ROUTINES = "JJ2_ROUTINES";
+    private static final String RECORDS_EXPECTED_TOKENS = "RECORDS_EXPECTED_TOKENS";
+    private static final String MASK_INDEX = "MASK_INDEX";
+    private static final String TOKEN_COUNT = "TOKEN_COUNT";
+    private static final String TOKEN_MASKS = "TOKEN_MASKS";
+
+    private final Language language;
+
+    private ParserSyntax syntax;
 
     private ExpansionDecorator decorator = ExpansionDecorator.NONE;
 
@@ -57,7 +60,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
      * Constructs an instance of {@link ParserGenerator}.
      */
     protected ParserGenerator(Language language) {
-        super(language);
+        this.language = language;
     }
 
     /** What wraps a node scope, if anything does. Set once per generation. */
@@ -65,13 +68,12 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
         this.decorator = decorator;
     }
 
-    @Override
     public final void generate(ParserPlan data) {
         this.syntax = newParserSyntax();
 
         var options = OptionsContext.of(data.options());
 
-        options.set(ParserGenerator.USE_AST, data.usesTree());
+        options.set(Waggle.USE_AST, data.usesTree());
         options.set(ParserGenerator.LOOKAHEAD_NEEDED, data.isLookAheadNeeded());
         options.set(ParserGenerator.JJ2_INDEX, data.jj2Routines().size());
         var masks = data.maskTable();
@@ -104,12 +106,17 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
 
     protected abstract void generate(ParserPlan data, OptionsContext options);
 
+    /** A cursor at the start of {@code t}, for one run of verbatim tokens. */
+    protected final TokenCursor cursorAt(Token t) {
+        return TokenCursor.at(t, this.language);
+    }
+
     /**
      * Grammar-supplied tokens verbatim, with the comments around them; {@code $NODE} and
      * {@code $BOOL} in them refer to {@code scope}, when there is one. This sequence used to be
      * spelled out at every place that copies tokens into the parser.
      */
-    protected final String code(CodeText code, NodeScope scope) {
+    private String code(CodeText code, NodeScope scope) {
         var cursor = cursorAt(code.first());
         var text = new StringBuilder();
         code.tokens().forEach(t -> text.append(cursor.text(t, scope)));
@@ -131,7 +138,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
     }
 
     /** The call that scans: a jj_3 routine, or the token scan an expansion comes down to. */
-    protected final String genjj_3Call(ScanCall call) {
+    private String genjj_3Call(ScanCall call) {
         return this.syntax.callRef(switch (call) {
             case ScanCall.Token t -> this.syntax.scanTokenCall(t.token());
             case ScanCall.Routine r -> "jj_3" + lookaheadRoutineName(r.name()) + "()";
@@ -150,7 +157,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
                 List.of(nodeModel(data, plan.body())), signature.returnType() == null);
         if (plan.traced()) {
             inner = new ProductionModel.Traced(
-                    Encoding.escapeUnicode(signature.name(), getLanguage()), inner);
+                    Encoding.escapeUnicode(signature.name(), this.language), inner);
         }
         if (plan.depthGuarded()) {
             inner = new ProductionModel.DepthGuarded(data.getDepthLimit(), signature.name(), inner);
@@ -162,8 +169,17 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
                 inner, signature.returnType() == null);
     }
 
-    /** How this target declares the production {@code p}. */
-    protected abstract ProductionModel.Signature signature(Signature p);
+    /**
+     * How this target declares the production {@code p}: as the grammar writes it, with
+     * {@code void} for a production without a result. Rust declares it its own way (ADR-0030).
+     */
+    protected ProductionModel.Signature signature(Signature p) {
+        Token t = p.head().first();
+        var comments = cursorAt(t);
+        return new ProductionModel.Signature(comments.leadingComments(t),
+                (p.returnType() == null) ? "void" : p.returnType(), comments.trailingComments(t),
+                p.name(), p.parameters().isEmpty() ? "" : code(p.parameters(), null));
+    }
 
     /** The target's view of one planned piece of a production's body. */
     private BodyModel.Node nodeModel(ParserPlan data, PlanNode node) {
@@ -308,7 +324,7 @@ public abstract class ParserGenerator extends CodeGenerator<ParserPlan> {
     private Jj3Model.Routine routineModel(ParserPlan data, Jj3Routine routine) {
         var traced = routine.tracedProduction();
         return new Jj3Model.Routine(lookaheadRoutineName(routine.name()), traced != null,
-                (traced == null) ? "" : Encoding.escapeUnicode(traced, getLanguage()),
+                (traced == null) ? "" : Encoding.escapeUnicode(traced, this.language),
                 data.recordsExpectedTokens(), new Jj3Model.Trace(), new Jj3Model.Failure(), new Jj3Model.Success(),
                 routine.body().stream().map(this::stepModel).toList());
     }

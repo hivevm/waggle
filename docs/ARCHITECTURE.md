@@ -50,17 +50,22 @@ caller it declares itself as `RenderContext`.
 ## The back ends
 
 A target contributes a `Generator`, found through a `ServiceLoader`
-([ADR-0004](adr/0004-multi-target-code-generation.md)). What a back end writes is split from how its
-language spells it:
+([ADR-0004](adr/0004-multi-target-code-generation.md)). Generation has three parts:
 
-- **the algorithm** lives once, in emitters — `StringLiteralDfaEmitter`, `NfaMoveEmitter`,
-  `GetNextTokenEmitter` for the lexer, `Phase3Emitter` and `LookaheadEmitter` for the parser;
-- **the spelling** lives in one object per language — `TargetSyntax` for the lexer
-  ([ADR-0017](adr/0017-lexer-emission-by-composition.md)), `ParserSyntax` for the parser
-  ([ADR-0021](adr/0021-parser-emission-by-composition.md)). Java's answers are the defaults.
+- **the plan** holds every decision. Stages 3 and 4 hand over a finished `ParserPlan` and
+  `LexerPlan` ([ADR-0029](adr/0029-emitters-only-write-a-finished-plan.md)).
+- **the output model** is the plan as one target writes it, every value already spelled.
+  `StringLiteralDfaEmitter`, `NfaMoveEmitter` and `GetNextTokenEmitter` build it for the lexer,
+  `ParserGenerator` builds it for the parser. Its records are the `*Model` types in `codegen`.
+- **the spelling** lives in one object per language. `TargetSyntax` serves the lexer
+  ([ADR-0017](adr/0017-lexer-emission-by-composition.md)), `ParserSyntax` the parser
+  ([ADR-0021](adr/0021-parser-emission-by-composition.md)). Java's answers are the defaults. They
+  spell what a template cannot: a literal, a name, an expression inside a line.
 
-Whole files come from templates under `src/main/resources/templates/<target>/`. Rendering produces
-text; an `OutputSink` decides where it goes, which is what lets a caller generate into memory
+Whole files come from templates under `src/main/resources/templates/<target>/`. Each output-model
+record is written by the template named after its type, so a back end writes no statement itself
+([ADR-0031](adr/0031-templates-render-the-plan-recursively.md)). Rendering produces text. An
+`OutputSink` decides where it goes, which lets a caller generate into memory
 ([ADR-0018](adr/0018-rendering-is-pure-an-output-sink-writes.md)).
 
 Tree building is optional: a back end supplies a `TreeEmitter` or refuses grammars that use `#Node`

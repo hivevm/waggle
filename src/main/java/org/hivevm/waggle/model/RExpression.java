@@ -110,6 +110,4 @@ public abstract sealed class RExpression extends Expansion
     public final void setTokenProduction(TokenProduction tokenProduction) {
         this.tokenProduction = tokenProduction;
     }
-
-    public abstract <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data);
 }

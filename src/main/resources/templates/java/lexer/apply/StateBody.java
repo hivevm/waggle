@@ -15,7 +15,7 @@ jjmatchedKind = 0x7fffffff;
 jjmatchedPos = 0;
 //@fi
 //@if(DEBUG_TOKEN_MANAGER)
-//@if(withLexState)
+//@if(SWITCH_ON_LEX_STATE)
 debugStream.println("<" + lexStateNames[curLexState] + ">" + "Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());
 //@else
 debugStream.println("Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());

@@ -26,7 +26,7 @@ fn jj_move_string_literal_dfa__pos____suffix__(&mut self__params__) -> usize {
 	self.cur_char = u32::from(result.unwrap());
 
 //@if(DEBUG_TOKEN_MANAGER)
-//@if(withLexState)
+//@if(SWITCH_ON_LEX_STATE)
 	eprintln!("<{}>Current character : {}({}) at line {} column {}", LEX_STATE_NAMES[self.cur_lex_state as usize], char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());
 //@else
 	eprintln!("Current character : {}({}) at line {} column {}", char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());
@@ -43,7 +43,7 @@ fn jj_move_string_literal_dfa__pos____suffix__(&mut self__params__) -> usize {
 		}
 	}
 //@if(tail)
-//@if(tailStartNfa)
+//@if(eofStartNfa)
 	__tailStartCall__
 //@else
 //@if(tailMoveNfa)

@@ -16,9 +16,9 @@ private int jjMoveNfa__suffix__(int startState, int curPos) {
 	jjnewStateCnt = __generatedStates__;
 	int i = 1;
 	jjstateSet[0] = startState;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 	debugStream.println("   Starting NFA to match one of : " + jjKindsForStateVector(curLexState, jjstateSet, 0, 1));
-//@if(withLexState)
+//@if(SWITCH_ON_LEX_STATE)
 	debugStream.println("<" + lexStateNames[curLexState] + ">" + "Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());
 //@else
 	debugStream.println("Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());
@@ -41,7 +41,7 @@ private int jjMoveNfa__suffix__(int startState, int curPos) {
 		    kind = 0x7fffffff;
 		}
 		curPos++;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		if (jjmatchedKind != 0 && jjmatchedKind != 0x7fffffff)
 		    debugStream.println("   Currently matched the first " + (jjmatchedPos + 1) + " characters as a " + ParserConstants.tokenImage[jjmatchedKind] + " token.");
 //@fi
@@ -51,7 +51,7 @@ private int jjMoveNfa__suffix__(int startState, int curPos) {
 //@else
 			return curPos;
 //@fi
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		debugStream.println("   Possible kinds of longer matches : " + jjKindsForStateVector(curLexState, jjstateSet, startsAt, i));
 //@fi
 		try {
@@ -63,8 +63,8 @@ private int jjMoveNfa__suffix__(int startState, int curPos) {
 			return curPos;
 //@fi
 		}
-//@if(debug)
-//@if(withLexState)
+//@if(DEBUG_TOKEN_MANAGER)
+//@if(SWITCH_ON_LEX_STATE)
 		debugStream.println("<" + lexStateNames[curLexState] + ">" + "Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());
 //@else
 		debugStream.println("Current character : " + TokenException.addEscapes(String.valueOf((char) curChar)) + " (" + (int)curChar + ") at line " + input_stream.getEndLine() + " column " + input_stream.getEndColumn());

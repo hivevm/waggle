@@ -36,7 +36,7 @@ int __PARSER_NAME__TokenManager::jjMoveStringLiteralDfa__pos____suffix__(__param
 		}
 	}
 //@if(tail)
-//@if(tailStartNfa)
+//@if(eofStartNfa)
 	return __tailStartCall__;
 //@else
 //@if(tailMoveNfa)

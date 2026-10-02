@@ -19,16 +19,15 @@ import org.hivevm.waggle.model.RSequence;
 import org.hivevm.waggle.model.RStringLiteral;
 import org.hivevm.waggle.model.RZeroOrMore;
 import org.hivevm.waggle.model.RZeroOrOne;
-import org.hivevm.waggle.model.RegularExpressionVisitor;
 import org.hivevm.waggle.model.SingleCharacter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The {@link NfaVisitor} class.
+ * Builds the NFA of a regular expression, one method per kind of expression.
  */
-final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
+final class NfaVisitor {
 
     private final boolean ignoreCase;
 
@@ -37,6 +36,22 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
      */
     public NfaVisitor(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
+    }
+
+    /** The NFA of {@code expr}; none for the end of input. */
+    Nfa nfa(RExpression expr, NfaStateData data) {
+        return switch (expr) {
+            case RCharacterList e -> visit(e, data);
+            case RChoice e -> visit(e, data);
+            case REndOfFile e -> visit(e, data);
+            case RJustName e -> visit(e, data);
+            case ROneOrMore e -> visit(e, data);
+            case RRepetitionRange e -> visit(e, data);
+            case RSequence e -> visit(e, data);
+            case RStringLiteral e -> visit(e, data);
+            case RZeroOrMore e -> visit(e, data);
+            case RZeroOrOne e -> visit(e, data);
+        };
     }
 
     /**
@@ -58,8 +73,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return list;
     }
 
-    @Override
-    public Nfa visit(RCharacterList expr, NfaStateData data) {
+    private Nfa visit(RCharacterList expr, NfaStateData data) {
         RCharacterList list = matched(expr);
         if (list.getDescriptors().isEmpty()) {
             data.global.diagnostics().error(expr,
@@ -91,19 +105,18 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return retVal;
     }
 
-    @Override
-    public Nfa visit(RChoice expr, NfaStateData data) {
+    private Nfa visit(RChoice expr, NfaStateData data) {
         List<RExpression> choices = compressed(expr);
 
         if (choices.size() == 1)
-            return choices.getFirst().accept(this, data);
+            return nfa(choices.getFirst(), data);
 
         Nfa retVal = new Nfa(data);
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();
 
         for (RExpression element : choices) {
-            Nfa temp = element.accept(this, data);
+            Nfa temp = nfa(element, data);
             startState.AddMove(temp.start());
             temp.end().AddMove(finalState);
         }
@@ -164,23 +177,20 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return choices;
     }
 
-    @Override
-    public Nfa visit(REndOfFile expr, NfaStateData data) {
+    private Nfa visit(REndOfFile expr, NfaStateData data) {
         return null;
     }
 
-    @Override
-    public Nfa visit(RJustName expr, NfaStateData data) {
-        return expr.getRegexpr().accept(this, data);
+    private Nfa visit(RJustName expr, NfaStateData data) {
+        return nfa(expr.getRegexpr(), data);
     }
 
-    @Override
-    public Nfa visit(ROneOrMore expr, NfaStateData data) {
+    private Nfa visit(ROneOrMore expr, NfaStateData data) {
         Nfa retVal = new Nfa(data);
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();
 
-        Nfa temp = expr.getRegexpr().accept(this, data);
+        Nfa temp = nfa(expr.getRegexpr(), data);
 
         startState.AddMove(temp.start());
         temp.end().AddMove(temp.start());
@@ -189,8 +199,7 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return retVal;
     }
 
-    @Override
-    public Nfa visit(RRepetitionRange expr, NfaStateData data) {
+    private Nfa visit(RRepetitionRange expr, NfaStateData data) {
         RSequence seq = new RSequence();
         seq.setOrdinal(Integer.MAX_VALUE);
         int i;
@@ -206,13 +215,12 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
             seq.getUnits().add(new RZeroOrOne(expr.getRegexpr()));
         }
 
-        return seq.accept(this, data);
+        return nfa(seq, data);
     }
 
-    @Override
-    public Nfa visit(RSequence expr, NfaStateData data) {
+    private Nfa visit(RSequence expr, NfaStateData data) {
         if (expr.getUnits().size() == 1)
-            return expr.getUnits().getFirst().accept(this, data);
+            return nfa(expr.getUnits().getFirst(), data);
 
         Nfa retVal = new Nfa(data);
         NfaState startState = retVal.start();
@@ -223,13 +231,13 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         RExpression curRE;
 
         curRE = expr.getUnits().getFirst();
-        temp1 = curRE.accept(this, data);
+        temp1 = nfa(curRE, data);
         startState.AddMove(temp1.start());
 
         for (int i = 1; i < expr.getUnits().size(); i++) {
             curRE = expr.getUnits().get(i);
 
-            temp2 = curRE.accept(this, data);
+            temp2 = nfa(curRE, data);
             temp1.end().AddMove(temp2.start());
             temp1 = temp2;
         }
@@ -239,11 +247,10 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return retVal;
     }
 
-    @Override
-    public Nfa visit(RStringLiteral expr, NfaStateData data) {
+    private Nfa visit(RStringLiteral expr, NfaStateData data) {
         if (expr.getImage().length() == 1) {
             RCharacterList temp = new RCharacterList(expr.getImage().charAt(0));
-            return temp.accept(this, data);
+            return nfa(temp, data);
         }
 
         NfaState startState = new NfaState(data);
@@ -272,10 +279,9 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return new Nfa(theStartState, finalState);
     }
 
-    @Override
-    public Nfa visit(RZeroOrMore expr, NfaStateData data) {
+    private Nfa visit(RZeroOrMore expr, NfaStateData data) {
         Nfa retVal = new Nfa(data);
-        Nfa temp = expr.getRegexpr().accept(this, data);
+        Nfa temp = nfa(expr.getRegexpr(), data);
 
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();
@@ -287,10 +293,9 @@ final class NfaVisitor implements RegularExpressionVisitor<Nfa, NfaStateData> {
         return retVal;
     }
 
-    @Override
-    public Nfa visit(RZeroOrOne expr, NfaStateData data) {
+    private Nfa visit(RZeroOrOne expr, NfaStateData data) {
         Nfa retVal = new Nfa(data);
-        Nfa temp = expr.getRegexpr().accept(this, data);
+        Nfa temp = nfa(expr.getRegexpr(), data);
 
         NfaState startState = retVal.start();
         NfaState finalState = retVal.end();

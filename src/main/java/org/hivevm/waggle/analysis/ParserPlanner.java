@@ -256,7 +256,6 @@ public class ParserPlanner {
     private static Decision buildLookahead(ParserPlan data, Lookahead[] conds) {
         var steps = new ArrayList<Decision.Step>();
         var opening = Decision.Opening.NOTHING;
-        int openBlocks = 0;
         int[] tokenMask = null;
         boolean[] casedValues = null;
 
@@ -276,7 +275,6 @@ public class ParserPlanner {
                     if (opening != Decision.Opening.SWITCH) {
                         tokenMask = new int[MaskTable.wordCount(data.getTokenCount())];
                         casedValues = new boolean[data.getTokenCount()];
-                        openBlocks++;
                     }
                     steps.add(new Decision.Switch(opening,
                             ParserPlanner.caseTokens(data, firstSet, casedValues, tokenMask)));
@@ -291,11 +289,6 @@ public class ParserPlanner {
             // An if: after a switch, it goes into the switch's default arm.
             int slot = (opening == Decision.Opening.SWITCH)
                     ? ParserPlanner.recorded(data, data.addMask(tokenMask)) : -1;
-            openBlocks += switch (opening) {
-                case NOTHING -> 1;
-                case IF -> 0;
-                case SWITCH -> 2;
-            };
             if (semantic) {
                 steps.add(new Decision.Semantic(opening, slot,
                         new CodeText(la.getActionTokens())));
@@ -309,10 +302,9 @@ public class ParserPlanner {
             opening = Decision.Opening.IF;
         }
 
-        var inSwitch = opening == Decision.Opening.SWITCH;
         return new Decision(List.copyOf(steps), new Decision.Fallback(opening,
-                inSwitch ? ParserPlanner.recorded(data, data.addMask(tokenMask)) : -1,
-                inSwitch ? openBlocks + 1 : openBlocks));
+                (opening == Decision.Opening.SWITCH)
+                        ? ParserPlanner.recorded(data, data.addMask(tokenMask)) : -1));
     }
 
     /** The jj_la1 slot a choice records, or -1 when the parser records no expected tokens. */

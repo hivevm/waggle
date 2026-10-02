@@ -58,6 +58,23 @@ public class TreeModel {
         return Collections.unmodifiableSet(this.nodesToGenerate);
     }
 
+    /** The names of the nodes a visitor visits: all but {@code void}, in declaration order. */
+    public final List<String> visitedNodeNames() {
+        return this.nodeNames.stream().filter(n -> !n.equals("void")).toList();
+    }
+
+    /**
+     * The node classes the back end writes: none without {@code BUILD_NODE_FILES}, and never one
+     * the grammar author supplies.
+     */
+    public final List<String> nodeClassesToWrite(TreeOptions options) {
+        if (!options.buildNodeFiles()) {
+            return List.of();
+        }
+        var excludes = options.customNodes();
+        return this.nodesToGenerate.stream().filter(n -> !excludes.contains(n)).toList();
+    }
+
     /**
      * Records a scope the parser opens and its node, in the order the grammar declares it, and the
      * node class it asks the back end to write.

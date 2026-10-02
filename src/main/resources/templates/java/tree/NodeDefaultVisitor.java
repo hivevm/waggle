@@ -7,19 +7,43 @@ package __JAVA_PACKAGE__;
 
 public class NodeDefaultVisitor implements NodeVisitor {
 
-	public __RETURN_TYPE__ defaultVisit(Node node, __ARGUMENT_TYPE__ data)__EXCEPTION__ {
+//@if(VISITOR_EXCEPTION)
+	public __VISITOR_RETURN_TYPE__ defaultVisit(Node node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+//@else
+	public __VISITOR_RETURN_TYPE__ defaultVisit(Node node, __VISITOR_DATA_TYPE__ data) {
+//@fi
 		node.childrenAccept(this, data);
-		return__RETURN_VALUE__;
+//@if(VISITOR_RETURN_TYPE_VOID)
+		return;
+//@else
+		return __VISITOR_RETURN_VALUE__;
+//@fi
 	}
 
-	public __RETURN_TYPE__ visit(Node node, __ARGUMENT_TYPE__ data)__EXCEPTION__ {
-		__RETURN__defaultVisit(node, data);
+//@if(VISITOR_EXCEPTION)
+	public __VISITOR_RETURN_TYPE__ visit(Node node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+//@else
+	public __VISITOR_RETURN_TYPE__ visit(Node node, __VISITOR_DATA_TYPE__ data) {
+//@fi
+//@if(VISITOR_RETURN_TYPE_VOID)
+		defaultVisit(node, data);
+//@else
+		return defaultVisit(node, data);
+//@fi
 	}
 //@if(NODE_MULTI)
 //@foreach(NODES)
 
-	public __RETURN_TYPE__ visit(AST__NODES_NAME__ node, __ARGUMENT_TYPE__ data)__EXCEPTION__ {
-		__RETURN__defaultVisit(node, data);
+//@if(VISITOR_EXCEPTION)
+	public __VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+//@else
+	public __VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data) {
+//@fi
+//@if(VISITOR_RETURN_TYPE_VOID)
+		defaultVisit(node, data);
+//@else
+		return defaultVisit(node, data);
+//@fi
 	}
 //@end
 //@fi

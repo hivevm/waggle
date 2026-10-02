@@ -1,6 +1,8 @@
 //@if(nfa)
 //@apply(rows)
-static const int* const kindForState[] = {__refs__ };
+static const int* const kindForState[] = {
+//@apply(refs)
+};
 //@else
 static const int* const kindForState[] = { nullptr };
 //@fi

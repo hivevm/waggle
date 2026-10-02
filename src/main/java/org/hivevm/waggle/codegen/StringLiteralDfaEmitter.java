@@ -52,7 +52,7 @@ public class StringLiteralDfaEmitter {
         var positions = state.positions().stream().map(pos -> dfaFn(lex, pos)).toList();
         return new DfaModel.DfaCode(lex.suffix(), false, null, state.stopAtPos(), positions,
                 state.startNfaWithStates()
-                        ? new DfaModel.StartWithStates(lex.suffix(), lex.withLexState()) : null);
+                        ? new DfaModel.StartWithStates(lex.suffix()) : null);
     }
 
     /** {@code jjMoveStringLiteralDfa<pos>}. */
@@ -86,8 +86,7 @@ public class StringLiteralDfaEmitter {
                         + liveVectors(pos.active()) + ")",
                 (handoff == Handoff.MOVE_NFA) ? moveNfaCall(lex, String.valueOf(i - 1))
                         : String.valueOf(i),
-                lex.withLexState(), cases, exit(lex, pos.otherwise(), i, null), pos.tail(),
-                handoff == Handoff.START_NFA,
+                cases, exit(lex, pos.otherwise(), i, null), pos.tail(),
                 startNfaName(lex) + "(" + (i - 1) + ", " + liveVectors(pos.active()) + ")",
                 handoff == Handoff.MOVE_NFA, moveNfaCall(lex, String.valueOf(i)), i + 1);
     }
@@ -126,7 +125,7 @@ public class StringLiteralDfaEmitter {
 
     /** How a case of position {@code i} ends. */
     private DfaModel.DfaExit exit(LexState lex, Exit exit, int i, String callNext) {
-        return new DfaModel.DfaExit(exit == Exit.CALL, callNext, exit == Exit.MOVE_NFA,
+        return new DfaModel.DfaExit(callNext, exit == Exit.MOVE_NFA,
                 moveNfaCall(lex, String.valueOf(i)), exit == Exit.BREAK, exit == Exit.RETURN,
                 i + 1);
     }

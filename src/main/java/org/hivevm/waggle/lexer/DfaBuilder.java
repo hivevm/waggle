@@ -63,16 +63,16 @@ class DfaBuilder {
                     continue;
                 }
 
-                for (int kind : info.finalKindsAscending()) {
-                    if (!data.subString[kind]) {
-                        int stateSetName = getStateSetForKind(data, i, kind);
-                        data.putStateSetName(i, kind, stateSetName);
-                        if (stateSetName != -1) {
-                            data.createStartNfa = true;
-                        }
+                int[] kinds = info.finalKindsAscending();
+                int[] stateSets = new int[kinds.length];
+                for (int k = 0; k < kinds.length; k++) {
+                    stateSets[k] = data.subString[kinds[k]] ? -1
+                            : getStateSetForKind(data, i, kinds[k]);
+                    if (stateSets[k] != -1) {
+                        data.createStartNfa = true;
                     }
                 }
-                cases.add(LexerPlanner.charCase(data, i, c, info));
+                cases.add(LexerPlanner.charCase(data, i, c, info, stateSets));
             }
         }
     }

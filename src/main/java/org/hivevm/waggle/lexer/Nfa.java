@@ -87,7 +87,8 @@ record Nfa(NfaState start, NfaState end) {
                             choices.add(choice);
                         }
 
-                        Nfa temp = curRE.accept(new NfaVisitor(data.ignoreCase() || ignore), stateData);
+                        Nfa temp = new NfaVisitor(data.ignoreCase() || ignore)
+                                .nfa(curRE, stateData);
                         temp.end().isFinal = true;
                         temp.end().kind = ord;
                         init.AddMove(temp.start());

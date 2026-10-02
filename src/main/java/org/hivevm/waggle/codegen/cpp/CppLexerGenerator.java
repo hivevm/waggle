@@ -10,7 +10,6 @@ package org.hivevm.waggle.codegen.cpp;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
 import org.hivevm.waggle.lexer.LexerData;
@@ -19,7 +18,6 @@ import org.hivevm.waggle.lexer.LexerPlan.LexStatePlan;
 import org.hivevm.waggle.lexer.LexerPlan.Tables;
 import org.hivevm.source.TemplateSet;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -30,11 +28,6 @@ class CppLexerGenerator extends LexerGenerator {
 
     public CppLexerGenerator() {
         super(Language.CPP);
-    }
-
-    @Override
-    protected GetNextTokenEmitter newGetNextTokenEmitter() {
-        return new CppGetNextTokenEmitter(this);
     }
 
     @Override
@@ -74,16 +67,12 @@ class CppLexerGenerator extends LexerGenerator {
      */
     private static CppDebugTables.KindForState kindForState(Tables tables) {
         var kinds = tables.kindsForState();
-        var rows = new ArrayList<CppDebugTables.KindRow>();
-        var refs = new StringBuilder();
-        for (int i = 0; i < kinds.size(); i++) {
-            if (!kinds.get(i).isEmpty()) {
-                rows.add(new CppDebugTables.KindRow(i, joined(kinds.get(i))));
-            }
-            refs.append((i > 0) ? ", " : " ")
-                    .append(kinds.get(i).isEmpty() ? "nullptr" : "kindForState_" + i);
-        }
-        return new CppDebugTables.KindForState(tables.nfa(), List.copyOf(rows), refs.toString());
+        var states = IntStream.range(0, kinds.size()).boxed().toList();
+        return new CppDebugTables.KindForState(tables.nfa(),
+                states.stream().filter(i -> !kinds.get(i).isEmpty())
+                        .map(i -> new CppDebugTables.KindRow(i, joined(kinds.get(i)))).toList(),
+                states.stream().map(i -> new CppDebugTables.KindRef(i, !kinds.get(i).isEmpty()))
+                        .toList());
     }
 
     /**
@@ -93,31 +82,25 @@ class CppLexerGenerator extends LexerGenerator {
      * reader could not tell a set's zeros from state 0.
      */
     private static CppDebugTables.StatesForState statesForState(Tables tables) {
-        var states = tables.statesForState();
-        var sets = new ArrayList<CppDebugTables.StateSets>();
-        var setRefs = new StringBuilder();
-        var lenRefs = new StringBuilder();
-        for (int i = 0; i < states.size(); i++) {
-            var rows = states.get(i);
-            if (!rows.isEmpty()) {
-                var members = new ArrayList<CppDebugTables.StateSet>();
-                var names = new StringBuilder();
-                var lengths = new ArrayList<Integer>();
-                for (int j = 0; j < rows.size(); j++) {
-                    members.add(new CppDebugTables.StateSet(i, j, joined(rows.get(j))));
-                    names.append((j > 0) ? ", " : " ").append("stateSet_" + i + "_" + j);
-                    lengths.add(rows.get(j).size());
-                }
-                sets.add(new CppDebugTables.StateSets(i, List.copyOf(members), names.toString(),
-                        joined(lengths)));
-            }
-            setRefs.append((i > 0) ? ", " : " ")
-                    .append(rows.isEmpty() ? "nullptr" : "stateSet_" + i);
-            lenRefs.append((i > 0) ? ", " : " ")
-                    .append(rows.isEmpty() ? "nullptr" : "stateSetLen_" + i);
-        }
-        return new CppDebugTables.StatesForState(tables.nfa(), List.copyOf(sets),
-                setRefs.toString(), lenRefs.toString());
+        var sets = tables.statesForState();
+        var states = IntStream.range(0, sets.size()).boxed().toList();
+        return new CppDebugTables.StatesForState(tables.nfa(),
+                states.stream().filter(i -> !sets.get(i).isEmpty())
+                        .map(i -> stateSets(i, sets.get(i))).toList(),
+                states.stream().map(i -> new CppDebugTables.StateSetsRef(i,
+                        !sets.get(i).isEmpty())).toList(),
+                states.stream().map(i -> new CppDebugTables.StateSetsLenRef(i,
+                        !sets.get(i).isEmpty())).toList());
+    }
+
+    /** The sets of lexical state {@code index}, one per state. */
+    private static CppDebugTables.StateSets stateSets(int index, List<List<Integer>> rows) {
+        var members = IntStream.range(0, rows.size()).boxed().toList();
+        return new CppDebugTables.StateSets(index,
+                members.stream().map(j -> new CppDebugTables.StateSet(index, j,
+                        joined(rows.get(j)))).toList(),
+                members.stream().map(j -> new CppDebugTables.StateSetRef(index, j)).toList(),
+                joined(rows.stream().map(List::size).toList()));
     }
 
     private static String joined(List<Integer> values) {

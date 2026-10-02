@@ -75,10 +75,9 @@ public record Decision(List<Step> steps, Fallback fallback) {
     /**
      * The arm that runs when no step matched.
      *
-     * @param slot        the {@code jj_la1} slot it records when it is a switch's default, or -1
-     * @param closeBlocks the blocks the chain leaves open, which it closes
+     * @param slot the {@code jj_la1} slot it records when it is a switch's default, or -1
      */
-    public record Fallback(Opening opening, int slot, int closeBlocks) {
+    public record Fallback(Opening opening, int slot) {
     }
 
     /** The alternative taken when no step matches. */

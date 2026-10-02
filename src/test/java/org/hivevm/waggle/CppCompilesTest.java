@@ -632,6 +632,16 @@ class CppCompilesTest {
                 """, dir);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {GeneratedCodeCompilesTest.SKIP_UPPER, GeneratedCodeCompilesTest.SKIP_BOTH})
+    void skippingAboveAsciiHalfCompiles(String skip, @TempDir Path dir) throws Exception {
+        for (var trace : List.of(false, true)) {
+            var sub = dir.resolve(String.valueOf(trace));
+            Files.createDirectories(sub);
+            assertCompiles(GeneratedCodeCompilesTest.skipping(skip, trace), sub);
+        }
+    }
+
     /** A grammar to run: its tokens reach beyond ASCII. */
     private static final String RUN = """
             grammar Run;

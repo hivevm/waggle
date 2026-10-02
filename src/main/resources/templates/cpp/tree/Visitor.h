@@ -20,10 +20,10 @@ class __PARSER_NAME__Visitor
 {
 public:
 
-	virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __VISITOR_RETURN_TYPE__ visit(const Node *node, __VISITOR_DATA_TYPE__ data) = 0;
 //@if(NODE_MULTI)
 //@foreach(NODES)
-	virtual __RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __VISITOR_RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __VISITOR_DATA_TYPE__ data) = 0;
 //@end
 //@fi
 
@@ -36,16 +36,24 @@ class __PARSER_NAME__DefaultVisitor
 {
 
 public:
-	virtual __RETURN_TYPE__ defaultVisit(const Node *node, __ARGUMENT_TYPE__ data) = 0;
+	virtual __VISITOR_RETURN_TYPE__ defaultVisit(const Node *node, __VISITOR_DATA_TYPE__ data) = 0;
 
-	virtual __RETURN_TYPE__ visit(const Node *node, __ARGUMENT_TYPE__ data) {
-		__RETURN__defaultVisit(node, data);
+	virtual __VISITOR_RETURN_TYPE__ visit(const Node *node, __VISITOR_DATA_TYPE__ data) {
+//@if(VISITOR_RETURN_TYPE_VOID)
+		defaultVisit(node, data);
+//@else
+		return defaultVisit(node, data);
+//@fi
 	}
 
 //@if(NODE_MULTI)
 //@foreach(NODES)
-	virtual __RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __ARGUMENT_TYPE__ data) {
-		__RETURN__defaultVisit(node, data);
+	virtual __VISITOR_RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __VISITOR_DATA_TYPE__ data) {
+//@if(VISITOR_RETURN_TYPE_VOID)
+		defaultVisit(node, data);
+//@else
+		return defaultVisit(node, data);
+//@fi
 	}
 //@end
 //@fi

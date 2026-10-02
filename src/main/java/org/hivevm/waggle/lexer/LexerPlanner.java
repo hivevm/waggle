@@ -64,8 +64,8 @@ final class LexerPlanner {
             states.add(state(stateData, stopAtPos && (stateData.maxLen > 0)));
             stopAtPos &= (stateData.maxLen == 0);
         }
-        return new LexerPlan(data.getDebugTokenManager(), (data.maxOrdinal / 64) + 1,
-                List.copyOf(states), tokenLoop(data), actions(data), tables(data),
+        return new LexerPlan(data.getDebugTokenManager(), List.copyOf(states), tokenLoop(data),
+                actions(data), tables(data),
                 data.nonAsciiTableForMethod.stream().map(s -> canMove(data, s)).toList(),
                 tokenNames(data), namedTokens(data), shape(data));
     }
@@ -285,8 +285,11 @@ final class LexerPlanner {
      * The case of character {@code c} at position {@code i} of the string-literal DFA. Called by
      * {@link DfaBuilder#getDfaCode} for every character it does not leave to the skip loop, once
      * it has registered the state sets the literals ending there lead to.
+     *
+     * @param stateSets per final kind of {@code info}, ascending, the state set the NFA goes on in
+     *                  when that literal is matched here, or -1
      */
-    static CharCase charCase(NfaStateData data, int i, char c, KindInfo info) {
+    static CharCase charCase(NfaStateData data, int i, char c, KindInfo info, int[] stateSets) {
         var labels = new ArrayList<Integer>();
         if (data.ignoreCase()) {
             if (c != Character.toUpperCase(c)) {
@@ -300,10 +303,12 @@ final class LexerPlanner {
         int initMatch = data.global.initMatch(data.getStateIndex());
         boolean matchesEmpty = (initMatch != 0) && (initMatch != Integer.MAX_VALUE);
         var finals = new ArrayList<Final>();
-        for (int kind : info.finalKindsAscending()) {
+        int[] kinds = info.finalKindsAscending();
+        for (int k = 0; k < kinds.length; k++) {
+            int kind = kinds[k];
             int kindToPrint = data.kindToPrint(i, kind);
             if (!data.isSubString(kind)) {
-                int stateSet = data.getStateSetName(i, kind);
+                int stateSet = stateSets[k];
                 finals.add(new Final(kind / 64, 1L << (kind % 64), kindToPrint,
                         (stateSet != -1) ? FinalAction.START_NFA_WITH_STATES
                                 : FinalAction.STOP_AT_POS, stateSet));

@@ -18,7 +18,7 @@ while while_cond {
 		match self.jjstate_set[i] {
 			//@apply(arms)
 			_ => {
-//@if(breakInDefault)
+//@if(other)
 				break;
 //@fi
 			}

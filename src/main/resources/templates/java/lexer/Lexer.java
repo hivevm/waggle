@@ -284,7 +284,7 @@ class Lexer {
 	 * Switch to specified lex state.
 	 */
 	public void SwitchTo(int lexState) {
-		if (lexState >= __STATE_COUNT__ || lexState < 0)
+		if (lexState >= __MAX_LEX_STATES__ || lexState < 0)
 			throw new TokenException(
 					"Error: Ignoring invalid lexical state : " + lexState + ". State unchanged.",
 					TokenException.INVALID_LEXICAL_STATE);

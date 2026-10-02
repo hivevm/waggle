@@ -17,8 +17,8 @@ import org.hivevm.waggle.tree.TreeOptions;
 import org.hivevm.waggle.tree.TreeSupport;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * C++'s tree support: the code around one node scope, and the tree runtime it calls into.
@@ -45,7 +45,7 @@ public class CppTreeEmitter implements TreeEmitter {
         renderWithVisitorTypes(CppTemplate.NODE, context, tree);
         renderWithVisitorTypes(CppTemplate.NODE_H, context, tree);
         renderWithVisitorTypes(CppTemplate.TREE, context, tree);
-        generateTreeNodes(context, tree, data.getNodesToGenerate());
+        generateTreeNodes(context, tree, data.nodeClassesToWrite(tree));
         generateOneTreeInterface(context, data.getNodesToGenerate());
     }
 
@@ -72,27 +72,16 @@ public class CppTreeEmitter implements TreeEmitter {
             return;
         }
 
-        var nodeNames = data.getNodeNames().stream()
-                .filter(n -> !n.equals("void"))
-                .collect(Collectors.toList());
-        var argumentType = CppTreeEmitter.getVisitorArgumentType(tree);
-        var returnType = CppTreeEmitter.getVisitorReturnType(tree);
-
         var options = OptionsContext.of(context);
-        options.add("NODES", nodeNames).set("NODES_TYPE", n -> "AST" + n);
+        CppTreeEmitter.applyVisitorTypes(options, tree);
+        options.add("NODES", data.visitedNodeNames()).set("NODES_TYPE", n -> "AST" + n);
         options.set(Waggle.CPP_DEFINE, context.getParserName().toUpperCase(Locale.ROOT));
-        options.set("RETURN_TYPE", returnType);
-        options.set("RETURN", returnType.equals("void") ? "" : "return ");
-        options.set("ARGUMENT_TYPE", argumentType);
         options.set(Waggle.NODE_MULTI, tree.multi());
 
         CppTemplate.VISITOR.render(options, context.getParserName());
     }
 
-    /**
-     * Sets the three visitor-type options on a render context, computing the return type once
-     * instead of the three repeated {@code getVisitorReturnType} lookups the call sites used to do.
-     */
+    /** Sets the visitor types every tree runtime file that accepts a visitor reads. */
     private static void applyVisitorTypes(OptionsContext optionMap, TreeOptions tree) {
         var returnType = CppTreeEmitter.getVisitorReturnType(tree);
         optionMap.set(Waggle.VISITOR_RETURN_TYPE, returnType);
@@ -109,17 +98,8 @@ public class CppTreeEmitter implements TreeEmitter {
         template.render(options);
     }
 
-    private void generateTreeNodes(Options context, TreeOptions tree, Set<String> nodesToGenerate) {
-        if (!tree.buildNodeFiles()) {
-            return;
-        }
-
-        var excludes = tree.customNodes();
-        for (var nodeType : nodesToGenerate) {
-            if (excludes.contains(nodeType)) {
-                continue;
-            }
-
+    private void generateTreeNodes(Options context, TreeOptions tree, List<String> nodeClasses) {
+        for (var nodeType : nodeClasses) {
             var options = OptionsContext.of(context);
             CppTreeEmitter.applyVisitorTypes(options, tree);
             options.set(Waggle.NODE_TYPE, nodeType);

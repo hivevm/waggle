@@ -423,6 +423,16 @@ class RustCompilesTest {
                 "expected a " + expected + "-not-supported message, got: " + failure.getMessage());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {GeneratedCodeCompilesTest.SKIP_UPPER, GeneratedCodeCompilesTest.SKIP_BOTH})
+    void skippingAboveAsciiHalfCompiles(String skip, @TempDir Path dir) throws Exception {
+        for (var trace : List.of(false, true)) {
+            var sub = dir.resolve(String.valueOf(trace));
+            Files.createDirectories(sub);
+            assertCompiles(GeneratedCodeCompilesTest.skipping(skip, trace), "skip", sub);
+        }
+    }
+
     /** The lexer, the parser and what they depend on go through rustc (ADR-0030). */
     private static void assertCompiles(String grammar, String module, Path dir)
             throws IOException, InterruptedException {

@@ -39,28 +39,24 @@ public final class NfaModel {
      * @param mixed           whether it resumes after a string literal already matched: it saves
      *                        that match, rewinds and starts over, and decides at the end which of
      *                        the two matches wins
-     * @param debug           whether it traces what it does
-     * @param withLexState    whether the character trace names the lexical state
      * @param low             the arms for characters below 64
      * @param high            the arms for characters from 64 to 127
      * @param other           the arms for characters beyond ASCII
      */
     public record MoveNfa(String parserName, String suffix, int generatedStates, boolean mixed,
-                          boolean debug, boolean withLexState, NfaSection low, NfaSection high,
-                          NfaSection other) {
+                          NfaSection low, NfaSection high, NfaSection other) {
     }
 
     /**
      * The arms of the NFA switch for one group of characters: below 64, below 128 or beyond.
      *
-     * @param low            whether it is the group below 64
-     * @param high           whether it is the group from 64 to 127
-     * @param other          whether it is the group beyond ASCII
-     * @param breakInDefault whether the default arm leaves the loop over the state set
-     * @param arms           the arms, in output order
+     * @param low   whether it is the group below 64
+     * @param high  whether it is the group from 64 to 127
+     * @param other whether it is the group beyond ASCII, whose default arm leaves the loop over
+     *              the state set
+     * @param arms  the arms, in output order
      */
-    public record NfaSection(boolean low, boolean high, boolean other, boolean breakInDefault,
-                             List<NfaArm> arms) {
+    public record NfaSection(boolean low, boolean high, boolean other, List<NfaArm> arms) {
     }
 
     /** One arm of the NFA switch; its type says how it is laid out. */

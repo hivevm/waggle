@@ -31,15 +31,22 @@ import java.util.function.BiFunction;
 /**
  * The {@link LexerGenerator} class.
  */
-public abstract class LexerGenerator extends CodeGenerator<LexerData> implements TargetSyntax {
+public abstract class LexerGenerator implements TargetSyntax {
 
     /** The lexical states, as the templates that write them read them (ADR-0031). */
-    protected static final String LEX_STATES = "LEX_STATES";
+    private static final String LEX_STATES = "LEX_STATES";
 
-    protected static final String LOHI_BYTES = "LOHI_BYTES";
-    protected static final String NON_ASCII_TABLE = "NON_ASCII_TABLE";
+    private static final String LOHI_BYTES = "LOHI_BYTES";
+    private static final String NON_ASCII_TABLE = "NON_ASCII_TABLE";
 
     private static final String HAS_LOOP = "HAS_LOOP";
+
+    /**
+     * Whether there is more than one lexical state: the token loop switches on it, and a trace
+     * names it. Every lexer template reads it, the applied ones included.
+     */
+    private static final String SWITCH_ON_LEX_STATE = "SWITCH_ON_LEX_STATE";
+
     private static final String HAS_SPECIAL = "HAS_SPECIAL";
 
     private static final String HAS_EMPTY_MATCH = "HAS_EMPTY_MATCH";
@@ -47,28 +54,28 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     private static final String DEFAULT_LEX_STATE = "DEFAULT_LEX_STATE";
     private static final String MAX_LEX_STATES = "MAX_LEX_STATES";
     private static final String STATE_NAMES = "STATE_NAMES";
-    private static final String STATE_COUNT = "STATE_COUNT";
     private static final String STATE_SET_SIZE = "STATE_SET_SIZE";
     private static final String DUAL_NEED = "CHECK_NADD_STATES_DUAL_NEEDED";
     private static final String UNARY_NEED = "CHECK_NADD_STATES_UNARY_NEEDED";
+
+    private final Language language;
 
     private StringLiteralDfaEmitter stringLiterals;
     private NfaMoveEmitter nfaMoves;
     private GetNextTokenEmitter getNextToken;
 
     protected LexerGenerator(Language language) {
-        super(language);
+        this.language = language;
     }
 
     protected NfaMoveEmitter newNfaMoveEmitter() {
         return new NfaMoveEmitter(this);
     }
 
-    @Override
     public final void generate(LexerData data) {
         this.stringLiterals = newStringLiteralDfaEmitter();
         this.nfaMoves = newNfaMoveEmitter();
-        this.getNextToken = newGetNextTokenEmitter();
+        this.getNextToken = new GetNextTokenEmitter(this);
 
         var options = OptionsContext.of(data.options());
         LexerPlan plan = data.plan();
@@ -82,6 +89,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
 
         var shape = plan.shape();
         options.set(LexerGenerator.HAS_LOOP, shape.hasLoop());
+        options.set(LexerGenerator.SWITCH_ON_LEX_STATE, plan.tokenLoop().switchOnLexState());
         options.set(LexerGenerator.HAS_SPECIAL, shape.hasSpecial());
 
         options.set(LexerGenerator.HAS_EMPTY_MATCH, shape.hasEmptyMatch());
@@ -90,7 +98,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         options.set(LexerGenerator.MAX_LEX_STATES, shape.lexStates());
         options.add(LexerGenerator.STATE_NAMES, shape.stateNames())
                 .set(LexerGenerator.STATE_NAMES + "_VALUE", i -> i);
-        options.set(LexerGenerator.STATE_COUNT, shape.lexStates());
         options.set(LexerGenerator.STATE_SET_SIZE, shape.stateSetSize());
         options.set(LexerGenerator.STATE_SET_SIZE + "_2", shape.stateSetSize() * 2);
         options.set(LexerGenerator.DUAL_NEED, shape.dualNeed());
@@ -118,7 +125,7 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         options.add("KIND_VECTORS", plan.tables().kindTables().stream()
                 .map(this::kindVector).toList());
         options.add(LexerGenerator.LEX_STATES, plan.states().stream()
-                .map(state -> lexicalState(new LexState(data.getParserName(), plan, state)))
+                .map(state -> lexicalState(new LexState(data.getParserName(), state)))
                 .toList());
 
         generate(data, options);
@@ -153,10 +160,6 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     /** The emitters this back end composes; a target may supply its own (ADR-0017). */
     protected StringLiteralDfaEmitter newStringLiteralDfaEmitter() {
         return new StringLiteralDfaEmitter(this);
-    }
-
-    protected GetNextTokenEmitter newGetNextTokenEmitter() {
-        return new GetNextTokenEmitter(this);
     }
 
     /**
@@ -204,6 +207,11 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
         return text.toString();
     }
 
+    /** A cursor at the start of {@code t}, for one run of verbatim tokens. */
+    private TokenCursor cursorAt(Token t) {
+        return TokenCursor.at(t, this.language);
+    }
+
     /** The target's view of one lexical state: its string-literal DFA, and its NFA when it has one. */
     private NfaModel.LexicalState lexicalState(LexState state) {
         return new NfaModel.LexicalState(this.stringLiterals.stopDfa(state),
@@ -218,9 +226,8 @@ public abstract class LexerGenerator extends CodeGenerator<LexerData> implements
     private NfaModel.MoveNfa moveNfa(LexState state) {
         var moves = state.plan().moves();
         return new NfaModel.MoveNfa(state.parserName(), state.suffix(),
-                state.generatedStates(), state.mixed(), state.debug(), state.withLexState(),
-                this.nfaMoves.section(moves.low(), 0), this.nfaMoves.section(moves.high(), 1),
-                this.nfaMoves.section(moves.other(), -1));
+                state.generatedStates(), state.mixed(), this.nfaMoves.section(moves.low(), 0),
+                this.nfaMoves.section(moves.high(), 1), this.nfaMoves.section(moves.other(), -1));
     }
 
     /** The flattened NFA state sets the DFA jumps into, 16 per line. */

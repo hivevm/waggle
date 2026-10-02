@@ -70,7 +70,7 @@ public class NfaMoveEmitter {
                 }
             }
         }
-        return new NfaModel.NfaSection(byteNum == 0, byteNum == 1, byteNum < 0, byteNum < 0,
+        return new NfaModel.NfaSection(byteNum == 0, byteNum == 1, byteNum < 0,
                 List.copyOf(models));
     }
 

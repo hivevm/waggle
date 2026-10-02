@@ -95,15 +95,14 @@ public final class DfaModel {
      * @param checkReturn     what it returns when no literal survives the masking
      * @param debugMatches    the trace of the literals that can still match
      * @param readChar        whether it reads a character first: every position but the first
-     * @param eofStartNfa     whether the end of input hands the matches so far to the NFA
+     * @param eofStartNfa     whether the end of input hands the matches so far to the NFA; the
+     *                        tail hands the active vectors over in the same case
      * @param stopCall        that hand-over
      * @param eofReturn       what it returns at the end of input otherwise
-     * @param withLexState    whether the character trace names the lexical state
      * @param cases           the characters that continue a literal here
      * @param otherwise       what every other character does
      * @param tail            whether it ends by handing over after the switch
-     * @param tailStartNfa    whether that hands the active vectors to the NFA
-     * @param tailStartCall   that hand-over
+     * @param tailStartCall   the tail's hand-over of the active vectors
      * @param tailMoveNfa     whether it moves the NFA from its start state
      * @param tailMoveCall    that move
      * @param tailReturn      the position it returns otherwise
@@ -112,9 +111,9 @@ public final class DfaModel {
                         String masked, List<ActiveLet> lets, String activeTest,
                         String checkReturn, PossibleMatches debugMatches, boolean readChar,
                         boolean eofStartNfa, String stopCall, String eofReturn,
-                        boolean withLexState, List<DfaCase> cases, DfaExit otherwise,
-                        boolean tail, boolean tailStartNfa, String tailStartCall,
-                        boolean tailMoveNfa, String tailMoveCall, int tailReturn) {
+                        List<DfaCase> cases, DfaExit otherwise, boolean tail,
+                        String tailStartCall, boolean tailMoveNfa, String tailMoveCall,
+                        int tailReturn) {
     }
 
     /**
@@ -167,25 +166,23 @@ public final class DfaModel {
     /**
      * How a case of a position ends.
      *
-     * @param call       whether it goes on with the next position
-     * @param callNext   that call
+     * @param callNext   the call of the next position, or null when it does not go on with it
      * @param moveNfa    whether it moves the NFA from its start state
      * @param moveCall   that move
      * @param leave      whether it leaves the switch
      * @param ret        whether it returns the next position
      * @param returnPos  that position
      */
-    public record DfaExit(boolean call, String callNext, boolean moveNfa, String moveCall,
+    public record DfaExit(String callNext, boolean moveNfa, String moveCall,
                           boolean leave, boolean ret, int returnPos) {
     }
 
     /**
      * {@code jjStartNfaWithStates}: a literal matched, but the NFA may still find a longer match.
      *
-     * @param suffix       what tells this state's functions from the others'
-     * @param withLexState whether the character trace names the lexical state
+     * @param suffix what tells this state's functions from the others'
      */
-    public record StartWithStates(String suffix, boolean withLexState) {
+    public record StartWithStates(String suffix) {
     }
 
     /**

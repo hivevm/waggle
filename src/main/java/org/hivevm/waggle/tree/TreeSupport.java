@@ -33,9 +33,7 @@ public record TreeSupport(boolean visitor, boolean nodeFactory, boolean trackTok
         if (!this.trackTokens && tree.trackTokens()) {
             throw TreeSupport.unsupported("TRACK_TOKENS is", target);
         }
-        var excludes = tree.customNodes();
-        if (!this.nodeClasses && tree.buildNodeFiles()
-                && model.getNodesToGenerate().stream().anyMatch(n -> !excludes.contains(n))) {
+        if (!this.nodeClasses && !model.nodeClassesToWrite(tree).isEmpty()) {
             throw TreeSupport.unsupported("Node classes (NODE_MULTI with BUILD_NODE_FILES) are",
                     target);
         }

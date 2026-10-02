@@ -23,11 +23,10 @@ import java.util.List;
  */
 class NfaStateData {
 
-    public final LexerData global;
+    final LexerData global;
 
     private final NfaState initialState;
     private final int lexStateIndex;
-    private final String lexStateSuffix;
 
     int maxLen;
     int maxStrKind;
@@ -59,11 +58,6 @@ class NfaStateData {
     /** The NFA moves, recorded by {@link DfaBuilder#getMoveNfa}; null without an NFA. */
     LexerPlan.NfaMoves moves;
 
-    /**
-     * Package-private, not public: the same value was reachable both as this field and through
-     * {@link #hasNFA()}, and the two back ends picked different ones. Stage 4 writes it, back ends
-     * read it through the method (ADR-0012).
-     */
     boolean hasNFA;
     boolean hasMixed;
     boolean createStartNfa;
@@ -76,21 +70,14 @@ class NfaStateData {
     private int dummyStateIndex = -1;
     private final Map<String, int[]> allNextStates;
     final Map<String, Integer> stateNameForComposite;
-    public final Map<String, int[]> compositeStateTable;
+    final Map<String, int[]> compositeStateTable;
     final Map<String, NfaState> equivStatesTable;
-
-    // ADR-0012: finished-model DFA lookup. Stage 4 (DfaBuilder#getDfaCode) records the composite
-    // state-set name for every (position, kind) it visits, so the stage-5 generators render it
-    // without recomputing — or registering — DFA structure at emit time.
-    private final Map<Long, Integer> stateSetForPosKind;
 
     NfaStateData(LexerData data, String name) {
         this.global = data;
         this.lexStateIndex = this.global.getStateIndex(name);
-        this.lexStateSuffix = "_" + this.lexStateIndex;
 
-        // Indexed by ordinal / 64 (see StringLiteralAnalyzer), so size it from the token count
-        // instead of a fixed 100 ints (which silently overflowed past 6400 token kinds).
+        // Indexed by ordinal / 64 (see StringLiteralAnalyzer), so sized from the token count.
         this.maxLenForActive = new int[(this.global.maxOrdinal / 64) + 1];
         this.charPosKind = new ArrayList<>();
 
@@ -101,45 +88,28 @@ class NfaStateData {
         this.stateNameForComposite = new LinkedHashMap<>();
         this.compositeStateTable = new LinkedHashMap<>();
         this.equivStatesTable = new LinkedHashMap<>();
-        this.stateSetForPosKind = new LinkedHashMap<>();
 
         // Do at end
         this.initialState = new NfaState(this);
     }
 
-    public final String getParserName() {
-        return this.global.getParserName();
-    }
-
-    public final boolean ignoreCase() {
+    final boolean ignoreCase() {
         return this.global.ignoreCase();
     }
 
-    public final boolean hasNFA() {
-        return this.hasNFA;
-    }
-
-    public final String getLexerStateSuffix() {
-        return this.lexStateSuffix;
-    }
-
-    public final NfaState getInitialState() {
+    final NfaState getInitialState() {
         return this.initialState;
     }
 
-    public final boolean getCreateStartNfa() {
-        return this.createStartNfa;
-    }
-
-    public final int getStateIndex() {
+    final int getStateIndex() {
         return this.lexStateIndex;
     }
 
-    public final boolean isMixedState() {
+    final boolean isMixedState() {
         return this.hasMixed;
     }
 
-    public final int generatedStates() {
+    final int generatedStates() {
         return this.generatedStates;
     }
 
@@ -156,7 +126,7 @@ class NfaStateData {
      * How many state names there are: the generated states and the names given to composite state
      * sets that no member state can stand for.
      */
-    public final int stateNameCount() {
+    final int stateNameCount() {
         return Math.max(generatedStates(), this.dummyStateIndex + 1);
     }
 
@@ -169,15 +139,15 @@ class NfaStateData {
         return this.generatedStates++;
     }
 
-    public final int getAllStateCount() {
+    final int getAllStateCount() {
         return this.allStates.size();
     }
 
-    public final NfaState getAllState(int index) {
+    final NfaState getAllState(int index) {
         return this.allStates.get(index);
     }
 
-    public final Iterable<NfaState> getAllStates() {
+    final Iterable<NfaState> getAllStates() {
         return this.allStates;
     }
 
@@ -186,7 +156,7 @@ class NfaStateData {
         return this.idCnt++;
     }
 
-    public final int[] getNextStates(String name) {
+    final int[] getNextStates(String name) {
         return this.allNextStates.get(name);
     }
 
@@ -194,48 +164,23 @@ class NfaStateData {
         this.allNextStates.put(name, states);
     }
 
-    public final SortedMap<Character, KindInfo> getCharPosKind(int index) {
+    final SortedMap<Character, KindInfo> getCharPosKind(int index) {
         return this.charPosKind.get(index);
     }
 
-    /** Whether the two state sets share a state. A query over the finished DFA. */
-    public final boolean intersects(String set1, String set2) {
-        return NfaState.Intersect(this, set1, set2);
-    }
-
-    /**
-     * Where the state set {@code arrayString} lives in the emitted {@code jjnextStates} table.
-     *
-     * <p>Registering it is stage 4's job ({@code DfaBuilder}); a back end only looks it up. It used
-     * to call the registering method itself while emitting, so the back end could still grow the
-     * table it was in the middle of rendering.
-     */
-    public final int[] getStateSetIndices(String arrayString) {
-        var indices = this.global.tableToDump.get(arrayString);
-        if (indices == null) {
-            throw new IllegalStateException(
-                    "state set was never registered by the lexer stage: " + arrayString);
-        }
-        return indices;
-    }
-
-    public final int getMaxLenForActive(int index) {
+    final int getMaxLenForActive(int index) {
         return this.maxLenForActive[index];
     }
 
-    public final int getMaxLen() {
+    final int getMaxLen() {
         return this.maxLen;
     }
 
-    public final int getMaxStrKind() {
-        return this.maxStrKind;
-    }
-
-    public final boolean isSubString(int index) {
+    final boolean isSubString(int index) {
         return this.subString[index];
     }
 
-    public final boolean isSubStringAtPos(int index) {
+    final boolean isSubStringAtPos(int index) {
         return this.subStringAtPos[index];
     }
 
@@ -260,7 +205,7 @@ class NfaStateData {
     }
 
     /** The kind the string-literal DFA reports at position {@code i} for the literal of {@code kind}. */
-    public final int kindToPrint(int i, int kind) {
+    final int kindToPrint(int i, int kind) {
         if (isShadowedByIntermediate(i, kind)) {
             return this.intermediateKinds[kind][i];
         }
@@ -275,7 +220,7 @@ class NfaStateData {
      * string-literal DFA: it is a plain SKIP — no action, no lexical state change — that the token
      * manager deals with elsewhere.
      */
-    public final boolean isPlainSkip(KindInfo info, int i, char c) {
+    final boolean isPlainSkip(KindInfo info, int i, char c) {
         return plainSkipKind(info, i, c) >= 0;
     }
 
@@ -305,33 +250,7 @@ class NfaStateData {
         return -1;
     }
 
-    /**
-     * Records the composite state-set name computed for a {@code (position, kind)} slot during stage
-     * 4 (see {@link DfaBuilder#getDfaCode}). Stored once so the generators can render it without
-     * recomputing or registering DFA structure (ADR-0012).
-     */
-    void putStateSetName(int pos, int kind, int stateSetName) {
-        this.stateSetForPosKind.put(posKindKey(pos, kind), stateSetName);
-    }
-
-    /**
-     * Returns the composite state-set name recorded for {@code (pos, kind)} in stage 4, or {@code -1}
-     * when none was registered.
-     */
-    public int getStateSetName(int pos, int kind) {
-        Integer stateSetName = this.stateSetForPosKind.get(posKindKey(pos, kind));
-        return (stateSetName == null) ? -1 : stateSetName;
-    }
-
-    private static long posKindKey(int pos, int kind) {
-        return ((long) pos << 32) | (kind & 0xffffffffL);
-    }
-
-    /**
-     * Whether the NFA can start on the ASCII character {@code c} from this state's initial state.
-     * A pure query over the finished DFA model; owned by the lexer layer so stage-5 generators read
-     * it instead of recomputing DFA structure (ADR-0012).
-     */
+    /** Whether the NFA can start on the ASCII character {@code c} from this state's initial state. */
     boolean canStartNfaUsingAscii(char c) {
         if (c >= 128) {
             throw new IllegalStateException(
@@ -363,10 +282,9 @@ class NfaStateData {
 
     /**
      * The state name stage 4 gave this composite state set. A query: unlike
-     * {@link #addCompositeStateSet(String)} it registers nothing, which is what a back end needs
-     * while it renders (ADR-0012). Every set a back end asks for was registered in stage 4.
+     * {@link #addCompositeStateSet(String)} it registers nothing.
      */
-    public final int compositeStateName(String stateSetString) {
+    final int compositeStateName(String stateSetString) {
         Integer stateName = this.stateNameForComposite.get(stateSetString);
         if (stateName == null) {
             throw new IllegalStateException(
@@ -435,10 +353,10 @@ class NfaStateData {
         return tmp;
     }
 
-    public static final class KindInfo {
+    static final class KindInfo {
 
-        public final long[] validKinds;
-        public final long[] finalKinds;
+        final long[] validKinds;
+        final long[] finalKinds;
 
         KindInfo(int maxKind) {
             this.validKinds = new long[(maxKind / 64) + 1];
@@ -453,11 +371,11 @@ class NfaStateData {
             Bits.set(this.finalKinds, kind);
         }
 
-        public boolean hasValidKindCnt() {
+        boolean hasValidKindCnt() {
             return Arrays.stream(this.validKinds).anyMatch(word -> word != 0L);
         }
 
-        public boolean hasFinalKindCnt() {
+        boolean hasFinalKindCnt() {
             return Arrays.stream(this.finalKinds).anyMatch(word -> word != 0L);
         }
 
@@ -471,7 +389,7 @@ class NfaStateData {
      * Splits the states of a composite state into groups whose ASCII moves on {@code byteNum} are
      * disjoint, largest move sets first. Each group becomes one if-else chain in the move code.
      */
-    public final List<List<NfaState>> asciiPartition(int[] states, int byteNum) {
+    final List<List<NfaState>> asciiPartition(int[] states, int byteNum) {
         // Of equally large move sets, the later state comes first.
         List<NfaState> original = new ArrayList<>(Arrays.stream(states).mapToObj(this::getAllState)
                 .filter(state -> state.asciiMoves[byteNum] != 0L).toList().reversed());

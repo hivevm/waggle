@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
@@ -364,6 +366,46 @@ class GeneratedCodeCompilesTest {
     void treeGrammarWithoutNodeOptionsCompiles(@TempDir Path dir) throws IOException {
         assertGeneratedSourceCompiles(dir, "TreeDefaults.waggle",
                 GeneratedCodeCompilesTest.TREE_WITHOUT_NODE_OPTIONS);
+    }
+
+    /**
+     * A grammar that skips single characters before any token: {@code skip} lists them. Above 63
+     * alone, or on both sides of 64, they are tested against the upper half of the bit vector, a
+     * test no other grammar reaches.
+     */
+    static String skipping(String skip, boolean trace) {
+        return """
+                grammar Skip;
+
+                options {
+                  DEBUG_TOKEN_MANAGER: %s,
+                  JAVA_PACKAGE: "org.example"
+                }
+
+                Input = ( <WORD> )* <EOF> ;
+
+                SKIP = %s ;
+
+                MORE = "/*" : IN_COMMENT ;
+                SKIP <IN_COMMENT> = "*/" : DEFAULT ;
+                MORE <IN_COMMENT> = < ~[] > ;
+
+                TOKEN = < WORD: (["a"-"z"])+ > ;
+                """.formatted(trace, skip);
+    }
+
+    /** The skip sets {@link #skipping} is tested with: the upper half alone, and both halves. */
+    static final String SKIP_UPPER = "\"~\" | \"|\"";
+    static final String SKIP_BOTH = "\" \" | \"~\"";
+
+    @ParameterizedTest
+    @ValueSource(strings = {GeneratedCodeCompilesTest.SKIP_UPPER, GeneratedCodeCompilesTest.SKIP_BOTH})
+    void skippingAboveAsciiHalfCompiles(String skip, @TempDir Path dir) throws IOException {
+        for (var trace : List.of(false, true)) {
+            var sub = dir.resolve(String.valueOf(trace));
+            Files.createDirectories(sub);
+            assertGeneratedSourceCompiles(sub, "Skip.waggle", skipping(skip, trace));
+        }
     }
 
     /**

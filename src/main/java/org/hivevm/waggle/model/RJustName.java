@@ -32,9 +32,4 @@ public final class RJustName extends RExpression {
     public final void setRegexpr(RExpression regexpr) {
         this.regexpr = regexpr;
     }
-
-    @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
 }

@@ -20,9 +20,4 @@ public final class RZeroOrOne extends RExpression {
     public final RExpression getRegexpr() {
         return this.regexpr;
     }
-
-    @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
 }

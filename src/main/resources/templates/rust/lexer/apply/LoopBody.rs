@@ -1,4 +1,4 @@
-//@if(switchOnLexState)
+//@if(SWITCH_ON_LEX_STATE)
 match self.cur_lex_state {
 	//@apply(states)
 	_ => {}

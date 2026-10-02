@@ -16,7 +16,6 @@ import java.util.List;
  * final, and reached through {@link LexerData#plan()}.
  *
  * @param debug     whether the token manager traces what it does
- * @param kindWords how many 64-bit words a set of token kinds takes
  * @param states    the lexical states, by index
  * @param tokenLoop what {@code getNextToken} does around the lexical states
  * @param actions   the lexical actions
@@ -25,7 +24,7 @@ import java.util.List;
  * @param tokenNames what a token is called when the parser reports it: the end of input first,
  *                   then every regular expression of the token productions, in their order
  */
-public record LexerPlan(boolean debug, int kindWords, List<LexStatePlan> states,
+public record LexerPlan(boolean debug, List<LexStatePlan> states,
                         TokenLoop tokenLoop, Actions actions, Tables tables,
                         List<CanMove> canMoves, List<TokenName> tokenNames,
                         List<NamedToken> namedTokens, Shape shape) {

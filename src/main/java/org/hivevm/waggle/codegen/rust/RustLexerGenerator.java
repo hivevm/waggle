@@ -10,7 +10,6 @@ package org.hivevm.waggle.codegen.rust;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
-import org.hivevm.waggle.codegen.GetNextTokenEmitter;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.LexState;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
@@ -39,20 +38,12 @@ class RustLexerGenerator extends LexerGenerator {
     }
 
     @Override
-    protected GetNextTokenEmitter newGetNextTokenEmitter() {
-        return new RustGetNextTokenEmitter(this);
-    }
-
-    @Override
     protected StringLiteralDfaEmitter newStringLiteralDfaEmitter() {
         return new RustStringLiteralDfaEmitter(this);
     }
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        // A jjbitVec is a 256-bit map over the low byte: always four u64. This used to be the
-        // number of vectors, which is a different thing entirely and only ever matched by accident.
-        options.set("LOHI_BYTES_LENGTH", 4);
         var images = RustLexerGenerator.getStrLiteralImageList(data.plan().shape().images());
         options.add("LITERAL_IMAGES", images).set("LITERAL_IMAGE_NAME", s -> s);
         options.set("LITERAL_IMAGES_LENGTH", images.size());

@@ -23,11 +23,6 @@ public final class RStringLiteral extends RExpression {
     }
 
     @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
-
-    @Override
     public String toString() {
         return super.toString() + " - " + this.image;
     }

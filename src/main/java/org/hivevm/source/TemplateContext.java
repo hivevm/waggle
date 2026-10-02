@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 /**
  * A render context that overlays key-value bindings on an underlying {@link RenderContext}. Values
- * can be bound directly, or as suppliers, consumers, or per-element mappers.
+ * can be bound directly, as suppliers, or as per-element mappers.
  *
  * <p>A caller may extend it to add its own view of the same names (ADR-0023); its behaviour is
  * fixed, so every method is final.
@@ -72,10 +72,6 @@ public class TemplateContext implements RenderContext {
         this.options.put(name, supplier);
     }
 
-    public final void set(String name, SourceConsumer consumer) {
-        this.options.put(name, consumer);
-    }
-
     public final <T> Qualifier<T> add(String name, T value) {
         this.options.put(name, value);
         return new Qualifier<>();
@@ -92,11 +88,6 @@ public class TemplateContext implements RenderContext {
             TemplateContext.this.options.put(key, function);
             return this;
         }
-
-        public final Qualifier<T> set(String key, SourceProvider<T> provider) {
-            TemplateContext.this.options.put(key, provider);
-            return this;
-        }
     }
 
     /** A value rendered as the text it supplies. */
@@ -104,19 +95,5 @@ public class TemplateContext implements RenderContext {
     public interface SourceSupplier {
 
         String get();
-    }
-
-    /** A value rendered by printing it. */
-    @FunctionalInterface
-    public interface SourceConsumer {
-
-        void apply(LinePrinter printer);
-    }
-
-    /** A per-element value of a list, rendered by printing it for the element. */
-    @FunctionalInterface
-    public interface SourceProvider<V> {
-
-        void apply(V value, LinePrinter printer);
     }
 }

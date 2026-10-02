@@ -13,7 +13,7 @@ int __parserName__TokenManager::jjMoveNfa__suffix__(int startState, int curPos) 
 	jjnewStateCnt = __generatedStates__;
 	int i = 1;
 	jjstateSet[0] = startState;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 	fprintf(debugStream, "   Starting NFA to match one of : %s\n", jjKindsForStateVector(curLexState, jjstateSet, 0, 1).c_str());
 	fprintf(debugStream, "<%s>Current character : %c(%d) at line %d column %d\n",addUnicodeEscapes(lexStateNames[curLexState]).c_str(), curChar, (int)curChar, reader->getEndLine(), reader->getEndColumn());
 //@fi
@@ -34,7 +34,7 @@ int __parserName__TokenManager::jjMoveNfa__suffix__(int startState, int curPos) 
 		    kind = 0x7fffffff;
 		}
 		curPos++;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		if (jjmatchedKind != 0 && jjmatchedKind != 0x7fffffff)
 		    fprintf(debugStream, "   Currently matched the first %d characters as a \"%s\" token.\n", (jjmatchedPos + 1),  addUnicodeEscapes(tokenImages[jjmatchedKind]).c_str());
 //@fi
@@ -44,7 +44,7 @@ int __parserName__TokenManager::jjMoveNfa__suffix__(int startState, int curPos) 
 //@else
 			return curPos;
 //@fi
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		fprintf(debugStream, "   Possible kinds of longer matches : %s\n", jjKindsForStateVector(curLexState, jjstateSet, startsAt, i).c_str());
 //@fi
 //@if(mixed)
@@ -53,7 +53,7 @@ int __parserName__TokenManager::jjMoveNfa__suffix__(int startState, int curPos) 
 		if (reader->endOfInput()) { return curPos; }
 //@fi
 		curChar = reader->read(); // UTF8: Support Unicode
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		fprintf(debugStream, "<%s>Current character : %c(%d) at line %d column %d\n",addUnicodeEscapes(lexStateNames[curLexState]).c_str(), curChar, (int)curChar, reader->getEndLine(), reader->getEndColumn());
 //@fi
 	}

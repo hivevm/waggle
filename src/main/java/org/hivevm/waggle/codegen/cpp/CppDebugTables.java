@@ -20,9 +20,9 @@ public final class CppDebugTables {
      *
      * @param nfa  whether any lexical state has an NFA
      * @param rows one array per lexical state that has one
-     * @param refs the table of those arrays, nullptr for a state without
+     * @param refs one entry of the table per lexical state
      */
-    public record KindForState(boolean nfa, List<KindRow> rows, String refs) {
+    public record KindForState(boolean nfa, List<KindRow> rows, List<KindRef> refs) {
     }
 
     /**
@@ -35,16 +35,25 @@ public final class CppDebugTables {
     }
 
     /**
+     * The entry of a lexical state in {@code kindForState}: its array, or nullptr without one.
+     *
+     * @param index   the lexical state
+     * @param present whether it has an NFA
+     */
+    public record KindRef(int index, boolean present) {
+    }
+
+    /**
      * {@code statesForState} and {@code statesForStateLen}: the NFA states each composite state
      * stands for.
      *
      * @param nfa     whether any lexical state has an NFA
      * @param sets    the sets of each lexical state that has an NFA
-     * @param setRefs the table of those sets, nullptr for a state without
-     * @param lenRefs the table of their lengths, nullptr for a state without
+     * @param refs    one entry of {@code statesForState} per lexical state
+     * @param lenRefs one entry of {@code statesForStateLen} per lexical state
      */
-    public record StatesForState(boolean nfa, List<StateSets> sets, String setRefs,
-                                 String lenRefs) {
+    public record StatesForState(boolean nfa, List<StateSets> sets, List<StateSetsRef> refs,
+                                 List<StateSetsLenRef> lenRefs) {
     }
 
     /**
@@ -52,10 +61,11 @@ public final class CppDebugTables {
      *
      * @param index   the lexical state
      * @param members one array per state
-     * @param names   the table of those arrays
+     * @param refs    one entry of the table of those arrays per state
      * @param lengths their lengths
      */
-    public record StateSets(int index, List<StateSet> members, String names, String lengths) {
+    public record StateSets(int index, List<StateSet> members, List<StateSetRef> refs,
+                            String lengths) {
     }
 
     /**
@@ -66,6 +76,23 @@ public final class CppDebugTables {
      * @param values the states it stands for
      */
     public record StateSet(int index, int state, String values) {
+    }
+
+    /** The entry of state {@code state} of lexical state {@code index} in its table of sets. */
+    public record StateSetRef(int index, int state) {
+    }
+
+    /**
+     * The entry of a lexical state in {@code statesForState}: its sets, or nullptr without them.
+     *
+     * @param index   the lexical state
+     * @param present whether it has an NFA
+     */
+    public record StateSetsRef(int index, boolean present) {
+    }
+
+    /** The entry of a lexical state in {@code statesForStateLen}, as {@link StateSetsRef}. */
+    public record StateSetsLenRef(int index, boolean present) {
     }
 
     /**

@@ -11,10 +11,7 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Waggle;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.analysis.ParserPlan;
-import org.hivevm.waggle.analysis.ProductionPlan.Signature;
 import org.hivevm.waggle.codegen.ParserGenerator;
-import org.hivevm.waggle.codegen.ProductionModel;
-import org.hivevm.waggle.grammar.Token;
 
 
 /**
@@ -33,16 +30,4 @@ class JavaParserGenerator extends ParserGenerator {
 
         JavaTemplate.PARSER.render(options);
     }
-
-    @Override
-    protected ProductionModel.Signature signature(Signature p) {
-        Token t = p.head().first();
-        var comments = cursorAt(t);
-        var leading = comments.leadingComments(t);
-        return new ProductionModel.Signature(leading,
-                (p.returnType() == null) ? "void" : p.returnType(), comments.trailingComments(t),
-                p.name(), p.parameters().isEmpty() ? "" : code(p.parameters(), null));
-    }
-
-
 }

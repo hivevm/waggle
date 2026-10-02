@@ -70,9 +70,7 @@ interface Renderer {
             }
 
             Object value = environment.get(text);
-            if (value instanceof TemplateContext.SourceConsumer consumer)
-                consumer.apply(printer);
-            else if (value instanceof TemplateContext.SourceSupplier supplier)
+            if (value instanceof TemplateContext.SourceSupplier supplier)
                 printer.print(supplier.get());
             else if (value != null)
                 printer.print(value.toString());
@@ -268,8 +266,7 @@ interface Renderer {
 
     /**
      * The environment of one pass of a {@code //@foreach}: it answers every name from the
-     * underlying environment, but applies a bound mapper or source provider to the current
-     * element.
+     * underlying environment, but applies a bound mapper to the current element.
      */
     class ListEnv implements Environment {
 
@@ -294,20 +291,18 @@ interface Renderer {
 
         /**
          * Retrieves the value of the specified name from the underlying environment. A
-         * {@link TemplateContext.SourceProvider} or a {@link Function} bound there is applied to the
-         * current element; any other value is returned as it is.
+         * {@link Function} bound there is applied to the current element; any other value is
+         * returned as it is.
          *
          * <p>The environment is keyed by name and holds values of no common type (ADR-0005), so what
          * comes back is an {@code Object} whose type parameter erasure has already discarded. The
          * {@code instanceof} before each cast is the check; the compiler simply cannot see it.
          */
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings("unchecked")
         public final Object get(String name) {
             Object func = environment.get(name);
-            if (func instanceof TemplateContext.SourceProvider provider)
-                return (TemplateContext.SourceConsumer) printer -> provider.apply(value, printer);
-            else if (func instanceof Function)
+            if (func instanceof Function)
                 return ((Function<Object, Object>) func).apply(value);
             return func;
         }

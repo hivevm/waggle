@@ -379,9 +379,4 @@ public final class RCharacterList extends RExpression {
     public final void setNegatedList() {
         this.negated_list = true;
     }
-
-    @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
 }

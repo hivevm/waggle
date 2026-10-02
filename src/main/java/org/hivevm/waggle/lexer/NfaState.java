@@ -16,27 +16,26 @@ import java.util.List;
  */
 class NfaState {
 
-    public final long[] asciiMoves = new long[2];
+    final long[] asciiMoves = new long[2];
     char[] charMoves = null;
     char[] rangeMoves = null;
-    public NfaState next = null;
+    NfaState next = null;
     final List<NfaState> epsilonMoves = new ArrayList<>();
-    public String epsilonMovesString;
+    String epsilonMovesString;
 
     private final int id;
-    public int stateName = -1;
+    int stateName = -1;
     int kind = Integer.MAX_VALUE;
-    /** Package-private: nothing outside the lexer stage reads it. */
     int lookingFor;
-    public int usefulEpsilonMoves = 0;
-    public int inNextOf;
-    public int nonAsciiMethod = -1;
-    public int kindToPrint = Integer.MAX_VALUE;
-    public boolean isComposite = false;
+    int usefulEpsilonMoves = 0;
+    int inNextOf;
+    int nonAsciiMethod = -1;
+    int kindToPrint = Integer.MAX_VALUE;
+    boolean isComposite = false;
     int[] compositeStates = null;
     boolean isFinal = false;
-    public final List<Integer> loByteVec;
-    public int[] nonAsciiMoveIndices;
+    final List<Integer> loByteVec;
+    int[] nonAsciiMoveIndices;
     private int onlyChar = 0;
     private char matchSingleChar;
 
@@ -228,7 +227,7 @@ class NfaState {
         return this.isFinal || HasTransitions();
     }
 
-    public boolean HasTransitions() {
+    boolean HasTransitions() {
         return ((this.asciiMoves[0] != 0L) || (this.asciiMoves[1] != 0L)
                 || ((this.charMoves != null) && (this.charMoves[0] != 0))
                 || ((this.rangeMoves != null) && (this.rangeMoves[0] != 0)));
@@ -577,7 +576,7 @@ class NfaState {
     }
 
     /** The single ASCII move of {@code byteNum}, or -1 when there is not exactly one. */
-    public final int onlyOneAsciiMove(int byteNum) {
+    final int onlyOneAsciiMove(int byteNum) {
         long l = this.asciiMoves[byteNum];
         return (Long.bitCount(l) == 1) ? Long.numberOfTrailingZeros(l) : -1;
     }
@@ -612,7 +611,7 @@ class NfaState {
         return false;
     }
 
-    public boolean selfLoop() {
+    boolean selfLoop() {
         if ((this.next == null) || (this.next.epsilonMovesString == null))
             return false;
         int[] set = this.data.getNextStates(this.next.epsilonMovesString);

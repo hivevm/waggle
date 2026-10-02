@@ -11,9 +11,4 @@ package org.hivevm.waggle.model;
  */
 
 public final class REndOfFile extends RExpression {
-
-    @Override
-    public final <R, D> R accept(RegularExpressionVisitor<R, D> visitor, D data) {
-        return visitor.visit(this, data);
-    }
 }

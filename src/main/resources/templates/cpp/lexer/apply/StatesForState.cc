@@ -1,7 +1,11 @@
 //@if(nfa)
 //@apply(sets)
-static const int* const* const statesForState[] = {__setRefs__ };
-static const int* const statesForStateLen[] = {__lenRefs__ };
+static const int* const* const statesForState[] = {
+//@apply(refs)
+};
+static const int* const statesForStateLen[] = {
+//@apply(lenRefs)
+};
 //@else
 static const int* const* const statesForState[] = { nullptr };
 static const int* const statesForStateLen[] = { nullptr };

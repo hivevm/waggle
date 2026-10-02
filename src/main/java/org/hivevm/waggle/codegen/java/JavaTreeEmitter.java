@@ -13,13 +13,15 @@ import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.TreeModel;
 import org.hivevm.waggle.tree.TreeOptions;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
 
 /**
  * Java's tree support: the code around one node scope, and the tree runtime it calls into.
  */
 public class JavaTreeEmitter implements TreeEmitter {
+
+    /** What the default visitor returns, when it returns something. */
+    private static final String VISITOR_RETURN_VALUE = "VISITOR_RETURN_VALUE";
 
     @Override
     public void emitRuntime(Options context, TreeOptions tree, TreeModel data) {
@@ -28,7 +30,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
         // TreeClasses
         generateNode(context, tree);
-        generateTreeNodes(context, tree, data.getNodesToGenerate());
+        generateTreeNodes(context, tree, data.nodeClassesToWrite(tree));
 
         JavaTemplate.NODESTATE.render(context);
     }
@@ -49,20 +51,12 @@ public class JavaTreeEmitter implements TreeEmitter {
             return;
         }
 
-        var nodeNames = data.getNodeNames().stream()
-                .filter(n -> !n.equals("void"))
-                .collect(Collectors.toList());
-        var argumentType = JavaTreeEmitter.visitorDataType(tree);
-        var returnValue = JavaTreeEmitter.returnValue(tree.visitorReturn(), argumentType);
-        var isVoidReturnType = "void".equals(tree.visitorReturn());
-
         var options = OptionsContext.of(context);
-        options.add("NODES", nodeNames).set("NODES_NAME", i -> i);
-        options.set("RETURN_TYPE", tree.visitorReturn());
-        options.set("RETURN_VALUE", returnValue);
-        options.set("RETURN", isVoidReturnType ? "" : "return ");
-        options.set("ARGUMENT_TYPE", argumentType);
-        options.set("EXCEPTION", JavaTreeEmitter.mergeVisitorException(tree));
+        JavaTreeEmitter.applyVisitorTypes(options, tree);
+        options.add("NODES", data.visitedNodeNames()).set("NODES_NAME", i -> i);
+        options.set(JavaTreeEmitter.VISITOR_RETURN_VALUE,
+                JavaTreeEmitter.returnValue(tree.visitorReturn(),
+                        JavaTreeEmitter.visitorDataType(tree)));
         options.set(Waggle.NODE_MULTI, tree.multi());
 
         JavaTemplate.MULTI_NODE_VISITOR.render(options);
@@ -71,31 +65,28 @@ public class JavaTreeEmitter implements TreeEmitter {
 
     private void generateNode(Options context, TreeOptions tree) {
         var options = OptionsContext.of(context);
-        options.set(Waggle.VISITOR_RETURN_TYPE_VOID, tree.visitorReturn().equals("void"));
-        options.set(Waggle.VISITOR_DATA_TYPE, JavaTreeEmitter.visitorDataType(tree));
+        JavaTreeEmitter.applyVisitorTypes(options, tree);
 
         JavaTemplate.NODE.render(options);
     }
 
-    private void generateTreeNodes(Options context, TreeOptions tree, Set<String> nodesToGenerate) {
-        if (!tree.buildNodeFiles()) {
-            return;
-        }
-
+    private void generateTreeNodes(Options context, TreeOptions tree, List<String> nodeClasses) {
         var options = OptionsContext.of(context);
-        options.set(Waggle.VISITOR_RETURN_TYPE_VOID, tree.visitorReturn().equals("void"));
+        JavaTreeEmitter.applyVisitorTypes(options, tree);
         options.set(Waggle.NODE_CLASS, tree.nodeBaseClass());
-        options.set(Waggle.VISITOR_DATA_TYPE, JavaTreeEmitter.visitorDataType(tree));
 
-        var excludes = tree.customNodes();
-        for (var nodeType : nodesToGenerate) {
-            if (excludes.contains(nodeType)) {
-                continue;
-            }
+        for (var nodeType : nodeClasses) {
             options.set(Waggle.NODE_TYPE, nodeType);
 
             JavaTemplate.MULTI_NODE.render(options, nodeType);
         }
+    }
+
+    /** Sets the visitor types every tree runtime file that accepts a visitor reads. */
+    private static void applyVisitorTypes(OptionsContext options, TreeOptions tree) {
+        options.set(Waggle.VISITOR_RETURN_TYPE, tree.visitorReturn());
+        options.set(Waggle.VISITOR_RETURN_TYPE_VOID, tree.visitorReturn().equals("void"));
+        options.set(Waggle.VISITOR_DATA_TYPE, JavaTreeEmitter.visitorDataType(tree));
     }
 
     /**
@@ -107,29 +98,22 @@ public class JavaTreeEmitter implements TreeEmitter {
         return dataType.isEmpty() ? "Object" : dataType.trim();
     }
 
-    private static String mergeVisitorException(TreeOptions tree) {
-        var ve = tree.visitorException();
-        return "".equals(ve) ? ve : " throws " + ve;
-    }
-
+    /**
+     * What the default visitor returns: the payload when it has the return type, else the default
+     * value of that type.
+     */
     private static String returnValue(String returnType, String argumentType) {
-        var isVoidReturnType = "void".equals(returnType);
-        if (isVoidReturnType) {
-            return "";
-        }
-
         if (returnType.equals(argumentType)) {
-            return " data";
+            return "data";
         }
-
         return switch (returnType) {
-            case "boolean" -> " false";
-            case "int", "short", "byte" -> " 0";
-            case "long" -> " 0L";
-            case "double" -> " 0.0d";
-            case "float" -> " 0.0f";
-            case "char" -> " '\\u0000'";
-            default -> " null";
+            case "boolean" -> "false";
+            case "int", "short", "byte" -> "0";
+            case "long" -> "0L";
+            case "double" -> "0.0d";
+            case "float" -> "0.0f";
+            case "char" -> "'\\u0000'";
+            default -> "null";
         };
     }
 }

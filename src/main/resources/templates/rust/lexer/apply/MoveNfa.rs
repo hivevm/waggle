@@ -16,9 +16,9 @@ fn jj_move_nfa__suffix__(&mut self, start_state: usize, mut cur_pos: usize) -> u
 	self.jjnew_state_cnt = __generatedStates__;
 	let mut i: usize = 1;
 	self.jjstate_set[0] = start_state;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 	eprintln!("   Starting NFA to match one of : {}", self.jj_kinds_for_state_vector(self.cur_lex_state as usize, &self.jjstate_set, 0, 1));
-//@if(withLexState)
+//@if(SWITCH_ON_LEX_STATE)
 	eprintln!("<{}>Current character : {}({}) at line {} column {}", LEX_STATE_NAMES[self.cur_lex_state as usize], char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());
 //@else
 	eprintln!("Current character : {}({}) at line {} column {}", char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());
@@ -43,7 +43,7 @@ fn jj_move_nfa__suffix__(&mut self, start_state: usize, mut cur_pos: usize) -> u
 		   kind = 0x7fffffff;
 		}
 		cur_pos += 1;
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		if self.jjmatched_kind != 0 && self.jjmatched_kind != 0x7fffffff {
 		   eprintln!("   Currently matched the first {} characters as a {} token.", self.jjmatched_pos.wrapping_add(1), TOKEN_IMAGE[self.jjmatched_kind as usize]);
 		}
@@ -58,7 +58,7 @@ fn jj_move_nfa__suffix__(&mut self, start_state: usize, mut cur_pos: usize) -> u
 		    return cur_pos;
 //@fi
 		}
-//@if(debug)
+//@if(DEBUG_TOKEN_MANAGER)
 		eprintln!("   Possible kinds of longer matches : {}", self.jj_kinds_for_state_vector(self.cur_lex_state as usize, &self.jjstate_set, starts_at, i));
 //@fi
 		let result = self.input_stream.read_char();
@@ -70,8 +70,8 @@ fn jj_move_nfa__suffix__(&mut self, start_state: usize, mut cur_pos: usize) -> u
 //@fi
 		}
 		self.cur_char = u32::from(result.unwrap());
-//@if(debug)
-//@if(withLexState)
+//@if(DEBUG_TOKEN_MANAGER)
+//@if(SWITCH_ON_LEX_STATE)
 		eprintln!("<{}>Current character : {}({}) at line {} column {}", LEX_STATE_NAMES[self.cur_lex_state as usize], char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());
 //@else
 		eprintln!("Current character : {}({}) at line {} column {}", char::from_u32(self.cur_char).unwrap_or('\u{fffd}'), self.cur_char, self.input_stream.get_end_line(), self.input_stream.get_end_column());

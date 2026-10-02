@@ -8,6 +8,7 @@
 
 package org.hivevm.waggle.lexer;
 
+import org.hivevm.waggle.api.GenerationException;
 import org.hivevm.waggle.api.ParserRequest;
 import org.hivevm.waggle.model.RChoice;
 import org.hivevm.waggle.model.RExpression;
@@ -29,7 +30,8 @@ public class LexerBuilder {
 
     public LexerData build(ParserRequest request) {
         if (request.diagnostics().hasError()) {
-            return null;
+            throw new GenerationException("The grammar has " + request.diagnostics().errorCount()
+                    + " error(s); no lexer was planned.");
         }
 
         Map<String, List<TokenProduction>> allTpsForState = new LinkedHashMap<>();

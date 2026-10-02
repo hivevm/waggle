@@ -186,14 +186,6 @@ public class LexerData {
         return this.parserOptions.noDfa();
     }
 
-    final boolean hasSkip() {
-        return this.hasSkip;
-    }
-
-    final boolean hasMore() {
-        return this.hasMore;
-    }
-
     public final boolean hasSpecial() {
         return this.hasSpecial;
     }
@@ -314,22 +306,6 @@ public class LexerData {
 
     final boolean isToken(int kind) {
         return Bits.test(this.toToken, kind);
-    }
-
-    final long toSkip(int index) {
-        return this.toSkip[index];
-    }
-
-    final long toSpecial(int index) {
-        return this.toSpecial[index];
-    }
-
-    final long toMore(int index) {
-        return this.toMore[index];
-    }
-
-    final long toToken(int index) {
-        return this.toToken[index];
     }
 
     final RExpression getRegExp(int index) {
