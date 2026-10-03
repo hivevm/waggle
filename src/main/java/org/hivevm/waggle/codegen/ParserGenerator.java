@@ -162,8 +162,9 @@ public abstract class ParserGenerator {
 
         var open = (scope == null) ? null : this.decorator.open(scope, true);
         var close = (scope == null) ? null : this.decorator.close(scope);
-        return new ProductionModel.Production(signature(signature), open != null, open, close,
-                inner, signature.returnType() == null);
+        return new ProductionModel.Production(signature(signature), open != null,
+                (open == null) ? "" : open.descriptor(), open, close, inner,
+                signature.returnType() == null);
     }
 
     /**
@@ -266,8 +267,7 @@ public abstract class ParserGenerator {
         var condition = conditionOf(step, scope);
         var rest = chainFrom(data, scope, decision, actions, index + 1);
         return switch (step.opening()) {
-            case NOTHING -> new BodyModel.If(step instanceof Decision.Syntactic, condition,
-                    action, rest);
+            case NOTHING -> new BodyModel.If(condition, action, rest);
             case IF -> new BodyModel.ElseIf(condition, action, rest);
             case SWITCH -> new BodyModel.DefaultIf(slot(step) >= 0, slot(step), condition,
                     action, rest);

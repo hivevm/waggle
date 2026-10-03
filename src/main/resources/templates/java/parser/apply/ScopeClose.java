@@ -1,8 +1,6 @@
-
 } finally {
 	if (__closedVar__) {
 		//@apply(close)
-
 //@if(scopeHook)
 		if (jjtree.nodeCreated()) {
 			jjtreeCloseNodeScope(__nodeVar__);

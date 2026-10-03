@@ -161,7 +161,7 @@ class TemplateRecordsTest {
                             + ", which is never true");
                 }
             }
-            case "placeholder", "invoke" -> {
+            case "placeholder" -> {
                 if (type.isRecord() || Iterable.class.isAssignableFrom(type)) {
                     problems.add(where + "__" + name + "__ writes a " + type.getSimpleName()
                             + " as its toString()");

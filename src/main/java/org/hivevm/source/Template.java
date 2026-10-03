@@ -28,8 +28,6 @@ public class Template {
         FOREACH,
         FI,
         END,
-        VAR,
-        INVOKE,
         APPLY
     }
 
@@ -43,7 +41,7 @@ public class Template {
         } catch (IllegalArgumentException e) {
             throw new TemplateException(template + ":" + line + ": unknown directive '//@"
                     + name.toLowerCase(Locale.ROOT)
-                    + "' — known are: if, elif, else, fi, foreach, end, invoke, apply");
+                    + "' — known are: if, elif, else, fi, foreach, end, apply");
         }
     }
 
@@ -57,15 +55,18 @@ public class Template {
     // in an underscore, as in "jjbitVec___TOKEN_MASKS_INDEX__".
     // A backslash before a placeholder writes it out as it stands. C++ generated with DEPTH_LIMIT
     // defines __ERROR_RET__, which is a name of the target's own and not one of this engine's.
+    //
+    // Whether a directive takes its line with it is decided by where it stands, not by the
+    // expression: see standalone() (ADR-0032).
     private static final Pattern STATEMENT = Pattern.compile(
-            "(\\t*)//@(\\w+)(?:[ \\t]*\\(([^)]+)\\))?\\v?|\\\\(__[^_()]\\w*?__)|__([^_()]\\w*?)__",
+            "(\\t*)//@(\\w+)(?:[ \\t]*\\(([^)]*)\\))?|\\\\(__[^_()]\\w*?__)|__([^_()]\\w*?)__",
             Pattern.MULTILINE);
 
     /**
      * Returns the parameter of a directive that requires one.
      */
     private static String require(String template, int line, String name, String param) {
-        if (param == null) {
+        if ((param == null) || param.isEmpty()) {
             throw new TemplateException(template + ":" + line + ": //@"
                     + name.toLowerCase(Locale.ROOT) + " requires a parameter");
         }
@@ -73,9 +74,22 @@ public class Template {
     }
 
     /**
+     * Checks that a directive that takes no parameter has none. An empty list is allowed: it ends
+     * the directive where text follows it directly, as in {@code //@fi()trace_call}, which would
+     * otherwise be read as one name (ADR-0032). A parameter after {@code //@else} used to be
+     * dropped without a word, and the text with it.
+     */
+    private static void none(String template, int line, String name, String param) {
+        if ((param != null) && !param.isEmpty()) {
+            throw new TemplateException(template + ":" + line + ": //@"
+                    + name.toLowerCase(Locale.ROOT) + " takes no parameter, but has (" + param + ")");
+        }
+    }
+
+    /**
      * A name a template refers to.
      *
-     * @param directive {@code placeholder}, {@code invoke}, {@code if}, {@code elif},
+     * @param directive {@code placeholder}, {@code if}, {@code elif},
      *                  {@code foreach} or {@code apply}; a condition is named without its negation
      * @param name      the name
      * @param line      the line it is written on
@@ -179,25 +193,49 @@ public class Template {
                 continue;
             }
 
-            var isFunc = matcher.group(5) == null;
-            var func = isFunc ? matcher.group(2).toUpperCase(Locale.ROOT) : "VAR";
-            var param = matcher.group(isFunc ? 3 : 5);
+            if (matcher.group(5) != null) {
+                // A placeholder indents the lines of its value after the first as the first is
+                // indented: by the tabs before it, when nothing else is (ADR-0032).
+                var indent = Template.indent(text, matcher.start(), "");
+                builder.addIndent(indent);
+                builder.addVar(matcher.group(5));
+                builder.addIndent(-indent);
+                continue;
+            }
+
+            var func = matcher.group(2).toUpperCase(Locale.ROOT);
+            var param = matcher.group(3);
+            var tabs = matcher.group(1);
+            int indent;
+            if (Template.standalone(text, matcher.start(), matcher.end())) {
+                // It owns its line: the tabs before it and the line break after it go with it.
+                indent = tabs.length();
+                if (offset < text.length()) {
+                    offset++;
+                    line++;
+                }
+            } else {
+                // It owns nothing but itself: the tabs before it are text.
+                builder.addText(tabs);
+                indent = Template.indent(text, matcher.start(), tabs);
+            }
             switch (Template.parse(name, at, func)) {
                 case IF -> builder.addIf(Template.require(name, at, func, param));
                 case ELIF -> builder.addBranch(Template.require(name, at, func, param));
-                case ELSE -> builder.addBranch(null);
-                case FI -> builder.close("if");
-                case END -> builder.close("foreach");
-                case FOREACH -> builder.addForeach(Template.require(name, at, func, param));
-                case VAR -> builder.addVar("placeholder", param);
-                case INVOKE -> {
-                    var indent = matcher.group(1).length();
-                    builder.addIndent(indent);
-                    builder.addVar("invoke", Template.require(name, at, func, param));
-                    builder.addIndent(-indent);
+                case ELSE -> {
+                    Template.none(name, at, func, param);
+                    builder.addBranch(null);
                 }
+                case FI -> {
+                    Template.none(name, at, func, param);
+                    builder.close("if");
+                }
+                case END -> {
+                    Template.none(name, at, func, param);
+                    builder.close("foreach");
+                }
+                case FOREACH -> builder.addForeach(Template.require(name, at, func, param));
                 case APPLY -> {
-                    var indent = matcher.group(1).length();
                     builder.addIndent(indent);
                     builder.addApply(Template.require(name, at, func, param), Template.applyBase(name));
                     builder.addIndent(-indent);
@@ -210,6 +248,25 @@ public class Template {
             builder.addText(text.substring(offset));
         }
         return builder;
+    }
+
+    /**
+     * Whether the directive from {@code start} to {@code end} stands alone on its line: only tabs
+     * before it, and the line break or the end of the template after it (ADR-0032).
+     */
+    private static boolean standalone(String text, int start, int end) {
+        return ((start == 0) || (text.charAt(start - 1) == '\n'))
+                && ((end == text.length()) || (text.charAt(end) == '\n'));
+    }
+
+    /**
+     * How many levels the lines after the first of what is written at {@code start} are indented:
+     * the number of tabs before it on its line, {@code tabs} being those the match itself holds, or
+     * none when anything else stands before it.
+     */
+    private static int indent(String text, int start, String tabs) {
+        var prefix = text.substring(text.lastIndexOf('\n', start - 1) + 1, start) + tabs;
+        return prefix.chars().allMatch(c -> c == '\t') ? prefix.length() : 0;
     }
 
     /** How many line breaks {@code text} holds from {@code start} to {@code end}. */

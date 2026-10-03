@@ -1,2 +1,4 @@
-//@apply(cases) {	//@apply(action)break;
+//@apply(cases) {
+	//@apply(action)
+	break;
 }

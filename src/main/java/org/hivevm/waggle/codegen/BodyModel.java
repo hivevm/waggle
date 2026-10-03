@@ -120,14 +120,14 @@ public final class BodyModel {
     }
 
     /**
-     * The test the chain opens with.
+     * The test the chain opens with. It starts on a line of its own, as every statement does; a
+     * semantic test used to be glued to the end of the line before it (ADR-0032).
      *
-     * @param leadingBlank whether it starts on a line of its own, as a syntactic lookahead does
-     * @param condition    what it checks
-     * @param action       the alternative it picks
-     * @param rest         what is tried when it does not hold
+     * @param condition what it checks
+     * @param action    the alternative it picks
+     * @param rest      what is tried when it does not hold
      */
-    public record If(boolean leadingBlank, Test condition, Node action,
+    public record If(Test condition, Node action,
                      Chain rest) implements Chain {
     }
 

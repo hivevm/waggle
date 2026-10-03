@@ -7,5 +7,4 @@ if !self.jj_sem_la || __call__ {
 if __call__ {
 //@fi
 	//@apply(failure)
-
 }

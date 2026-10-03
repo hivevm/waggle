@@ -91,9 +91,9 @@ class RendererBuilder {
         add(new TextRenderer(text));
     }
 
-    /** Adds a placeholder, or an {@code //@invoke}, for the value of {@code name}. */
-    final void addVar(String directive, String name) {
-        refer(directive, name);
+    /** Adds a placeholder for the value of {@code name}. */
+    final void addVar(String name) {
+        refer("placeholder", name);
         add(new VarRenderer(name, where()));
     }
 

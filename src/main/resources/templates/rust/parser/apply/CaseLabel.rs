@@ -1,4 +1,1 @@
-//@if(first)
-//@else
- | //@fi
-__token__
+//@if(!first) | //@fi()__token__

@@ -1,3 +1,3 @@
 //@if(leaves)
-
-break label___label__;//@fi
+break label___label__;
+//@fi

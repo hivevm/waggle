@@ -162,6 +162,72 @@ class TemplateTest {
         assertFalse(out.contains("second"), out);
     }
 
+    // ---------------------------------------------------------------- whitespace (ADR-0032)
+
+    /** What the template rendered, without the banner and the checksum around it. */
+    private static String text(String template, Map<String, Object> env) {
+        return body(render(template, env));
+    }
+
+    /** A directive alone on its line takes the line with it, tabs and line break included. */
+    @Test
+    void aStandaloneDirectiveOwnsItsLine() {
+        assertEquals("a\nb\nc\n", text("a\n\t//@if(A)\nb\n\t//@fi\nc\n", Map.of("A", true)));
+    }
+
+    /**
+     * A directive next to text keeps the line break after it. It used to eat it, so a template
+     * could splice three of its lines into one line of output.
+     */
+    @Test
+    void anInlineDirectiveOwnsNothingButItself() {
+        assertEquals("x = a;\nnext\n",
+                text("x = //@if(A)a//@else()b//@fi;\nnext\n", Map.of("A", true)));
+        // The break after an inline //@if is text of its branch; it used to be dropped.
+        assertEquals("a\nb\nc\n", text("a//@if(A)\nb\n//@fi\nc\n", Map.of("A", true)));
+    }
+
+    /** The tabs before an inline directive are text, as they are before anything else. */
+    @Test
+    void theTabsBeforeAnInlineDirectiveAreText() {
+        assertEquals("{\n    a }\n", text("{\n\t//@if(A)a//@fi }\n", Map.of("A", true)));
+    }
+
+    /** An empty parameter list ends a directive where text follows it directly. */
+    @Test
+    void anEmptyParameterListEndsADirective() {
+        assertEquals("if (x) trace();\n",
+                text("//@if(A)if (x) //@fi()trace();\n", Map.of("A", true)));
+        assertEquals("trace();\n", text("//@if(A)if (x) //@fi()trace();\n", Map.of("A", false)));
+    }
+
+    /** A parameter on a directive that takes none was dropped, and the text with it. */
+    @Test
+    void aParameterOnElseFiOrEndFails() {
+        var e = assertThrows(TemplateException.class,
+                () -> render("//@if(A)a//@else(x == 1) ? b : c//@fi\n", Map.of("A", true)));
+        assertTrue(e.getMessage().startsWith("Test:1: //@else takes no parameter"), e.getMessage());
+        assertThrows(TemplateException.class, () -> render("//@if(A)\n//@fi(A)\n", Map.of()));
+    }
+
+    /** {@code //@invoke} is gone: a placeholder indents what it writes (ADR-0032). */
+    @Test
+    void invokeIsNoDirective() {
+        assertThrows(TemplateException.class, () -> render("//@invoke(A)\n", Map.of("A", "a")));
+    }
+
+    /** Every line of a value is indented by the tabs before its placeholder, not only the first. */
+    @Test
+    void aPlaceholderIndentsWhatItWrites() {
+        assertEquals("{\n    a\n    b\n}\n", text("{\n\t__A__\n}\n", Map.of("A", "a\nb")));
+    }
+
+    /** After other text the lines of a value stay where the value puts them. */
+    @Test
+    void aPlaceholderAfterTextDoesNotIndent() {
+        assertEquals("x = a\nb;\n", text("x = __A__;\n", Map.of("A", "a\nb")));
+    }
+
     // ---------------------------------------------------------------- placeholders
 
     @Test
@@ -412,7 +478,7 @@ class TemplateTest {
                 	//@apply(child)
                 //@end
                 //@elif(C)
-                //@invoke(D)
+                	__D__
                 //@fi
                 """);
         assertEquals(List.of(
@@ -422,7 +488,7 @@ class TemplateTest {
                         new Template.Reference("placeholder", "name", 4, "LIST"),
                         new Template.Reference("apply", "child", 5, "LIST"),
                         new Template.Reference("elif", "C", 7, null),
-                        new Template.Reference("invoke", "D", 8, null)),
+                        new Template.Reference("placeholder", "D", 8, null)),
                 template.references());
     }
 }

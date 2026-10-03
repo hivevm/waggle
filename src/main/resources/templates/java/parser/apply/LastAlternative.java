@@ -7,4 +7,3 @@ if (!jj_semLA || __call__)
 if (__call__)
 //@fi
 	//@apply(failure)
-

@@ -1,4 +1,3 @@
-
 trace_call("__name__");
 try {
 	//@apply(inner)

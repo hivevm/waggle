@@ -1,2 +1,3 @@
-
-} else if //@apply(condition)	//@apply(action)//@apply(rest)
+} else if //@apply(condition)
+	//@apply(action)
+//@apply(rest)

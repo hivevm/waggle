@@ -1,7 +1,4 @@
-//@if(production)
- // __descriptor__
-//@else
-
+//@if(!production)
 // __descriptor__
 //@fi
 let __nodeVar__ = new_node(&TreeConstants::__nodeId__);

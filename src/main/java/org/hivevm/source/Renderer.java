@@ -69,7 +69,7 @@ interface Renderer {
                 // Rendering an unknown placeholder as "" produces source that does not compile —
                 // "class ASTx extends  {}" or "jjtAccept(NodeVisitor v,  data)". Say so instead.
                 throw new TemplateException(
-                        where + ": unknown placeholder or invoke target '" + text + "'");
+                        where + ": unknown placeholder '" + text + "'");
             }
 
             Object value = environment.get(text);

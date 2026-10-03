@@ -548,7 +548,8 @@ public class Parser
                             jjtreeCloseNodeScope(jjtn002);
                         }
                     }
-                }if (notTailOfExpansionUnit()) {
+                }
+                if (notTailOfExpansionUnit()) {
                 } else {
                     break label_6;
                 }
@@ -586,20 +587,24 @@ public class Parser
             default: {
                 jj_la1[20] = jj_gen;
             }
-        }if (checkEmptyLA(emptyLA, getToken(1))) {
+        }
+        if (checkEmptyLA(emptyLA, getToken(1))) {
             jj_consume_token(COMMA);
             commaAtEnd = true;
         } else {
-        }if (checkEmpty(getToken(1))) {
+        }
+        if (checkEmpty(getToken(1))) {
             e = expansion_choices(p);
             emptyLA = false; commaAtEnd = false;
             la.setLaExpansion(e);
         } else {
-        }if (checkEmptyLAAndCommaEnd(emptyLA, commaAtEnd, getToken(1))) {
+        }
+        if (checkEmptyLAAndCommaEnd(emptyLA, commaAtEnd, getToken(1))) {
             jj_consume_token(COMMA);
             commaAtEnd = true;
         } else {
-        }if (checkEmptyLAOrCommaEnd(emptyLA, commaAtEnd)) {
+        }
+        if (checkEmptyLAOrCommaEnd(emptyLA, commaAtEnd)) {
             jj_consume_token(LBRACE);
             switch ((jj_ntk == -1) ? jj_ntk_f() : jj_ntk) {
                 case _LOOKAHEAD:
@@ -2861,5 +2866,5 @@ public class Parser
     }
 }
 
-// Checksum=7B70AE3C77A96770112FC8B7D6685EF0 (Do not edit this line!)
+// Checksum=1EC9A481B5EF531A309116BD1C869E6A (Do not edit this line!)
 // Options: BASE_PARSER='AbstractGrammarParser', CACHE_TOKENS=false, DEBUG_LOOKAHEAD=false, DEBUG_PARSER=false, DEPTH_LIMIT=0, ERROR_REPORTING=true, JAVA_IMPORTS=3, JAVA_PACKAGE='org.hivevm.waggle.grammar', JJ2_INDEX=10, JJ2_OFFSET=10, JJ2_ROUTINES=10, JJ3_ROUTINES=49, LOOKAHEAD_NEEDED=false, MASK_INDEX=59, PRODUCTIONS=35, RECORDS_EXPECTED_TOKENS=true, TOKEN_COUNT=63, TOKEN_MASKS=2, USE_AST=true

@@ -8,22 +8,18 @@ private boolean jj_3__name__() {
 	try {
 //@if(traced)
 		//@apply(trace)
-
 //@fi
 		//@apply(body)
 		//@apply(result)
-
 	} finally {
 		--jj_depth;
 	}
 //@else
 //@if(traced)
 	//@apply(trace)
-
 //@fi
 	//@apply(body)
 	//@apply(result)
-
 //@fi
 }
 

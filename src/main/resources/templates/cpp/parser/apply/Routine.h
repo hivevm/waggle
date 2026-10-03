@@ -7,11 +7,9 @@
 //@fi
 //@if(traced)
     //@apply(trace)
-
 //@fi
 //@apply(body)
     //@apply(result)
-
 //@if(DEPTH_LIMIT)
 #undef \__ERROR_RET__
 //@fi

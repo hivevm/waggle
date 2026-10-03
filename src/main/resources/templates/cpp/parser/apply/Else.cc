@@ -1,4 +1,3 @@
-
-} else {	//@apply(action)
-
+} else {
+	//@apply(action)
 }

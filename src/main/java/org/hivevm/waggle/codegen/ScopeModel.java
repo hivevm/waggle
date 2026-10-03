@@ -16,8 +16,9 @@ public final class ScopeModel {
     /**
      * Opens a node scope.
      *
-     * @param production  whether it is a production's own scope, opened on the line of the
-     *                    signature, rather than a nested expansion's, opened after a blank line
+     * @param production  whether it is a production's own scope, whose comment the production
+     *                    writes on the line of its signature, rather than a nested expansion's,
+     *                    whose comment is a line of its own
      * @param descriptor  the node descriptor as the grammar wrote it, for the comment
      * @param nodeClass   the class of the node
      * @param nodeVar     the node local

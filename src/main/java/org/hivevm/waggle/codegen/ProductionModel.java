@@ -23,12 +23,14 @@ public final class ProductionModel {
      * @param signature  writes its declaration, comments and parameters as the grammar wrote them
      * @param scoped     whether it opens a node scope of its own: it has a node descriptor and
      *                   the target builds the tree
+     * @param descriptor the node descriptor as the grammar wrote it, for the comment on the line
+     *                   of the signature; empty when the production opens no scope
      * @param scopeOpen  opens that scope
      * @param scopeClose closes it
      * @param inner      the body with the wrappers its options ask for around it
      * @param voidResult whether the production yields nothing, which some targets end differently
      */
-    public record Production(Signature signature, boolean scoped,
+    public record Production(Signature signature, boolean scoped, String descriptor,
                              ScopeModel.ScopeOpen scopeOpen,
                              ScopeModel.ScopeClose scopeClose, Wrapped inner,
                              boolean voidResult) {

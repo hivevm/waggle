@@ -45,6 +45,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0029](0029-emitters-only-write-a-finished-plan.md) | Emitters only write; the front end hands over a finished plan | 🟢 Accepted |
 | [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟢 Accepted |
 | [0031](0031-templates-render-the-plan-recursively.md) | Templates render the plan recursively; a back end writes no control flow | 🟢 Accepted |
+| [0032](0032-directives-own-their-lines.md) | A directive owns its line, and a placeholder indents what it writes | 🟢 Accepted |
 
 ## Process
 

@@ -1,7 +1,4 @@
-//@if(production)
- // __descriptor__
-//@else
-
+//@if(!production)
 // __descriptor__
 //@fi
 __nodeClass__ *__nodeVar__ = new __nodeClass__(__nodeId__);
