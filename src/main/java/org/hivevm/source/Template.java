@@ -153,16 +153,16 @@ public class Template {
     }
 
     /**
-     * Renders the template against {@code environment} and returns the source it produces.
+     * Renders the template against {@code environment} and returns the source it produces, under
+     * the banner {@code title} and ending with its checksum.
      *
      * <p>It opens nothing: where the text goes is the caller's decision, expressed as an
-     * {@link OutputSink} (ADR-0018). The checksum and the option list at the end are part of the
-     * rendered text, not of writing it.
+     * {@link OutputSink} (ADR-0018). The checksum is part of the rendered text, not of writing it.
      */
     public final String render(String title, Environment environment) {
         var out = new java.io.ByteArrayOutputStream();
-        try (var writer = TemplateWriter.create(title, out, environment)) {
-            this.renderer.render(writer, writer);
+        try (var writer = TemplateWriter.create(title, out)) {
+            this.renderer.render(writer, environment);
         }
         return out.toString(StandardCharsets.UTF_8);
     }

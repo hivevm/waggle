@@ -8,7 +8,6 @@
 
 package org.hivevm.source;
 
-import org.hivevm.core.Environment;
 import org.jspecify.annotations.NonNull;
 
 import java.io.OutputStream;
@@ -17,30 +16,26 @@ import java.nio.charset.StandardCharsets;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * The TemplateWriter class is the {@link LinePrinter} a template renders into and the
- * {@link Environment} it reads from. It wraps an output stream in a {@link PrintWriter} and
- * computes a cryptographic digest (MD5) of the written contents. Additionally, it tracks the
- * environment variables consumed during its operations, allowing for formatted output with
- * metadata such as a checksum and consumed options.
+ * The {@link LinePrinter} a template renders into. It wraps an output stream in a
+ * {@link PrintWriter}, computes a digest (MD5) of the written contents, and ends the file with that
+ * checksum.
+ *
+ * <p>It used to be the {@link org.hivevm.core.Environment} a template read from as well, so as to
+ * record every name looked up and list them as the file's options: a trace of the template's
+ * internals that changed whenever a template was reorganised. Generated files carry no options
+ * line any more (ADR-0033).
  */
-class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
+class TemplateWriter implements LinePrinter, AutoCloseable {
 
     private static final String INDENT = "    ";
 
     private final PrintWriter writer;
     private final DigestOutputStream stream;
-    private final Set<String> consumed;
-    private final Environment environment;
 
     private int indent;
     private boolean newLine;
@@ -48,49 +43,12 @@ class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
     /**
      * Constructs an instance of {@link TemplateWriter}.
      */
-    private TemplateWriter(DigestOutputStream stream, Environment environment) {
+    private TemplateWriter(DigestOutputStream stream) {
         // UTF-8, as Template.render decodes it: the checksum is taken over these bytes.
         this.writer = new PrintWriter(stream, false, StandardCharsets.UTF_8);
         this.stream = stream;
-        this.consumed = new HashSet<>();
-        this.environment = environment;
         this.indent = 0;
         this.newLine = false;
-    }
-
-    /**
-     * Checks whether the specified name exists in the underlying environment.
-     */
-    @Override
-    public final boolean has(String name) {
-        return this.environment.has(name);
-    }
-
-    /**
-     * Retrieves the value associated with the specified name from the underlying environment and
-     * records the name as consumed by adding it to the tracking set.
-     */
-    @Override
-    public final Object get(String name) {
-        this.consumed.add(name);
-        return this.environment.get(name);
-    }
-
-    /**
-     * Formats a given name and value into a printable string representation. If the value is an
-     * instance of {@code Number} or {@code Boolean}, the result is formatted as `name=value`. For
-     * all other types of values, the result is formatted as `name='value'`.
-     */
-    private static String toPrintable(String name, Object value) {
-        if ((value instanceof Number) || (value instanceof Boolean))
-            return String.format("%s=%s", name, value);
-        if (value instanceof Collection<?> collection)
-            return String.format("%s=%s", name, collection.size());
-        if (value instanceof Map<?, ?> map)
-            return String.format("%s=%s", name, map.size());
-        if (value instanceof String)
-            return String.format("%s='%s'", name, value);
-        return name;
     }
 
     /**
@@ -155,23 +113,16 @@ class TemplateWriter implements LinePrinter, Environment, AutoCloseable {
         writer.flush();
         writer.printf("\n// Checksum=%s (Do not edit this line!)\n", HexFormat.of()
                 .formatHex(this.stream.getMessageDigest().digest()).toUpperCase(Locale.ROOT));
-        if (!this.consumed.isEmpty()) {
-            writer.printf("// Options: %s\n", this.consumed.stream()
-                    .filter(n -> !n.contains(".")).sorted()
-                    .map(n -> TemplateWriter.toPrintable(n, get(n)))
-                    .collect(Collectors.joining(", ")));
-        }
         writer.close();
     }
 
     /**
-     * Creates a new instance of {@link TemplateWriter} using the specified title, output stream,
-     * and environment. This method initializes the necessary internal structures, including the
-     * message digest and byte buffer, to write output while computing its digest.
+     * Creates a writer into {@code stream} that starts with the banner {@code title} and ends with
+     * the checksum.
      */
-    public static TemplateWriter create(String title, OutputStream stream, Environment environment) {
+    public static TemplateWriter create(String title, OutputStream stream) {
         var digest = new DigestOutputStream(stream, TemplateWriter.create());
-        var writer = new TemplateWriter(digest, environment);
+        var writer = new TemplateWriter(digest);
         writer.writer.printf("// Generated by %s - Do not edit this line!\n\n", title);
         return writer;
     }

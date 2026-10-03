@@ -77,6 +77,13 @@ class InMemoryGenerationTest {
         assertTrue(parser.contains("// Checksum="), "the checksum belongs to the rendered text");
     }
 
+    /** No generated file ends with an options line any more (ADR-0033). */
+    @Test
+    void noFileEndsWithOptions(@TempDir Path dir) throws IOException {
+        var files = generate(Language.JAVA, dir).files();
+        files.forEach((name, text) -> assertFalse(text.contains("// Options:"), name));
+    }
+
     /** The C++ include guards carry the grammar's name in upper case, also without a tree. */
     @Test
     void theCppHeadersAreGuardedByTheGrammarName(@TempDir Path dir) throws IOException {

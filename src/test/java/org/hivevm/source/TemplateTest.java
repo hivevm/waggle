@@ -465,6 +465,19 @@ class TemplateTest {
         assertTrue(e.getMessage().contains("apply/Item.java"), e.getMessage());
     }
 
+    // ---------------------------------------------------------------- footer
+
+    /**
+     * A file ends with its checksum. The options line after it, a list of the names a template
+     * looked up, is gone (ADR-0033).
+     */
+    @Test
+    void theChecksumEndsTheFile() {
+        var out = render("__A__\n", Map.of("A", "a"));
+        assertTrue(out.endsWith("(Do not edit this line!)\n"), out);
+        assertFalse(out.contains("// Options:"), out);
+    }
+
     // ---------------------------------------------------------------- references
 
     /** What a template refers to is known without rendering it, for a check against its record. */

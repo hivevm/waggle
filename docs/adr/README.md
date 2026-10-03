@@ -46,6 +46,7 @@ working rules that reference this process live in [`AGENTS.md`](../../AGENTS.md)
 | [0030](0030-shape-of-the-generated-rust-parser.md) | The shape of the generated Rust parser | 🟢 Accepted |
 | [0031](0031-templates-render-the-plan-recursively.md) | Templates render the plan recursively; a back end writes no control flow | 🟢 Accepted |
 | [0032](0032-directives-own-their-lines.md) | A directive owns its line, and a placeholder indents what it writes | 🟢 Accepted |
+| [0033](0033-generated-files-carry-no-options-line.md) | Generated files carry no options line | 🟢 Accepted |
 
 ## Process
 
