@@ -13,7 +13,6 @@ repositories {
 }
 
 
-version = '1.0.14'
 group	= 'org.hivevm'
 
 
@@ -51,6 +50,15 @@ dependencies {
 }
 
 
+// The version is defined once, in gradle.properties. generateVersion copies the templates in
+// src/main/templates with it filled in, so the generator reads it as a compiled constant.
+def generateVersion = tasks.register('generateVersion', Copy) {
+    inputs.property('version', project.version)
+    from 'src/main/templates'
+    into layout.buildDirectory.dir('generated/sources/version')
+    expand(version: project.version)
+}
+
 sourceSets {
     main {
         java {
@@ -58,6 +66,7 @@ sourceSets {
             // The generated parser (src/main/generated) is the output of generateParser. Adding the
             // task instead of the bare path makes compileJava and sourcesJar depend on it.
             srcDir(tasks.named('generateParser'))
+            srcDir(generateVersion)
         }
     }
 }
