@@ -18,18 +18,18 @@ public interface ParserConstants {
 
 	// RegularExpression Ids
 //@foreach(TOKENS)
-	int __TOKENS_LABEL__ = __TOKENS_ORDINAL__;
+	int __name__ = __value__;
 //@end
 
 	// Lexical states
 //@foreach(STATES)
-	int __STATES_NAME__ = __STATES_INDEX__;
+	int __name__ = __value__;
 //@end
 
 	// Literal token values
 	String[] tokenImage = {
-//@foreach(REXPRESSION_COUNT)
-			__REXPRESSION_LABEL__
+//@foreach(TOKEN_IMAGES)
+			__label__
 //@end
 	};
 }

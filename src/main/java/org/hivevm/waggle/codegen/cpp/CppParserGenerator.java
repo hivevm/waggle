@@ -31,7 +31,7 @@ class CppParserGenerator extends ParserGenerator {
 
     @Override
     protected final void generate(ParserPlan data, OptionsContext options) {
-        options.add("PROTOTYPES", data.productionPlans().stream().map(plan -> {
+        options.set("PROTOTYPES", data.productionPlans().stream().map(plan -> {
             var s = signature(plan.signature());
             return new ProductionModel.Prototype(s.returnType(), s.name(), s.parameters());
         }).toList());

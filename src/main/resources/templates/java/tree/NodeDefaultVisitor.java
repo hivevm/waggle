@@ -35,9 +35,9 @@ public class NodeDefaultVisitor implements NodeVisitor {
 //@foreach(NODES)
 
 //@if(VISITOR_EXCEPTION)
-	public __VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
+	public __VISITOR_RETURN_TYPE__ visit(AST__name__ node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__ {
 //@else
-	public __VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data) {
+	public __VISITOR_RETURN_TYPE__ visit(AST__name__ node, __VISITOR_DATA_TYPE__ data) {
 //@fi
 //@if(VISITOR_RETURN_TYPE_VOID)
 		defaultVisit(node, data);

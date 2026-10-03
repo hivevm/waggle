@@ -13,6 +13,9 @@ import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.analysis.ParserPlan;
 import org.hivevm.waggle.codegen.ParserGenerator;
 
+import java.util.List;
+import org.hivevm.waggle.codegen.ListModel;
+
 
 /**
  * Implements the {@link ParserGenerator} for the JAVA language.
@@ -25,8 +28,10 @@ class JavaParserGenerator extends ParserGenerator {
 
     @Override
     protected final void generate(ParserPlan data, OptionsContext options) {
-        options.add(Waggle.JAVA_IMPORTS, data.options().get(Waggle.JAVA_IMPORTS))
-                .set(Waggle.JAVA_IMPORTS + "_VALUE", i -> i);
+        // WaggleOptions keeps the imports as the list of names it split them into.
+        var imports = (List<?>) data.options().get(Waggle.JAVA_IMPORTS);
+        options.set(Waggle.JAVA_IMPORTS,
+                imports.stream().map(i -> new ListModel.Name(i.toString())).toList());
 
         JavaTemplate.PARSER.render(options);
     }

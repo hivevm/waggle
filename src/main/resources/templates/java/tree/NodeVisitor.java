@@ -16,9 +16,9 @@ public interface NodeVisitor {
 //@foreach(NODES)
 
 //@if(VISITOR_EXCEPTION)
-	__VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__;
+	__VISITOR_RETURN_TYPE__ visit(AST__name__ node, __VISITOR_DATA_TYPE__ data) throws __VISITOR_EXCEPTION__;
 //@else
-	__VISITOR_RETURN_TYPE__ visit(AST__NODES_NAME__ node, __VISITOR_DATA_TYPE__ data);
+	__VISITOR_RETURN_TYPE__ visit(AST__name__ node, __VISITOR_DATA_TYPE__ data);
 //@fi
 //@end
 //@fi

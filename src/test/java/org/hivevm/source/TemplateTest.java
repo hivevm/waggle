@@ -73,7 +73,16 @@ class TemplateTest {
     void elseOutsideAnIfIsATemplateError() {
         assertThrows(TemplateException.class, () -> render("a\n//@else\nb\n", Map.of()));
         assertThrows(TemplateException.class,
-                () -> render("//@foreach(LIST)\n//@else\n//@end\n", Map.of("LIST", 1)));
+                () -> render("//@foreach(LIST)\n//@else\n//@end\n", Map.of("LIST", List.of())));
+    }
+
+    /** An //@elif after the //@else could never be taken; the branches used to sit in a map. */
+    @Test
+    void anElifAfterTheElseFails() {
+        var e = assertThrows(TemplateException.class,
+                () -> render("//@if(A)\na\n//@else\nb\n//@elif(B)\nc\n//@fi\n", Map.of()));
+        assertTrue(e.getMessage().contains("Test:5:"), e.getMessage());
+        assertTrue(e.getMessage().contains("line 1"), e.getMessage());
     }
 
     /** The line after a directive is text, even when it starts with "(": it was taken as a parameter. */
@@ -116,7 +125,7 @@ class TemplateTest {
                 () -> render("//@if(A)\na\n//@elif(FLAG)\nb\n//@fi\n", Map.of("A", false)));
     }
 
-    /** The branches of an //@if are keyed by condition; a repeated one replaced the first. */
+    /** A repeated condition can never be taken, and a second //@else neither. */
     @Test
     void aRepeatedBranchFails() {
         assertThrows(TemplateException.class,
@@ -202,10 +211,41 @@ class TemplateTest {
 
     // ---------------------------------------------------------------- foreach
 
+    /** An element of a list a //@foreach walks. */
+    record Item(String name, int value) {
+    }
+
     @Test
     void foreachRepeatsItsBody() {
-        var out = render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", 3));
+        var out = render("//@foreach(ITEMS)\nx\n//@end\n",
+                Map.of("ITEMS", List.of(new Item("a", 1), new Item("b", 2), new Item("c", 3))));
         assertEquals(3, out.lines().filter(l -> l.equals("x")).count(), out);
+    }
+
+    /** A pass reads its element's components by name, and every other name around it. */
+    @Test
+    void foreachReadsTheComponentsOfItsElement() {
+        var out = render("//@foreach(ITEMS)\nint __name__ = __value__; // __UNIT__\n//@end\n",
+                Map.of("ITEMS", List.of(new Item("a", 1), new Item("b", 2)), "UNIT", "u"));
+        assertTrue(out.contains("int a = 1; // u\nint b = 2; // u\n"), out);
+    }
+
+    /**
+     * A count is not a list. It used to be one, with the element read through functions bound
+     * under names of their own, such as {@code TOKENS_LABEL}.
+     */
+    @Test
+    void foreachOverACountFails() {
+        assertThrows(TemplateException.class,
+                () -> render("//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", 3)));
+    }
+
+    /** An element that is not a record has no components to read. */
+    @Test
+    void foreachOverSomethingNotARecordFails() {
+        var e = assertThrows(TemplateException.class,
+                () -> render("a\n//@foreach(ITEMS)\nx\n//@end\n", Map.of("ITEMS", List.of("x"))));
+        assertTrue(e.getMessage().startsWith("Test:2: //@foreach(ITEMS) needs a record"), e.getMessage());
     }
 
     @Test
@@ -306,13 +346,83 @@ class TemplateTest {
     // ---------------------------------------------------------------- errors
 
     /**
-     * A broken template is named by its path. The render title — the "HiveVM Waggle v.X" banner —
-     * used to stand in for the name, which said nothing about which template was broken.
+     * A broken template is named by its path, and the block left open by the line that opens it.
+     * The render title — the "HiveVM Waggle v.X" banner — used to stand in for the name, which said
+     * nothing about which template was broken.
      */
     @Test
     void aBrokenTemplateIsNamedByItsPath() {
         var path = "/org/hivevm/source/Unclosed.template";
         var e = assertThrows(TemplateException.class, () -> TemplateCache.get(path));
-        assertTrue(e.getMessage().startsWith(path + ": "), e.getMessage());
+        assertTrue(e.getMessage().startsWith(path + ":1: //@if is never closed"), e.getMessage());
+    }
+
+    /**
+     * A name that is missing at render time is reported with the template and the line that uses
+     * it. It used to be reported by name alone, which left 140 small templates per target to search.
+     */
+    @Test
+    void anUnknownNameIsReportedWithItsLine() {
+        var e = assertThrows(TemplateException.class,
+                () -> render("a\nb\n\tvalue=__MISSING__\n", Map.of()));
+        assertTrue(e.getMessage().startsWith("Test:3: "), e.getMessage());
+
+        e = assertThrows(TemplateException.class,
+                () -> render("a\n//@if(A)\nb\n//@elif(MISSING)\n//@fi\n", Map.of("A", false)));
+        assertTrue(e.getMessage().startsWith("Test:4: "), e.getMessage());
+    }
+
+    /** A line counts as one however many directives and placeholders precede it. */
+    @Test
+    void linesAreCountedAcrossDirectives() {
+        var e = assertThrows(TemplateException.class, () -> render(
+                "//@if(A)\n__A__ __A__\n//@else\nx\n//@fi\n\n__MISSING__\n", Map.of("A", true)));
+        assertTrue(e.getMessage().startsWith("Test:7: "), e.getMessage());
+    }
+
+    /** A block closed by the other block's directive names the line that opened it. */
+    @Test
+    void aBlockClosedWithTheWrongDirectiveFails() {
+        var e = assertThrows(TemplateException.class,
+                () -> render("//@foreach(ITEMS)\nx\n//@fi\n", Map.of()));
+        assertTrue(e.getMessage().startsWith("Test:3: //@fi closes the //@foreach on line 1"),
+                e.getMessage());
+        assertThrows(TemplateException.class, () -> render("//@if(A)\nx\n//@end\n", Map.of()));
+    }
+
+    /** A record whose type has no template is named, with the line that applies it. */
+    @Test
+    void applyWithoutATemplateNamesTheRecord() {
+        var e = assertThrows(TemplateException.class, () -> apply(new Item("a", 1), Map.of()));
+        assertTrue(e.getMessage().contains("/org/hivevm/source/Outer.java:1: //@apply(ROOT)"),
+                e.getMessage());
+        assertTrue(e.getMessage().contains("apply/Item.java"), e.getMessage());
+    }
+
+    // ---------------------------------------------------------------- references
+
+    /** What a template refers to is known without rendering it, for a check against its record. */
+    @Test
+    void aTemplateListsTheNamesItRefersTo() {
+        var template = new Template("Test", """
+                __A__
+                //@if(!B)
+                //@foreach(LIST)
+                	__name__
+                	//@apply(child)
+                //@end
+                //@elif(C)
+                //@invoke(D)
+                //@fi
+                """);
+        assertEquals(List.of(
+                        new Template.Reference("placeholder", "A", 1, null),
+                        new Template.Reference("if", "B", 2, null),
+                        new Template.Reference("foreach", "LIST", 3, null),
+                        new Template.Reference("placeholder", "name", 4, "LIST"),
+                        new Template.Reference("apply", "child", 5, "LIST"),
+                        new Template.Reference("elif", "C", 7, null),
+                        new Template.Reference("invoke", "D", 8, null)),
+                template.references());
     }
 }

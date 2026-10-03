@@ -13,6 +13,7 @@ import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.LexState;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
+import org.hivevm.waggle.codegen.ListModel;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.LexerPlan.KindSet;
 import org.hivevm.source.TemplateSet;
@@ -45,7 +46,7 @@ class RustLexerGenerator extends LexerGenerator {
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
         var images = RustLexerGenerator.getStrLiteralImageList(data.plan().shape().images());
-        options.add("LITERAL_IMAGES", images).set("LITERAL_IMAGE_NAME", s -> s);
+        options.set("LITERAL_IMAGES", ListModel.names(images));
         options.set("LITERAL_IMAGES_LENGTH", images.size());
         options.set("STATE_NAMES_LENGTH", data.plan().shape().stateNames().size());
 

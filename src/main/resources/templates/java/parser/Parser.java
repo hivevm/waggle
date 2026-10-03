@@ -10,7 +10,7 @@ package __JAVA_PACKAGE__;
 //@fi
 
 //@foreach(JAVA_IMPORTS)
-import __JAVA_IMPORTS_VALUE__;
+import __name__;
 //@end
 
 public class Parser
@@ -58,7 +58,7 @@ public class Parser
 	private int                jj_gen;
 	private final int[]        jj_la1    = new int[__MASK_INDEX__];
 //@foreach(TOKEN_MASKS)
-	private static final int[] jj_la1___TOKEN_MASKS_INDEX__  = { __TOKEN_MASKS_VALUE__};
+	private static final int[] jj_la1___index__  = { __values__};
 //@end
 //@fi
 //@if(JJ2_INDEX)
@@ -353,9 +353,9 @@ public class Parser
 		for (int i = 0; i < __MASK_INDEX__; i++) {
 			if (this.jj_la1[i] == this.jj_gen) {
 				for (int j = 0; j < 32; j++) {
-//@foreach(TOKEN_MASKS_LA1)
-					if ((Parser.jj_la1___TOKEN_MASKS_LA1_INDEX__[i] & (1 << j)) != 0) {
-						la1tokens[__TOKEN_MASKS_LA1_VALUE__j] = true;
+//@foreach(TOKEN_MASKS)
+					if ((Parser.jj_la1___index__[i] & (1 << j)) != 0) {
+						la1tokens[__offset__j] = true;
 					}
 //@end
 				}
@@ -506,8 +506,8 @@ public class Parser
 						this.jj_lastpos = this.jj_scanpos = p.first;
 						switch (i) {
 //@foreach(JJ2_OFFSET)
-							case __JJ2_OFFSET_INDEX__:
-								jj_3___JJ2_OFFSET_VALUE__();
+							case __saveSlot__:
+								jj_3___number__();
 								break;
 //@end
 						}

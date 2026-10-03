@@ -64,7 +64,10 @@ A target contributes a `Generator`, found through a `ServiceLoader`
 
 Whole files come from templates under `src/main/resources/templates/<target>/`. Each output-model
 record is written by the template named after its type, so a back end writes no statement itself
-([ADR-0031](adr/0031-templates-render-the-plan-recursively.md)). Rendering produces text. An
+([ADR-0031](adr/0031-templates-render-the-plan-recursively.md)). A flat run — constants, names, table
+lines — is a list of `ListModel` records that a `//@foreach` walks. `TemplateRecordsTest` holds
+every applied template against the record it renders, so a misspelt component or a missing
+template fails without generating a grammar. Rendering produces text. An
 `OutputSink` decides where it goes, which lets a caller generate into memory
 ([ADR-0018](adr/0018-rendering-is-pure-an-output-sink-writes.md)).
 

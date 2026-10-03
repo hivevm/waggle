@@ -23,7 +23,7 @@ public:
 	virtual __VISITOR_RETURN_TYPE__ visit(const Node *node, __VISITOR_DATA_TYPE__ data) = 0;
 //@if(NODE_MULTI)
 //@foreach(NODES)
-	virtual __VISITOR_RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __VISITOR_DATA_TYPE__ data) = 0;
+	virtual __VISITOR_RETURN_TYPE__ visit(const AST__name__ *node, __VISITOR_DATA_TYPE__ data) = 0;
 //@end
 //@fi
 
@@ -48,7 +48,7 @@ public:
 
 //@if(NODE_MULTI)
 //@foreach(NODES)
-	virtual __VISITOR_RETURN_TYPE__ visit(const __NODES_TYPE__ *node, __VISITOR_DATA_TYPE__ data) {
+	virtual __VISITOR_RETURN_TYPE__ visit(const AST__name__ *node, __VISITOR_DATA_TYPE__ data) {
 //@if(VISITOR_RETURN_TYPE_VOID)
 		defaultVisit(node, data);
 //@else

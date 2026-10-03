@@ -18,7 +18,7 @@ class Lexer {
 //@fi
 
 //@foreach(LOHI_BYTES)
-	static long[] jjbitVec__LOHI_BYTES_INDEX__ = {__LOHI_BYTES_VALUE__};
+	static long[] jjbitVec__index__ = {__values__};
 //@end
 	//@apply(LEX_STATES)
 
@@ -297,7 +297,7 @@ class Lexer {
 	 */
 	public static String[] lexStateNames = {
 //@foreach(STATE_NAMES)
-			"__STATE_NAMES_VALUE__",
+			"__name__",
 //@end
 	};
 	//@apply(LEX_STATE_TABLE)

@@ -15,7 +15,6 @@ import org.hivevm.waggle.grammar.Token;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.LexerPlan;
 import org.hivevm.waggle.lexer.LexerPlan.ByteMask;
-import org.hivevm.waggle.lexer.LexerPlan.CanMove;
 import org.hivevm.waggle.lexer.LexerPlan.Handoff;
 import org.hivevm.waggle.lexer.LexerPlan.ImageSource;
 import org.hivevm.waggle.lexer.LexerPlan.KindSet;
@@ -27,6 +26,7 @@ import org.hivevm.waggle.model.CodeText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.IntStream;
 
 /**
  * The {@link LexerGenerator} class.
@@ -79,13 +79,11 @@ public abstract class LexerGenerator implements TargetSyntax {
 
         var options = OptionsContext.of(data.options());
         LexerPlan plan = data.plan();
-        options.add(LexerGenerator.LOHI_BYTES, plan.tables().byteMasks())
-                .set("LOHI_BYTES_INDEX", ByteMask::index)
-                .set("LOHI_BYTES_VALUE", this::getLohiBytes);
+        options.set(LexerGenerator.LOHI_BYTES, plan.tables().byteMasks().stream()
+                .map(mask -> new ListModel.BitVector(mask.index(), getLohiBytes(mask))).toList());
         // The jjCanMove functions are rendered from the plan's records (ADR-0031): they hold
         // numbers and flags only, which every target writes alike.
-        options.add(LexerGenerator.NON_ASCII_TABLE, plan.canMoves())
-                .set("NON_ASCII_TABLE_NAME", CanMove::method);
+        options.set(LexerGenerator.NON_ASCII_TABLE, plan.canMoves());
 
         var shape = plan.shape();
         options.set(LexerGenerator.HAS_LOOP, shape.hasLoop());
@@ -96,22 +94,21 @@ public abstract class LexerGenerator implements TargetSyntax {
 
         options.set(LexerGenerator.DEFAULT_LEX_STATE, shape.defaultLexState());
         options.set(LexerGenerator.MAX_LEX_STATES, shape.lexStates());
-        options.add(LexerGenerator.STATE_NAMES, shape.stateNames())
-                .set(LexerGenerator.STATE_NAMES + "_VALUE", i -> i);
+        options.set(LexerGenerator.STATE_NAMES, ListModel.names(shape.stateNames()));
         options.set(LexerGenerator.STATE_SET_SIZE, shape.stateSetSize());
         options.set(LexerGenerator.STATE_SET_SIZE + "_2", shape.stateSetSize() * 2);
         options.set(LexerGenerator.DUAL_NEED, shape.dualNeed());
         options.set(LexerGenerator.UNARY_NEED, shape.unaryNeed());
 
-        options.add("SKIP_ACTIONS", plan.actions().skip().stream()
+        options.set("SKIP_ACTIONS", plan.actions().skip().stream()
                 .map(c -> new ActionModel.SkipAction(c.kind(), c.lexState(), c.loopCheck(),
                         !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.LITERAL))
                 .toList());
-        options.add("MORE_ACTIONS", plan.actions().more().stream()
+        options.set("MORE_ACTIONS", plan.actions().more().stream()
                 .map(c -> new ActionModel.MoreAction(c.kind(), c.lexState(), c.loopCheck(),
                         !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.LITERAL))
                 .toList());
-        options.add("TOKEN_ACTIONS", plan.actions().token().stream()
+        options.set("TOKEN_ACTIONS", plan.actions().token().stream()
                 .map(c -> new ActionModel.TokenAction(c.kind(), c.lexState(), c.loopCheck(),
                         !c.code().isEmpty(), actionCode(c.code()), c.image() == ImageSource.RESET,
                         c.image() == ImageSource.LITERAL))
@@ -119,12 +116,12 @@ public abstract class LexerGenerator implements TargetSyntax {
 
         options.set("STATES_FOR_STATE", () -> getStatesForState(plan.tables()));
         options.set("KIND_FOR_STATE", () -> getKindForState(plan.tables()));
-        options.add("NEXT_STATES", List.of(nextStates(plan.tables())));
-        options.add("GET_NEXT_TOKEN", List.of(this.getNextToken.model(plan)));
-        options.add("LEX_STATE_TABLE", lexStateTable(plan.tables()));
-        options.add("KIND_VECTORS", plan.tables().kindTables().stream()
+        options.set("NEXT_STATES", List.of(nextStates(plan.tables())));
+        options.set("GET_NEXT_TOKEN", List.of(this.getNextToken.model(plan)));
+        options.set("LEX_STATE_TABLE", lexStateTable(plan.tables()));
+        options.set("KIND_VECTORS", plan.tables().kindTables().stream()
                 .map(this::kindVector).toList());
-        options.add(LexerGenerator.LEX_STATES, plan.states().stream()
+        options.set(LexerGenerator.LEX_STATES, plan.states().stream()
                 .map(state -> lexicalState(new LexState(data.getParserName(), state)))
                 .toList());
 
@@ -132,18 +129,16 @@ public abstract class LexerGenerator implements TargetSyntax {
 
         // Generate Constants
         options = OptionsContext.of(data.options());
-        options.add("STATES", shape.lexStates())
-                .set("STATES_INDEX", i -> i)
-                .set("STATES_NAME", i -> identifier(shape.stateNames().get(i)));
-        options.add("TOKENS", data.plan().namedTokens())
-                .set("TOKENS_ORDINAL", LexerPlan.NamedToken::ordinal)
-                .set("TOKENS_LABEL", e -> identifier(e.label()));
+        options.set("STATES", ListModel.numbered(shape.stateNames(), this::identifier));
+        options.set("TOKENS", data.plan().namedTokens().stream()
+                .map(e -> new ListModel.Constant(identifier(e.label()), e.ordinal())).toList());
 
         var names = data.plan().tokenNames();
-        options.add("REXPRESSION_COUNT", names.size())
-                .set("REXPRESSION_INDEX", i -> i)
-                .set("REXPRESSION_LABEL", i -> this.getNextToken.getRegExp(i, names, false))
-                .set("REXPRESSION_IMAGE", i -> this.getNextToken.getRegExp(i, names, true));
+        options.set("REXPRESSION_COUNT", names.size());
+        options.set("TOKEN_IMAGES", IntStream.range(0, names.size())
+                .mapToObj(i -> new ListModel.TokenImage(i, this.getNextToken.getRegExp(i, names, false),
+                        this.getNextToken.getRegExp(i, names, true)))
+                .toList());
 
         getConstantsTemplate().render(options, options.getParserName());
     }

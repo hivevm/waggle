@@ -21,31 +21,31 @@ namespace __CPP_NAMESPACE__ {
 // RegularExpressions
 const int _EOF = 0; // End of File
 //@foreach(TOKENS)
-const int __TOKENS_LABEL__ = __TOKENS_ORDINAL__;
+const int __name__ = __value__;
 //@end
 
 // Lexical states
 //@foreach(STATES)
-const int __STATES_NAME__ = __STATES_INDEX__;
+const int __name__ = __value__;
 //@end
 
 // Literal token images
-//@foreach(REXPRESSION_COUNT)
-static const JJChar tokenImage___REXPRESSION_INDEX__[] = {__REXPRESSION_IMAGE__0};
+//@foreach(TOKEN_IMAGES)
+static const JJChar tokenImage___index__[] = {__image__0};
 //@end
 static const JJChar* const tokenImages[] = {
-//@foreach(REXPRESSION_COUNT)
-	tokenImage___REXPRESSION_INDEX__,
+//@foreach(TOKEN_IMAGES)
+	tokenImage___index__,
 //@end
 };
 
 // Literal token labels
-//@foreach(REXPRESSION_COUNT)
-static const JJChar tokenLabel___REXPRESSION_INDEX__[] = {__REXPRESSION_LABEL__0};
+//@foreach(TOKEN_IMAGES)
+static const JJChar tokenLabel___index__[] = {__label__0};
 //@end
 static const JJChar* const tokenLabels[] = {
-//@foreach(REXPRESSION_COUNT)
-	tokenLabel___REXPRESSION_INDEX__,
+//@foreach(TOKEN_IMAGES)
+	tokenLabel___index__,
 //@end
 };
 

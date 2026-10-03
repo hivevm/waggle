@@ -31,7 +31,7 @@ public:
 	//@apply(STATE_DECLS)
 	Token * jjFillToken();
 //@foreach(NON_ASCII_TABLE)
-bool jjCanMove___NON_ASCII_TABLE_NAME__(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2);
+bool jjCanMove___method__(int hiByte, int i1, int i2, unsigned long long l1, unsigned long long l2);
 //@end
 public:
 	int defaultLexState;

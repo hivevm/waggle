@@ -28,7 +28,7 @@ class JavaLexerGenerator extends LexerGenerator {
 
     @Override
     protected final void generate(LexerData data, OptionsContext options) {
-        options.add("LITERAL_IMAGE_ROWS", literalImages(data.plan().shape().images()));
+        options.set("LITERAL_IMAGE_ROWS", literalImages(data.plan().shape().images()));
 
         JavaTemplate.LEXER.render(options);
     }

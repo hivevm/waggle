@@ -4,6 +4,7 @@
 package org.hivevm.source;
 
 import org.hivevm.source.Renderer.ApplyRenderer;
+import org.hivevm.source.Renderer.Branch;
 import org.hivevm.source.Renderer.ForEachRenderer;
 import org.hivevm.source.Renderer.IndentRenderer;
 import org.hivevm.source.Renderer.ListRenderer;
@@ -15,164 +16,175 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A builder class for constructing a tree of renderers that can dynamically generate output based
- * on various directives such as text blocks, variables, conditions, and iteration.
- * <p>
- * This class provides a fluent API that supports chaining calls to add different types of renderers
- * and control structures. Renderers are organized in a hierarchical structure, allowing for the
- * creation of complex rendering logic.
+ * Builds the renderer tree of one template, directive by directive, and records every name the
+ * template refers to.
+ *
+ * <p>Every directive that can fail names the template and the line it is written on. A block
+ * remembers the line of the directive that opened it, so a block closed with the wrong directive or
+ * not at all is reported where it starts, not where the template ends.
  */
 class RendererBuilder {
 
+    /**
+     * An open block: the {@code //@if} or {@code //@foreach} that opened it, and the list that
+     * content goes into — for an {@code //@if}, the body of its current branch.
+     */
+    private record Block(String directive, int line, ListRenderer body, MatchRenderer match,
+                         String list) {
+    }
+
     private final String template;
-    /** The open blocks, innermost last; the root list renderer is always the first. */
-    private final List<Renderer> stack;
+    /** The open blocks, innermost last; the template's own body is always the first. */
+    private final List<Block> stack = new ArrayList<>();
+    private final List<Template.Reference> references = new ArrayList<>();
+
+    /** The line of the directive being added. */
+    private int line;
 
     /**
      * Constructs a new instance of the RendererBuilder for the named template.
      */
-    public RendererBuilder(String template) {
+    RendererBuilder(String template) {
         this.template = template;
-        this.stack = new ArrayList<>();
-        this.stack.add(new ListRenderer());
+        this.stack.add(new Block("", 0, new ListRenderer(), null, null));
     }
 
-    /**
-     * Adds renderer to current list or for-each renderer
-     */
-    protected final <R extends Renderer> R addRenderer(R renderer) {
-        var peek = stack.getLast();
-        if (peek instanceof ListRenderer(List<Renderer> nodes)) {
-            nodes.add(renderer);
-        } else if (peek instanceof ForEachRenderer forech) {
-            forech.renderer().nodes().add(renderer);
-        } else {
-            // Reached when a block was closed with the wrong directive (e.g. //@end for an //@if),
-            // which leaves the MatchRenderer on the stack. Dropping the content here is how a
-            // template loses its tail without a word.
-            throw new TemplateException(template
-                    + ": content in a block that is not open — a //@if closed with //@end, or a "
-                    + "//@foreach closed with //@fi?");
+    /** The line the next directive or text is written on. */
+    final void at(int line) {
+        this.line = line;
+    }
+
+    private String where() {
+        return this.template + ":" + this.line;
+    }
+
+    private TemplateException error(String message) {
+        return new TemplateException(where() + ": " + message);
+    }
+
+    /** Records that the template refers to {@code name}, from inside the innermost list. */
+    private void refer(String directive, String name) {
+        String list = null;
+        for (var block : this.stack) {
+            if (block.list() != null) {
+                list = block.list();
+            }
         }
+        this.references.add(new Template.Reference(directive, name, this.line, list));
+    }
+
+    private <R extends Renderer> R add(R renderer) {
+        this.stack.getLast().body().nodes().add(renderer);
         return renderer;
     }
 
     /**
-     * Changes the indentation of the lines that follow by {@code intend} levels; a negative value
+     * Changes the indentation of the lines that follow by {@code indent} levels; a negative value
      * outdents.
      */
-    public final RendererBuilder setIntend(int intend) {
-        addRenderer(new IndentRenderer(intend));
-        return this;
+    final void addIndent(int indent) {
+        add(new IndentRenderer(indent));
+    }
+
+    /** Adds text, which is rendered as it stands. */
+    final void addText(String text) {
+        add(new TextRenderer(text));
+    }
+
+    /** Adds a placeholder, or an {@code //@invoke}, for the value of {@code name}. */
+    final void addVar(String directive, String name) {
+        refer(directive, name);
+        add(new VarRenderer(name, where()));
+    }
+
+    /** Opens an {@code //@if} on {@code condition}. */
+    final void addIf(String condition) {
+        refer("if", condition.startsWith("!") ? condition.substring(1) : condition);
+        var match = add(new MatchRenderer());
+        var body = new ListRenderer();
+        match.branches().add(new Branch(condition, body, where()));
+        this.stack.add(new Block("if", this.line, body, match, null));
     }
 
     /**
-     * Adds a block of text to the renderer. The provided text will be handled as raw content and
-     * included in the rendered output as-is, without any additional processing or interpretation.
+     * Adds an {@code //@elif} on {@code condition} to the innermost {@code //@if}, or with no
+     * condition its {@code //@else}.
      */
-    public final RendererBuilder addText(String text) {
-        addRenderer(new TextRenderer(text));
-        return this;
-    }
-
-    /**
-     * Adds a variable to the renderer's context. The variable is specified as an expression, which
-     * will be dynamically evaluated in the rendering environment. This allows the rendered output
-     * to include values derived from the environment's state.
-     */
-    public final RendererBuilder addVar(String expression) {
-        addRenderer(new VarRenderer(expression));
-        return this;
-    }
-
-    /**
-     * Adds a new match case renderer to the current renderer. The match renderer allows conditional
-     * rendering based on an environment's variables or flags. The matched case is dynamically
-     * selected at render time depending on whether conditions associated with environment states
-     * are satisfied.
-     */
-    public final RendererBuilder addMatch(String expression) {
-        var renderer = addRenderer(new MatchRenderer());
-        stack.add(renderer);
-
-        var list = new ListRenderer();
-        renderer.nodes().put(expression, list);
-        stack.add(list);
-
-        return this;
-    }
-
-    /**
-     * Adds a conditional case to the renderer. This method associates a specific case with its
-     * conditional expression. The case will be evaluated and rendered dynamically based on whether
-     * the condition defined by the expression evaluates to true during runtime.
-     */
-    public final RendererBuilder addCase(String expression) {
-        // Only the branch of an //@if can be followed by another: at the top level this was an
-        // EmptyStackException, inside a //@foreach a ClassCastException.
-        if ((stack.size() < 2) || !(stack.get(stack.size() - 2) instanceof MatchRenderer)) {
-            throw new TemplateException("//@elif or //@else outside an //@if");
+    final void addBranch(String condition) {
+        var top = this.stack.getLast();
+        var directive = (condition == null) ? "//@else" : "//@elif";
+        if (top.match() == null) {
+            throw error(directive + " outside an //@if");
         }
-        stack.removeLast();
-        var peek = (MatchRenderer) stack.getLast();
-        var renderer = new ListRenderer();
-        // The branches sit in a map: a second //@else, or an //@elif repeating a condition, used to
-        // replace the earlier branch instead of being reported.
-        if (peek.nodes().putIfAbsent(expression != null ? expression : MatchRenderer.DEFAULT, renderer) != null) {
-            throw new TemplateException(expression != null
-                    ? "//@elif(" + expression + ") repeats a condition of its //@if"
-                    : "a second //@else in one //@if");
+        var branches = top.match().branches();
+        if (branches.getLast().condition() == null) {
+            throw error(directive + " after the //@else of the //@if on line " + top.line());
         }
-        stack.add(renderer);
-        return this;
+        if (condition != null) {
+            refer("elif", condition.startsWith("!") ? condition.substring(1) : condition);
+            // A repeated condition can never be taken: its branch is dead text.
+            if (branches.stream().anyMatch(b -> condition.equals(b.condition()))) {
+                throw error("//@elif(" + condition + ") repeats a condition of the //@if on line "
+                        + top.line());
+            }
+        }
+        var body = new ListRenderer();
+        branches.add(new Branch(condition, body, where()));
+        this.stack.set(this.stack.size() - 1,
+                new Block(top.directive(), top.line(), body, top.match(), null));
     }
 
-    /**
-     * Adds a "foreach" directive to the renderer. This directive processes a collection by
-     * iterating over its elements, associating each element with a specified variable that can be
-     * referenced during rendering. The variable will be substituted with each element of the list
-     * sequentially as the iteration proceeds.
-     */
-    public final RendererBuilder addForeach(String param) {
-        var renderer = addRenderer(new ForEachRenderer(param));
-        stack.add(renderer);
-        return this;
+    /** Opens a {@code //@foreach} over the records of {@code list}. */
+    final void addForeach(String list) {
+        refer("foreach", list);
+        var body = new ListRenderer();
+        add(new ForEachRenderer(list, body, where()));
+        this.stack.add(new Block("foreach", this.line, body, null, list));
     }
 
     /**
      * Renders the record bound to {@code attribute}, or each record of the list bound to it,
      * through the template named after its type (ADR-0031).
      */
-    public final RendererBuilder addApply(String attribute, String base) {
-        addRenderer(new ApplyRenderer(attribute, base));
-        return this;
+    final void addApply(String attribute, String base) {
+        refer("apply", attribute);
+        add(new ApplyRenderer(attribute, base, where()));
     }
 
     /**
-     * Closes the innermost block. The root list renderer must never be popped — a //@fi or //@end
-     * without a matching opener would otherwise unbalance the stack.
+     * Closes the innermost block, which {@code directive} — {@code "if"} for {@code //@fi},
+     * {@code "foreach"} for {@code //@end} — must have opened.
      */
-    public final RendererBuilder pop() {
-        if (stack.size() <= 1) {
-            throw new TemplateException(template
-                    + ": //@fi or //@end without a matching //@if or //@foreach");
+    final void close(String directive) {
+        var closer = directive.equals("if") ? "//@fi" : "//@end";
+        if (this.stack.size() <= 1) {
+            throw error(closer + " without a matching //@" + directive);
         }
-        stack.removeLast();
-        return this;
+        var top = this.stack.getLast();
+        if (!top.directive().equals(directive)) {
+            throw error(closer + " closes the //@" + top.directive() + " on line " + top.line());
+        }
+        this.stack.removeLast();
+    }
+
+    /** The names the template refers to, in the order it does. */
+    final List<Template.Reference> references() {
+        return List.copyOf(this.references);
     }
 
     /**
-     * Returns the root renderer.
+     * Returns the template's renderer.
      *
-     * <p>Fails when blocks are left open. Previously this popped whatever was on top, so a missing
-     * //@fi returned the innermost block instead of the root — the rest of the template was dropped
-     * silently, leaving a truncated file with a valid checksum footer.
+     * <p>Fails when a block is left open: returning anything else used to drop the rest of the
+     * template silently, leaving a truncated file with a valid checksum footer.
      */
-    public final Renderer build() {
-        if (stack.size() != 1) {
-            throw new TemplateException(template + ": " + (stack.size() - 1)
-                    + " block(s) left open — a //@fi or //@end is missing");
+    final Renderer build() {
+        if (this.stack.size() != 1) {
+            var open = this.stack.getLast();
+            throw new TemplateException(this.template + ":" + open.line() + ": //@"
+                    + open.directive() + " is never closed — a //@"
+                    + (open.directive().equals("if") ? "fi" : "end") + " is missing");
         }
-        return stack.removeLast();
+        return this.stack.getFirst().body();
     }
 }

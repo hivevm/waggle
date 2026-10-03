@@ -31,18 +31,18 @@ impl fmt::Display for LexicalError {
 impl std::error::Error for LexicalError {}
 
 //@foreach(LOHI_BYTES)
-const JJBIT_VEC__LOHI_BYTES_INDEX__: [u64; 4] = [__LOHI_BYTES_VALUE__];
+const JJBIT_VEC__index__: [u64; 4] = [__values__];
 //@end
 
 pub const LEX_STATE_NAMES: [&str; __STATE_NAMES_LENGTH__] = [
 //@foreach(STATE_NAMES)
-	"__STATE_NAMES_VALUE__",
+	"__name__",
 //@end
 ];
 
 pub const JJSTR_LITERAL_IMAGES: [&str; __LITERAL_IMAGES_LENGTH__] = [
 //@foreach(LITERAL_IMAGES)
-	"__LITERAL_IMAGE_NAME__",
+	"__name__",
 //@end
 ];
 

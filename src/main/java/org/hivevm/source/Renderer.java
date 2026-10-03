@@ -5,11 +5,11 @@ package org.hivevm.source;
 
 import org.hivevm.core.Environment;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 
 /**
@@ -20,6 +20,9 @@ import java.util.stream.IntStream;
  * Commands such as "if", "elif", "else", "foreach", and their corresponding closing commands are
  * parsed and constructed into a tree structure, which is then rendered dynamically based on the
  * provided environment.
+ *
+ * <p>A node that can fail while rendering carries {@code where}, the template and line it was
+ * written on, so that the failure names the line rather than only the name it could not find.
  */
 interface Renderer {
 
@@ -58,7 +61,7 @@ interface Renderer {
      * defined in the provided {@link Environment}. The variable name is specified as a string
      * during the record's instantiation.
      */
-    record VarRenderer(String text) implements Renderer {
+    record VarRenderer(String text, String where) implements Renderer {
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
@@ -66,7 +69,7 @@ interface Renderer {
                 // Rendering an unknown placeholder as "" produces source that does not compile —
                 // "class ASTx extends  {}" or "jjtAccept(NodeVisitor v,  data)". Say so instead.
                 throw new TemplateException(
-                        "Unknown placeholder or invoke target '" + text + "'");
+                        where + ": unknown placeholder or invoke target '" + text + "'");
             }
 
             Object value = environment.get(text);
@@ -95,69 +98,56 @@ interface Renderer {
     }
 
     /**
-     * A record that implements the {@link Renderer} interface to enable conditional rendering based
-     * on environment variables. The {@code MatchRenderer} evaluates the conditions associated with
-     * the provided map of {@link Renderer} nodes and renders the first node whose condition is
-     * satisfied. If no condition is satisfied, a default renderer is used, if provided.
+     * One branch of an {@code //@if}: the {@code //@if} itself, an {@code //@elif}, or, with no
+     * condition, the {@code //@else}.
      */
-    record MatchRenderer(Map<String, Renderer> nodes) implements Renderer {
+    record Branch(String condition, ListRenderer body, String where) {
+    }
 
-        /** The key of the {@code //@else} branch. */
-        static final String DEFAULT = "_";
+    /**
+     * An {@code //@if} chain: renders the body of the first branch, in source order, whose condition
+     * holds, or the {@code //@else} branch, which the builder keeps last.
+     */
+    record MatchRenderer(List<Branch> branches) implements Renderer {
 
-        // A LinkedHashMap, so that an if/elif chain is evaluated in source order rather than in
-        // hash order.
         public MatchRenderer() {
-            this(new LinkedHashMap<>());
+            this(new ArrayList<>());
         }
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
-            // No environment::has pre-filter here: a negated condition ("!FLAG") is not a name in
-            // the environment, so the pre-filter used to drop it before validate() ever saw it —
-            // which silently disabled every //@if(!X) block. validate() does the lookup itself.
-            var result = nodes.keySet().stream()
-                    .filter(n -> !DEFAULT.equals(n))
-                    .filter(n -> validate(n, environment))
-                    .findFirst();
-            if (result.isPresent()) {
-                nodes.get(result.get()).render(printer, environment);
-            } else if (nodes.containsKey(DEFAULT)) {
-                nodes.get(DEFAULT).render(printer, environment);
+            for (var branch : branches) {
+                if ((branch.condition() == null)
+                        || validate(branch.condition(), environment, branch.where())) {
+                    branch.body().render(printer, environment);
+                    return;
+                }
             }
         }
     }
 
     /**
      * A record that implements the {@link Renderer} interface to render its body once per element
-     * of a list: the environment value {@code list} names is either a count or an
-     * {@link Iterable}, and each pass sees the current element through a {@link ListEnv}.
+     * of a list of records: each pass reads the components of its element by name, and the
+     * surrounding environment for everything else, as an applied template does.
      */
-    record ForEachRenderer(String list, ListRenderer renderer) implements Renderer {
-
-        public ForEachRenderer(String list) {
-            this(list, new ListRenderer());
-        }
+    record ForEachRenderer(String list, ListRenderer renderer, String where) implements Renderer {
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
             if (!environment.has(list)) {
-                throw new TemplateException("Unknown //@foreach list '" + list + "'");
+                throw new TemplateException(where + ": unknown //@foreach list '" + list + "'");
             }
-            var result = environment.get(list);
-            if (result instanceof Integer integer) {
-                for (var i = 0; i < integer; i++) {
-                    renderer.render(printer, new ListEnv(environment, i));
-                }
-            } else if (result instanceof Iterable<?> iterable) {
-                for (var elem : iterable) {
-                    renderer.render(printer, new ListEnv(environment, elem));
-                }
-            } else {
-                // Rendering nothing for a value that is neither a count nor a list would drop the
-                // block as silently as an unknown name did.
-                throw new TemplateException("//@foreach list '" + list + "' is neither a count nor an iterable: "
-                        + (result == null ? "null" : result.getClass().getName()));
+            if (!(environment.get(list) instanceof Iterable<?> iterable)) {
+                // Rendering nothing for a value that is not a list would drop the block as silently
+                // as an unknown name did.
+                var value = environment.get(list);
+                throw new TemplateException(where + ": //@foreach list '" + list + "' is not a list: "
+                        + (value == null ? "null" : value.getClass().getName()));
+            }
+            for (var element : iterable) {
+                renderer.render(printer, RecordEnv.of(environment, element,
+                        () -> where + ": //@foreach(" + list + ")"));
             }
         }
     }
@@ -175,17 +165,14 @@ interface Renderer {
      * @param attribute the name the record is bound to
      * @param base      the resource path of the applied template, with a {@code %s} for the type
      */
-    record ApplyRenderer(String attribute, String base) implements Renderer {
+    record ApplyRenderer(String attribute, String base, String where) implements Renderer {
 
         @Override
         public void render(LinePrinter printer, Environment environment) {
             if (!environment.has(attribute)) {
-                throw new TemplateException("Unknown //@apply attribute '" + attribute + "'");
+                throw new TemplateException(where + ": unknown //@apply attribute '" + attribute + "'");
             }
             var value = environment.get(attribute);
-            if (value == null) {
-                return;
-            }
             if (value instanceof Iterable<?> iterable) {
                 for (var element : iterable) {
                     apply(printer, environment, element);
@@ -199,60 +186,90 @@ interface Renderer {
             if (value == null) {
                 return;
             }
-            if (!value.getClass().isRecord()) {
-                // Applying a template to something that has no components would render an empty
-                // file's worth of nothing, and say why only much later.
-                throw new TemplateException("//@apply(" + attribute + ") needs a record, but got "
-                        + value.getClass().getName());
-            }
+            var env = RecordEnv.of(environment, value, () -> where + ": //@apply(" + attribute + ")");
             var path = String.format(base, value.getClass().getSimpleName());
-            TemplateCache.get(path).renderInto(printer, new RecordEnv(environment, value));
+            var template = TemplateCache.find(path);
+            if (template == null) {
+                throw new TemplateException(where + ": //@apply(" + attribute + ") has no template "
+                        + path + " for " + value.getClass().getName());
+            }
+            template.renderInto(printer, env);
         }
     }
 
     /**
-     * The environment of one applied template: the components of the record it was applied to, and
-     * the surrounding environment for every other name.
+     * The environment of one record: its components, and the surrounding environment for every
+     * other name. It is what an applied template and a pass of a {@code //@foreach} read.
      */
-    class RecordEnv implements Environment {
+    final class RecordEnv implements Environment {
+
+        /** The accessors of a record type by component name, looked up once per type. */
+        private static final ClassValue<Map<String, Method>> ACCESSORS = new ClassValue<>() {
+            @Override
+            protected Map<String, Method> computeValue(Class<?> type) {
+                var accessors = new LinkedHashMap<String, Method>();
+                for (var component : type.getRecordComponents()) {
+                    accessors.put(component.getName(), component.getAccessor());
+                }
+                return Map.copyOf(accessors);
+            }
+        };
 
         private final Environment environment;
-        private final Map<String, Object> components = new LinkedHashMap<>();
+        private final Object record;
+        private final Map<String, Method> accessors;
 
         private RecordEnv(Environment environment, Object record) {
             this.environment = environment;
-            for (var component : record.getClass().getRecordComponents()) {
-                try {
-                    this.components.put(component.getName(),
-                            component.getAccessor().invoke(record));
-                } catch (ReflectiveOperationException e) {
-                    throw new TemplateException("Cannot read '" + component.getName() + "' of "
-                            + record.getClass().getName(), e);
-                }
+            this.record = record;
+            this.accessors = RecordEnv.ACCESSORS.get(record.getClass());
+        }
+
+        /**
+         * The environment of {@code value}, which must be a record.
+         *
+         * @param what names the directive for the error, which is rare enough to be built lazily
+         */
+        static RecordEnv of(Environment environment, Object value,
+                            java.util.function.Supplier<String> what) {
+            if (value == null || !value.getClass().isRecord()) {
+                // Something that has no components would render nothing of its own, and say why
+                // only much later.
+                throw new TemplateException(what.get() + " needs a record, but got "
+                        + (value == null ? "null" : value.getClass().getName()));
             }
+            return new RecordEnv(environment, value);
         }
 
         @Override
         public boolean has(String name) {
-            return this.components.containsKey(name) || this.environment.has(name);
+            return this.accessors.containsKey(name) || this.environment.has(name);
         }
 
         @Override
         public Object get(String name) {
-            return this.components.containsKey(name) ? this.components.get(name)
-                    : this.environment.get(name);
+            var accessor = this.accessors.get(name);
+            if (accessor == null) {
+                return this.environment.get(name);
+            }
+            try {
+                return accessor.invoke(this.record);
+            } catch (ReflectiveOperationException e) {
+                throw new TemplateException("Cannot read '" + name + "' of "
+                        + this.record.getClass().getName(), e);
+            }
         }
     }
 
-    private static boolean validate(String expression, Environment environment) {
+    private static boolean validate(String expression, Environment environment, String where) {
         if (expression.startsWith("!")) { // negative condition
-            return !validate(expression.substring(1), environment);
+            return !validate(expression.substring(1), environment, where);
         }
 
         // An unknown name used to be false: a misspelt or never-set key silently dropped its block
         // (or kept the //@if(!X) one), which yields source that does not compile far from the cause.
         if (!environment.has(expression)) {
-            throw new TemplateException("Unknown condition '" + expression + "'");
+            throw new TemplateException(where + ": unknown condition '" + expression + "'");
         }
 
         return switch (environment.get(expression)) {
@@ -262,49 +279,5 @@ interface Renderer {
             case null -> false;
             default -> false;
         };
-    }
-
-    /**
-     * The environment of one pass of a {@code //@foreach}: it answers every name from the
-     * underlying environment, but applies a bound mapper to the current element.
-     */
-    class ListEnv implements Environment {
-
-        private final Environment environment;
-        private final Object value;
-
-        /**
-         * Constructs the environment of the pass over {@code value}.
-         */
-        private ListEnv(Environment environment, Object value) {
-            this.environment = environment;
-            this.value = value;
-        }
-
-        /**
-         * Checks if the specified name exists in the underlying environment.
-         */
-        @Override
-        public final boolean has(String name) {
-            return environment.has(name);
-        }
-
-        /**
-         * Retrieves the value of the specified name from the underlying environment. A
-         * {@link Function} bound there is applied to the current element; any other value is
-         * returned as it is.
-         *
-         * <p>The environment is keyed by name and holds values of no common type (ADR-0005), so what
-         * comes back is an {@code Object} whose type parameter erasure has already discarded. The
-         * {@code instanceof} before each cast is the check; the compiler simply cannot see it.
-         */
-        @Override
-        @SuppressWarnings("unchecked")
-        public final Object get(String name) {
-            Object func = environment.get(name);
-            if (func instanceof Function)
-                return ((Function<Object, Object>) func).apply(value);
-            return func;
-        }
     }
 }

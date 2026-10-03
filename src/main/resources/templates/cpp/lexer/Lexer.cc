@@ -16,7 +16,7 @@
 
 
 //@foreach(LOHI_BYTES)
-static const unsigned long long jjbitVec__LOHI_BYTES_INDEX__[] = { __LOHI_BYTES_VALUE__ };
+static const unsigned long long jjbitVec__index__[] = { __values__ };
 //@end
 //@if(LITERAL_IMAGE_COUNT)
 //@apply(LITERAL_IMAGE_ROWS)
@@ -82,12 +82,12 @@ const Latin1 __PARSER_NAME__TokenManager::jjKindsForStateVector(int lexState, in
 //@fi
 /** Lexer state names. */
 //@foreach(STATE_NAMES_AS_CHARS)
-static const JJChar lexStateNames_arr___STATE_NAMES_AS_CHARS_INDEX__[] =
-{__STATE_NAMES_AS_CHARS_CHARS__0};
+static const JJChar lexStateNames_arr___value__[] =
+{__name__0};
 //@end
 static const JJString lexStateNames[] = {
-//@foreach(MAX_LEX_STATES)
-lexStateNames_arr___MAX_LEX_STATES_INDEX__,
+//@foreach(STATE_NAMES_AS_CHARS)
+lexStateNames_arr___value__,
 //@end
 };
 

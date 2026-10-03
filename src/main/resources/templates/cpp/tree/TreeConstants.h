@@ -15,16 +15,16 @@ namespace __CPP_NAMESPACE__ {
 //@fi
 enum {
 //@foreach(NODES)
-	__LABEL__ = __ORDINAL__,
+	__name__ = __value__,
 //@end
 };
 
 //@foreach(NODE_NAMES)
-static JJChar jjtNodeName_arr___ORDINAL__[] = {__CHARS__0};
+static JJChar jjtNodeName_arr___value__[] = {__name__0};
 //@end
 static JJString jjtNodeName[] = {
 //@foreach(NODE_NAMES)
-	jjtNodeName_arr___ORDINAL__,
+	jjtNodeName_arr___value__,
 //@end
 };
 //@if(CPP_NAMESPACE)

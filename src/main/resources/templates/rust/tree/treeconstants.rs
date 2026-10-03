@@ -4,12 +4,12 @@
 #[derive(Debug)]
 pub enum TreeConstants {
 //@foreach(NODES)
-	__LABEL__,
+	__name__,
 //@end
 }
 
-pub const JJT_NODE_NAME: [&str; __NODES__] = [
-//@foreach(NODES)
-	"__TITLE__",
+pub const JJT_NODE_NAME: [&str; __NODE_COUNT__] = [
+//@foreach(NODE_NAMES)
+	"__name__",
 //@end
 ];

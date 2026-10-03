@@ -8,7 +8,6 @@
 package org.hivevm.waggle.codegen;
 
 import org.hivevm.waggle.api.OptionsContext;
-import org.hivevm.waggle.analysis.Jj2Routine;
 import org.hivevm.waggle.analysis.Jj3Routine;
 import org.hivevm.waggle.analysis.Decision;
 import org.hivevm.waggle.analysis.MaskTable;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public abstract class ParserGenerator {
 
@@ -80,25 +80,22 @@ public abstract class ParserGenerator {
         options.set(ParserGenerator.MASK_INDEX, masks.slots());
         options.set(ParserGenerator.TOKEN_COUNT, data.getTokenCount());
 
-        options.add(ParserGenerator.JJ2_OFFSET, data.jj2Routines())
-                .set("JJ2_OFFSET_INDEX", Jj2Routine::saveSlot)
-                .set("JJ2_OFFSET_VALUE", Jj2Routine::number);
-        options.add(ParserGenerator.TOKEN_MASKS, masks.wordCount())
-                .set("TOKEN_MASKS_INDEX", i -> i)
-                .set("TOKEN_MASKS_VALUE", i -> Arrays.stream(masks.words().get(i))
+        options.set(ParserGenerator.JJ2_OFFSET, data.jj2Routines().stream()
+                .map(r -> new ListModel.Jj2Case(r.saveSlot(), r.number())).toList());
+        options.set(ParserGenerator.TOKEN_MASKS, IntStream.range(0, masks.wordCount())
+                .mapToObj(i -> new ListModel.MaskWord(i, Arrays.stream(masks.words().get(i))
                         .mapToObj(v -> "0x" + Integer.toHexString(v))
-                        .collect(Collectors.joining(", ")));
-        options.add(ParserGenerator.TOKEN_MASKS + "_LA1", masks.wordCount())
-                .set("TOKEN_MASKS_LA1_INDEX", i -> i)
-                .set("TOKEN_MASKS_LA1_VALUE", i -> (i == 0) ? "" : MaskTable.firstToken(i) + " + ");
+                        .collect(Collectors.joining(", ")),
+                        (i == 0) ? "" : MaskTable.firstToken(i) + " + "))
+                .toList());
 
-        options.add(ParserGenerator.PRODUCTIONS, data.productionPlans().stream()
+        options.set(ParserGenerator.PRODUCTIONS, data.productionPlans().stream()
                 .map(n -> productionModel(n, data)).toList());
         options.set(ParserGenerator.RECORDS_EXPECTED_TOKENS, data.recordsExpectedTokens());
-        options.add(ParserGenerator.JJ2_ROUTINES, data.jj2Routines().stream()
+        options.set(ParserGenerator.JJ2_ROUTINES, data.jj2Routines().stream()
                 .map(r -> new Jj3Model.Jj2(lookaheadRoutineName(r.name()), r.saveSlot()))
                 .toList());
-        options.add(ParserGenerator.JJ3_ROUTINES,
+        options.set(ParserGenerator.JJ3_ROUTINES,
                 data.jj3Routines().stream().map(r -> routineModel(data, r)).toList());
 
         generate(data, options);

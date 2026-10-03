@@ -7,6 +7,7 @@
 package org.hivevm.waggle.codegen.rust;
 
 import org.hivevm.waggle.api.OptionsContext;
+import org.hivevm.waggle.codegen.ListModel;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.TreeModel;
@@ -38,9 +39,9 @@ public class RustTreeEmitter implements TreeEmitter {
 
     private void generateTreeConstants(Options context, TreeModel data) {
         var options = OptionsContext.of(context);
-        options.add("NODES", data.getNodeIds().size())
-                .set("LABEL", i -> data.getNodeIds().get(i))
-                .set("TITLE", i -> data.getNodeNames().get(i));
+        options.set("NODES", ListModel.numbered(data.getNodeIds(), name -> name));
+        options.set("NODE_NAMES", ListModel.names(data.getNodeNames()));
+        options.set("NODE_COUNT", data.getNodeIds().size());
 
         RustTemplate.TREE_CONSTANTS.render(options);
     }

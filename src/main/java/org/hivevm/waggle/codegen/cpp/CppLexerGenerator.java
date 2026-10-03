@@ -12,6 +12,7 @@ import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Language;
 import org.hivevm.waggle.codegen.LexerGenerator;
 import org.hivevm.waggle.codegen.StringLiteralDfaEmitter;
+import org.hivevm.waggle.codegen.ListModel;
 import org.hivevm.waggle.lexer.LexerData;
 import org.hivevm.waggle.lexer.LexerPlan.Handoff;
 import org.hivevm.waggle.lexer.LexerPlan.LexStatePlan;
@@ -37,19 +38,14 @@ class CppLexerGenerator extends LexerGenerator {
         options.set("HAS_SKIP_ACTIONS", shape.skipActions());
         options.set("HAS_TOKEN_ACTIONS", shape.tokenActions());
         // Only C++ walks the lexical states, for the table of their names.
-        options.add("MAX_LEX_STATES", shape.lexStates())
-                .set("MAX_LEX_STATES_INDEX", i -> i);
-        options.add("STATE_NAMES_AS_CHARS", shape.lexStates())
-                .set("STATE_NAMES_AS_CHARS_INDEX", i -> i)
-                .set("STATE_NAMES_AS_CHARS_CHARS",
-                        i -> CppChars.of(shape.stateNames().get(i)));
+        options.set("STATE_NAMES_AS_CHARS", ListModel.numbered(shape.stateNames(), CppChars::of));
         options.set("LITERAL_IMAGE_COUNT", shape.images().size());
-        options.add("LITERAL_IMAGE_ROWS", literalChars(shape.images()));
-        options.add("LITERAL_IMAGE_REFS", IntStream.range(0, shape.images().size())
+        options.set("LITERAL_IMAGE_ROWS", literalChars(shape.images()));
+        options.set("LITERAL_IMAGE_REFS", IntStream.range(0, shape.images().size())
                 .mapToObj(CppDebugTables.LiteralRef::new).toList());
-        options.add("STATES_FOR_STATE_CPP", List.of(statesForState(data.plan().tables())));
-        options.add("KIND_FOR_STATE_CPP", List.of(kindForState(data.plan().tables())));
-        options.add("STATE_DECLS", data.plan().states().stream().map(this::stateDecls).toList());
+        options.set("STATES_FOR_STATE_CPP", List.of(statesForState(data.plan().tables())));
+        options.set("KIND_FOR_STATE_CPP", List.of(kindForState(data.plan().tables())));
+        options.set("STATE_DECLS", data.plan().states().stream().map(this::stateDecls).toList());
 
         CppTemplate.LEXER.render(options, data.getParserName());
         CppTemplate.LEXER_H.render(options, data.getParserName());

@@ -8,6 +8,7 @@ package org.hivevm.waggle.codegen.java;
 
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.waggle.api.Waggle;
+import org.hivevm.waggle.codegen.ListModel;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.TreeModel;
@@ -37,11 +38,8 @@ public class JavaTreeEmitter implements TreeEmitter {
 
     private void generateTreeConstants(Options context, TreeModel data) {
         var options = OptionsContext.of(context);
-        options.add("NODE_NAMES", data.getNodeNames())
-                .set("NODE_NAMES_TITLE", i -> i);
-        options.add("NODES", data.getNodeIds().size())
-                .set("NODES_ORDINAL", i -> i)
-                .set("NODES_LABEL", i -> data.getNodeIds().get(i));
+        options.set("NODE_NAMES", ListModel.names(data.getNodeNames()));
+        options.set("NODES", ListModel.numbered(data.getNodeIds(), name -> name));
 
         JavaTemplate.NODETYPE.render(options);
     }
@@ -53,7 +51,7 @@ public class JavaTreeEmitter implements TreeEmitter {
 
         var options = OptionsContext.of(context);
         JavaTreeEmitter.applyVisitorTypes(options, tree);
-        options.add("NODES", data.visitedNodeNames()).set("NODES_NAME", i -> i);
+        options.set("NODES", ListModel.names(data.visitedNodeNames()));
         options.set(JavaTreeEmitter.VISITOR_RETURN_VALUE,
                 JavaTreeEmitter.returnValue(tree.visitorReturn(),
                         JavaTreeEmitter.visitorDataType(tree)));

@@ -6,11 +6,11 @@ package org.hivevm.source;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * A render context that overlays key-value bindings on an underlying {@link RenderContext}. Values
- * can be bound directly, as suppliers, or as per-element mappers.
+ * are bound directly or as suppliers; a list that a template iterates is a list of records, whose
+ * components the template reads by name.
  *
  * <p>A caller may extend it to add its own view of the same names (ADR-0023); its behaviour is
  * fixed, so every method is final.
@@ -70,24 +70,6 @@ public class TemplateContext implements RenderContext {
 
     public final void set(String name, SourceSupplier supplier) {
         this.options.put(name, supplier);
-    }
-
-    public final <T> Qualifier<T> add(String name, T value) {
-        this.options.put(name, value);
-        return new Qualifier<>();
-    }
-
-    public final <T> Qualifier<T> add(String name, Iterable<T> value) {
-        this.options.put(name, value);
-        return new Qualifier<>();
-    }
-
-    public class Qualifier<T> {
-
-        public final Qualifier<T> set(String key, Function<T, Object> function) {
-            TemplateContext.this.options.put(key, function);
-            return this;
-        }
     }
 
     /** A value rendered as the text it supplies. */

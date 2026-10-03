@@ -10,6 +10,7 @@ package org.hivevm.waggle.codegen.cpp;
 import org.hivevm.waggle.api.OptionsContext;
 import org.hivevm.source.TemplateSet;
 import org.hivevm.waggle.api.Waggle;
+import org.hivevm.waggle.codegen.ListModel;
 import org.hivevm.waggle.tree.TreeEmitter;
 import org.hivevm.waggle.api.Options;
 import org.hivevm.waggle.tree.TreeModel;
@@ -55,12 +56,8 @@ public class CppTreeEmitter implements TreeEmitter {
 
     private void generateTreeConstants(Options context, TreeModel data) {
         var options = OptionsContext.of(context);
-        options.add("NODES", data.getNodeIds().size())
-                .set("ORDINAL", i -> i)
-                .set("LABEL", i -> data.getNodeIds().get(i));
-        options.add("NODE_NAMES", data.getNodeNames().size())
-                .set("ORDINAL", i -> i)
-                .set("CHARS", i -> CppChars.of(data.getNodeNames().get(i)));
+        options.set("NODES", ListModel.numbered(data.getNodeIds(), name -> name));
+        options.set("NODE_NAMES", ListModel.numbered(data.getNodeNames(), CppChars::of));
 
         CppTemplate.TREE_CONSTANTS.render(options, context.getParserName());
     }
@@ -72,7 +69,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
         var options = OptionsContext.of(context);
         CppTreeEmitter.applyVisitorTypes(options, tree);
-        options.add("NODES", data.visitedNodeNames()).set("NODES_TYPE", n -> "AST" + n);
+        options.set("NODES", ListModel.names(data.visitedNodeNames()));
 
         CppTemplate.VISITOR.render(options, context.getParserName());
     }
@@ -108,7 +105,7 @@ public class CppTreeEmitter implements TreeEmitter {
 
     private void generateOneTreeInterface(Options context, Set<String> nodesToGenerate) {
         var optionMap = OptionsContext.of(context);
-        optionMap.add("NODES", nodesToGenerate).set("NODES_NAME", v -> v);
+        optionMap.set("NODES", ListModel.names(nodesToGenerate));
 
         CppTemplate.TREE_ONE.render(optionMap, context.getParserName());
     }

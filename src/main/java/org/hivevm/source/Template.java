@@ -6,6 +6,7 @@ package org.hivevm.source;
 import org.hivevm.core.Environment;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -36,11 +37,12 @@ public class Template {
      * Resolves a directive name. An unknown one (e.g. "//@endif", which this engine does not know —
      * it uses "//@fi") used to surface as a bare IllegalArgumentException from valueOf.
      */
-    private static Function parse(String template, String name) {
+    private static Function parse(String template, int line, String name) {
         try {
             return Function.valueOf(name);
         } catch (IllegalArgumentException e) {
-            throw new TemplateException(template + ": unknown directive '//@" + name.toLowerCase(Locale.ROOT)
+            throw new TemplateException(template + ":" + line + ": unknown directive '//@"
+                    + name.toLowerCase(Locale.ROOT)
                     + "' — known are: if, elif, else, fi, foreach, end, invoke, apply");
         }
     }
@@ -62,16 +64,30 @@ public class Template {
     /**
      * Returns the parameter of a directive that requires one.
      */
-    private static String require(String template, String name, String param) {
+    private static String require(String template, int line, String name, String param) {
         if (param == null) {
-            throw new TemplateException(
-                    template + ": //@" + name.toLowerCase(Locale.ROOT) + " requires a parameter");
+            throw new TemplateException(template + ":" + line + ": //@"
+                    + name.toLowerCase(Locale.ROOT) + " requires a parameter");
         }
         return param;
     }
 
+    /**
+     * A name a template refers to.
+     *
+     * @param directive {@code placeholder}, {@code invoke}, {@code if}, {@code elif},
+     *                  {@code foreach} or {@code apply}; a condition is named without its negation
+     * @param name      the name
+     * @param line      the line it is written on
+     * @param list      the list of the innermost {@code //@foreach} it sits in, whose element
+     *                  answers it first, or {@code null}
+     */
+    public record Reference(String directive, String name, int line, String list) {
+    }
+
     /** The parsed template; it depends on the text alone, so it is built once. */
     private final Renderer renderer;
+    private final List<Reference> references;
 
     /**
      * Parses the UTF-8 template {@code bytes}; {@code name}, usually its resource path, names it in
@@ -86,7 +102,17 @@ public class Template {
      * {@link TemplateException}.
      */
     public Template(String name, String text) {
-        this.renderer = Template.build(name, text.replace("\r", ""));
+        var builder = Template.build(name, text.replace("\r", ""));
+        this.renderer = builder.build();
+        this.references = builder.references();
+    }
+
+    /**
+     * The names this template refers to, in the order it does. A test can check them against the
+     * record the template renders, before any grammar is generated.
+     */
+    public final List<Reference> references() {
+        return this.references;
     }
 
     /**
@@ -131,16 +157,21 @@ public class Template {
      * Builds the renderer tree. It used to be rebuilt on every render, so a template rendered once
      * per node type was re-parsed each time.
      */
-    @SuppressWarnings("fallthrough")
-    private static Renderer build(String name, String text) {
+    private static RendererBuilder build(String name, String text) {
         var builder = new RendererBuilder(name);
 
         var offset = 0;
+        var line = 1;
         var matcher = Template.STATEMENT.matcher(text);
         while (matcher.find()) {
             if (matcher.start() > offset) {
+                builder.at(line);
                 builder.addText(text.substring(offset, matcher.start()));
+                line += Template.lines(text, offset, matcher.start());
             }
+            var at = line;
+            builder.at(at);
+            line += Template.lines(text, matcher.start(), matcher.end());
             offset = matcher.end();
 
             if (matcher.group(4) != null) {
@@ -151,57 +182,42 @@ public class Template {
             var isFunc = matcher.group(5) == null;
             var func = isFunc ? matcher.group(2).toUpperCase(Locale.ROOT) : "VAR";
             var param = matcher.group(isFunc ? 3 : 5);
-            switch (Template.parse(name, func)) {
-                case IF:
-                    builder.addMatch(Template.require(name, func, param));
-                    break;
-
-                case ELIF:
-                    builder.addCase(Template.require(name, func, param));
-                    break;
-
-                case ELSE:
-                    builder.addCase(param);
-                    break;
-
-                // //@if pushes two renderers - the match and the list of its first case -
-                // so closing one pops twice, which is //@end's single pop plus one.
-                case FI:
-                    builder.pop();
-                    // fall through
-                case END:
-                    builder.pop();
-                    break;
-
-                case FOREACH:
-                    builder.addForeach(param);
-                    break;
-
-                case VAR:
-                    builder.addVar(param);
-                    break;
-
-                case INVOKE:
-                    var intend = matcher.group(1).length();
-                    builder.setIntend(intend);
-                    builder.addVar(param);
-                    builder.setIntend(-intend);
-                    break;
-
-                case APPLY:
-                    var applyIntend = matcher.group(1).length();
-                    builder.setIntend(applyIntend);
-                    builder.addApply(Template.require(name, func, param), Template.applyBase(name));
-                    builder.setIntend(-applyIntend);
-                    break;
-
-                default:
+            switch (Template.parse(name, at, func)) {
+                case IF -> builder.addIf(Template.require(name, at, func, param));
+                case ELIF -> builder.addBranch(Template.require(name, at, func, param));
+                case ELSE -> builder.addBranch(null);
+                case FI -> builder.close("if");
+                case END -> builder.close("foreach");
+                case FOREACH -> builder.addForeach(Template.require(name, at, func, param));
+                case VAR -> builder.addVar("placeholder", param);
+                case INVOKE -> {
+                    var indent = matcher.group(1).length();
+                    builder.addIndent(indent);
+                    builder.addVar("invoke", Template.require(name, at, func, param));
+                    builder.addIndent(-indent);
+                }
+                case APPLY -> {
+                    var indent = matcher.group(1).length();
+                    builder.addIndent(indent);
+                    builder.addApply(Template.require(name, at, func, param), Template.applyBase(name));
+                    builder.addIndent(-indent);
+                }
             }
         }
 
         if (offset < text.length()) {
+            builder.at(line);
             builder.addText(text.substring(offset));
         }
-        return builder.build();
+        return builder;
+    }
+
+    /** How many line breaks {@code text} holds from {@code start} to {@code end}. */
+    private static int lines(String text, int start, int end) {
+        var count = 0;
+        for (var i = text.indexOf('\n', start); (i >= 0) && (i < end); i = text.indexOf('\n', i + 1)) {
+            count++;
+        }
+        return count;
     }
 }
